@@ -88,10 +88,11 @@ def all_events():
     filters = {}
     category = request.args.get("category")
     month = request.args.get("month")
+    year = request.args.get("year")
     if category not in ["All", None]:
         filters["category"] = category
     if month not in ["All", None]:
-        month_start, month_end = get_month_date_range(month)
+        month_start, month_end = get_month_date_range(month, year)
         filters["date"] = { "$gte": month_start, "$lte": month_end}
     events = get_all_data(events_db, filters)
     events_total = sum(event["amount"] for event in events)

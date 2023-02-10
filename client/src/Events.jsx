@@ -3,6 +3,7 @@ import { Table } from "react-bootstrap";
 import Event from "./Event";
 import CategoryFilter from "./CategoryFilter";
 import MonthFilter from "./MonthFilter";
+import YearFilter from "./YearFilter";
 import axios from "axios";
 
 export default function Events() {
@@ -11,19 +12,21 @@ export default function Events() {
     const [total, setTotal] = useState(0)
     const [category, setCategory] = useState("All")
     const [month, setMonth] = useState("All")
+    const [year, setYear] = useState("2023")
 
     useEffect(() => {
         var REACT_APP_API_ENDPOINT = String(process.env.REACT_APP_API_ENDPOINT);
         axios.get(`${REACT_APP_API_ENDPOINT}api/events`, { params: {
             "category": category,
-            "month": month
+            "month": month,
+            "year": year
         }})
         .then(response => {
             setEvents(response.data.data)
             setTotal(response.data.total)
         })
         .catch(error => console.log(error));
-    }, [month, category])
+    }, [month, year, category])
 
     return(
         <div>
@@ -31,6 +34,7 @@ export default function Events() {
             <p>Total: ${total}</p>
             <CategoryFilter category={category} setCategory={setCategory} />
             <MonthFilter month={month} setMonth={setMonth} />
+            <YearFilter year={year} setYear={setYear} />
             {events && 
             <Table striped bordered hover>
                 <thead>

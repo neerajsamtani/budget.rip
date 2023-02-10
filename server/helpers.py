@@ -53,10 +53,7 @@ def get_venmo_access_token(venmo_username: str, venmo_password: str) -> str:
 def flip_amount(amount: float) -> float:
     return -1 * float(amount)
 
-def get_month_date_range(month_name = "December", year = "2022"):
-    # TODO: Remove this hack and deal with year properly
-    if month_name == "January":
-        year = "2023"
+def get_month_date_range(month_name = "February", year = "2023"):
     start_date = datetime.strptime(f"{month_name} {year}", '%B %Y')
     next_month = start_date.replace(day=28) + timedelta(days=4)
     end_date = next_month - timedelta(days=next_month.day) + timedelta(hours=23, minutes=59, seconds=59)
