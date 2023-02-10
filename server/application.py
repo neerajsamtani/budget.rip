@@ -2,7 +2,6 @@ import os
 from dotenv import load_dotenv
 from splitwise import Splitwise
 from venmo_api import Client
-import logging
 from flask import Flask, jsonify, request
 import json
 import requests
@@ -39,8 +38,18 @@ load_dotenv()
 @application.route('/api/')
 @cross_origin()
 def index():
-    application.logger.info("You Hit Index")
-    return jsonify('Welcome to Budgit')
+    application.logger.info("You Hit API Index")
+    return jsonify('Welcome to Budgit API')
+
+@application.route('/api/all')
+@cross_origin()
+def all():
+    filters = {}
+    filters["event_id"] = { "$exists": False}
+    line_items = get_all_data(line_items_db, filters)
+    line_items_total = sum(line_item["amount"] for line_item in line_items)
+    line_items = sort_by_date(line_items)
+    return jsonify({"total":line_items_total, "data": line_items})
 
 @application.route('/api/line_items')
 @cross_origin()
@@ -52,20 +61,90 @@ def all_line_items():
         filters["payment_method"] = payment_method
 
     line_items = get_all_data(line_items_db, filters)
-    line_items_total = 0
-    for line_item in line_items:
-        line_items_total = line_items_total + line_item["amount"]
+    line_items_total = sum(line_item["amount"] for line_item in line_items)
     return jsonify({"total":line_items_total, "data": line_items})
+
+@application.route('/api/line_items/<line_item_id>')
+@cross_origin()
+def get_line_item(line_item_id):
+    line_item = get_item_by_id(line_items_db, line_item_id)
+    return jsonify(line_item)
 
 @application.route('/api/line_items_for_event/<event_id>')
 @cross_origin()
 def line_items_for_event(event_id):
     try:
-        event = get_event(event_id)
+        event = get_item_by_id(events_db, event_id)
         line_items = []
         for line_item_id in event["line_items"]:
-            line_items.append(get_line_item(line_item_id))
+            line_items.append(get_item_by_id(line_items_db, line_item_id))
         return jsonify({"data": line_items})
+    except Exception as e:
+        return jsonify(error=str(e)), 403
+
+@application.route('/api/events')
+@cross_origin()
+def all_events():
+    filters = {}
+    category = request.args.get("category")
+    month = request.args.get("month")
+    if category not in ["All", None]:
+        filters["category"] = category
+    if month not in ["All", None]:
+        month_start, month_end = get_month_date_range(month)
+        filters["date"] = { "$gte": month_start, "$lte": month_end}
+    events = get_all_data(events_db, filters)
+    events_total = sum(event["amount"] for event in events)
+    return jsonify({"total":events_total, "data": events})
+
+@application.route('/api/events/<event_id>')
+@cross_origin()
+def get_event(event_id):
+    event = get_item_by_id(events_db, event_id)
+    return jsonify(event)
+
+@application.route('/api/create_event', methods=['POST'])
+@cross_origin()
+def create_event():
+    # TODO: This should just be a POST to /api/events
+    new_event = request.json
+    if len(new_event["line_items"]) == 0:
+        return jsonify('Failed to Create Event: No Line Items Submitted')
+
+    filters = {}
+    filters["_id"] = { "$in": new_event["line_items"]}
+    line_items = get_all_data(line_items_db, filters)
+    earliest_line_item = min(line_items, key=lambda line_item: line_item["date"])
+
+    new_event["id"] = f"event{earliest_line_item['id'][9:]}"
+    if new_event["date"]:
+        new_event["date"] = html_date_to_posix(new_event["date"])
+    else:
+        new_event["date"] = earliest_line_item["date"]
+
+    if new_event["is_duplicate_transaction"]:
+        new_event["amount"] = line_items[0]["amount"]
+    else:
+        new_event["amount"] = sum(line_item["amount"] for line_item in line_items)
+
+    upsert_with_id(events_db, new_event, new_event["id"])
+    for line_item in line_items:
+        line_item["event_id"] = new_event["id"]
+        upsert(line_items_db, line_item)
+
+    return jsonify('Created Event')
+
+@application.route('/api/delete_event/<event_id>')
+@cross_origin()
+def delete_event(event_id):
+    # TODO: This should just be a delete to /api/events/<event_id>
+    try:
+        event = get_item_by_id(events_db, event_id)
+        line_item_ids = event["line_items"]
+        delete_from_db(events_db, event_id)
+        for line_item_id in line_item_ids:
+            remove_event_from_line_item(line_item_id)
+        return jsonify('Deleted Event')
     except Exception as e:
         return jsonify(error=str(e)), 403
 
@@ -110,83 +189,14 @@ def refresh_stripe():
         get_transactions(account["id"])
     return jsonify('Refreshed Stripe Connection')
 
-@application.route('/api/all')
-@cross_origin()
-def all():
-    # TODO: Cache total instead of calculating all the time
-    line_items = get_db_data(line_items_db, Payment_Method.ALL)
-    total = 0
-    for line_item in line_items:
-        total += line_item["amount"]
-    line_items = sort_by_date(line_items)
-    return jsonify({"total":total, "data": line_items})
-
-@application.route('/api/events')
-@cross_origin()
-def all_events():
-    filters = {}
-    category = request.args.get("category")
-    month = request.args.get("month")
-    if category != "All":
-        filters["category"] = category
-    if month != "All":
-        month_start, month_end = get_month_date_range(month)
-        filters["date"] = { "$gte": month_start, "$lte": month_end}
-    events = get_all_data(events_db, filters)
-    events_total = 0
-    for event in events:
-        events_total = events_total + event["amount"]
-    return jsonify({"total":events_total, "data": events})
-
 @application.route('/api/refresh_data')
 @cross_origin()
 def refresh_data():
     refresh_splitwise()
     refresh_venmo()
     refresh_stripe()
-    local_pipeline()
+    create_consistent_line_items()
     return jsonify('Refreshed Data')
-
-@application.route('/api/create_event', methods=['POST'])
-@cross_origin()
-def create_event():
-    new_event = request.json
-    if len(new_event["line_items"]) == 0:
-        return jsonify('Failed to Create Event: No Line Items Submitted')
-
-    line_items = get_line_items(new_event["line_items"])
-    earliest_line_item = min(line_items, key=lambda line_item: line_item["date"])
-
-    new_event["id"] = f"event{earliest_line_item['id'][9:]}"
-    if new_event["date"]:
-        new_event["date"] = html_date_to_posix(new_event["date"])
-    else:
-        new_event["date"] = earliest_line_item["date"]
-
-    if new_event["is_duplicate_transaction"]:
-        new_event["amount"] = line_items[0]["amount"]
-    else:
-        new_event["amount"] = sum(line_item["amount"] for line_item in line_items)
-
-    upsert_with_id(events_db, new_event, new_event["id"])
-    for line_item in line_items:
-        line_item["event_id"] = new_event["id"]
-        upsert(line_items_db, line_item)
-
-    return jsonify('Created Event')
-
-@application.route('/api/delete_event/<event_id>')
-@cross_origin()
-def delete_event(event_id):
-    try:
-        event = get_event(event_id)
-        line_item_ids = event["line_items"]
-        delete_from_db(events_db, event_id)
-        for line_item_id in line_item_ids:
-            remove_event_from_line_item(line_item_id)
-        return jsonify('Deleted Event')
-    except Exception as e:
-        return jsonify(error=str(e)), 403
 
 @application.route('/api/create_cash_transaction', methods=['POST'])
 @cross_origin()
@@ -305,9 +315,9 @@ def get_transactions(account_id):
 # TODO: Integrate everything with OAuth to enable other people to use this
 # https://blog.splitwise.com/2013/07/15/setting-up-oauth-for-the-splitwise-api/
 
-#################
-### SPLITWISE ###
-#################
+########################
+### CLEAN LINE ITEMS ###
+########################
 
 # TODO: Need to add webhooks for updates after the server has started
 
@@ -330,10 +340,6 @@ def splitwise_to_line_items():
             upsert(line_items_db, line_item)
             break
 
-#############
-### VENMO ###
-#############
-
 def venmo_to_line_items():
     payment_method = "Venmo"
     venmo_raw_data = get_all_data(venmo_raw_data_db)
@@ -354,20 +360,12 @@ def venmo_to_line_items():
             line_item = LineItem(f'line_item_{transaction["_id"]}', posix_date, other_name, payment_method, transaction["note"], flip_amount(transaction["amount"]))
         upsert(line_items_db, line_item)
 
-##############
-### STRIPE ###
-##############
-
 def stripe_to_line_items():
     payment_method = "Stripe"
     stripe_raw_data = get_all_data(stripe_raw_transaction_data_db)
     for transaction in stripe_raw_data:
         line_item = LineItem(f'line_item_{transaction["_id"]}', transaction["transacted_at"], transaction["description"], payment_method, transaction["description"], flip_amount(transaction["amount"]) / 100)
         upsert(line_items_db, line_item)
-
-############
-### CASH ###
-############
 
 def cash_to_line_items():
     payment_method = "Cash"
@@ -376,31 +374,30 @@ def cash_to_line_items():
         line_item = LineItem(f'line_item_{transaction["_id"]}', transaction["date"], transaction["person"], payment_method, transaction["description"], transaction["amount"])
         upsert(line_items_db, line_item)
 
-##############
-### EVENTS ###
-##############
-
-def add_events_to_line_items():
+def add_event_ids_to_line_items():
     events = get_all_data(events_db)
     for event in events:
-        line_items = get_line_items(event["line_items"])
+
+        filters = {}
+        filters["_id"] = { "$in": event["line_items"]}
+        line_items = get_all_data(line_items_db, filters)
+
         for line_item in line_items:
             line_item["event_id"] = event["id"]
             upsert(line_items_db, line_item)
 
-def local_pipeline():
-    # Run Connections
+def create_consistent_line_items():
     splitwise_to_line_items()
     venmo_to_line_items()
     stripe_to_line_items()
-    add_events_to_line_items()
+    cash_to_line_items()
+    add_event_ids_to_line_items()
 
 # main driver function
 if __name__ == '__main__':
     # run() method of Flask class runs the application
     # on the local development server.
-    # TODO: Enable local pipeline
-    local_pipeline()
+    create_consistent_line_items()
     # TODO: Disable debugging
     application.config['CORS_HEADERS'] = 'Content-Type'
     application.config['ENV'] = 'development'
