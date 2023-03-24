@@ -87,16 +87,30 @@ def line_items_for_event(event_id):
 def all_events():
     filters = {}
     category = request.args.get("category")
-    month = request.args.get("month")
-    year = request.args.get("year")
+    start_time = float(request.args.get("start_time"))
+    end_time = float(request.args.get("end_time"))
+    filters["date"] = { "$gte": start_time, "$lte": end_time}
     if category not in ["All", None]:
         filters["category"] = category
-    if month not in ["All", None]:
-        month_start, month_end = get_month_date_range(month, year)
-        filters["date"] = { "$gte": month_start, "$lte": month_end}
     events = get_all_data(events_db, filters)
     events_total = sum(event["amount"] for event in events)
     return jsonify({"total":events_total, "data": events})
+
+# @application.route('/api/monthly_breakdown')
+# @cross_origin()
+# def monthly_breakdown():
+#     filters = {}
+#     category = request.args.get("category")
+#     month = "January"
+#     year = "2023"
+#     if category not in ["All", None]:
+#         filters["category"] = category
+#     if month not in ["All", None]:
+#         month_start, month_end = get_month_date_range(month, year)
+#         filters["date"] = { "$gte": month_start, "$lte": month_end}
+#     events = get_all_data(events_db, filters)
+#     events_total = sum(event["amount"] for event in events)
+#     return jsonify({"total":events_total, "data": events})
 
 @application.route('/api/events/<event_id>')
 @cross_origin()

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Table } from "react-bootstrap";
+import { DateTime } from "luxon";
 import Event from "./Event";
 import CategoryFilter from "./CategoryFilter";
 import MonthFilter from "./MonthFilter";
@@ -16,10 +17,18 @@ export default function Events() {
 
     useEffect(() => {
         var REACT_APP_API_ENDPOINT = String(process.env.REACT_APP_API_ENDPOINT);
+        var start_time, end_time;
+        if (month !== "All") {
+            start_time = DateTime.fromFormat(`${month} ${year}`, "LLLL yyyy")
+            end_time = start_time.endOf("month")
+        } else {
+            start_time = DateTime.fromFormat(`${year}`, "yyyy")
+            end_time = start_time.endOf("year")
+        }
         axios.get(`${REACT_APP_API_ENDPOINT}api/events`, { params: {
             "category": category,
-            "month": month,
-            "year": year
+            "start_time": start_time.toUnixInteger(),
+            "end_time": end_time.toUnixInteger()
         }})
         .then(response => {
             setEvents(response.data.data)
@@ -28,10 +37,23 @@ export default function Events() {
         .catch(error => console.log(error));
     }, [month, year, category])
 
+    const calculateSpending = (events) => {
+        var sum = 0;
+        if (events.length > 0) {
+            events.forEach((e) => {
+                if (e["category"] !== "Income" &&  e["category"] !== "Rent") {
+                    sum += e["amount"]
+                }
+            });
+        }
+        return sum;
+    }
+
     return(
         <div>
             <h1>Events</h1>
-            <p>Total: ${total}</p>
+            <p>Total Leftover: ${total}</p>
+            <p>Spending without Rent: ${calculateSpending(events)}</p>
             <CategoryFilter category={category} setCategory={setCategory} />
             <MonthFilter month={month} setMonth={setMonth} />
             <YearFilter year={year} setYear={setYear} />
