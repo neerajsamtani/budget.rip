@@ -30,8 +30,8 @@ npm start
 ~~~
 
 TODO:
-- Stripe connect new accounts so I can add BofA (Deadline Feb 6)
 - Deploy Online
+- Fix Leaky Abstraction of DB Filters
 
 - Graphs
 - All Page is diff from create events page

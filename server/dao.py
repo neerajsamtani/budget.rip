@@ -8,8 +8,8 @@ from helpers import to_dict
 import mongomock
 
 # TODO: Stop using mock dao
-client = mongomock.MongoClient('localhost', 27017)
-# client = MongoClient('localhost', 27017)
+# client = mongomock.MongoClient('localhost', 27017)
+client = MongoClient('localhost', 27017)
 db = client.flask_db
 venmo_raw_data_db = db.venmo_raw_data
 splitwise_raw_data_db = db.splitwise_raw_data
@@ -43,3 +43,55 @@ def upsert(cur_db: Collection, item):
 def upsert_with_id(cur_db: Collection, item, id: int):
     item['_id'] =  item["id"]
     cur_db.replace_one({'_id': id}, item, upsert=True)
+
+def get_categorized_data():
+    """
+    Group totalExpense by month, year, and category
+    """
+    query_result = events_db.aggregate([
+        {
+            '$addFields': {
+                'date': {
+                    '$toDate': {
+                        '$multiply': [
+                            '$date', 1000
+                        ]
+                    }
+                }
+            }
+        }, {
+            '$group': {
+                '_id': {
+                    'year': {
+                        '$year': '$date'
+                    }, 
+                    'month': {
+                        '$month': '$date'
+                    }, 
+                    'category': '$category'
+                }, 
+                'totalExpense': {
+                    '$sum': '$amount'
+                }
+            }
+        }, {
+            '$project': {
+                '_id': 0, 
+                'year': '$_id.year', 
+                'month': '$_id.month', 
+                'category': '$_id.category', 
+                'totalExpense': 1
+            }
+        }, {
+            '$sort': {
+                'year': 1, 
+                'month': 1, 
+                'category': 1
+            }
+        }
+    ])
+
+    response = []
+    for document in query_result:
+        response.append(dict(document))
+    return response

@@ -4,6 +4,9 @@ from venmo_api import Client
 from line_item import LineItem
 import json
 
+def empty_list():
+    return []
+
 def to_dict(obj) -> Dict:
     return json.loads(json.dumps(obj, default=lambda o: o.__dict__))
 

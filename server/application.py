@@ -1,5 +1,6 @@
 import os
 from dotenv import load_dotenv
+from collections import defaultdict
 from splitwise import Splitwise
 from venmo_api import Client
 from flask import Flask, jsonify, request
@@ -96,21 +97,27 @@ def all_events():
     events_total = sum(event["amount"] for event in events)
     return jsonify({"total":events_total, "data": events})
 
-# @application.route('/api/monthly_breakdown')
-# @cross_origin()
-# def monthly_breakdown():
-#     filters = {}
-#     category = request.args.get("category")
-#     month = "January"
-#     year = "2023"
-#     if category not in ["All", None]:
-#         filters["category"] = category
-#     if month not in ["All", None]:
-#         month_start, month_end = get_month_date_range(month, year)
-#         filters["date"] = { "$gte": month_start, "$lte": month_end}
-#     events = get_all_data(events_db, filters)
-#     events_total = sum(event["amount"] for event in events)
-#     return jsonify({"total":events_total, "data": events})
+@application.route('/api/monthly_breakdown')
+@cross_origin()
+def monthly_breakdown():
+    categorized_data = get_categorized_data()
+    categories = defaultdict(empty_list)
+    seen_dates = set()
+    for row in categorized_data:
+        category = row["category"]
+        formatted_date = f"{row['month']}-{row['year']}"
+        seen_dates.add(formatted_date)
+        categories[category].append({
+            "date": formatted_date,
+            "amount": row['totalExpense']
+        })
+    # Ensure no categories have missing dates
+    for category, info in categories.items():
+        unseen_dates = seen_dates.difference([x["date"] for x in info])
+        info.extend([{"date": x, "amount": 0.0} for x in unseen_dates])
+        info.sort(key= lambda x: datetime.strptime(x["date"], '%m-%Y').date())
+    return categories
+
 
 @application.route('/api/events/<event_id>')
 @cross_origin()

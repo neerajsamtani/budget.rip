@@ -10,6 +10,7 @@ import LineItems from "./LineItems";
 import All from "./All";
 import Stripe from "./Stripe";
 import Events from "./Events";
+import Graphs from "./Graphs";
 
 import Container from 'react-bootstrap/Container';
 import Nav from 'react-bootstrap/Nav';
@@ -51,6 +52,7 @@ export default function App() {
             <Link style={padding} to="/events">Events</Link>
             <Link style={padding} to="/line_items">Line Items</Link>
             <Link style={padding} to="/stripe">Stripe</Link>
+            <Link style={padding} to="/graphs">Graphs</Link>
             <Button onClick={handleRefreshData}>Refresh Data</Button>
           </Nav>
         </Navbar.Collapse>
@@ -62,6 +64,7 @@ export default function App() {
       <Route path="/events" element={<Events />} />
       <Route path="/line_items" element={<LineItems />} />
       <Route path="/stripe" element={<Stripe stripePromise={stripePromise}/>} />
+      <Route path="/graphs" element={<Graphs />} />
       </Routes>
     </Router>
   );
