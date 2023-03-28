@@ -15,7 +15,8 @@ import Graphs from "./Graphs";
 import Container from 'react-bootstrap/Container';
 import Nav from 'react-bootstrap/Nav';
 import Navbar from 'react-bootstrap/Navbar';
-import { Button } from "react-bootstrap";
+import { Button, Spinner } from "react-bootstrap";
+import { useState } from "react";
 
 // Make sure to call loadStripe outside of a component’s render to avoid
 // recreating the Stripe object on every render.
@@ -28,12 +29,15 @@ const stripePromise = loadStripe(STRIPE_PUBLIC_KEY);
 
 export default function App() {
 
+  const [loading, setLoading] = useState(false);
+
   const handleRefreshData = () => {
-          axios.get(`${REACT_APP_API_ENDPOINT}api/refresh_data`)
-          .then(response => {
-              alert(response.data);
-          })
-          .catch(error => console.log(error))
+    setLoading(true);
+    axios.get(`${REACT_APP_API_ENDPOINT}api/refresh_data`)
+    .then(response => {
+        setLoading(false);
+    })
+    .catch(error => console.log(error))
 }
 
   const padding = {
@@ -44,7 +48,7 @@ export default function App() {
     <Router>
       <Navbar bg="dark" variant="dark" expand="sm">
       <Container>
-        <Navbar.Brand href="#home">Budgit</Navbar.Brand>
+        <Navbar.Brand>Budgit</Navbar.Brand>
         <Navbar.Toggle aria-controls="basic-navbar-nav" />
         <Navbar.Collapse id="basic-navbar-nav">
           <Nav className="me-auto">
@@ -53,7 +57,20 @@ export default function App() {
             <Link style={padding} to="/line_items">Line Items</Link>
             <Link style={padding} to="/stripe">Stripe</Link>
             <Link style={padding} to="/graphs">Graphs</Link>
-            <Button onClick={handleRefreshData}>Refresh Data</Button>
+            <Button onClick={handleRefreshData}>
+              {
+                loading ?
+                  <Spinner
+                    as="span"
+                    animation="border"
+                    size="sm"
+                    role="status"
+                    aria-hidden="true"
+                  />
+                :
+                <>Refresh Data</>
+              }
+            </Button>
           </Nav>
         </Navbar.Collapse>
       </Container>

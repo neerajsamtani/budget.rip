@@ -33,7 +33,6 @@ TODO:
 - Deploy Online
 - Fix Leaky Abstraction of DB Filters
 
-- Graphs
 - All Page is diff from create events page
 - Null out Payments? Do I need this
 - On server start, loop through all events and ensure the line_items have the event_id attached

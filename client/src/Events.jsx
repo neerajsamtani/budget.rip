@@ -9,11 +9,13 @@ import axios from "axios";
 
 export default function Events() {
 
+    const now = DateTime.now()
+
     const [events, setEvents] = useState([])
     const [total, setTotal] = useState(0)
     const [category, setCategory] = useState("All")
-    const [month, setMonth] = useState("All")
-    const [year, setYear] = useState("2023")
+    const [month, setMonth] = useState(now.monthLong)
+    const [year, setYear] = useState(now.year)
 
     useEffect(() => {
         var REACT_APP_API_ENDPOINT = String(process.env.REACT_APP_API_ENDPOINT);

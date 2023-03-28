@@ -9,7 +9,6 @@ export default function All() {
 
     const [lineItems, setLineItems] = useState([])
     const [selectedLineItems, setSelectedLineItems] = useState([])
-    const [total, setTotal] = useState(0)
     const [eventModalShow, setEventModalShow] = useState(false);
     const [cashModalShow, setCashModalShow] = useState(false);
 
@@ -18,20 +17,13 @@ export default function All() {
         axios.get(`${REACT_APP_API_ENDPOINT}api/all`)
         .then(response => {
             setLineItems(response.data.data)
-            setTotal(response.data.total)
         })
         .catch(error => console.log(error));
     }, [])
 
     return(
         <div>
-            <h1>All Transactions</h1>
-            <p>Total: ${total}</p>
-            <Button onClick={() => setCashModalShow(true)} variant="primary">Create Cash Transaction</Button>
-            <CreateCashTransactionModal
-                show={cashModalShow}
-                onHide={() => setCashModalShow(false)}
-            />
+            <h1>Pending Transactions</h1>
             {lineItems && 
             <Table striped bordered hover>
                 <thead>
@@ -53,7 +45,14 @@ export default function All() {
             }
             <div className="fixed-bottom">  
                 <Navbar color="dark" className="justify-content-end">
-                        <NavbarBrand>
+                    <NavbarBrand>
+                        <Button onClick={() => setCashModalShow(true)} variant="primary">Create Cash Transaction</Button>
+                        <CreateCashTransactionModal
+                            show={cashModalShow}
+                            onHide={() => setCashModalShow(false)}
+                        />
+                    </NavbarBrand>
+                    <NavbarBrand>
                         <Button onClick={() => setEventModalShow(true)} variant="primary">Create Event</Button>
                         <CreateEventModal
                             show={eventModalShow}
@@ -61,7 +60,7 @@ export default function All() {
                             setSelectedLineItems={setSelectedLineItems}
                             onHide={() => setEventModalShow(false)}
                         />
-                        </NavbarBrand>
+                    </NavbarBrand>
                 </Navbar>
             </div>
         </div>
