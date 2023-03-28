@@ -1,4 +1,5 @@
 import React from 'react';
+import { Form, InputGroup } from 'react-bootstrap';
 
 export default function MonthFilter({month, setMonth}) {
 
@@ -7,9 +8,11 @@ export default function MonthFilter({month, setMonth}) {
   }
 
   return (
-    <form>
-      <label>Month</label>
-          <select value={month} onChange={handleMonthChange}>
+    <>
+    <InputGroup>
+        <InputGroup.Text>Month</InputGroup.Text>
+        <Form.Group controlId="exampleForm.SelectCustom">
+          <Form.Select value={month} onChange={handleMonthChange}>
             <option value="January">January</option>
             <option value="February">February</option>
             <option value="March">March</option>
@@ -23,7 +26,9 @@ export default function MonthFilter({month, setMonth}) {
             <option value="November">November</option>
             <option value="December">December</option>
             <option value="All">All</option>
-          </select>
-      </form>
+          </Form.Select>
+        </Form.Group>
+      </InputGroup>
+    </>
   );
 }

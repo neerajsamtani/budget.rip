@@ -41,7 +41,9 @@ export default function App() {
 }
 
   const padding = {
-    padding: 5
+    padding: 20,
+    color: "white",
+    textDecoration: "none"
   }
 
   return (
@@ -57,7 +59,9 @@ export default function App() {
             <Link style={padding} to="/line_items">Line Items</Link>
             <Link style={padding} to="/stripe">Stripe</Link>
             <Link style={padding} to="/graphs">Graphs</Link>
-            <Button onClick={handleRefreshData}>
+          </Nav>
+          <Nav>
+          <Button onClick={handleRefreshData}>
               {
                 loading ?
                   <Spinner

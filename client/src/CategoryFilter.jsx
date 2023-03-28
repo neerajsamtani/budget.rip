@@ -1,4 +1,5 @@
 import React from 'react';
+import { Form, InputGroup } from 'react-bootstrap';
 
 export default function CategoryFilter({category, setCategory}) {
 
@@ -7,10 +8,12 @@ export default function CategoryFilter({category, setCategory}) {
   }
 
   return (
-    <form>
-      <label>Category</label>
-          <select value={category} onChange={handleCategoryChange}>
-            <option value="All">All</option>
+      <>
+      <InputGroup>
+      <InputGroup.Text>Category</InputGroup.Text>
+        <Form.Group controlId="exampleForm.SelectCustom">
+        <Form.Select value={category} onChange={handleCategoryChange}>
+        <option value="All">All</option>
             <option value="Alcohol">Alcohol</option>
             <option value="Dining">Dining</option>
             <option value="Entertainment">Entertainment</option>
@@ -23,7 +26,9 @@ export default function CategoryFilter({category, setCategory}) {
             <option value="Subscription">Subscription</option>
             <option value="Transit">Transit</option>
             <option value="Travel">Travel</option>
-          </select>
-      </form>
+        </Form.Select>
+        </Form.Group>
+      </InputGroup>
+    </>
   );
 }

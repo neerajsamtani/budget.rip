@@ -1,4 +1,5 @@
 import React from 'react';
+import { Form, InputGroup } from 'react-bootstrap';
 
 export default function PaymentMethodFilter({paymentMethod, setPaymentMethod}) {
 
@@ -7,17 +8,21 @@ export default function PaymentMethodFilter({paymentMethod, setPaymentMethod}) {
   }
 
   return (
-    <form>
-      <label>Payment Method</label>
-      <select value={paymentMethod} onChange={handlePaymentMethodChange}>
-        <option value="All">All</option>
-        <option value="Checking">Checking</option>
+    <>
+    <InputGroup>
+    <InputGroup.Text>Payment Method</InputGroup.Text>
+      <Form.Group controlId="exampleForm.SelectCustom">
+      <Form.Select value={paymentMethod} onChange={handlePaymentMethodChange}>
+      <option value="All">All</option>
+        {/* <option value="Checking">Checking</option>
         <option value="Credit">Credit</option>
-        <option value="Savings">Savings</option>
+        <option value="Savings">Savings</option> */}
         <option value="Splitwise">Splitwise</option>
         <option value="Stripe">Stripe</option>
         <option value="Venmo">Venmo</option>
-      </select>
-      </form>
+      </Form.Select>
+      </Form.Group>
+    </InputGroup>
+  </>
   );
 }

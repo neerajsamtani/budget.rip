@@ -29,6 +29,8 @@ const layout = {
   barmode: 'relative',
   xaxis: { title: 'Date' },
   yaxis: { title: 'Amount' },
+  width: 1000,
+  height: 600
 };
 
 

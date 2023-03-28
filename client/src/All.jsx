@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { Table, Navbar, NavbarBrand, Button } from "react-bootstrap";
+import { Table, Navbar, NavbarBrand, Button, Nav } from "react-bootstrap";
 import LineItem from "./LineItem";
 import CreateEventModal from "./CreateEventModal";
 import CreateCashTransactionModal from "./CreateCashTransactionModal";
@@ -20,6 +20,10 @@ export default function All() {
         })
         .catch(error => console.log(error));
     }, [])
+
+    const padding = {
+        padding: 5
+      }
 
     return(
         <div>
@@ -45,14 +49,14 @@ export default function All() {
             }
             <div className="fixed-bottom">  
                 <Navbar color="dark" className="justify-content-end">
-                    <NavbarBrand>
+                    <Nav.Item style={padding}>
                         <Button onClick={() => setCashModalShow(true)} variant="primary">Create Cash Transaction</Button>
                         <CreateCashTransactionModal
                             show={cashModalShow}
                             onHide={() => setCashModalShow(false)}
                         />
-                    </NavbarBrand>
-                    <NavbarBrand>
+                    </Nav.Item>
+                    <Nav.Item style={padding}>
                         <Button onClick={() => setEventModalShow(true)} variant="primary">Create Event</Button>
                         <CreateEventModal
                             show={eventModalShow}
@@ -60,7 +64,7 @@ export default function All() {
                             setSelectedLineItems={setSelectedLineItems}
                             onHide={() => setEventModalShow(false)}
                         />
-                    </NavbarBrand>
+                    </Nav.Item>
                 </Navbar>
             </div>
         </div>

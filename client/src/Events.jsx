@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Table } from "react-bootstrap";
+import { Table, Form, Row, Col, InputGroup, Button } from "react-bootstrap";
 import { DateTime } from "luxon";
 import Event from "./Event";
 import CategoryFilter from "./CategoryFilter";
@@ -34,7 +34,7 @@ export default function Events() {
         }})
         .then(response => {
             setEvents(response.data.data)
-            setTotal(response.data.total)
+            setTotal(response.data.total.toFixed(2))
         })
         .catch(error => console.log(error));
     }, [month, year, category])
@@ -48,17 +48,37 @@ export default function Events() {
                 }
             });
         }
-        return sum;
+        return sum.toFixed(2);
     }
 
     return(
         <div>
             <h1>Events</h1>
-            <p>Total Leftover: ${total}</p>
-            <p>Spending without Rent: ${calculateSpending(events)}</p>
-            <CategoryFilter category={category} setCategory={setCategory} />
-            <MonthFilter month={month} setMonth={setMonth} />
-            <YearFilter year={year} setYear={setYear} />
+            <Form>
+                <Row>
+                    <Col>
+                        <CategoryFilter category={category} setCategory={setCategory} />
+                    </Col>
+                    <Col>
+                        <MonthFilter month={month} setMonth={setMonth} />
+                    </Col>
+                    <Col>
+                        <YearFilter year={year} setYear={setYear} />
+                    </Col>
+                    <Col>
+                        <InputGroup className="mb-3">
+                            <InputGroup.Text>Net Money Flow</InputGroup.Text>
+                            <InputGroup.Text>${total}</InputGroup.Text>
+                        </InputGroup>
+                    </Col>
+                    <Col>
+                        <InputGroup className="mb-3">
+                            <InputGroup.Text>Spending minus Rent</InputGroup.Text>
+                            <InputGroup.Text>${calculateSpending(events)}</InputGroup.Text>
+                        </InputGroup>
+                    </Col>
+                </Row>
+            </Form>
             {events && 
             <Table striped bordered hover>
                 <thead>
@@ -76,7 +96,6 @@ export default function Events() {
                 </tbody>
             </Table>
             }
-            {/* {events && JSON.stringify(events, null, 2)} */}
         </div>
     )
 }

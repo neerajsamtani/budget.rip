@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Table } from "react-bootstrap";
+import { Table, InputGroup } from "react-bootstrap";
 import LineItem from "./LineItem";
 import PaymentMethodFilter from "./PaymentMethodFilter";
 import axios from "axios";
@@ -17,7 +17,7 @@ export default function LineItems() {
         }})
         .then(response => {
             setLineItems(response.data.data)
-            setTotal(response.data.total)
+            setTotal(response.data.total.toFixed(2))
         })
         .catch(error => console.log(error));
     }, [paymentMethod])
@@ -25,8 +25,11 @@ export default function LineItems() {
     return(
         <div>
             <h1>Line Items</h1>
-            <p>Total: ${total}</p>
             <PaymentMethodFilter paymentMethod={paymentMethod} setPaymentMethod={setPaymentMethod} />
+            <InputGroup className="mb-3">
+                <InputGroup.Text>Total</InputGroup.Text>
+                <InputGroup.Text>${total}</InputGroup.Text>
+            </InputGroup>
             {lineItems && 
             <Table striped bordered hover>
                 <thead>
