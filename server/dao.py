@@ -1,15 +1,15 @@
-from typing import Collection, List, Dict
-from pymongo import MongoClient
-from bson.objectid import ObjectId
-from pymongo.typings import _DocumentType
-from constants import *
-from line_item import LineItem
-from helpers import to_dict
+from typing import Collection, List
+
 import mongomock
+from pymongo import MongoClient
+from pymongo.typings import _DocumentType
+from constants import MONGODB_URI
+
+from helpers import to_dict
 
 # TODO: Stop using mock dao
-# client = mongomock.MongoClient('localhost', 27017)
-client = MongoClient("localhost", 27017)
+# client = mongomock.MongoClient(MONGODB_URI, 27017)
+client = MongoClient(MONGODB_URI, 27017)
 db = client.flask_db
 venmo_raw_data_db = db.venmo_raw_data
 splitwise_raw_data_db = db.splitwise_raw_data
