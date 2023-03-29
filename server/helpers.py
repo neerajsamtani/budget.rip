@@ -45,12 +45,14 @@ def iso_8601_to_posix(date: str) -> float:
     # TODO: Check if this handles timezones correctly
     posix_timestamp = -1
     try:
-        if re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}+\d{2}:\d{2}", date):
+        if re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\+\d{2}:\d{2}", date):
             dt = datetime.strptime(date[:-6], "%Y-%m-%dT%H:%M:%S")
             tz = datetime.strptime(date[-6:], "%z").utcoffset()
             posix_timestamp = (dt - tz).timestamp()
         elif re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z", date):
             posix_timestamp = datetime.fromisoformat(date[:10]).timestamp()
+        else:
+            raise ValueError
     except (TypeError, ValueError) as exc:
         raise ValueError("Invalid ISO 8601 format") from exc
     return posix_timestamp
