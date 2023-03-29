@@ -20,8 +20,6 @@ application = Flask(
 )
 cors = CORS(application)
 
-session = ""
-
 # If an environment variable is not found in the .env file,
 # load_dotenv will then search for a variable by the given name in the host environment.
 load_dotenv()

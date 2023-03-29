@@ -1,6 +1,8 @@
+import os
+
+import stripe
+
 from helpers import iso_8601_to_posix
-import stripe, os
-from enum import Enum
 
 # TODO: Better abstraction and handling of dates
 
@@ -12,11 +14,3 @@ PARTIES_TO_IGNORE = ["Pink Palace Babes", "Nyusha", "John Jonah"]
 STRIPE_API_KEY = os.getenv("STRIPE_LIVE_API_SECRET_KEY")
 stripe.api_key = STRIPE_API_KEY
 STRIPE_CUSTOMER_ID = os.getenv("STRIPE_CUSTOMER_ID")
-
-
-class Payment_Method(Enum):
-    INVALID = 1
-    ALL = 2
-    VENMO = 3
-    SPLITWISE = 4
-    STRIPE = 5
