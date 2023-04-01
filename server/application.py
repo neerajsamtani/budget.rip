@@ -85,17 +85,13 @@ def all_events():
     """
     Get All Events
     Filters:
-        - Category (optional)
         - Start Time
         - End Time
     """
     filters = {}
-    category = request.args.get("category")
     start_time = float(request.args.get("start_time"))
     end_time = float(request.args.get("end_time"))
     filters["date"] = {"$gte": start_time, "$lte": end_time}
-    if category not in ["All", None]:
-        filters["category"] = category
     events = get_all_data(events_db, filters)
     events_total = sum(event["amount"] for event in events)
     return jsonify({"total": events_total, "data": events})

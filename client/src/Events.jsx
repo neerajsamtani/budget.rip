@@ -9,6 +9,9 @@ import axios from "axios";
 
 export default function Events() {
 
+    // Events for the selected month and year are fetched from the DB
+    // Category filtering is done on the frontend
+
     const now = DateTime.now()
 
     const [events, setEvents] = useState([])
@@ -29,7 +32,6 @@ export default function Events() {
         }
         axios.get(`${REACT_APP_API_ENDPOINT}api/events`, {
             params: {
-                "category": category,
                 "start_time": start_time.toUnixInteger(),
                 "end_time": end_time.toUnixInteger()
             }
@@ -39,13 +41,15 @@ export default function Events() {
                 setTotal(response.data.total.toFixed(2))
             })
             .catch(error => console.log(error));
-    }, [month, year, category])
+    }, [month, year])
+
+    const matchCategory = (event) => category === "All" || category === event.category
 
     const calculateSpending = (events) => {
         var sum = 0;
         if (events.length > 0) {
             events.forEach((e) => {
-                if (e["category"] !== "Income" && e["category"] !== "Rent") {
+                if (e["category"] !== "Income" && e["category"] !== "Rent" && matchCategory(e)) {
                     sum += e["amount"]
                 }
             });
@@ -92,9 +96,10 @@ export default function Events() {
                         </tr>
                     </thead>
                     <tbody>
-                        {events.map(event =>
-                            <Event key={event._id} event={event} />
-                        )}
+                        {events
+                            .filter(event => matchCategory(event))
+                            .map(event => <Event key={event._id} event={event} />)
+                        }
                     </tbody>
                 </Table>
             }
