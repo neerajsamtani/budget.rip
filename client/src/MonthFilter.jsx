@@ -1,7 +1,7 @@
 import React from 'react';
 import { Form, InputGroup } from 'react-bootstrap';
 
-export default function MonthFilter({month, setMonth}) {
+export default function MonthFilter({ month, setMonth }) {
 
   const handleMonthChange = (event) => {
     setMonth(event.target.value);
@@ -9,7 +9,7 @@ export default function MonthFilter({month, setMonth}) {
 
   return (
     <>
-    <InputGroup>
+      <InputGroup>
         <InputGroup.Text>Month</InputGroup.Text>
         <Form.Group controlId="exampleForm.SelectCustom">
           <Form.Select value={month} onChange={handleMonthChange}>

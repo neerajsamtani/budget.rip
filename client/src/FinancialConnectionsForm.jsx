@@ -5,7 +5,7 @@ import {
 import axios from "axios";
 import Button from 'react-bootstrap/Button';
 
-export default function FinancialConnectionsForm({fcsess_secret, setStripeAccounts}) {
+export default function FinancialConnectionsForm({ fcsess_secret, setStripeAccounts }) {
   const stripe = useStripe();
 
   const [message, setMessage] = useState(null);
@@ -14,8 +14,8 @@ export default function FinancialConnectionsForm({fcsess_secret, setStripeAccoun
   const storeAccounts = (accounts) => {
     var REACT_APP_API_ENDPOINT = String(process.env.REACT_APP_API_ENDPOINT);
     axios.post(`${REACT_APP_API_ENDPOINT}api/create_accounts`, accounts)
-        .then(response => console.log(response.data))
-        .catch(error => console.log(error));
+      .then(response => console.log(response.data))
+      .catch(error => console.log(error));
   }
 
   const handleSubmit = async (e) => {
@@ -54,7 +54,7 @@ export default function FinancialConnectionsForm({fcsess_secret, setStripeAccoun
 
   return (
     <>
-      <Button onClick={handleSubmit} disabled={isLoading || !stripe } id="submit" variant="primary">
+      <Button onClick={handleSubmit} disabled={isLoading || !stripe} id="submit" variant="primary">
         <span id="button-text">
           {isLoading ? <div className="spinner" id="spinner"></div> : "Connect your bank"}
         </span>

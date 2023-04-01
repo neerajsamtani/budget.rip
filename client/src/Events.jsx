@@ -85,24 +85,30 @@ export default function Events() {
                     </Col>
                 </Row>
             </Form>
-            {events &&
-                <Table striped bordered hover>
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Name</th>
-                            <th>Category</th>
-                            <th>Amount</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {events
+
+            <Table striped bordered hover>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Name</th>
+                        <th>Category</th>
+                        <th>Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {events.length > 0 ?
+                        events
                             .filter(event => matchCategory(event))
                             .map(event => <Event key={event._id} event={event} />)
-                        }
-                    </tbody>
-                </Table>
-            }
+                        :
+                        <tr align="center">
+                            <td colspan="4">
+                                No events found
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </Table>
         </div>
     )
 }
