@@ -102,7 +102,7 @@ export default function Events() {
                             .map(event => <Event key={event._id} event={event} />)
                         :
                         <tr align="center">
-                            <td colspan="4">
+                            <td colSpan="4">
                                 No events found
                             </td>
                         </tr>

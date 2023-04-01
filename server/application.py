@@ -201,9 +201,9 @@ def monthly_breakdown():
 @application.route("/api/refresh_venmo")
 @cross_origin()
 def refresh_venmo(VENMO_ACCESS_TOKEN=os.getenv("VENMO_ACCESS_TOKEN")):
-    client = Client(access_token=VENMO_ACCESS_TOKEN)
-    my_id = client.my_profile().id
-    transactions = client.user.get_user_transactions(my_id)
+    venmo_client = Client(access_token=VENMO_ACCESS_TOKEN)
+    my_id = venmo_client.my_profile().id
+    transactions = venmo_client.user.get_user_transactions(my_id)
     transactions_after_moving_date = True
     while transactions and transactions_after_moving_date:
         for transaction in transactions:
@@ -245,10 +245,35 @@ def refresh_splitwise(
 @application.route("/api/refresh_stripe")
 @cross_origin()
 def refresh_stripe():
-    accounts = get_all_data(accounts_db)
-    for account in accounts:
+    bank_accounts = get_all_data(bank_accounts_db)
+    for account in bank_accounts:
         get_transactions(account["id"])
     return jsonify("Refreshed Stripe Connection")
+
+
+@application.route("/api/connected_accounts", methods=["GET"])
+@cross_origin()
+def get_connected_accounts():
+    connected_accounts = []
+    # venmo
+    venmo_client = Client(access_token=os.getenv("VENMO_ACCESS_TOKEN"))
+    connected_accounts.append(f"{venmo_client.my_profile().username} (venmo)")
+    # splitwise
+    sObj = Splitwise(
+        os.getenv("SPLITWISE_CONSUMER_KEY"),
+        os.getenv("SPLITWISE_CONSUMER_SECRET"),
+        api_key=os.getenv("SPLITWISE_API_KEY"),
+    )
+    connected_accounts.append(
+        f"{sObj.getCurrentUser().getFirstName()} {sObj.getCurrentUser().getLastName()} (splitwise)"
+    )
+    # stripe
+    bank_accounts = get_all_data(bank_accounts_db)
+    for account in bank_accounts:
+        connected_accounts.append(
+            f"{account['display_name']} {account['last4']} (stripe)"
+        )
+    return jsonify(connected_accounts)
 
 
 @application.route("/api/refresh_data")
@@ -300,7 +325,7 @@ def create_accounts():
         return jsonify("Failed to Create Accounts: No Accounts Submitted")
 
     for account in new_accounts:
-        upsert(accounts_db, account)
+        upsert(bank_accounts_db, account)
 
     return jsonify({"data": new_accounts})
 

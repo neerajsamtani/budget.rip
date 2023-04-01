@@ -40,25 +40,28 @@ export default function LineItems() {
                     </Col>
                 </Row>
             </Form>
-            {lineItems &&
-                <Table striped bordered hover>
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Payment Method</th>
-                            <th>Description</th>
-                            <th>Name</th>
-                            <th>Amount</th>
+            <Table striped bordered hover>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Payment Method</th>
+                        <th>Description</th>
+                        <th>Name</th>
+                        <th>Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {lineItems.length > 0 ?
+                        lineItems.map(lineItem => <LineItem key={lineItem._id} lineItem={lineItem} />)
+                        :
+                        <tr align="center">
+                            <td colSpan="5">
+                                No Line Items found
+                            </td>
                         </tr>
-                    </thead>
-                    <tbody>
-                        {lineItems.map(lineItem =>
-                            <LineItem key={lineItem._id} lineItem={lineItem} />
-                        )}
-                    </tbody>
-                </Table>
-            }
-            {/* {lineItems && JSON.stringify(lineItems, null, 2)} */}
+                    }
+                </tbody>
+            </Table>
         </div>
     )
 }

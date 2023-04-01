@@ -18,7 +18,7 @@ stripe_raw_transaction_data_db = db.stripe_raw_transaction_data
 stripe_raw_account_data_db = db.stripe_raw_account_data
 line_items_db = db.line_items
 events_db = db.events
-accounts_db = db.accounts
+bank_accounts_db = db.accounts
 
 
 def get_all_data(cur_db: Collection, filters=None) -> List[_DocumentType]:

@@ -8,7 +8,7 @@ import axios from "axios";
 
 import LineItems from "./LineItems";
 import LineItemsToReview from "./LineItemsToReview";
-import Stripe from "./Stripe";
+import ConnectedAccounts from "./ConnectedAccounts";
 import Events from "./Events";
 import Graphs from "./Graphs";
 
@@ -55,10 +55,10 @@ export default function App() {
             <Navbar.Toggle aria-controls="basic-navbar-nav" />
             <Navbar.Collapse id="basic-navbar-nav">
               <Nav className="me-auto">
-                <Link style={padding} to="/">Home</Link>
+                <Link style={padding} to="/">Review</Link>
                 <Link style={padding} to="/events">Events</Link>
                 <Link style={padding} to="/line_items">Line Items</Link>
-                <Link style={padding} to="/stripe">Stripe</Link>
+                <Link style={padding} to="/connected_accounts">Connected Accounts</Link>
                 <Link style={padding} to="/graphs">Graphs</Link>
               </Nav>
               <Nav>
@@ -85,7 +85,7 @@ export default function App() {
           <Route path="/" element={<LineItemsToReview />} />
           <Route path="/events" element={<Events />} />
           <Route path="/line_items" element={<LineItems />} />
-          <Route path="/stripe" element={<Stripe stripePromise={stripePromise} />} />
+          <Route path="/connected_accounts" element={<ConnectedAccounts stripePromise={stripePromise} />} />
           <Route path="/graphs" element={<Graphs />} />
         </Routes>
       </Router>
