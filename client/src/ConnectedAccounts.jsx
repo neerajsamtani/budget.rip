@@ -4,12 +4,21 @@ import axios from "axios";
 import FinancialConnectionsForm from "./FinancialConnectionsForm";
 import { Button } from "react-bootstrap";
 import { Table } from "react-bootstrap";
+import Notification from "./Notification";
 
 export default function ConnectedAccounts({ stripePromise }) {
 
     const [connectedAccounts, setConnectedAccounts] = useState([])
     const [clientSecret, setClientSecret] = useState("");
     const [stripeAccounts, setStripeAccounts] = useState([])
+    const [notification, setNotification] = useState(
+        {
+            heading: "Notification",
+            message: "",
+            showNotification: false,
+        }
+    )
+
     var REACT_APP_API_ENDPOINT = String(process.env.REACT_APP_API_ENDPOINT);
 
     useEffect(() => {
@@ -36,6 +45,11 @@ export default function ConnectedAccounts({ stripePromise }) {
         }
         setClientSecret("")
         setStripeAccounts([])
+        setNotification({
+            ...notification,
+            message: "Subscribing to the accounts provided. Please refresh the page.",
+            showNotification: true
+        })
     }
 
     const appearance = {
@@ -50,12 +64,30 @@ export default function ConnectedAccounts({ stripePromise }) {
         <>
             <div>
                 <h1>Connected Accounts</h1>
+                <Notification notification={notification} setNotification={setNotification} />
                 <div className="Form">
                     {clientSecret ?
                         stripeAccounts.length > 0 ?
                             <Fragment>
-                                <p>Bank Accounts Received:</p>
-                                <ul>{stripeAccounts.map(account => <li key={account.id}>{account.id} | {account.institution_name} {account.subcategory}</li>)}</ul>
+                                <Table striped bordered hover>
+                                    <thead>
+                                        <tr>
+                                            <th>Bank Accounts Received:</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {
+                                            stripeAccounts
+                                                .map(account => (
+                                                    <tr key={account.id}>
+                                                        <td>
+                                                            {account.institution_name} {account.subcategory} ({account.id})
+                                                        </td>
+                                                    </tr>
+                                                ))
+                                        }
+                                    </tbody>
+                                </Table>
                                 <Button onClick={subscribeToAccounts}>
                                     Subscribe to these accounts
                                 </Button>
