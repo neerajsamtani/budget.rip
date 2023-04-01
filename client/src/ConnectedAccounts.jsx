@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Fragment } from "react";
 import { Elements } from "@stripe/react-stripe-js";
 import axios from "axios";
 import FinancialConnectionsForm from "./FinancialConnectionsForm";
@@ -19,7 +19,7 @@ export default function ConnectedAccounts({ stripePromise }) {
                 setConnectedAccounts(response.data)
             })
             .catch(error => console.log(error));
-    }, [])
+    }, [stripeAccounts])
 
     const createSession = () => {
         axios.post(`${REACT_APP_API_ENDPOINT}api/create-fc-session`)
@@ -34,6 +34,8 @@ export default function ConnectedAccounts({ stripePromise }) {
                     .then(response => console.log(response.data))
             }
         }
+        setClientSecret("")
+        setStripeAccounts([])
     }
 
     const appearance = {
@@ -47,32 +49,29 @@ export default function ConnectedAccounts({ stripePromise }) {
     return (
         <>
             <div>
-                <h1>Stripe Connection</h1>
-                {/* {stripeAccounts && <div id="stripeAccounts">stripeAccounts: {JSON.stringify(stripeAccounts, null, 2)}</div>} */}
-                {stripeAccounts &&
-                    <div id="stripeAccounts"> {stripeAccounts.length > 0 ?
-                        <>
-                            <p>Bank Accounts Linked:</p>
-                            <ul>{stripeAccounts.map(account => <li key={account.id}>{account.id} | {account.institution_name} {account.subcategory}</li>)}</ul>
-                        </>
-                        : "No Bank Accounts Linked"}
-                    </div>}
+                <h1>Connected Accounts</h1>
                 <div className="Form">
-                    {!clientSecret &&
-                        (<Button onClick={createSession}>
-                            Create FC Session
+                    {clientSecret ?
+                        stripeAccounts.length > 0 ?
+                            <Fragment>
+                                <p>Bank Accounts Received:</p>
+                                <ul>{stripeAccounts.map(account => <li key={account.id}>{account.id} | {account.institution_name} {account.subcategory}</li>)}</ul>
+                                <Button onClick={subscribeToAccounts}>
+                                    Subscribe to these accounts
+                                </Button>
+                            </Fragment>
+                            :
+                            <Elements options={options} stripe={stripePromise}>
+                                <FinancialConnectionsForm fcsess_secret={clientSecret} setStripeAccounts={setStripeAccounts} />
+                            </Elements>
+                        :
+                        <Button onClick={createSession}>
+                            Connect A New Account
                         </Button>
-                        )}
-                    {clientSecret && (
-                        <Elements options={options} stripe={stripePromise}>
-                            <FinancialConnectionsForm fcsess_secret={clientSecret} setStripeAccounts={setStripeAccounts} />
-                        </Elements>
-                    )}
-                    {stripeAccounts.length > 0 &&
-                        (<Button onClick={subscribeToAccounts}>
-                            Subscribe to Accounts
-                        </Button>
-                        )}
+                    }
+                </div>
+                <div id="stripeAccounts">
+
                 </div>
             </div>
             <br />

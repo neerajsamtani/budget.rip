@@ -41,7 +41,9 @@ export default function App() {
   }
 
   const padding = {
-    padding: 20,
+    paddingLeft: 20,
+    paddingTop: 5,
+    paddingBottom: 5,
     color: "white",
     textDecoration: "none"
   }
