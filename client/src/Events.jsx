@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Table, Form, Row, Col, InputGroup, Button } from "react-bootstrap";
+import { Table, Form, Row, Col, InputGroup } from "react-bootstrap";
 import { DateTime } from "luxon";
 import Event from "./Event";
 import CategoryFilter from "./CategoryFilter";
@@ -27,23 +27,25 @@ export default function Events() {
             start_time = DateTime.fromFormat(`${year}`, "yyyy")
             end_time = start_time.endOf("year")
         }
-        axios.get(`${REACT_APP_API_ENDPOINT}api/events`, { params: {
-            "category": category,
-            "start_time": start_time.toUnixInteger(),
-            "end_time": end_time.toUnixInteger()
-        }})
-        .then(response => {
-            setEvents(response.data.data)
-            setTotal(response.data.total.toFixed(2))
+        axios.get(`${REACT_APP_API_ENDPOINT}api/events`, {
+            params: {
+                "category": category,
+                "start_time": start_time.toUnixInteger(),
+                "end_time": end_time.toUnixInteger()
+            }
         })
-        .catch(error => console.log(error));
+            .then(response => {
+                setEvents(response.data.data)
+                setTotal(response.data.total.toFixed(2))
+            })
+            .catch(error => console.log(error));
     }, [month, year, category])
 
     const calculateSpending = (events) => {
         var sum = 0;
         if (events.length > 0) {
             events.forEach((e) => {
-                if (e["category"] !== "Income" &&  e["category"] !== "Rent") {
+                if (e["category"] !== "Income" && e["category"] !== "Rent") {
                     sum += e["amount"]
                 }
             });
@@ -51,7 +53,7 @@ export default function Events() {
         return sum.toFixed(2);
     }
 
-    return(
+    return (
         <div>
             <h1>Events</h1>
             <Form>
@@ -79,22 +81,22 @@ export default function Events() {
                     </Col>
                 </Row>
             </Form>
-            {events && 
-            <Table striped bordered hover>
-                <thead>
-                    <tr>
-                    <th>Date</th>
-                    <th>Name</th>
-                    <th>Category</th>
-                    <th>Amount</th>
-                    </tr>
-                </thead>
-                <tbody>
-                {events.map(event => 
-                    <Event key={event._id} event={event} />
-                )}
-                </tbody>
-            </Table>
+            {events &&
+                <Table striped bordered hover>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Name</th>
+                            <th>Category</th>
+                            <th>Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {events.map(event =>
+                            <Event key={event._id} event={event} />
+                        )}
+                    </tbody>
+                </Table>
             }
         </div>
     )
