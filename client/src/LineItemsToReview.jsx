@@ -5,7 +5,7 @@ import LineItem from "./LineItem";
 import CreateEventModal from "./CreateEventModal";
 import CreateCashTransactionModal from "./CreateCashTransactionModal";
 
-export default function All() {
+export default function LineItemsToReview() {
 
     const [lineItems, setLineItems] = useState([])
     const [selectedLineItems, setSelectedLineItems] = useState([])
@@ -14,7 +14,11 @@ export default function All() {
 
     useEffect(() => {
         var REACT_APP_API_ENDPOINT = String(process.env.REACT_APP_API_ENDPOINT);
-        axios.get(`${REACT_APP_API_ENDPOINT}api/all`)
+        axios.get(`${REACT_APP_API_ENDPOINT}api/line_items`, {
+            params: {
+                "only_line_items_to_review": true,
+            }
+        })
             .then(response => {
                 setLineItems(response.data.data)
             })
@@ -27,7 +31,7 @@ export default function All() {
 
     return (
         <div>
-            <h1>Pending Transactions</h1>
+            <h1>Line Items To Review</h1>
             {lineItems &&
                 <Table striped bordered hover>
                     <thead>

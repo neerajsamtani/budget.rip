@@ -7,7 +7,7 @@ import {
 import axios from "axios";
 
 import LineItems from "./LineItems";
-import All from "./All";
+import LineItemsToReview from "./LineItemsToReview";
 import Stripe from "./Stripe";
 import Events from "./Events";
 import Graphs from "./Graphs";
@@ -82,7 +82,7 @@ export default function App() {
         </Navbar>
 
         <Routes>
-          <Route path="/" element={<All />} />
+          <Route path="/" element={<LineItemsToReview />} />
           <Route path="/events" element={<Events />} />
           <Route path="/line_items" element={<LineItems />} />
           <Route path="/stripe" element={<Stripe stripePromise={stripePromise} />} />

@@ -43,17 +43,6 @@ def index():
     return jsonify("Welcome to Budgit API")
 
 
-@application.route("/api/all")
-@cross_origin()
-def all():
-    filters = {}
-    filters["event_id"] = {"$exists": False}
-    line_items = get_all_data(line_items_db, filters)
-    line_items_total = sum(line_item["amount"] for line_item in line_items)
-    line_items = sort_by_date(line_items)
-    return jsonify({"total": line_items_total, "data": line_items})
-
-
 @application.route("/api/line_items")
 @cross_origin()
 def all_line_items():
@@ -62,7 +51,12 @@ def all_line_items():
     if payment_method not in ["All", None]:
         filters["payment_method"] = payment_method
 
+    only_line_items_to_review = request.args.get("only_line_items_to_review")
+    if only_line_items_to_review:
+        filters["event_id"] = {"$exists": False}
+
     line_items = get_all_data(line_items_db, filters)
+    line_items = sort_by_date(line_items)
     line_items_total = sum(line_item["amount"] for line_item in line_items)
     return jsonify({"total": line_items_total, "data": line_items})
 
