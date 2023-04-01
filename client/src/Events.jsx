@@ -73,7 +73,7 @@ export default function Events() {
                     </Col>
                     <Col>
                         <InputGroup className="mb-3">
-                            <InputGroup.Text>Spending minus Rent</InputGroup.Text>
+                            <InputGroup.Text>Spending w/o Rent</InputGroup.Text>
                             <InputGroup.Text>${calculateSpending(events)}</InputGroup.Text>
                         </InputGroup>
                     </Col>

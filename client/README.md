@@ -32,6 +32,10 @@ npm start
 TODO:
 - Deploy Online
 - Fix Leaky Abstraction of DB Filters
+- Standardize CRUD REST endpoints around line_item and event resources
+- Move CRUD endpoints into spearate folder
+- Optimize Refresh Logic
+- Add OAuth Login
 
 - All Page is diff from create events page
 - Null out Payments? Do I need this

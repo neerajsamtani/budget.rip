@@ -34,11 +34,11 @@ export default function App() {
   const handleRefreshData = () => {
     setLoading(true);
     axios.get(`${REACT_APP_API_ENDPOINT}api/refresh_data`)
-    .then(response => {
+      .then(response => {
         setLoading(false);
-    })
-    .catch(error => console.log(error))
-}
+      })
+      .catch(error => console.log(error))
+  }
 
   const padding = {
     padding: 20,
@@ -47,46 +47,48 @@ export default function App() {
   }
 
   return (
-    <Router>
-      <Navbar bg="dark" variant="dark" expand="sm">
-      <Container>
-        <Navbar.Brand>Budgit</Navbar.Brand>
-        <Navbar.Toggle aria-controls="basic-navbar-nav" />
-        <Navbar.Collapse id="basic-navbar-nav">
-          <Nav className="me-auto">
-            <Link style={padding} to="/">Home</Link>
-            <Link style={padding} to="/events">Events</Link>
-            <Link style={padding} to="/line_items">Line Items</Link>
-            <Link style={padding} to="/stripe">Stripe</Link>
-            <Link style={padding} to="/graphs">Graphs</Link>
-          </Nav>
-          <Nav>
-          <Button onClick={handleRefreshData}>
-              {
-                loading ?
-                  <Spinner
-                    as="span"
-                    animation="border"
-                    size="sm"
-                    role="status"
-                    aria-hidden="true"
-                  />
-                :
-                <>Refresh Data</>
-              }
-            </Button>
-          </Nav>
-        </Navbar.Collapse>
-      </Container>
-    </Navbar>
+    <React.StrictMode>
+      <Router>
+        <Navbar bg="dark" variant="dark" expand="sm">
+          <Container>
+            <Navbar.Brand>Budgit</Navbar.Brand>
+            <Navbar.Toggle aria-controls="basic-navbar-nav" />
+            <Navbar.Collapse id="basic-navbar-nav">
+              <Nav className="me-auto">
+                <Link style={padding} to="/">Home</Link>
+                <Link style={padding} to="/events">Events</Link>
+                <Link style={padding} to="/line_items">Line Items</Link>
+                <Link style={padding} to="/stripe">Stripe</Link>
+                <Link style={padding} to="/graphs">Graphs</Link>
+              </Nav>
+              <Nav>
+                <Button onClick={handleRefreshData}>
+                  {
+                    loading ?
+                      <Spinner
+                        as="span"
+                        animation="border"
+                        size="sm"
+                        role="status"
+                        aria-hidden="true"
+                      />
+                      :
+                      <>Refresh Data</>
+                  }
+                </Button>
+              </Nav>
+            </Navbar.Collapse>
+          </Container>
+        </Navbar>
 
-      <Routes>
-      <Route path="/" element={<All />} />
-      <Route path="/events" element={<Events />} />
-      <Route path="/line_items" element={<LineItems />} />
-      <Route path="/stripe" element={<Stripe stripePromise={stripePromise}/>} />
-      <Route path="/graphs" element={<Graphs />} />
-      </Routes>
-    </Router>
+        <Routes>
+          <Route path="/" element={<All />} />
+          <Route path="/events" element={<Events />} />
+          <Route path="/line_items" element={<LineItems />} />
+          <Route path="/stripe" element={<Stripe stripePromise={stripePromise} />} />
+          <Route path="/graphs" element={<Graphs />} />
+        </Routes>
+      </Router>
+    </React.StrictMode>
   );
 }

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Table, InputGroup } from "react-bootstrap";
+import { Form, Row, Col, Table, InputGroup } from "react-bootstrap";
 import LineItem from "./LineItem";
 import PaymentMethodFilter from "./PaymentMethodFilter";
 import axios from "axios";
@@ -25,11 +25,19 @@ export default function LineItems() {
     return(
         <div>
             <h1>Line Items</h1>
-            <PaymentMethodFilter paymentMethod={paymentMethod} setPaymentMethod={setPaymentMethod} />
-            <InputGroup className="mb-3">
-                <InputGroup.Text>Total</InputGroup.Text>
-                <InputGroup.Text>${total}</InputGroup.Text>
-            </InputGroup>
+            <Form>
+                <Row>
+                    <Col>
+                        <PaymentMethodFilter paymentMethod={paymentMethod} setPaymentMethod={setPaymentMethod} />
+                    </Col>
+                    <Col>
+                        <InputGroup className="mb-3">
+                            <InputGroup.Text>Total</InputGroup.Text>
+                            <InputGroup.Text>${total}</InputGroup.Text>
+                        </InputGroup>
+                    </Col>
+                </Row>
+            </Form>
             {lineItems && 
             <Table striped bordered hover>
                 <thead>
