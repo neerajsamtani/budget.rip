@@ -19,7 +19,7 @@ export default function ConnectedAccounts({ stripePromise }) {
                 setConnectedAccounts(response.data)
             })
             .catch(error => console.log(error));
-    }, [stripeAccounts])
+    }, [])
 
     const createSession = () => {
         axios.post(`${REACT_APP_API_ENDPOINT}api/create-fc-session`)

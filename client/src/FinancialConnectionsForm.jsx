@@ -3,16 +3,21 @@ import {
   useStripe
 } from "@stripe/react-stripe-js";
 import axios from "axios";
-import { Button, Spinner, ToastContainer, Toast } from 'react-bootstrap';
+import { Button, Spinner } from 'react-bootstrap';
+import Notification from "./Notification";
 
 export default function FinancialConnectionsForm({ fcsess_secret, setStripeAccounts }) {
   const stripe = useStripe();
 
-  const [message, setMessage] = useState("");
-  const [showMessage, setShowMessage] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [notification, setNotification] = useState(
+    {
+      heading: "Error",
+      message: "",
+      showNotification: false,
+    }
+  )
 
-  const toggleShowMessage = () => setShowMessage(!showMessage);
+  const [isLoading, setIsLoading] = useState(false);
 
   const storeAccounts = (accounts) => {
     var REACT_APP_API_ENDPOINT = String(process.env.REACT_APP_API_ENDPOINT);
@@ -43,11 +48,17 @@ export default function FinancialConnectionsForm({ fcsess_secret, setStripeAccou
     // be redirected to an intermediate site first to authorize the payment, then
     // redirected to the `return_url`.
     if (financialConnectionsSessionResult.error) {
-      setMessage(`${financialConnectionsSessionResult.error.message} Please refresh the page and try again.`);
-      setShowMessage(true)
+      setNotification({
+        ...notification,
+        message: `${financialConnectionsSessionResult.error.message} Please refresh the page and try again.`,
+        showNotification: true
+      })
     } else if (financialConnectionsSessionResult.financialConnectionsSession.accounts.length === 0) {
-      setMessage("No new accounts were linked")
-      setShowMessage(true)
+      setNotification({
+        ...notification,
+        message: "No new accounts were linked",
+        showNotification: true
+      })
     } else {
       var returnedAccounts = financialConnectionsSessionResult.financialConnectionsSession.accounts
       setStripeAccounts(returnedAccounts)
@@ -59,14 +70,7 @@ export default function FinancialConnectionsForm({ fcsess_secret, setStripeAccou
 
   return (
     <>
-      <ToastContainer className="p-3" position='top-end'>
-        <Toast show={showMessage} onClose={toggleShowMessage} delay={3500} autohide>
-          <Toast.Header>
-            <strong className="me-auto">Error</strong>
-          </Toast.Header>
-          <Toast.Body>{message}</Toast.Body>
-        </Toast>
-      </ToastContainer>
+      <Notification notification={notification} setNotification={setNotification} />
       <Button onClick={handleSubmit} disabled={isLoading || !stripe} id="submit" variant="primary">
         <span id="button-text">
           {isLoading ?

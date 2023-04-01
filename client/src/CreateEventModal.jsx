@@ -1,14 +1,23 @@
-import React, { useState } from 'react';
-import Button from 'react-bootstrap/Button';
-import Modal from 'react-bootstrap/Modal';
-import Form from 'react-bootstrap/Form';
 import axios from "axios";
+import React, { Fragment, useState } from 'react';
+import Button from 'react-bootstrap/Button';
+import Form from 'react-bootstrap/Form';
+import Modal from 'react-bootstrap/Modal';
+import Notification from './Notification';
 
 export default function CreateEventModal({ show, selectedLineItems, setSelectedLineItems, onHide }) {
   const [name, setName] = useState('')
   const [category, setCategory] = useState('')
   const [date, setDate] = useState('')
   const [isDuplicateTransaction, setIsDuplicateTransaction] = useState(false)
+  const [notification, setNotification] = useState(
+    {
+      heading: "Notification",
+      message: "Created Event",
+      showNotification: false,
+    }
+  )
+
   const handleNameChange = (event) => {
     setName(event.target.value)
   }
@@ -42,6 +51,10 @@ export default function CreateEventModal({ show, selectedLineItems, setSelectedL
         setSelectedLineItems([]);
         setDate('');
         setIsDuplicateTransaction(false);
+        setNotification({
+          ...notification,
+          showNotification: true
+        })
         // TODO: Uncheck all checkboxes
         onHide();
       })
@@ -49,56 +62,59 @@ export default function CreateEventModal({ show, selectedLineItems, setSelectedL
   }
 
   return (
-    <Modal
-      show={show}
-      onHide={onHide}
-      size="lg"
-      aria-labelledby="contained-modal-title-vcenter"
-      centered
-    >
-      <Modal.Header closeButton>
-        <Modal.Title id="contained-modal-title-vcenter">
-          New Event Details
-        </Modal.Title>
-      </Modal.Header>
-      <Modal.Body>
-        <Form>
-          <Form.Group className="mb-3">
-            <Form.Label>Name:</Form.Label>
-            <Form.Control type="text" value={name} onChange={handleNameChange} />
-          </Form.Group>
-          <Form.Group className="mb-3">
-            <Form.Label>Category:</Form.Label>
-            <Form.Select value={category} onChange={handleCategoryChange}>
-              <option value="All">All</option>
-              <option value="Alcohol">Alcohol</option>
-              <option value="Dining">Dining</option>
-              <option value="Entertainment">Entertainment</option>
-              <option value="Groceries">Groceries</option>
-              <option value="Hobbies">Hobbies</option>
-              <option value="Income">Income</option>
-              <option value="N/A">N/A</option>
-              <option value="Rent">Rent</option>
-              <option value="Shopping">Shopping</option>
-              <option value="Subscription">Subscription</option>
-              <option value="Transit">Transit</option>
-              <option value="Travel">Travel</option>
-            </Form.Select>
-          </Form.Group>
-          <Form.Group className="mb-3">
-            <Form.Label>Override Date:</Form.Label>
-            <Form.Control type="date" value={date} onChange={handleDateChange} />
-          </Form.Group>
-          <Form.Group className="mb-3">
-            <Form.Check checked={isDuplicateTransaction} onChange={handleIsDuplicateTransactionChange}
-              type="checkbox" label="Duplicate Transaction" />
-          </Form.Group>
-        </Form>
-      </Modal.Body>
-      <Modal.Footer>
-        <Button onClick={onHide} variant="secondary">Cancel</Button>
-        <Button onClick={() => createEvent(name, category)} variant="primary">Submit</Button>
-      </Modal.Footer>
-    </Modal>
+    <Fragment>
+      <Notification notification={notification} setNotification={setNotification} />
+      <Modal
+        show={show}
+        onHide={onHide}
+        size="lg"
+        aria-labelledby="contained-modal-title-vcenter"
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title id="contained-modal-title-vcenter">
+            New Event Details
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form>
+            <Form.Group className="mb-3">
+              <Form.Label>Name:</Form.Label>
+              <Form.Control type="text" value={name} onChange={handleNameChange} />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Category:</Form.Label>
+              <Form.Select value={category} onChange={handleCategoryChange}>
+                <option value="All">All</option>
+                <option value="Alcohol">Alcohol</option>
+                <option value="Dining">Dining</option>
+                <option value="Entertainment">Entertainment</option>
+                <option value="Groceries">Groceries</option>
+                <option value="Hobbies">Hobbies</option>
+                <option value="Income">Income</option>
+                <option value="N/A">N/A</option>
+                <option value="Rent">Rent</option>
+                <option value="Shopping">Shopping</option>
+                <option value="Subscription">Subscription</option>
+                <option value="Transit">Transit</option>
+                <option value="Travel">Travel</option>
+              </Form.Select>
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Override Date:</Form.Label>
+              <Form.Control type="date" value={date} onChange={handleDateChange} />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Check checked={isDuplicateTransaction} onChange={handleIsDuplicateTransactionChange}
+                type="checkbox" label="Duplicate Transaction" />
+            </Form.Group>
+          </Form>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button onClick={onHide} variant="secondary">Cancel</Button>
+          <Button onClick={() => createEvent(name, category)} variant="primary">Submit</Button>
+        </Modal.Footer>
+      </Modal>
+    </Fragment>
   );
 }

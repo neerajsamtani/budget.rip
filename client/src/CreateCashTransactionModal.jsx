@@ -1,13 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, Fragment } from 'react';
 import Button from 'react-bootstrap/Button';
 import Modal from 'react-bootstrap/Modal';
 import axios from "axios";
+import Notification from './Notification';
 
 export default function CreateCashTransactionModal({ show, onHide }) {
   const [date, setDate] = useState('')
   const [person, setPerson] = useState('')
   const [description, setDescription] = useState('')
   const [amount, setAmount] = useState('')
+  const [notification, setNotification] = useState(
+    {
+      heading: "Notification",
+      message: "Created Cash Transaction",
+      showNotification: false,
+    }
+  )
+
 
   const handleDateChange = (event) => {
     setDate(event.target.value)
@@ -40,6 +49,10 @@ export default function CreateCashTransactionModal({ show, onHide }) {
         setPerson('');
         setDescription('');
         setAmount('');
+        setNotification({
+          ...notification,
+          showNotification: true
+        })
         // TODO: Uncheck all checkboxes
         onHide();
       })
@@ -47,43 +60,46 @@ export default function CreateCashTransactionModal({ show, onHide }) {
   }
 
   return (
-    <Modal
-      show={show}
-      onHide={onHide}
-      size="lg"
-      aria-labelledby="contained-modal-title-vcenter"
-      centered
-    >
-      <Modal.Header closeButton>
-        <Modal.Title id="contained-modal-title-vcenter">
-          New Cash Transaction
-        </Modal.Title>
-      </Modal.Header>
-      <Modal.Body>
-        <form>
-          <div className="form-group">
-            {/* TODO: DATE PICKER */}
-            <label>Date:</label>
-            <input type="date" className="form-control" id="event-date" value={date} onChange={handleDateChange} />
-          </div>
-          <div className="form-group">
-            <label>Person:</label>
-            <input type="text" className="form-control" id="event-person" value={person} onChange={handlePersonChange} />
-          </div>
-          <div className="form-group">
-            <label>Description:</label>
-            <input type="text" className="form-control" id="event-description" value={description} onChange={handleDescriptionChange} />
-          </div>
-          <div className="form-group">
-            <label>Amount:</label>
-            <input type="number" className="form-control" id="event-amount" value={amount} onChange={handleAmountChange} />
-          </div>
-        </form>
-      </Modal.Body>
-      <Modal.Footer>
-        <Button onClick={onHide} variant="secondary">Cancel</Button>
-        <Button onClick={createCashTransaction} variant="primary">Submit</Button>
-      </Modal.Footer>
-    </Modal>
+    <Fragment>
+      <Notification notification={notification} setNotification={setNotification} />
+      <Modal
+        show={show}
+        onHide={onHide}
+        size="lg"
+        aria-labelledby="contained-modal-title-vcenter"
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title id="contained-modal-title-vcenter">
+            New Cash Transaction
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <form>
+            <div className="form-group">
+              {/* TODO: DATE PICKER */}
+              <label>Date:</label>
+              <input type="date" className="form-control" id="event-date" value={date} onChange={handleDateChange} />
+            </div>
+            <div className="form-group">
+              <label>Person:</label>
+              <input type="text" className="form-control" id="event-person" value={person} onChange={handlePersonChange} />
+            </div>
+            <div className="form-group">
+              <label>Description:</label>
+              <input type="text" className="form-control" id="event-description" value={description} onChange={handleDescriptionChange} />
+            </div>
+            <div className="form-group">
+              <label>Amount:</label>
+              <input type="number" className="form-control" id="event-amount" value={amount} onChange={handleAmountChange} />
+            </div>
+          </form>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button onClick={onHide} variant="secondary">Cancel</Button>
+          <Button onClick={createCashTransaction} variant="primary">Submit</Button>
+        </Modal.Footer>
+      </Modal>
+    </Fragment>
   );
 }

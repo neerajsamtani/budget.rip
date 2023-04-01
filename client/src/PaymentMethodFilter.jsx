@@ -17,6 +17,7 @@ export default function PaymentMethodFilter({ paymentMethod, setPaymentMethod })
             {/* <option value="Checking">Checking</option>
         <option value="Credit">Credit</option>
         <option value="Savings">Savings</option> */}
+            <option value="Cash">Cash</option>
             <option value="Splitwise">Splitwise</option>
             <option value="Stripe">Stripe</option>
             <option value="Venmo">Venmo</option>

@@ -51,23 +51,23 @@ export default function LineItemsToReview() {
                     </tbody>
                 </Table>
             }
+            <CreateCashTransactionModal
+                show={cashModalShow}
+                onHide={() => setCashModalShow(false)}
+            />
+            <CreateEventModal
+                show={eventModalShow}
+                selectedLineItems={selectedLineItems}
+                setSelectedLineItems={setSelectedLineItems}
+                onHide={() => setEventModalShow(false)}
+            />
             <div className="fixed-bottom">
                 <Navbar color="dark" className="justify-content-end">
                     <Nav.Item style={padding}>
                         <Button onClick={() => setCashModalShow(true)} variant="primary">Create Cash Transaction</Button>
-                        <CreateCashTransactionModal
-                            show={cashModalShow}
-                            onHide={() => setCashModalShow(false)}
-                        />
                     </Nav.Item>
                     <Nav.Item style={padding}>
                         <Button onClick={() => setEventModalShow(true)} variant="primary">Create Event</Button>
-                        <CreateEventModal
-                            show={eventModalShow}
-                            selectedLineItems={selectedLineItems}
-                            setSelectedLineItems={setSelectedLineItems}
-                            onHide={() => setEventModalShow(false)}
-                        />
                     </Nav.Item>
                 </Navbar>
             </div>
