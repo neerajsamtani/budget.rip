@@ -1,17 +1,19 @@
+import json
 import os
-from dotenv import load_dotenv
 from collections import defaultdict
+
+import requests
+import stripe
+from dotenv import load_dotenv
+from flask import Flask, jsonify, request
+from flask_cors import CORS, cross_origin
 from splitwise import Splitwise
 from venmo_api import Client
-from flask import Flask, jsonify, request
-import json
-import requests
-from line_item import LineItem
-import stripe
-from flask_cors import CORS, cross_origin
-from helpers import *
+
 from constants import *
 from dao import *
+from helpers import *
+from line_item import LineItem
 
 # Flask constructor takes the name of
 # current module (__name__) as argument.
@@ -43,9 +45,15 @@ def index():
     return jsonify("Welcome to Budgit API")
 
 
-@application.route("/api/line_items")
+@application.route("/api/line_items", methods=["GET"])
 @cross_origin()
 def all_line_items():
+    """
+    Get All Line Items
+    Filters:
+        - Payment Method (optional)
+        - Only Line Items To Review (optional)
+    """
     filters = {}
     payment_method = request.args.get("payment_method")
     if payment_method not in ["All", None]:
@@ -61,29 +69,26 @@ def all_line_items():
     return jsonify({"total": line_items_total, "data": line_items})
 
 
-@application.route("/api/line_items/<line_item_id>")
+@application.route("/api/line_items/<line_item_id>", methods=["GET"])
 @cross_origin()
 def get_line_item(line_item_id):
+    """
+    Get A Line Item
+    """
     line_item = get_item_by_id(line_items_db, line_item_id)
     return jsonify(line_item)
 
 
-@application.route("/api/line_items_for_event/<event_id>")
-@cross_origin()
-def line_items_for_event(event_id):
-    try:
-        event = get_item_by_id(events_db, event_id)
-        line_items = []
-        for line_item_id in event["line_items"]:
-            line_items.append(get_item_by_id(line_items_db, line_item_id))
-        return jsonify({"data": line_items})
-    except Exception as e:
-        return jsonify(error=str(e)), 403
-
-
-@application.route("/api/events")
+@application.route("/api/events", methods=["GET"])
 @cross_origin()
 def all_events():
+    """
+    Get All Events
+    Filters:
+        - Category (optional)
+        - Start Time
+        - End Time
+    """
     filters = {}
     category = request.args.get("category")
     start_time = float(request.args.get("start_time"))
@@ -96,38 +101,38 @@ def all_events():
     return jsonify({"total": events_total, "data": events})
 
 
-@application.route("/api/monthly_breakdown")
-@cross_origin()
-def monthly_breakdown():
-    categorized_data = get_categorized_data()
-    categories = defaultdict(empty_list)
-    seen_dates = set()
-    for row in categorized_data:
-        category = row["category"]
-        formatted_date = f"{row['month']}-{row['year']}"
-        seen_dates.add(formatted_date)
-        categories[category].append(
-            {"date": formatted_date, "amount": row["totalExpense"]}
-        )
-    # Ensure no categories have missing dates
-    for category, info in categories.items():
-        unseen_dates = seen_dates.difference([x["date"] for x in info])
-        info.extend([{"date": x, "amount": 0.0} for x in unseen_dates])
-        info.sort(key=lambda x: datetime.strptime(x["date"], "%m-%Y").date())
-    return categories
-
-
-@application.route("/api/events/<event_id>")
+@application.route("/api/events/<event_id>", methods=["GET"])
 @cross_origin()
 def get_event(event_id):
+    """
+    Get An Event
+    """
     event = get_item_by_id(events_db, event_id)
     return jsonify(event)
 
 
-@application.route("/api/create_event", methods=["POST"])
+@application.route("/api/events/<event_id>/line_items_for_event", methods=["GET"])
 @cross_origin()
-def create_event():
-    # TODO: This should just be a POST to /api/events
+def get_line_items_for_event(event_id):
+    """
+    Get All Line Items Belonging To An Event
+    """
+    try:
+        event = get_item_by_id(events_db, event_id)
+        line_items = []
+        for line_item_id in event["line_items"]:
+            line_items.append(get_item_by_id(line_items_db, line_item_id))
+        return jsonify({"data": line_items})
+    except Exception as e:
+        return jsonify(error=str(e)), 403
+
+
+@application.route("/api/events", methods=["POST"])
+@cross_origin()
+def post_event():
+    """
+    Create An Event
+    """
     new_event = request.json
     if len(new_event["line_items"]) == 0:
         return jsonify("Failed to Create Event: No Line Items Submitted")
@@ -156,10 +161,12 @@ def create_event():
     return jsonify("Created Event")
 
 
-@application.route("/api/delete_event/<event_id>")
+@application.route("/api/events/<event_id>", methods=["DELETE"])
 @cross_origin()
 def delete_event(event_id):
-    # TODO: This should just be a delete to /api/events/<event_id>
+    """
+    Delete An Event
+    """
     try:
         event = get_item_by_id(events_db, event_id)
         line_item_ids = event["line_items"]
@@ -169,6 +176,30 @@ def delete_event(event_id):
         return jsonify("Deleted Event")
     except Exception as e:
         return jsonify(error=str(e)), 403
+
+
+@application.route("/api/monthly_breakdown")
+@cross_origin()
+def monthly_breakdown():
+    """
+    Get Monthly Breakdown For Plotly Graph
+    """
+    categorized_data = get_categorized_data()
+    categories = defaultdict(empty_list)
+    seen_dates = set()
+    for row in categorized_data:
+        category = row["category"]
+        formatted_date = f"{row['month']}-{row['year']}"
+        seen_dates.add(formatted_date)
+        categories[category].append(
+            {"date": formatted_date, "amount": row["totalExpense"]}
+        )
+    # Ensure no categories have missing dates
+    for category, info in categories.items():
+        unseen_dates = seen_dates.difference([x["date"] for x in info])
+        info.extend([{"date": x, "amount": 0.0} for x in unseen_dates])
+        info.sort(key=lambda x: datetime.strptime(x["date"], "%m-%Y").date())
+    return categories
 
 
 @application.route("/api/refresh_venmo")

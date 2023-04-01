@@ -5,17 +5,17 @@ import { Table } from "react-bootstrap";
 import LineItem from './LineItem';
 import axios from 'axios';
 
-export default function EventDetailsModal ({show, event, lineItems, onHide}) {
+export default function EventDetailsModal({ show, event, lineItems, onHide }) {
 
   const deleteEvent = () => {
     var REACT_APP_API_ENDPOINT = String(process.env.REACT_APP_API_ENDPOINT);
-    axios.get(`${REACT_APP_API_ENDPOINT}api/delete_event/${event._id}`)
-    .then(response => {
+    axios.delete(`${REACT_APP_API_ENDPOINT}api/events/${event._id}`)
+      .then(response => {
         console.log(response.data);
         onHide();
-    })
-    .catch(error => console.log(error));
-}
+      })
+      .catch(error => console.log(error));
+  }
 
   return (
     <Modal
@@ -27,26 +27,26 @@ export default function EventDetailsModal ({show, event, lineItems, onHide}) {
     >
       <Modal.Header closeButton>
         <Modal.Title id="contained-modal-title-vcenter">
-            {event.name} | {event.category}
+          {event.name} | {event.category}
         </Modal.Title>
       </Modal.Header>
       <Modal.Body>
-          <Table striped bordered hover>
-                <thead>
-                    <tr>
-                    <th>Date</th>
-                    <th>Payment Method</th>
-                    <th>Description</th>
-                    <th>Name</th>
-                    <th>Amount</th>
-                    </tr>
-                </thead>
-                <tbody>
-            {lineItems.map(lineItem => 
-                <LineItem key={lineItem._id} lineItem={lineItem} />
+        <Table striped bordered hover>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Payment Method</th>
+              <th>Description</th>
+              <th>Name</th>
+              <th>Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            {lineItems.map(lineItem =>
+              <LineItem key={lineItem._id} lineItem={lineItem} />
             )}
-            </tbody>
-            </Table>
+          </tbody>
+        </Table>
       </Modal.Body>
       <Modal.Footer>
         <Button onClick={onHide} variant="secondary">Cancel</Button>
