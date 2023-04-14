@@ -17,6 +17,7 @@ import Nav from 'react-bootstrap/Nav';
 import Navbar from 'react-bootstrap/Navbar';
 import { Button, Spinner } from "react-bootstrap";
 import { useState } from "react";
+import Notification from "./Notification";
 
 // Make sure to call loadStripe outside of a component’s render to avoid
 // recreating the Stripe object on every render.
@@ -30,11 +31,22 @@ const stripePromise = loadStripe(STRIPE_PUBLIC_KEY);
 export default function App() {
 
   const [loading, setLoading] = useState(false);
+  const [notification, setNotification] = useState(
+    {
+      heading: "Notification",
+      message: "Refreshed data on the server",
+      showNotification: false,
+    }
+  )
 
   const handleRefreshData = () => {
     setLoading(true);
     axios.get(`${REACT_APP_API_ENDPOINT}api/refresh_data`)
       .then(response => {
+        setNotification({
+          ...notification,
+          showNotification: true
+        })
         setLoading(false);
       })
       .catch(error => console.log(error))
@@ -50,6 +62,7 @@ export default function App() {
 
   return (
     <React.StrictMode>
+      <Notification notification={notification} setNotification={setNotification} />
       <Router>
         <Navbar bg="dark" variant="dark" expand="sm">
           <Container>

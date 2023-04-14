@@ -35,6 +35,7 @@ TODO:
 - Move CRUD endpoints into spearate folder
 - Optimize Refresh Logic
 - Add OAuth Login
+- Move Payment Method from Stripe to which Bank Account
 
 - All Page is diff from create events page
 - Null out Payments? Do I need this
