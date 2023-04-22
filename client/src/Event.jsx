@@ -12,13 +12,13 @@ export default function Event({ event }) {
     const readableDate = longEnUSFormatter.format(event.date * 1000);
 
     const [eventDetailsModalShow, setEventDetailsModalShow] = useState(false);
-    const [lineItems, setLineItems] = useState([])
+    const [lineItemsForEvent, setLineItemsForEvent] = useState([])
 
     const showEventDetails = () => {
         var REACT_APP_API_ENDPOINT = String(process.env.REACT_APP_API_ENDPOINT);
         axios.get(`${REACT_APP_API_ENDPOINT}api/events/${event._id}/line_items_for_event`)
             .then(response => {
-                setLineItems(response.data.data)
+                setLineItemsForEvent(response.data.data)
             })
             .then(() => {
                 setEventDetailsModalShow(true)
@@ -38,7 +38,7 @@ export default function Event({ event }) {
                 <EventDetailsModal
                     show={eventDetailsModalShow}
                     event={event}
-                    lineItems={lineItems}
+                    lineItemsForEvent={lineItemsForEvent}
                     onHide={() => setEventDetailsModalShow(false)}
                 />
             </td>

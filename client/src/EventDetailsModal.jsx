@@ -6,7 +6,7 @@ import Modal from 'react-bootstrap/Modal';
 import LineItem from './LineItem';
 import Notification from './Notification';
 
-export default function EventDetailsModal({ show, event, lineItems, onHide }) {
+export default function EventDetailsModal({ show, event, lineItemsForEvent, onHide }) {
 
   const [notification, setNotification] = useState(
     {
@@ -57,7 +57,7 @@ export default function EventDetailsModal({ show, event, lineItems, onHide }) {
               </tr>
             </thead>
             <tbody>
-              {lineItems.map(lineItem =>
+              {lineItemsForEvent.map(lineItem =>
                 <LineItem key={lineItem._id} lineItem={lineItem} />
               )}
             </tbody>

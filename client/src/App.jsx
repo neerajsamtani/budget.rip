@@ -1,22 +1,18 @@
-import React from "react";
 import { loadStripe } from "@stripe/stripe-js";
-import {
-  BrowserRouter as Router,
-  Routes, Route, Link
-} from "react-router-dom"
 import axios from "axios";
-
-import LineItems from "./LineItems";
-import LineItemsToReview from "./LineItemsToReview";
-import ConnectedAccounts from "./ConnectedAccounts";
-import Events from "./Events";
-import Graphs from "./Graphs";
-
+import React, { useState } from "react";
+import { Button, Spinner } from "react-bootstrap";
 import Container from 'react-bootstrap/Container';
 import Nav from 'react-bootstrap/Nav';
 import Navbar from 'react-bootstrap/Navbar';
-import { Button, Spinner } from "react-bootstrap";
-import { useState } from "react";
+import {
+  BrowserRouter as Router, Link, Route, Routes
+} from "react-router-dom";
+import ConnectedAccounts from "./ConnectedAccounts";
+import Events from "./Events";
+import Graphs from "./Graphs";
+import LineItems from "./LineItems";
+import LineItemsToReview from "./LineItemsToReview";
 import Notification from "./Notification";
 
 // Make sure to call loadStripe outside of a component’s render to avoid
