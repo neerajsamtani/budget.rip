@@ -1,8 +1,17 @@
 import axios from "axios";
 import React, { createContext, useEffect, useReducer } from 'react';
+import { useContext } from "react";
 
 export const LineItemsContext = createContext([]);
 export const LineItemsDispatchContext = createContext([]);
+
+export function useLineItems() {
+    return useContext(LineItemsContext);
+}
+
+export function useLineItemsDispatch() {
+    return useContext(LineItemsDispatchContext);
+}
 
 function lineItemsReducer(lineItems, action) {
     switch (action.type) {

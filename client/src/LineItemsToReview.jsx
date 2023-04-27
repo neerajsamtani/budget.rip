@@ -1,6 +1,6 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useState } from "react";
 import { Button, Nav, Navbar, Table } from "react-bootstrap";
-import { LineItemsContext } from "./contexts/LineItemsContext";
+import { useLineItems } from "./contexts/LineItemsContext";
 import CreateCashTransactionModal from "./CreateCashTransactionModal";
 import CreateEventModal from "./CreateEventModal";
 import LineItem from "./LineItem";
@@ -9,8 +9,7 @@ export default function LineItemsToReview() {
 
     const [eventModalShow, setEventModalShow] = useState(false);
     const [cashModalShow, setCashModalShow] = useState(false);
-    const lineItems = useContext(LineItemsContext);
-    const selectedLineItems = lineItems.filter(lineItem => lineItem.isSelected).map(lineItem => lineItem.id);
+    const lineItems = useLineItems();
 
     const padding = {
         padding: 5

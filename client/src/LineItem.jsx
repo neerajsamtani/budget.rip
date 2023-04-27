@@ -1,5 +1,5 @@
-import React, { useContext } from "react";
-import { LineItemsContext, LineItemsDispatchContext } from "./contexts/LineItemsContext";
+import React from "react";
+import { useLineItems, useLineItemsDispatch } from "./contexts/LineItemsContext";
 
 export default function LineItem({ lineItem, showCheckBox }) {
     const longEnUSFormatter = new Intl.DateTimeFormat('en-US', {
@@ -9,8 +9,8 @@ export default function LineItem({ lineItem, showCheckBox }) {
     });
     const readableDate = longEnUSFormatter.format(lineItem.date * 1000);
 
-    const lineItems = useContext(LineItemsContext)
-    const lineItemsDispatch = useContext(LineItemsDispatchContext)
+    const lineItems = useLineItems();
+    const lineItemsDispatch = useLineItemsDispatch();
     const isChecked = lineItems.filter(li => li.isSelected).filter(li => li.id === lineItem._id).length > 0;
 
     const handleToggle = () => {

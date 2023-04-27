@@ -3,13 +3,13 @@ import React, { Fragment, useContext, useState } from 'react';
 import Button from 'react-bootstrap/Button';
 import Form from 'react-bootstrap/Form';
 import Modal from 'react-bootstrap/Modal';
-import { LineItemsContext, LineItemsDispatchContext } from "./contexts/LineItemsContext";
+import { useLineItems, useLineItemsDispatch } from "./contexts/LineItemsContext";
 import Notification from './Notification';
 
 export default function CreateEventModal({ show, onHide }) {
 
-  const lineItems = useContext(LineItemsContext)
-  const lineItemsDispatch = useContext(LineItemsDispatchContext)
+  const lineItems = useLineItems();
+  const lineItemsDispatch = useLineItemsDispatch();
   const selectedLineItems = lineItems.filter(lineItem => lineItem.isSelected).map(lineItem => lineItem.id);
 
   const [name, setName] = useState('')
