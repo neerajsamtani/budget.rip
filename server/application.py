@@ -47,7 +47,7 @@ def index():
 
 @application.route("/api/line_items", methods=["GET"])
 @cross_origin()
-def all_line_items():
+def all_line_items(local_only_line_items_to_review=False):
     """
     Get All Line Items
     Filters:
@@ -60,7 +60,7 @@ def all_line_items():
         filters["payment_method"] = payment_method
 
     only_line_items_to_review = request.args.get("only_line_items_to_review")
-    if only_line_items_to_review:
+    if only_line_items_to_review or local_only_line_items_to_review:
         filters["event_id"] = {"$exists": False}
 
     line_items = get_all_data(line_items_db, filters)
@@ -283,7 +283,7 @@ def refresh_data():
     refresh_venmo()
     refresh_stripe()
     create_consistent_line_items()
-    return jsonify("Refreshed Data")
+    return all_line_items(local_only_line_items_to_review=True)
 
 
 @application.route("/api/create_cash_transaction", methods=["POST"])

@@ -9,6 +9,7 @@ import {
   BrowserRouter as Router, Link, Route, Routes
 } from "react-router-dom";
 import ConnectedAccounts from "./ConnectedAccounts";
+import { useLineItemsDispatch } from "./contexts/LineItemsContext";
 import Events from "./Events";
 import Graphs from "./Graphs";
 import LineItems from "./LineItems";
@@ -26,11 +27,12 @@ const stripePromise = loadStripe(STRIPE_PUBLIC_KEY);
 
 export default function App() {
 
+  const lineItemsDispatch = useLineItemsDispatch();
   const [loading, setLoading] = useState(false);
   const [notification, setNotification] = useState(
     {
       heading: "Notification",
-      message: "Refreshed data on the server",
+      message: "Refreshed data",
       showNotification: false,
     }
   )
@@ -44,6 +46,10 @@ export default function App() {
           showNotification: true
         })
         setLoading(false);
+        lineItemsDispatch({
+          type: "populate_line_items",
+          fetchedLineItems: response.data.data
+        })
       })
       .catch(error => console.log(error))
   }
