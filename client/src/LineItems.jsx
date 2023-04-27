@@ -1,13 +1,14 @@
+import axios from "axios";
 import React, { useEffect, useState } from "react";
-import { Form, Row, Col, Table, InputGroup } from "react-bootstrap";
+import { Table } from "react-bootstrap";
+import { useLineItems, useLineItemsDispatch } from "./contexts/LineItemsContext";
 import LineItem from "./LineItem";
 import PaymentMethodFilter from "./PaymentMethodFilter";
-import axios from "axios";
 
 export default function LineItems() {
 
-    const [lineItems, setLineItems] = useState([])
-    const [total, setTotal] = useState(0)
+    const lineItems = useLineItems();
+    const lineItemsDispatch = useLineItemsDispatch();
     const [paymentMethod, setPaymentMethod] = useState("All")
 
     useEffect(() => {
@@ -18,8 +19,10 @@ export default function LineItems() {
             }
         })
             .then(response => {
-                setLineItems(response.data.data)
-                setTotal(response.data.total.toFixed(2))
+                lineItemsDispatch({
+                    type: "populate_line_items",
+                    fetchedLineItems: response.data.data
+                })
             })
             .catch(error => console.log(error));
     }, [paymentMethod])
@@ -27,19 +30,7 @@ export default function LineItems() {
     return (
         <div>
             <h1>Line Items</h1>
-            <Form>
-                <Row>
-                    <Col>
-                        <PaymentMethodFilter paymentMethod={paymentMethod} setPaymentMethod={setPaymentMethod} />
-                    </Col>
-                    <Col>
-                        <InputGroup className="mb-3">
-                            <InputGroup.Text>Total</InputGroup.Text>
-                            <InputGroup.Text>${total}</InputGroup.Text>
-                        </InputGroup>
-                    </Col>
-                </Row>
-            </Form>
+            <PaymentMethodFilter paymentMethod={paymentMethod} setPaymentMethod={setPaymentMethod} />
             <Table striped bordered hover>
                 <thead>
                     <tr>
