@@ -1,11 +1,17 @@
 import axios from "axios";
-import React, { Fragment, useState } from 'react';
+import React, { Fragment, useContext, useState } from 'react';
 import Button from 'react-bootstrap/Button';
 import Form from 'react-bootstrap/Form';
 import Modal from 'react-bootstrap/Modal';
+import { LineItemsContext, LineItemsDispatchContext } from "./contexts/LineItemsContext";
 import Notification from './Notification';
 
-export default function CreateEventModal({ show, selectedLineItems, setSelectedLineItems, onHide }) {
+export default function CreateEventModal({ show, onHide }) {
+
+  const lineItems = useContext(LineItemsContext)
+  const lineItemsDispatch = useContext(LineItemsDispatchContext)
+  const selectedLineItems = lineItems.filter(lineItem => lineItem.isSelected).map(lineItem => lineItem.id);
+
   const [name, setName] = useState('')
   const [category, setCategory] = useState('')
   const [date, setDate] = useState('')
@@ -48,7 +54,10 @@ export default function CreateEventModal({ show, selectedLineItems, setSelectedL
       .then(() => {
         setName('');
         setCategory('');
-        setSelectedLineItems([]);
+        lineItemsDispatch({
+          type: 'remove_line_items',
+          lineItemIds: selectedLineItems
+        })
         setDate('');
         setIsDuplicateTransaction(false);
         setNotification({
@@ -82,6 +91,7 @@ export default function CreateEventModal({ show, selectedLineItems, setSelectedL
               <Form.Label>Name:</Form.Label>
               <Form.Control type="text" value={name} onChange={handleNameChange} />
             </Form.Group>
+            {/* TODO: Can I use a CategoryFilter here? */}
             <Form.Group className="mb-3">
               <Form.Label>Category:</Form.Label>
               <Form.Select value={category} onChange={handleCategoryChange}>

@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useContext } from "react";
+import { LineItemsContext, LineItemsDispatchContext } from "./contexts/LineItemsContext";
 
-export default function LineItem({ lineItem, selectedLineItems, setSelectedLineItems }) {
+export default function LineItem({ lineItem, showCheckBox }) {
     const longEnUSFormatter = new Intl.DateTimeFormat('en-US', {
         year: 'numeric',
         month: 'short',
@@ -8,28 +9,20 @@ export default function LineItem({ lineItem, selectedLineItems, setSelectedLineI
     });
     const readableDate = longEnUSFormatter.format(lineItem.date * 1000);
 
-    useEffect(() => {
-        if (selectedLineItems && !selectedLineItems.includes(lineItem.id)) {
-            setIsChecked(false);
-        }
-    }, [selectedLineItems, lineItem.id])
+    const lineItems = useContext(LineItemsContext)
+    const lineItemsDispatch = useContext(LineItemsDispatchContext)
+    const isChecked = lineItems.filter(li => li.isSelected).filter(li => li.id === lineItem._id).length > 0;
 
-    const [isChecked, setIsChecked] = useState(false);
     const handleToggle = () => {
-        var newSelectedLineItems;
-        if (!isChecked) {
-            newSelectedLineItems = [...selectedLineItems, lineItem.id]
-        } else {
-            newSelectedLineItems = selectedLineItems.filter(id => id !== lineItem.id);
-        }
-        setIsChecked(!isChecked);
-        setSelectedLineItems(newSelectedLineItems);
+        lineItemsDispatch({
+            type: "toggle_line_item_select",
+            lineItemId: lineItem.id
+        })
     }
 
-    // February 14, 2020
     return (
         <tr>
-            {selectedLineItems && <td><input type="checkbox" checked={isChecked} onChange={handleToggle} /></td>}
+            {showCheckBox && <td><input type="checkbox" checked={isChecked} onChange={handleToggle} /></td>}
             <td>{readableDate}</td>
             <td>{lineItem.payment_method}</td>
             <td>{lineItem.description}</td>

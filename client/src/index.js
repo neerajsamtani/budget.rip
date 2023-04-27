@@ -1,6 +1,11 @@
+import 'bootstrap/dist/css/bootstrap.min.css';
 import React from "react";
 import ReactDOM from "react-dom";
 import App from "./App";
-import 'bootstrap/dist/css/bootstrap.min.css';
+import { LineItemsProvider } from "./contexts/LineItemsContext";
 
-ReactDOM.render(<App />, document.getElementById("root"));
+ReactDOM.render(
+    <LineItemsProvider>
+        <App />
+    </LineItemsProvider>
+    , document.getElementById("root"));
