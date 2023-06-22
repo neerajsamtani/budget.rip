@@ -6,7 +6,7 @@ import requests
 import stripe
 from dotenv import load_dotenv
 from flask import Flask, jsonify, request
-from flask_cors import CORS, cross_origin
+from flask_cors import CORS
 from splitwise import Splitwise
 from venmo_api import Client
 
@@ -14,13 +14,17 @@ from constants import *
 from dao import *
 from helpers import *
 from line_item import LineItem
+from resources.event import events
+from resources.line_item import line_items
 
 # Flask constructor takes the name of
 # current module (__name__) as argument.
 application = Flask(
     __name__, static_folder="public", static_url_path="", template_folder="public"
 )
-cors = CORS(application)
+application.register_blueprint(line_items)
+application.register_blueprint(events)
+CORS(application)
 
 # If an environment variable is not found in the .env file,
 # load_dotenv will then search for a variable by the given name in the host environment.
@@ -39,143 +43,12 @@ load_dotenv()
 
 
 @application.route("/api/")
-@cross_origin()
 def index():
     application.logger.info("You Hit API Index")
     return jsonify("Welcome to Budgit API")
 
 
-@application.route("/api/line_items", methods=["GET"])
-@cross_origin()
-def all_line_items(local_only_line_items_to_review=False):
-    """
-    Get All Line Items
-    Filters:
-        - Payment Method (optional)
-        - Only Line Items To Review (optional)
-    """
-    filters = {}
-    payment_method = request.args.get("payment_method")
-    if payment_method not in ["All", None]:
-        filters["payment_method"] = payment_method
-
-    only_line_items_to_review = request.args.get("only_line_items_to_review")
-    if only_line_items_to_review or local_only_line_items_to_review:
-        filters["event_id"] = {"$exists": False}
-
-    line_items = get_all_data(line_items_collection, filters)
-    line_items = sort_by_date(line_items)
-    line_items_total = sum(line_item["amount"] for line_item in line_items)
-    return jsonify({"total": line_items_total, "data": line_items})
-
-
-@application.route("/api/line_items/<line_item_id>", methods=["GET"])
-@cross_origin()
-def get_line_item(line_item_id):
-    """
-    Get A Line Item
-    """
-    line_item = get_item_by_id(line_items_collection, line_item_id)
-    return jsonify(line_item)
-
-
-@application.route("/api/events", methods=["GET"])
-@cross_origin()
-def all_events():
-    """
-    Get All Events
-    Filters:
-        - Start Time
-        - End Time
-    """
-    filters = {}
-    start_time = float(request.args.get("start_time"))
-    end_time = float(request.args.get("end_time"))
-    filters["date"] = {"$gte": start_time, "$lte": end_time}
-    events = get_all_data(events_collection, filters)
-    events_total = sum(event["amount"] for event in events)
-    return jsonify({"total": events_total, "data": events})
-
-
-@application.route("/api/events/<event_id>", methods=["GET"])
-@cross_origin()
-def get_event(event_id):
-    """
-    Get An Event
-    """
-    event = get_item_by_id(events_collection, event_id)
-    return jsonify(event)
-
-
-@application.route("/api/events/<event_id>/line_items_for_event", methods=["GET"])
-@cross_origin()
-def get_line_items_for_event(event_id):
-    """
-    Get All Line Items Belonging To An Event
-    """
-    try:
-        event = get_item_by_id(events_collection, event_id)
-        line_items = []
-        for line_item_id in event["line_items"]:
-            line_items.append(get_item_by_id(line_items_collection, line_item_id))
-        return jsonify({"data": line_items})
-    except Exception as e:
-        return jsonify(error=str(e)), 403
-
-
-@application.route("/api/events", methods=["POST"])
-@cross_origin()
-def post_event():
-    """
-    Create An Event
-    """
-    new_event = request.json
-    if len(new_event["line_items"]) == 0:
-        return jsonify("Failed to Create Event: No Line Items Submitted")
-
-    filters = {}
-    filters["_id"] = {"$in": new_event["line_items"]}
-    line_items = get_all_data(line_items_collection, filters)
-    earliest_line_item = min(line_items, key=lambda line_item: line_item["date"])
-
-    new_event["id"] = f"event{earliest_line_item['id'][9:]}"
-    if new_event["date"]:
-        new_event["date"] = html_date_to_posix(new_event["date"])
-    else:
-        new_event["date"] = earliest_line_item["date"]
-
-    if new_event["is_duplicate_transaction"]:
-        new_event["amount"] = line_items[0]["amount"]
-    else:
-        new_event["amount"] = sum(line_item["amount"] for line_item in line_items)
-
-    upsert_with_id(events_collection, new_event, new_event["id"])
-    for line_item in line_items:
-        line_item["event_id"] = new_event["id"]
-        upsert(line_items_collection, line_item)
-
-    return jsonify("Created Event")
-
-
-@application.route("/api/events/<event_id>", methods=["DELETE"])
-@cross_origin()
-def delete_event(event_id):
-    """
-    Delete An Event
-    """
-    try:
-        event = get_item_by_id(events_collection, event_id)
-        line_item_ids = event["line_items"]
-        delete_from_collection(events_collection, event_id)
-        for line_item_id in line_item_ids:
-            remove_event_from_line_item(line_item_id)
-        return jsonify("Deleted Event")
-    except Exception as e:
-        return jsonify(error=str(e)), 403
-
-
 @application.route("/api/monthly_breakdown")
-@cross_origin()
 def monthly_breakdown():
     """
     Get Monthly Breakdown For Plotly Graph
@@ -199,7 +72,6 @@ def monthly_breakdown():
 
 
 @application.route("/api/refresh_venmo")
-@cross_origin()
 def refresh_venmo(VENMO_ACCESS_TOKEN=os.getenv("VENMO_ACCESS_TOKEN")):
     venmo_client = Client(access_token=VENMO_ACCESS_TOKEN)
     my_id = venmo_client.my_profile().id
@@ -224,7 +96,6 @@ def refresh_venmo(VENMO_ACCESS_TOKEN=os.getenv("VENMO_ACCESS_TOKEN")):
 
 
 @application.route("/api/refresh_splitwise")
-@cross_origin()
 def refresh_splitwise(
     SPLITWISE_CONSUMER_KEY=os.getenv("SPLITWISE_CONSUMER_KEY"),
     SPLITWISE_CONSUMER_SECRET=os.getenv("SPLITWISE_CONSUMER_SECRET"),
@@ -243,7 +114,6 @@ def refresh_splitwise(
 
 
 @application.route("/api/refresh_stripe")
-@cross_origin()
 def refresh_stripe():
     bank_accounts = get_all_data(bank_accounts_collection)
     for account in bank_accounts:
@@ -252,7 +122,6 @@ def refresh_stripe():
 
 
 @application.route("/api/connected_accounts", methods=["GET"])
-@cross_origin()
 def get_connected_accounts():
     connected_accounts = []
     # venmo
@@ -277,7 +146,6 @@ def get_connected_accounts():
 
 
 @application.route("/api/refresh_data")
-@cross_origin()
 def refresh_data():
     refresh_splitwise()
     refresh_venmo()
@@ -287,7 +155,6 @@ def refresh_data():
 
 
 @application.route("/api/create_cash_transaction", methods=["POST"])
-@cross_origin()
 def create_cash_transaction():
     transaction = request.json
     transaction["date"] = html_date_to_posix(transaction["date"])
@@ -298,7 +165,6 @@ def create_cash_transaction():
 
 
 @application.route("/api/create-fc-session", methods=["POST"])
-@cross_origin()
 def create_fc_session():
     try:
         # TODO: Is there a better pattern than nested trys?
@@ -318,7 +184,6 @@ def create_fc_session():
 
 
 @application.route("/api/create_accounts", methods=["POST"])
-@cross_origin()
 def create_accounts():
     new_accounts = request.json
     if len(new_accounts) == 0:
@@ -331,7 +196,6 @@ def create_accounts():
 
 
 @application.route("/api/get_accounts/<session_id>")
-@cross_origin()
 def get_accounts(session_id):
     try:
         session = stripe.financial_connections.Session.retrieve(session_id)
@@ -344,7 +208,6 @@ def get_accounts(session_id):
 
 
 @application.route("/api/subscribe_to_account/<account_id>")
-@cross_origin()
 def subscribe_to_account(account_id):
     try:
         # TODO: Use requests since we cannot list transactions with the Stripe Python client
@@ -366,7 +229,6 @@ def subscribe_to_account(account_id):
 
 
 @application.route("/api/get_transactions/<account_id>")
-@cross_origin()
 def get_transactions(account_id):
     # TODO: This gets all transactions ever. We should only get those that we don't have
     try:
