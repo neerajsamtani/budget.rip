@@ -1,6 +1,5 @@
 import json
 import os
-from collections import defaultdict
 
 import requests
 import stripe
@@ -15,7 +14,8 @@ from dao import *
 from helpers import *
 from line_item import LineItem
 from resources.event import events
-from resources.line_item import line_items
+from resources.line_item import all_line_items, line_items
+from resources.monthly_breakdown import monthly_breakdown
 
 # Flask constructor takes the name of
 # current module (__name__) as argument.
@@ -24,6 +24,7 @@ application = Flask(
 )
 application.register_blueprint(line_items)
 application.register_blueprint(events)
+application.register_blueprint(monthly_breakdown)
 CORS(application)
 
 # If an environment variable is not found in the .env file,
@@ -44,31 +45,7 @@ load_dotenv()
 
 @application.route("/api/")
 def index():
-    application.logger.info("You Hit API Index")
     return jsonify("Welcome to Budgit API")
-
-
-@application.route("/api/monthly_breakdown")
-def monthly_breakdown():
-    """
-    Get Monthly Breakdown For Plotly Graph
-    """
-    categorized_data = get_categorized_data()
-    categories = defaultdict(empty_list)
-    seen_dates = set()
-    for row in categorized_data:
-        category = row["category"]
-        formatted_date = f"{row['month']}-{row['year']}"
-        seen_dates.add(formatted_date)
-        categories[category].append(
-            {"date": formatted_date, "amount": row["totalExpense"]}
-        )
-    # Ensure no categories have missing dates
-    for category, info in categories.items():
-        unseen_dates = seen_dates.difference([x["date"] for x in info])
-        info.extend([{"date": x, "amount": 0.0} for x in unseen_dates])
-        info.sort(key=lambda x: datetime.strptime(x["date"], "%m-%Y").date())
-    return categories
 
 
 @application.route("/api/refresh_venmo")
