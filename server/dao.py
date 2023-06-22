@@ -11,52 +11,54 @@ from helpers import to_dict
 # client = mongomock.MongoClient(MONGODB_URI, 27017)
 client = MongoClient(MONGODB_URI, 27017)
 db = client.flask_db
-venmo_raw_data_db = db.venmo_raw_data
-splitwise_raw_data_db = db.splitwise_raw_data
-cash_raw_data_db = db.cash_raw_data
-stripe_raw_transaction_data_db = db.stripe_raw_transaction_data
-stripe_raw_account_data_db = db.stripe_raw_account_data
-line_items_db = db.line_items
-events_db = db.events
-bank_accounts_db = db.accounts
+venmo_raw_data_collection = db.venmo_raw_data
+splitwise_raw_data_collection = db.splitwise_raw_data
+cash_raw_data_collection = db.cash_raw_data
+stripe_raw_transaction_data_collection = db.stripe_raw_transaction_data
+stripe_raw_account_data_collection = db.stripe_raw_account_data
+line_items_collection = db.line_items
+events_collection = db.events
+bank_accounts_collection = db.accounts
 
 
-def get_all_data(cur_db: Collection, filters=None) -> List[_DocumentType]:
-    return list(cur_db.find(filters).sort("date", -1))
+def get_all_data(cur_collection: Collection, filters=None) -> List[_DocumentType]:
+    return list(cur_collection.find(filters).sort("date", -1))
 
 
-def get_item_by_id(cur_db: Collection, id=int):  # TODO: Return Type?
-    return list(cur_db.find({"_id": {"$eq": id}}))[0]
+def get_item_by_id(cur_collection: Collection, id=int):  # TODO: Return Type?
+    return list(cur_collection.find({"_id": {"$eq": id}}))[0]
 
 
-def insert(cur_db: Collection, item):
+def insert(cur_collection: Collection, item):
     item = to_dict(item)
-    cur_db.insert_one(item)
+    cur_collection.insert_one(item)
 
 
-def delete_from_db(cur_db: Collection, id: int):
-    cur_db.delete_one({"_id": id})
+def delete_from_collection(cur_collection: Collection, id: int):
+    cur_collection.delete_one({"_id": id})
 
 
 def remove_event_from_line_item(line_item_id: int):
-    line_items_db.update_one({"_id": line_item_id}, {"$unset": {"event_id": ""}})
+    line_items_collection.update_one(
+        {"_id": line_item_id}, {"$unset": {"event_id": ""}}
+    )
 
 
-def upsert(cur_db: Collection, item):
+def upsert(cur_collection: Collection, item):
     item = to_dict(item)
-    upsert_with_id(cur_db, item, item["id"])
+    upsert_with_id(cur_collection, item, item["id"])
 
 
-def upsert_with_id(cur_db: Collection, item, id: int):
+def upsert_with_id(cur_collection: Collection, item, id: int):
     item["_id"] = item["id"]
-    cur_db.replace_one({"_id": id}, item, upsert=True)
+    cur_collection.replace_one({"_id": id}, item, upsert=True)
 
 
 def get_categorized_data():
     """
     Group totalExpense by month, year, and category
     """
-    query_result = events_db.aggregate(
+    query_result = events_collection.aggregate(
         [
             {"$addFields": {"date": {"$toDate": {"$multiply": ["$date", 1000]}}}},
             {

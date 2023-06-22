@@ -63,7 +63,7 @@ def all_line_items(local_only_line_items_to_review=False):
     if only_line_items_to_review or local_only_line_items_to_review:
         filters["event_id"] = {"$exists": False}
 
-    line_items = get_all_data(line_items_db, filters)
+    line_items = get_all_data(line_items_collection, filters)
     line_items = sort_by_date(line_items)
     line_items_total = sum(line_item["amount"] for line_item in line_items)
     return jsonify({"total": line_items_total, "data": line_items})
@@ -75,7 +75,7 @@ def get_line_item(line_item_id):
     """
     Get A Line Item
     """
-    line_item = get_item_by_id(line_items_db, line_item_id)
+    line_item = get_item_by_id(line_items_collection, line_item_id)
     return jsonify(line_item)
 
 
@@ -92,7 +92,7 @@ def all_events():
     start_time = float(request.args.get("start_time"))
     end_time = float(request.args.get("end_time"))
     filters["date"] = {"$gte": start_time, "$lte": end_time}
-    events = get_all_data(events_db, filters)
+    events = get_all_data(events_collection, filters)
     events_total = sum(event["amount"] for event in events)
     return jsonify({"total": events_total, "data": events})
 
@@ -103,7 +103,7 @@ def get_event(event_id):
     """
     Get An Event
     """
-    event = get_item_by_id(events_db, event_id)
+    event = get_item_by_id(events_collection, event_id)
     return jsonify(event)
 
 
@@ -114,10 +114,10 @@ def get_line_items_for_event(event_id):
     Get All Line Items Belonging To An Event
     """
     try:
-        event = get_item_by_id(events_db, event_id)
+        event = get_item_by_id(events_collection, event_id)
         line_items = []
         for line_item_id in event["line_items"]:
-            line_items.append(get_item_by_id(line_items_db, line_item_id))
+            line_items.append(get_item_by_id(line_items_collection, line_item_id))
         return jsonify({"data": line_items})
     except Exception as e:
         return jsonify(error=str(e)), 403
@@ -135,7 +135,7 @@ def post_event():
 
     filters = {}
     filters["_id"] = {"$in": new_event["line_items"]}
-    line_items = get_all_data(line_items_db, filters)
+    line_items = get_all_data(line_items_collection, filters)
     earliest_line_item = min(line_items, key=lambda line_item: line_item["date"])
 
     new_event["id"] = f"event{earliest_line_item['id'][9:]}"
@@ -149,10 +149,10 @@ def post_event():
     else:
         new_event["amount"] = sum(line_item["amount"] for line_item in line_items)
 
-    upsert_with_id(events_db, new_event, new_event["id"])
+    upsert_with_id(events_collection, new_event, new_event["id"])
     for line_item in line_items:
         line_item["event_id"] = new_event["id"]
-        upsert(line_items_db, line_item)
+        upsert(line_items_collection, line_item)
 
     return jsonify("Created Event")
 
@@ -164,9 +164,9 @@ def delete_event(event_id):
     Delete An Event
     """
     try:
-        event = get_item_by_id(events_db, event_id)
+        event = get_item_by_id(events_collection, event_id)
         line_item_ids = event["line_items"]
-        delete_from_db(events_db, event_id)
+        delete_from_collection(events_collection, event_id)
         for line_item_id in line_item_ids:
             remove_event_from_line_item(line_item_id)
         return jsonify("Deleted Event")
@@ -215,7 +215,7 @@ def refresh_venmo(VENMO_ACCESS_TOKEN=os.getenv("VENMO_ACCESS_TOKEN")):
                 or transaction.target.first_name in PARTIES_TO_IGNORE
             ):
                 continue
-            upsert(venmo_raw_data_db, transaction)
+            upsert(venmo_raw_data_collection, transaction)
         transactions = (
             transactions.get_next_page()
         )  # TODO: This might have one extra network call when we break out of the loop
@@ -237,7 +237,7 @@ def refresh_splitwise(
     for expense in expenses:
         if expense.deleted_at is not None:
             continue
-        upsert(splitwise_raw_data_db, expense)
+        upsert(splitwise_raw_data_collection, expense)
     splitwise_to_line_items()
     return jsonify("Refreshed Splitwise Connection")
 
@@ -245,7 +245,7 @@ def refresh_splitwise(
 @application.route("/api/refresh_stripe")
 @cross_origin()
 def refresh_stripe():
-    bank_accounts = get_all_data(bank_accounts_db)
+    bank_accounts = get_all_data(bank_accounts_collection)
     for account in bank_accounts:
         get_transactions(account["id"])
     return jsonify("Refreshed Stripe Connection")
@@ -268,7 +268,7 @@ def get_connected_accounts():
         f"{sObj.getCurrentUser().getFirstName()} {sObj.getCurrentUser().getLastName()} (splitwise)"
     )
     # stripe
-    bank_accounts = get_all_data(bank_accounts_db)
+    bank_accounts = get_all_data(bank_accounts_collection)
     for account in bank_accounts:
         connected_accounts.append(
             f"{account['display_name']} {account['last4']} (stripe)"
@@ -292,7 +292,7 @@ def create_cash_transaction():
     transaction = request.json
     transaction["date"] = html_date_to_posix(transaction["date"])
     transaction["amount"] = int(transaction["amount"])
-    insert(cash_raw_data_db, transaction)
+    insert(cash_raw_data_collection, transaction)
     cash_to_line_items()
     return jsonify("Created Cash Transaction")
 
@@ -325,7 +325,7 @@ def create_accounts():
         return jsonify("Failed to Create Accounts: No Accounts Submitted")
 
     for account in new_accounts:
-        upsert(bank_accounts_db, account)
+        upsert(bank_accounts_collection, account)
 
     return jsonify({"data": new_accounts})
 
@@ -337,7 +337,7 @@ def get_accounts(session_id):
         session = stripe.financial_connections.Session.retrieve(session_id)
         accounts = session["accounts"]
         for account in accounts:
-            upsert(stripe_raw_account_data_db, account)
+            upsert(stripe_raw_account_data_collection, account)
         return jsonify({"accounts": accounts})
     except Exception as e:
         return jsonify(error=str(e)), 403
@@ -390,7 +390,7 @@ def get_transactions(account_id):
             data = response["data"]
             for transaction in data:
                 if transaction["status"] == "posted":
-                    upsert(stripe_raw_transaction_data_db, transaction)
+                    upsert(stripe_raw_transaction_data_collection, transaction)
             has_more = response["has_more"]
             last_transaction = data[-1]
             params["starting_after"] = last_transaction["id"]
@@ -414,7 +414,7 @@ def get_transactions(account_id):
 
 def splitwise_to_line_items():
     payment_method = "Splitwise"
-    expenses = get_all_data(splitwise_raw_data_db)
+    expenses = get_all_data(splitwise_raw_data_collection)
     for expense in expenses:
         responsible_party = ""
         # Get Person Name
@@ -436,13 +436,13 @@ def splitwise_to_line_items():
                 expense["description"],
                 flip_amount(user["net_balance"]),
             )
-            upsert(line_items_db, line_item)
+            upsert(line_items_collection, line_item)
             break
 
 
 def venmo_to_line_items():
     payment_method = "Venmo"
-    venmo_raw_data = get_all_data(venmo_raw_data_db)
+    venmo_raw_data = get_all_data(venmo_raw_data_collection)
     for transaction in venmo_raw_data:
         posix_date = float(transaction["date_created"])
         if (
@@ -485,12 +485,12 @@ def venmo_to_line_items():
                 transaction["note"],
                 flip_amount(transaction["amount"]),
             )
-        upsert(line_items_db, line_item)
+        upsert(line_items_collection, line_item)
 
 
 def stripe_to_line_items():
     payment_method = "Stripe"
-    stripe_raw_data = get_all_data(stripe_raw_transaction_data_db)
+    stripe_raw_data = get_all_data(stripe_raw_transaction_data_collection)
     for transaction in stripe_raw_data:
         line_item = LineItem(
             f'line_item_{transaction["_id"]}',
@@ -500,12 +500,12 @@ def stripe_to_line_items():
             transaction["description"],
             flip_amount(transaction["amount"]) / 100,
         )
-        upsert(line_items_db, line_item)
+        upsert(line_items_collection, line_item)
 
 
 def cash_to_line_items():
     payment_method = "Cash"
-    cash_raw_data = get_all_data(cash_raw_data_db)
+    cash_raw_data = get_all_data(cash_raw_data_collection)
     for transaction in cash_raw_data:
         line_item = LineItem(
             f'line_item_{transaction["_id"]}',
@@ -515,19 +515,19 @@ def cash_to_line_items():
             transaction["description"],
             transaction["amount"],
         )
-        upsert(line_items_db, line_item)
+        upsert(line_items_collection, line_item)
 
 
 def add_event_ids_to_line_items():
-    events = get_all_data(events_db)
+    events = get_all_data(events_collection)
     for event in events:
         filters = {}
         filters["_id"] = {"$in": event["line_items"]}
-        line_items = get_all_data(line_items_db, filters)
+        line_items = get_all_data(line_items_collection, filters)
 
         for line_item in line_items:
             line_item["event_id"] = event["id"]
-            upsert(line_items_db, line_item)
+            upsert(line_items_collection, line_item)
 
 
 def create_consistent_line_items():
