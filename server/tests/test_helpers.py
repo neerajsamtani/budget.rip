@@ -3,7 +3,7 @@ from datetime import datetime
 from unittest.mock import MagicMock
 
 import helpers
-import line_item
+from line_item_class import LineItem
 
 
 class TestFlipAmount(unittest.TestCase):
@@ -23,7 +23,7 @@ class TestFlipAmount(unittest.TestCase):
 
 class TestToDict(unittest.TestCase):
     def test_line_item_to_dict(self):
-        input_line_item = line_item.LineItem(
+        input_line_item = LineItem(
             id=1234,
             date="2022-03-27",
             responsible_party="John Smith",
@@ -122,13 +122,13 @@ class TestISO8601ToPosix(unittest.TestCase):
 class TestSortByDate(unittest.TestCase):
     def test_sort_by_date(self):
         line_items = [
-            line_item.LineItem(
+            LineItem(
                 1, datetime(2022, 1, 1), "John", "Venmo", "item 1", 100.0
             ).__dict__,
-            line_item.LineItem(
+            LineItem(
                 2, datetime(2022, 2, 1), "Mary", "Splitwise", "item 2", 50.0
             ).__dict__,
-            line_item.LineItem(
+            LineItem(
                 3, datetime(2021, 12, 31), "Jane", "Cash", "item 3", 75.0
             ).__dict__,
         ]

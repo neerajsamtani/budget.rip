@@ -1,6 +1,8 @@
 import os
 
-import stripe
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from helpers import iso_8601_to_posix
 
@@ -12,7 +14,6 @@ MOVING_DATE_POSIX = iso_8601_to_posix(MOVING_DATE)
 USER_FIRST_NAME = "Neeraj"
 PARTIES_TO_IGNORE = ["Pink Palace Babes", "Nyusha", "John Jonah"]
 STRIPE_API_KEY = os.getenv("STRIPE_LIVE_API_SECRET_KEY")
-stripe.api_key = STRIPE_API_KEY
 STRIPE_CUSTOMER_ID = os.getenv("STRIPE_CUSTOMER_ID")
 MONGODB_URI = os.getenv("MONGODB_URI")
 VENMO_ACCESS_TOKEN = os.getenv("VENMO_ACCESS_TOKEN")

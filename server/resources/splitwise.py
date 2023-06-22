@@ -1,12 +1,5 @@
-from constants import (
-    LIMIT,
-    MOVING_DATE,
-    PARTIES_TO_IGNORE,
-    SPLITWISE_API_KEY,
-    SPLITWISE_CONSUMER_KEY,
-    SPLITWISE_CONSUMER_SECRET,
-    USER_FIRST_NAME,
-)
+from clients import splitwise_client
+from constants import LIMIT, MOVING_DATE, PARTIES_TO_IGNORE, USER_FIRST_NAME
 from dao import (
     get_all_data,
     line_items_collection,
@@ -15,14 +8,10 @@ from dao import (
 )
 from flask import Blueprint, jsonify
 from helpers import flip_amount, iso_8601_to_posix
-
-from line_item import LineItem
-from splitwise import Splitwise
+from line_item_class import LineItem
 
 splitwise = Blueprint("splitwise", __name__)
-splitwise_client = Splitwise(
-    SPLITWISE_CONSUMER_KEY, SPLITWISE_CONSUMER_SECRET, api_key=SPLITWISE_API_KEY
-)
+
 
 # TODO: Exceptions
 # TODO: Can I remove MOVING_DATE_POSIX

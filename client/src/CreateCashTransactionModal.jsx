@@ -40,7 +40,7 @@ export default function CreateCashTransactionModal({ show, onHide }) {
       "amount": amount
     }
     console.log(newCashTransaction);
-    axios.post(`${REACT_APP_API_ENDPOINT}api/create_cash_transaction`, newCashTransaction)
+    axios.post(`${REACT_APP_API_ENDPOINT}api/cash_transaction`, newCashTransaction)
       .then(response => {
         console.log(response.data);
       })

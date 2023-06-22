@@ -8,14 +8,14 @@ from dao import (
 from flask import Blueprint, jsonify, request
 from helpers import html_date_to_posix
 
-from line_item import LineItem
+from line_item_class import LineItem
 
 cash = Blueprint("cash", __name__)
 
 # TODO: Exceptions
 
 
-@cash.route("/api/create_cash_transaction", methods=["POST"])
+@cash.route("/api/cash_transaction", methods=["POST"])
 def create_cash_transaction():
     transaction = request.json
     transaction["date"] = html_date_to_posix(transaction["date"])

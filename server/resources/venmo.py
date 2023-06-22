@@ -1,18 +1,12 @@
-from constants import (
-    MOVING_DATE_POSIX,
-    PARTIES_TO_IGNORE,
-    USER_FIRST_NAME,
-    VENMO_ACCESS_TOKEN,
-)
+from clients import venmo_client
+from constants import MOVING_DATE_POSIX, PARTIES_TO_IGNORE, USER_FIRST_NAME
 from dao import get_all_data, line_items_collection, upsert, venmo_raw_data_collection
 from flask import Blueprint, jsonify
 from helpers import flip_amount
-from venmo_api import Client
-
-from line_item import LineItem
+from line_item_class import LineItem
 
 venmo = Blueprint("venmo", __name__)
-venmo_client = Client(access_token=VENMO_ACCESS_TOKEN)
+
 
 # TODO: Exceptions
 # TODO: Can I remove MOVING_DATE_POSIX

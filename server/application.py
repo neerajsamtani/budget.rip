@@ -9,7 +9,7 @@ from flask_cors import CORS
 from constants import *
 from dao import *
 from helpers import *
-from line_item import LineItem
+from line_item_class import LineItem
 from resources.cash import cash, cash_to_line_items
 from resources.event import events
 from resources.line_item import all_line_items, line_items
