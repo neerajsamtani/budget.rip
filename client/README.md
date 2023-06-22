@@ -36,6 +36,12 @@ TODO:
 - Optimize Refresh Logic
 - Add OAuth Login
 - Move Payment Method from Stripe to which Bank Account
+- Add tags. Allows me to filter by trip too.
+- Single Events: Hints for Name and Category (from Hints.json or current name in Camel Case)
+- Transfer between Accounts auto suggested, N/A category (two transactions sum 0)
+- Paycheck auto suggested
+- Duplicate transaction auto suggested (two transactions same amount)
+- Frontend requiring category is filled
 
 - All Page is diff from create events page
 - Null out Payments? Do I need this
