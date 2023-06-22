@@ -39,7 +39,7 @@ export default function App() {
 
   const handleRefreshData = () => {
     setLoading(true);
-    axios.get(`${REACT_APP_API_ENDPOINT}api/refresh_data`)
+    axios.get(`${REACT_APP_API_ENDPOINT}api/refresh/all`)
       .then(response => {
         setNotification({
           ...notification,

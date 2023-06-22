@@ -1,21 +1,26 @@
 import json
-import os
 
 import requests
 import stripe
 from dotenv import load_dotenv
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-from splitwise import Splitwise
-from venmo_api import Client
 
 from constants import *
 from dao import *
 from helpers import *
 from line_item import LineItem
+from resources.cash import cash, cash_to_line_items
 from resources.event import events
 from resources.line_item import all_line_items, line_items
 from resources.monthly_breakdown import monthly_breakdown
+from resources.splitwise import (
+    refresh_splitwise,
+    splitwise,
+    splitwise_client,
+    splitwise_to_line_items,
+)
+from resources.venmo import refresh_venmo, venmo, venmo_client, venmo_to_line_items
 
 # Flask constructor takes the name of
 # current module (__name__) as argument.
@@ -25,6 +30,9 @@ application = Flask(
 application.register_blueprint(line_items)
 application.register_blueprint(events)
 application.register_blueprint(monthly_breakdown)
+application.register_blueprint(venmo)
+application.register_blueprint(splitwise)
+application.register_blueprint(cash)
 CORS(application)
 
 # If an environment variable is not found in the .env file,
@@ -48,49 +56,7 @@ def index():
     return jsonify("Welcome to Budgit API")
 
 
-@application.route("/api/refresh_venmo")
-def refresh_venmo(VENMO_ACCESS_TOKEN=os.getenv("VENMO_ACCESS_TOKEN")):
-    venmo_client = Client(access_token=VENMO_ACCESS_TOKEN)
-    my_id = venmo_client.my_profile().id
-    transactions = venmo_client.user.get_user_transactions(my_id)
-    transactions_after_moving_date = True
-    while transactions and transactions_after_moving_date:
-        for transaction in transactions:
-            if transaction.date_created < MOVING_DATE_POSIX:
-                transactions_after_moving_date = False
-                break
-            elif (
-                transaction.actor.first_name in PARTIES_TO_IGNORE
-                or transaction.target.first_name in PARTIES_TO_IGNORE
-            ):
-                continue
-            upsert(venmo_raw_data_collection, transaction)
-        transactions = (
-            transactions.get_next_page()
-        )  # TODO: This might have one extra network call when we break out of the loop
-    venmo_to_line_items()
-    return jsonify("Refreshed Venmo Connection")
-
-
-@application.route("/api/refresh_splitwise")
-def refresh_splitwise(
-    SPLITWISE_CONSUMER_KEY=os.getenv("SPLITWISE_CONSUMER_KEY"),
-    SPLITWISE_CONSUMER_SECRET=os.getenv("SPLITWISE_CONSUMER_SECRET"),
-    SPLITWISE_API_KEY=os.getenv("SPLITWISE_API_KEY"),
-):
-    sObj = Splitwise(
-        SPLITWISE_CONSUMER_KEY, SPLITWISE_CONSUMER_SECRET, api_key=SPLITWISE_API_KEY
-    )
-    expenses = sObj.getExpenses(limit=LIMIT, dated_after=MOVING_DATE)
-    for expense in expenses:
-        if expense.deleted_at is not None:
-            continue
-        upsert(splitwise_raw_data_collection, expense)
-    splitwise_to_line_items()
-    return jsonify("Refreshed Splitwise Connection")
-
-
-@application.route("/api/refresh_stripe")
+@application.route("/api/refresh/stripe")
 def refresh_stripe():
     bank_accounts = get_all_data(bank_accounts_collection)
     for account in bank_accounts:
@@ -98,20 +64,23 @@ def refresh_stripe():
     return jsonify("Refreshed Stripe Connection")
 
 
+@application.route("/api/refresh/all")
+def refresh_all():
+    refresh_splitwise()
+    refresh_venmo()
+    refresh_stripe()
+    create_consistent_line_items()
+    return all_line_items(local_only_line_items_to_review=True)
+
+
 @application.route("/api/connected_accounts", methods=["GET"])
 def get_connected_accounts():
     connected_accounts = []
     # venmo
-    venmo_client = Client(access_token=os.getenv("VENMO_ACCESS_TOKEN"))
     connected_accounts.append(f"{venmo_client.my_profile().username} (venmo)")
     # splitwise
-    sObj = Splitwise(
-        os.getenv("SPLITWISE_CONSUMER_KEY"),
-        os.getenv("SPLITWISE_CONSUMER_SECRET"),
-        api_key=os.getenv("SPLITWISE_API_KEY"),
-    )
     connected_accounts.append(
-        f"{sObj.getCurrentUser().getFirstName()} {sObj.getCurrentUser().getLastName()} (splitwise)"
+        f"{splitwise_client.getCurrentUser().getFirstName()} {splitwise_client.getCurrentUser().getLastName()} (splitwise)"
     )
     # stripe
     bank_accounts = get_all_data(bank_accounts_collection)
@@ -120,25 +89,6 @@ def get_connected_accounts():
             f"{account['display_name']} {account['last4']} (stripe)"
         )
     return jsonify(connected_accounts)
-
-
-@application.route("/api/refresh_data")
-def refresh_data():
-    refresh_splitwise()
-    refresh_venmo()
-    refresh_stripe()
-    create_consistent_line_items()
-    return all_line_items(local_only_line_items_to_review=True)
-
-
-@application.route("/api/create_cash_transaction", methods=["POST"])
-def create_cash_transaction():
-    transaction = request.json
-    transaction["date"] = html_date_to_posix(transaction["date"])
-    transaction["amount"] = int(transaction["amount"])
-    insert(cash_raw_data_collection, transaction)
-    cash_to_line_items()
-    return jsonify("Created Cash Transaction")
 
 
 @application.route("/api/create-fc-session", methods=["POST"])
@@ -251,82 +201,6 @@ def get_transactions(account_id):
 # TODO: Need to add webhooks for updates after the server has started
 
 
-def splitwise_to_line_items():
-    payment_method = "Splitwise"
-    expenses = get_all_data(splitwise_raw_data_collection)
-    for expense in expenses:
-        responsible_party = ""
-        # Get Person Name
-        for user in expense["users"]:
-            if user["first_name"] != USER_FIRST_NAME:
-                # TODO: Set up comma separated list of responsible parties
-                responsible_party += f'{user["first_name"]} '
-        if responsible_party in PARTIES_TO_IGNORE:
-            continue
-        posix_date = iso_8601_to_posix(expense["date"])
-        for user in expense["users"]:
-            if user["first_name"] != USER_FIRST_NAME:
-                continue
-            line_item = LineItem(
-                f'line_item_{expense["_id"]}',
-                posix_date,
-                responsible_party,
-                payment_method,
-                expense["description"],
-                flip_amount(user["net_balance"]),
-            )
-            upsert(line_items_collection, line_item)
-            break
-
-
-def venmo_to_line_items():
-    payment_method = "Venmo"
-    venmo_raw_data = get_all_data(venmo_raw_data_collection)
-    for transaction in venmo_raw_data:
-        posix_date = float(transaction["date_created"])
-        if (
-            transaction["actor"]["first_name"] == USER_FIRST_NAME
-            and transaction["payment_type"] == "pay"
-        ):
-            # current user paid money
-            line_item = LineItem(
-                f'line_item_{transaction["_id"]}',
-                posix_date,
-                transaction["target"]["first_name"],
-                payment_method,
-                transaction["note"],
-                transaction["amount"],
-            )
-        elif (
-            transaction["target"]["first_name"] == USER_FIRST_NAME
-            and transaction["payment_type"] == "charge"
-        ):
-            # current user paid money
-            line_item = LineItem(
-                f'line_item_{transaction["_id"]}',
-                posix_date,
-                transaction["actor"]["first_name"],
-                payment_method,
-                transaction["note"],
-                transaction["amount"],
-            )
-        else:
-            # current user gets money
-            if transaction["target"]["first_name"] == USER_FIRST_NAME:
-                other_name = transaction["actor"]["first_name"]
-            else:
-                other_name = transaction["target"]["first_name"]
-            line_item = LineItem(
-                f'line_item_{transaction["_id"]}',
-                posix_date,
-                other_name,
-                payment_method,
-                transaction["note"],
-                flip_amount(transaction["amount"]),
-            )
-        upsert(line_items_collection, line_item)
-
-
 def stripe_to_line_items():
     payment_method = "Stripe"
     stripe_raw_data = get_all_data(stripe_raw_transaction_data_collection)
@@ -338,21 +212,6 @@ def stripe_to_line_items():
             payment_method,
             transaction["description"],
             flip_amount(transaction["amount"]) / 100,
-        )
-        upsert(line_items_collection, line_item)
-
-
-def cash_to_line_items():
-    payment_method = "Cash"
-    cash_raw_data = get_all_data(cash_raw_data_collection)
-    for transaction in cash_raw_data:
-        line_item = LineItem(
-            f'line_item_{transaction["_id"]}',
-            transaction["date"],
-            transaction["person"],
-            payment_method,
-            transaction["description"],
-            transaction["amount"],
         )
         upsert(line_items_collection, line_item)
 
