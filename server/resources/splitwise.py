@@ -17,6 +17,9 @@ splitwise_blueprint = Blueprint("splitwise", __name__)
 # TODO: Can I remove MOVING_DATE_POSIX
 # TODO: Can I remove PARTIES_TO_IGNORE
 
+# TODO: Integrate with Splitwise OAuth to enable other people to use this without submitting API Keys
+# https://blog.splitwise.com/2013/07/15/setting-up-oauth-for-the-splitwise-api/
+
 
 @splitwise_blueprint.route("/api/refresh/splitwise")
 def refresh_splitwise():

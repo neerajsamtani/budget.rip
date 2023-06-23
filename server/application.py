@@ -1,11 +1,15 @@
 from dotenv import load_dotenv
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify
 from flask_cors import CORS
 
 from clients import splitwise_client, venmo_client
-from constants import *
-from dao import *
-from helpers import *
+from dao import (
+    bank_accounts_collection,
+    events_collection,
+    get_all_data,
+    line_items_collection,
+    upsert,
+)
 from resources.cash import cash_blueprint, cash_to_line_items
 from resources.event import events_blueprint
 from resources.line_item import all_line_items, line_items_blueprint
@@ -80,9 +84,6 @@ def get_connected_accounts():
     return jsonify(connected_accounts)
 
 
-# TODO: Integrate with Splitwise OAuth to enable other people to use this without submitting API Keys
-# https://blog.splitwise.com/2013/07/15/setting-up-oauth-for-the-splitwise-api/
-
 # TODO: Need to add webhooks for updates after the server has started
 
 
@@ -110,7 +111,7 @@ def create_consistent_line_items():
 if __name__ == "__main__":
     # run() method of Flask class runs the application
     # on the local development server.
-    create_consistent_line_items()
+    refresh_all()
     # TODO: Disable debugging
     application.config["CORS_HEADERS"] = "Content-Type"
     application.config["ENV"] = "development"
