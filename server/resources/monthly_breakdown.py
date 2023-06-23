@@ -5,12 +5,12 @@ from dao import get_categorized_data
 from flask import Blueprint
 from helpers import empty_list
 
-monthly_breakdown = Blueprint("monthly_breakdown", __name__)
+monthly_breakdown_blueprint = Blueprint("monthly_breakdown", __name__)
 
 # TODO: Exceptions
 
 
-@monthly_breakdown.route("/api/monthly_breakdown")
+@monthly_breakdown_blueprint.route("/api/monthly_breakdown")
 def get_monthly_breakdown():
     """
     Get Monthly Breakdown For Plotly Graph

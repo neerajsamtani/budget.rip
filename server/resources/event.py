@@ -11,12 +11,12 @@ from dao import (
 from flask import Blueprint, jsonify, request
 from helpers import html_date_to_posix
 
-events = Blueprint("events", __name__)
+events_blueprint = Blueprint("events", __name__)
 
 # TODO: Exceptions
 
 
-@events.route("/api/events", methods=["GET"])
+@events_blueprint.route("/api/events", methods=["GET"])
 def all_events():
     """
     Get All Events
@@ -33,7 +33,7 @@ def all_events():
     return jsonify({"total": events_total, "data": events})
 
 
-@events.route("/api/events/<event_id>", methods=["GET"])
+@events_blueprint.route("/api/events/<event_id>", methods=["GET"])
 def get_event(event_id):
     """
     Get An Event
@@ -42,7 +42,7 @@ def get_event(event_id):
     return jsonify(event)
 
 
-@events.route("/api/events", methods=["POST"])
+@events_blueprint.route("/api/events", methods=["POST"])
 def post_event():
     """
     Create An Event
@@ -75,7 +75,7 @@ def post_event():
     return jsonify("Created Event")
 
 
-@events.route("/api/events/<event_id>", methods=["DELETE"])
+@events_blueprint.route("/api/events/<event_id>", methods=["DELETE"])
 def delete_event(event_id):
     """
     Delete An Event
@@ -88,7 +88,7 @@ def delete_event(event_id):
     return jsonify("Deleted Event")
 
 
-@events.route("/api/events/<event_id>/line_items_for_event", methods=["GET"])
+@events_blueprint.route("/api/events/<event_id>/line_items_for_event", methods=["GET"])
 def get_line_items_for_event(event_id):
     """
     Get All Line Items Belonging To An Event

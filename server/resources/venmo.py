@@ -5,7 +5,7 @@ from flask import Blueprint, jsonify
 from helpers import flip_amount
 from line_item_class import LineItem
 
-venmo = Blueprint("venmo", __name__)
+venmo_blueprint = Blueprint("venmo", __name__)
 
 
 # TODO: Exceptions
@@ -13,7 +13,7 @@ venmo = Blueprint("venmo", __name__)
 # TODO: Can I remove PARTIES_TO_IGNORE
 
 
-@venmo.route("/api/refresh/venmo")
+@venmo_blueprint.route("/api/refresh/venmo")
 def refresh_venmo():
     my_id = venmo_client.my_profile().id
     transactions = venmo_client.user.get_user_transactions(my_id)

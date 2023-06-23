@@ -2,12 +2,12 @@ from dao import get_all_data, get_item_by_id, line_items_collection
 from flask import Blueprint, jsonify, request
 from helpers import sort_by_date
 
-line_items = Blueprint("line_items", __name__)
+line_items_blueprint = Blueprint("line_items", __name__)
 
 # TODO: Exceptions
 
 
-@line_items.route("/api/line_items", methods=["GET"])
+@line_items_blueprint.route("/api/line_items", methods=["GET"])
 def all_line_items(local_only_line_items_to_review=False):
     """
     Get All Line Items
@@ -30,7 +30,7 @@ def all_line_items(local_only_line_items_to_review=False):
     return jsonify({"total": line_items_total, "data": line_items})
 
 
-@line_items.route("/api/line_items/<line_item_id>", methods=["GET"])
+@line_items_blueprint.route("/api/line_items/<line_item_id>", methods=["GET"])
 def get_line_item(line_item_id):
     """
     Get A Line Item
