@@ -19,6 +19,7 @@ stripe_raw_account_data_collection = db.stripe_raw_account_data
 line_items_collection = db.line_items
 events_collection = db.events
 bank_accounts_collection = db.accounts
+users_collection = db.users
 
 
 def get_all_data(cur_collection: Collection, filters=None) -> List[_DocumentType]:
@@ -42,6 +43,10 @@ def remove_event_from_line_item(line_item_id: int):
     line_items_collection.update_one(
         {"_id": line_item_id}, {"$unset": {"event_id": ""}}
     )
+
+
+def get_user_by_username(username: str):
+    return users_collection.find_one({"username": {"$eq": username}})
 
 
 def upsert(cur_collection: Collection, item):

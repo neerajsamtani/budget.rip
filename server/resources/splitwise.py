@@ -7,6 +7,7 @@ from dao import (
     upsert,
 )
 from flask import Blueprint, jsonify
+from flask_jwt_extended import jwt_required
 from helpers import flip_amount, iso_8601_to_posix
 from line_item_class import LineItem
 
@@ -22,6 +23,7 @@ splitwise_blueprint = Blueprint("splitwise", __name__)
 
 
 @splitwise_blueprint.route("/api/refresh/splitwise")
+@jwt_required()
 def refresh_splitwise():
     expenses = splitwise_client.getExpenses(limit=LIMIT, dated_after=MOVING_DATE)
     for expense in expenses:

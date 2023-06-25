@@ -3,6 +3,7 @@ from datetime import datetime
 
 from dao import get_categorized_data
 from flask import Blueprint
+from flask_jwt_extended import jwt_required
 from helpers import empty_list
 
 monthly_breakdown_blueprint = Blueprint("monthly_breakdown", __name__)
@@ -11,6 +12,7 @@ monthly_breakdown_blueprint = Blueprint("monthly_breakdown", __name__)
 
 
 @monthly_breakdown_blueprint.route("/api/monthly_breakdown")
+@jwt_required()
 def get_monthly_breakdown():
     """
     Get Monthly Breakdown For Plotly Graph

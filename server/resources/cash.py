@@ -6,6 +6,7 @@ from dao import (
     upsert,
 )
 from flask import Blueprint, jsonify, request
+from flask_jwt_extended import jwt_required
 from helpers import html_date_to_posix
 from line_item_class import LineItem
 
@@ -15,8 +16,9 @@ cash_blueprint = Blueprint("cash", __name__)
 
 
 @cash_blueprint.route("/api/cash_transaction", methods=["POST"])
+@jwt_required()
 def create_cash_transaction():
-    transaction = request.json
+    transaction = request.get_json()
     transaction["date"] = html_date_to_posix(transaction["date"])
     transaction["amount"] = int(transaction["amount"])
     insert(cash_raw_data_collection, transaction)

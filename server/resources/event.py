@@ -1,3 +1,4 @@
+from constants import LARGEST_EPOCH_TIME, SMALLEST_EPOCH_TIME
 from dao import (
     delete_from_collection,
     events_collection,
@@ -9,6 +10,7 @@ from dao import (
     upsert_with_id,
 )
 from flask import Blueprint, jsonify, request
+from flask_jwt_extended import jwt_required
 from helpers import html_date_to_posix
 
 events_blueprint = Blueprint("events", __name__)
@@ -17,6 +19,7 @@ events_blueprint = Blueprint("events", __name__)
 
 
 @events_blueprint.route("/api/events", methods=["GET"])
+@jwt_required()
 def all_events():
     """
     Get All Events
@@ -25,8 +28,8 @@ def all_events():
         - End Time
     """
     filters = {}
-    start_time = float(request.args.get("start_time"))
-    end_time = float(request.args.get("end_time"))
+    start_time = float(request.args.get("start_time", SMALLEST_EPOCH_TIME))
+    end_time = float(request.args.get("end_time", LARGEST_EPOCH_TIME))
     filters["date"] = {"$gte": start_time, "$lte": end_time}
     events = get_all_data(events_collection, filters)
     events_total = sum(event["amount"] for event in events)
@@ -34,6 +37,7 @@ def all_events():
 
 
 @events_blueprint.route("/api/events/<event_id>", methods=["GET"])
+@jwt_required()
 def get_event(event_id):
     """
     Get An Event
@@ -43,11 +47,12 @@ def get_event(event_id):
 
 
 @events_blueprint.route("/api/events", methods=["POST"])
+@jwt_required()
 def post_event():
     """
     Create An Event
     """
-    new_event = request.json
+    new_event = request.get_json()
     if len(new_event["line_items"]) == 0:
         return jsonify("Failed to Create Event: No Line Items Submitted")
 
@@ -76,6 +81,7 @@ def post_event():
 
 
 @events_blueprint.route("/api/events/<event_id>", methods=["DELETE"])
+@jwt_required()
 def delete_event(event_id):
     """
     Delete An Event
@@ -89,6 +95,7 @@ def delete_event(event_id):
 
 
 @events_blueprint.route("/api/events/<event_id>/line_items_for_event", methods=["GET"])
+@jwt_required()
 def get_line_items_for_event(event_id):
     """
     Get All Line Items Belonging To An Event

@@ -3,6 +3,7 @@ import re
 from datetime import datetime
 from typing import Dict, List
 
+from flask_bcrypt import check_password_hash, generate_password_hash
 from venmo_api import Client
 
 VenmoClient = Client
@@ -76,3 +77,11 @@ def get_venmo_access_token(
     return venmo_client.get_access_token(
         username=venmo_username, password=venmo_password
     )
+
+
+def hash_password(password: str) -> str:
+    return generate_password_hash(password).decode("utf8")
+
+
+def check_password(password_hash: str, password: str) -> str:
+    return check_password_hash(password_hash, password)

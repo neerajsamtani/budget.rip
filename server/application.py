@@ -1,8 +1,11 @@
 from dotenv import load_dotenv
 from flask import Flask, jsonify
+from flask_bcrypt import Bcrypt
 from flask_cors import CORS
+from flask_jwt_extended import JWTManager, jwt_required
 
 from clients import splitwise_client, venmo_client
+from constants import JWT_SECRET_KEY
 from dao import (
     bank_accounts_collection,
     events_collection,
@@ -10,6 +13,7 @@ from dao import (
     line_items_collection,
     upsert,
 )
+from resources.auth import auth_blueprint
 from resources.cash import cash_blueprint, cash_to_line_items
 from resources.event import events_blueprint
 from resources.line_item import all_line_items, line_items_blueprint
@@ -27,6 +31,12 @@ from resources.venmo import refresh_venmo, venmo_blueprint, venmo_to_line_items
 application = Flask(
     __name__, static_folder="public", static_url_path="", template_folder="public"
 )
+
+bcrypt = Bcrypt(application)
+jwt = JWTManager(application)
+application.config["JWT_SECRET_KEY"] = JWT_SECRET_KEY
+
+application.register_blueprint(auth_blueprint)
 application.register_blueprint(line_items_blueprint)
 application.register_blueprint(events_blueprint)
 application.register_blueprint(monthly_breakdown_blueprint)
@@ -58,6 +68,7 @@ def index():
 
 
 @application.route("/api/refresh/all")
+@jwt_required()
 def refresh_all():
     refresh_splitwise()
     refresh_venmo()
@@ -67,6 +78,7 @@ def refresh_all():
 
 
 @application.route("/api/connected_accounts", methods=["GET"])
+@jwt_required()
 def get_connected_accounts():
     connected_accounts = []
     # venmo
