@@ -10,7 +10,7 @@ from dao import (
     upsert_with_id,
 )
 from flask import Blueprint, jsonify, request
-from flask_jwt_extended import jwt_required
+from flask_jwt_extended import jwt_required, get_current_user
 from helpers import html_date_to_posix
 
 events_blueprint = Blueprint("events", __name__)
@@ -28,6 +28,7 @@ def all_events():
         - End Time
     """
     filters = {}
+    print(f"Current User: {get_current_user()['username']}")
     start_time = float(request.args.get("start_time", SMALLEST_EPOCH_TIME))
     end_time = float(request.args.get("end_time", LARGEST_EPOCH_TIME))
     filters["date"] = {"$gte": start_time, "$lte": end_time}

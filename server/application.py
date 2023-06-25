@@ -10,7 +10,9 @@ from dao import (
     bank_accounts_collection,
     events_collection,
     get_all_data,
+    get_item_by_id,
     line_items_collection,
+    users_collection,
     upsert,
 )
 from resources.auth import auth_blueprint
@@ -25,6 +27,7 @@ from resources.splitwise import (
 )
 from resources.stripe import refresh_stripe, stripe_blueprint, stripe_to_line_items
 from resources.venmo import refresh_venmo, venmo_blueprint, venmo_to_line_items
+from bson import ObjectId
 
 # Flask constructor takes the name of
 # current module (__name__) as argument.
@@ -32,9 +35,18 @@ application = Flask(
     __name__, static_folder="public", static_url_path="", template_folder="public"
 )
 
+
 bcrypt = Bcrypt(application)
 jwt = JWTManager(application)
 application.config["JWT_SECRET_KEY"] = JWT_SECRET_KEY
+application.config["JWT_TOKEN_LOCATION"] = ["cookies"]
+application.config["JWT_ACCESS_COOKIE_PATH"] = "/api/"
+# Disable CSRF protection. In almost every case,
+# this is a bad idea. See examples/csrf_protection_with_cookies.py
+# for how safely store JWTs in cookies
+# TODO: CSRF Protection https://flask-jwt-extended.readthedocs.io/en/3.0.0_release/tokens_in_cookies/
+application.config["JWT_COOKIE_CSRF_PROTECT"] = False
+
 
 application.register_blueprint(auth_blueprint)
 application.register_blueprint(line_items_blueprint)
@@ -56,6 +68,17 @@ load_dotenv()
 # logging.basicConfig(level=logging.DEBUG)
 
 # TODO: Type hints
+
+
+# Register a callback function that loads a user from your database whenever
+# a protected route is accessed. This should return any python object on a
+# successful lookup, or None if the lookup failed for any reason (for example
+# if the user has been deleted from the database).
+@jwt.user_lookup_loader
+def user_lookup_callback(_jwt_header, jwt_data):
+    id = ObjectId(jwt_data["sub"])
+    return get_item_by_id(users_collection, id)
+
 
 ##############
 ### ROUTES ###

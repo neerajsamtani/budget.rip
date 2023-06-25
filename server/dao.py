@@ -26,8 +26,8 @@ def get_all_data(cur_collection: Collection, filters=None) -> List[_DocumentType
     return list(cur_collection.find(filters).sort("date", -1))
 
 
-def get_item_by_id(cur_collection: Collection, id=int):  # TODO: Return Type?
-    return list(cur_collection.find({"_id": {"$eq": id}}))[0]
+def get_item_by_id(cur_collection: Collection, id):  # TODO: Return Type?
+    return cur_collection.find_one({"_id": id})
 
 
 def insert(cur_collection: Collection, item):
@@ -35,7 +35,7 @@ def insert(cur_collection: Collection, item):
     cur_collection.insert_one(item)
 
 
-def delete_from_collection(cur_collection: Collection, id: int):
+def delete_from_collection(cur_collection: Collection, id):
     cur_collection.delete_one({"_id": id})
 
 
@@ -54,7 +54,7 @@ def upsert(cur_collection: Collection, item):
     upsert_with_id(cur_collection, item, item["id"])
 
 
-def upsert_with_id(cur_collection: Collection, item, id: int):
+def upsert_with_id(cur_collection: Collection, item, id):
     item["_id"] = item["id"]
     cur_collection.replace_one({"_id": id}, item, upsert=True)
 
