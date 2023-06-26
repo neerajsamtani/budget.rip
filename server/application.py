@@ -35,18 +35,18 @@ application = Flask(
     __name__, static_folder="public", static_url_path="", template_folder="public"
 )
 
-
+cors = CORS(application, supports_credentials=True)
 bcrypt = Bcrypt(application)
 jwt = JWTManager(application)
 application.config["JWT_SECRET_KEY"] = JWT_SECRET_KEY
 application.config["JWT_TOKEN_LOCATION"] = ["cookies"]
-application.config["JWT_ACCESS_COOKIE_PATH"] = "/api/"
+# application.config["JWT_ACCESS_COOKIE_PATH"] = "/api/"
 # Disable CSRF protection. In almost every case,
 # this is a bad idea. See examples/csrf_protection_with_cookies.py
 # for how safely store JWTs in cookies
 # TODO: CSRF Protection https://flask-jwt-extended.readthedocs.io/en/3.0.0_release/tokens_in_cookies/
 application.config["JWT_COOKIE_CSRF_PROTECT"] = False
-
+application.config["JWT_COOKIE_DOMAIN"] = ".dev.localhost"
 
 application.register_blueprint(auth_blueprint)
 application.register_blueprint(line_items_blueprint)
@@ -56,7 +56,6 @@ application.register_blueprint(venmo_blueprint)
 application.register_blueprint(splitwise_blueprint)
 application.register_blueprint(cash_blueprint)
 application.register_blueprint(stripe_blueprint)
-CORS(application)
 
 # If an environment variable is not found in the .env file,
 # load_dotenv will then search for a variable by the given name in the host environment.
@@ -153,4 +152,4 @@ if __name__ == "__main__":
     application.config["DEBUG"] = True
     application.config["TESTING"] = True
     application.debug = True
-    application.run(port=4242)
+    application.run(host="dev.localhost", port=4242)

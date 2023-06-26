@@ -1,6 +1,6 @@
-import axios from "axios";
 import React, { createContext, useEffect, useReducer } from 'react';
 import { useContext } from "react";
+import axiosInstance from '../axiosInstance';
 
 export const LineItemsContext = createContext([]);
 export const LineItemsDispatchContext = createContext([]);
@@ -43,7 +43,7 @@ export function LineItemsProvider({ children }) {
 
     useEffect(() => {
         var REACT_APP_API_ENDPOINT = String(process.env.REACT_APP_API_ENDPOINT);
-        axios.get(`${REACT_APP_API_ENDPOINT}api/line_items`, {
+        axiosInstance.get(`${REACT_APP_API_ENDPOINT}api/line_items`, {
             params: {
                 "only_line_items_to_review": true,
             }

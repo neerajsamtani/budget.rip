@@ -1,7 +1,7 @@
 import React, { useState, Fragment } from 'react';
 import Button from 'react-bootstrap/Button';
 import Modal from 'react-bootstrap/Modal';
-import axios from "axios";
+import axiosInstance from './axiosInstance';
 import Notification from './Notification';
 
 export default function CreateCashTransactionModal({ show, onHide }) {
@@ -40,7 +40,7 @@ export default function CreateCashTransactionModal({ show, onHide }) {
       "amount": amount
     }
     console.log(newCashTransaction);
-    axios.post(`${REACT_APP_API_ENDPOINT}api/cash_transaction`, newCashTransaction)
+    axiosInstance.post(`${REACT_APP_API_ENDPOINT}api/cash_transaction`, newCashTransaction)
       .then(response => {
         console.log(response.data);
       })

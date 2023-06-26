@@ -1,4 +1,4 @@
-import axios from "axios";
+import axiosInstance from "./axiosInstance";
 import React, { useEffect, useState } from "react";
 import { Table } from "react-bootstrap";
 import { useLineItems, useLineItemsDispatch } from "./contexts/LineItemsContext";
@@ -13,7 +13,7 @@ export default function LineItems() {
 
     useEffect(() => {
         var REACT_APP_API_ENDPOINT = String(process.env.REACT_APP_API_ENDPOINT);
-        axios.get(`${REACT_APP_API_ENDPOINT}api/line_items`, {
+        axiosInstance.get(`${REACT_APP_API_ENDPOINT}api/line_items`, {
             params: {
                 "payment_method": paymentMethod,
             }

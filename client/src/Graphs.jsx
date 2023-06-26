@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import axiosInstance from "./axiosInstance";
 import Plot from 'react-plotly.js';
 
 export default function Graphs() {
@@ -8,7 +8,7 @@ export default function Graphs() {
 
   useEffect(() => {
     var REACT_APP_API_ENDPOINT = String(process.env.REACT_APP_API_ENDPOINT);
-    axios.get(`${REACT_APP_API_ENDPOINT}api/monthly_breakdown`, { params: {} })
+    axiosInstance.get(`${REACT_APP_API_ENDPOINT}api/monthly_breakdown`, { params: {} })
       .then(response => {
         setCategorizedData(response.data)
       })

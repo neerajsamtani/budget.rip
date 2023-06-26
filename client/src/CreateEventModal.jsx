@@ -1,5 +1,5 @@
-import axios from "axios";
-import React, { Fragment, useContext, useState, useEffect } from 'react';
+import React, { Fragment, useState, useEffect } from 'react';
+import axiosInstance from './axiosInstance';
 import Button from 'react-bootstrap/Button';
 import Form from 'react-bootstrap/Form';
 import Modal from 'react-bootstrap/Modal';
@@ -58,7 +58,7 @@ export default function CreateEventModal({ show, onHide }) {
       "is_duplicate_transaction": isDuplicateTransaction
     }
     console.log(newEvent);
-    axios.post(`${REACT_APP_API_ENDPOINT}api/events`, newEvent)
+    axiosInstance.post(`${REACT_APP_API_ENDPOINT}api/events`, newEvent)
       .then(response => {
         console.log(response.data);
       })

@@ -5,7 +5,7 @@ import Event from "./Event";
 import CategoryFilter from "./CategoryFilter";
 import MonthFilter from "./MonthFilter";
 import YearFilter from "./YearFilter";
-import axios from "axios";
+import axiosInstance from "./axiosInstance";
 
 export default function Events() {
 
@@ -30,7 +30,7 @@ export default function Events() {
             start_time = DateTime.fromFormat(`${year}`, "yyyy")
             end_time = start_time.endOf("year")
         }
-        axios.get(`${REACT_APP_API_ENDPOINT}api/events`, {
+        axiosInstance.get(`${REACT_APP_API_ENDPOINT}api/events`, {
             params: {
                 "start_time": start_time.toUnixInteger(),
                 "end_time": end_time.toUnixInteger()
