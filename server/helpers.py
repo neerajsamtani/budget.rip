@@ -83,5 +83,5 @@ def hash_password(password: str) -> str:
     return generate_password_hash(password).decode("utf8")
 
 
-def check_password(password_hash: str, password: str) -> str:
+def check_password(password_hash: str, password: str) -> bool:
     return check_password_hash(password_hash, password)

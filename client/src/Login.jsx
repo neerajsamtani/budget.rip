@@ -41,7 +41,7 @@ export default function Login() {
                 </Form.Group>
                 <Form.Group className="mb-3">
                     <Form.Label>Password:</Form.Label>
-                    <Form.Control type="text" value={password} onChange={handlePasswordChange} />
+                    <Form.Control type="password" value={password} onChange={handlePasswordChange} />
                 </Form.Group>
                 <Button onClick={() => handleLogin(username, password)} variant="primary">Submit</Button>
             </Form>

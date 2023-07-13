@@ -22,7 +22,6 @@ def signup_user():
     user["username"] = body["username"]
     user["password_hash"] = hash_password(body["password"])
     insert(users_collection, user)
-    # TODO: Return cookie?
     return jsonify("Created User")
 
 
