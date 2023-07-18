@@ -20,14 +20,19 @@ export default function Login() {
             "username": username,
             "password": password
         }
-        console.log(newUser);
         axiosInstance.post(`${REACT_APP_API_ENDPOINT}api/auth/login`, newUser)
-            .then(response => {
-                console.log(response);
-            })
             .then(() => {
                 setUsername('');
                 setPassword('');
+            })
+            .catch(error => console.log(error));
+    }
+
+    const handleLogout = () => {
+        var REACT_APP_API_ENDPOINT = String(process.env.REACT_APP_API_ENDPOINT);
+        axiosInstance.post(`${REACT_APP_API_ENDPOINT}api/auth/logout`)
+            .then(response => {
+                console.log(response);
             })
             .catch(error => console.log(error));
     }
@@ -43,7 +48,8 @@ export default function Login() {
                     <Form.Label>Password:</Form.Label>
                     <Form.Control type="password" value={password} onChange={handlePasswordChange} />
                 </Form.Group>
-                <Button onClick={() => handleLogin(username, password)} variant="primary">Submit</Button>
+                <Button onClick={() => handleLogin(username, password)} variant="primary">Log In</Button>
+                <Button onClick={handleLogout} variant="primary">Log Out</Button>
             </Form>
         </Fragment>
     )

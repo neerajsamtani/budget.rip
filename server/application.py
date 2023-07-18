@@ -5,7 +5,7 @@ from flask_cors import CORS
 from flask_jwt_extended import JWTManager, jwt_required
 
 from clients import splitwise_client, venmo_client
-from constants import JWT_SECRET_KEY
+from constants import JWT_SECRET_KEY, JWT_COOKIE_DOMAIN
 from dao import (
     bank_accounts_collection,
     events_collection,
@@ -38,15 +38,19 @@ application = Flask(
 cors = CORS(application, supports_credentials=True)
 bcrypt = Bcrypt(application)
 jwt = JWTManager(application)
+# JWT Config Links
+# - https://flask-jwt-extended.readthedocs.io/en/stable/options.html
+# - https://flask-jwt-extended.readthedocs.io/en/3.0.0_release/tokens_in_cookies/
 application.config["JWT_SECRET_KEY"] = JWT_SECRET_KEY
+application.config["JWT_COOKIE_DOMAIN"] = JWT_COOKIE_DOMAIN
 application.config["JWT_TOKEN_LOCATION"] = ["cookies"]
-# application.config["JWT_ACCESS_COOKIE_PATH"] = "/api/"
-# Disable CSRF protection. In almost every case,
-# this is a bad idea. See examples/csrf_protection_with_cookies.py
-# for how safely store JWTs in cookies
-# TODO: CSRF Protection https://flask-jwt-extended.readthedocs.io/en/3.0.0_release/tokens_in_cookies/
-application.config["JWT_COOKIE_CSRF_PROTECT"] = False
-application.config["JWT_COOKIE_DOMAIN"] = ".dev.localhost"
+application.config["JWT_ACCESS_COOKIE_PATH"] = "/api/"
+application.config["JWT_COOKIE_SAMESITE"] = "Lax"
+application.config["JWT_COOKIE_CSRF_PROTECT"] = True
+# Only allow JWT cookies to be sent over https. In production, this
+# should likely be True
+# application.config['JWT_COOKIE_SECURE'] = False
+
 
 application.register_blueprint(auth_blueprint)
 application.register_blueprint(line_items_blueprint)
