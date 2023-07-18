@@ -111,7 +111,7 @@ def create_consistent_line_items():
 if __name__ == "__main__":
     # run() method of Flask class runs the application
     # on the local development server.
-    refresh_all()
+    create_consistent_line_items()
     # TODO: Disable debugging
     application.config["CORS_HEADERS"] = "Content-Type"
     application.config["ENV"] = "development"

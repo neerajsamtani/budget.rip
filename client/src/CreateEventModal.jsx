@@ -1,16 +1,27 @@
 import axios from "axios";
-import React, { Fragment, useContext, useState } from 'react';
+import React, { Fragment, useContext, useState, useEffect } from 'react';
 import Button from 'react-bootstrap/Button';
 import Form from 'react-bootstrap/Form';
 import Modal from 'react-bootstrap/Modal';
 import { useLineItems, useLineItemsDispatch } from "./contexts/LineItemsContext";
 import Notification from './Notification';
+import titleCase from './utils/stringHelpers'
 
 export default function CreateEventModal({ show, onHide }) {
 
   const lineItems = useLineItems();
   const lineItemsDispatch = useLineItemsDispatch();
-  const selectedLineItems = lineItems.filter(lineItem => lineItem.isSelected).map(lineItem => lineItem.id);
+
+  const selectedLineItems = lineItems.filter(lineItem => lineItem.isSelected);
+  const selectedLineItemIds = lineItems.filter(lineItem => lineItem.isSelected).map(lineItem => lineItem.id);
+  // TODO: Make hints more robust with categories
+  useEffect(() => {
+    if (!show && selectedLineItems.length === 1) {
+      setName(titleCase(selectedLineItems[0].description))
+    } else if (!show) {
+      setName('')
+    }
+  }, [selectedLineItems, show])
 
   const [name, setName] = useState('')
   const [category, setCategory] = useState('')
@@ -42,7 +53,7 @@ export default function CreateEventModal({ show, onHide }) {
     var newEvent = {
       "name": name,
       "category": category,
-      "line_items": selectedLineItems,
+      "line_items": selectedLineItemIds,
       "date": date,
       "is_duplicate_transaction": isDuplicateTransaction
     }
@@ -56,7 +67,7 @@ export default function CreateEventModal({ show, onHide }) {
         setCategory('');
         lineItemsDispatch({
           type: 'remove_line_items',
-          lineItemIds: selectedLineItems
+          lineItemIds: selectedLineItemIds
         })
         setDate('');
         setIsDuplicateTransaction(false);

@@ -38,7 +38,7 @@ export default function Events() {
         })
             .then(response => {
                 setEvents(response.data.data)
-                setTotal(response.data.total.toFixed(2))
+                setTotal(response.data.total.toFixed(2) * -1)
             })
             .catch(error => console.log(error));
     }, [month, year])
@@ -73,7 +73,7 @@ export default function Events() {
                     </Col>
                     <Col>
                         <InputGroup className="mb-3">
-                            <InputGroup.Text>Net Money Flow</InputGroup.Text>
+                            <InputGroup.Text>Net Income</InputGroup.Text>
                             <InputGroup.Text>${total}</InputGroup.Text>
                         </InputGroup>
                     </Col>

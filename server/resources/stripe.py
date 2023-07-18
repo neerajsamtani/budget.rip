@@ -16,7 +16,7 @@ from line_item_class import LineItem
 
 import stripe
 
-stripe_blueprint = Blueprint("venmo", __name__)
+stripe_blueprint = Blueprint("stripe", __name__)
 
 
 @stripe_blueprint.route("/api/refresh/stripe")
