@@ -8,9 +8,11 @@
     "axios": "^1.2.0",
     "bootstrap": "^5.2.3",
     "dotenv": "^16.0.3",
+    "luxon": "^3.3.0",
     "react": "^16.9.0",
     "react-bootstrap": "^2.6.0",
     "react-dom": "^16.9.0",
+    "react-plotly.js": "^2.6.0",
     "react-router-dom": "^6.4.4",
     "react-scripts": "^3.4.0"
   },
