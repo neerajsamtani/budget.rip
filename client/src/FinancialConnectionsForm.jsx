@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import {
   useStripe
 } from "@stripe/react-stripe-js";
-import axios from "axios";
+import axiosInstance from "./axiosInstance";
 import { Button, Spinner } from 'react-bootstrap';
 import Notification from "./Notification";
 
@@ -21,7 +21,7 @@ export default function FinancialConnectionsForm({ fcsess_secret, setStripeAccou
 
   const storeAccounts = (accounts) => {
     var REACT_APP_API_ENDPOINT = String(process.env.REACT_APP_API_ENDPOINT);
-    axios.post(`${REACT_APP_API_ENDPOINT}api/create_accounts`, accounts)
+    axiosInstance.post(`${REACT_APP_API_ENDPOINT}api/create_accounts`, accounts)
       .then(response => console.log(response.data))
       .catch(error => console.log(error));
   }

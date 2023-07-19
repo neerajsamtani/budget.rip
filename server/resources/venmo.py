@@ -2,6 +2,7 @@ from clients import venmo_client
 from constants import MOVING_DATE_POSIX, PARTIES_TO_IGNORE, USER_FIRST_NAME
 from dao import get_all_data, line_items_collection, upsert, venmo_raw_data_collection
 from flask import Blueprint, jsonify
+from flask_jwt_extended import jwt_required
 from helpers import flip_amount
 from line_item_class import LineItem
 
@@ -14,6 +15,7 @@ venmo_blueprint = Blueprint("venmo", __name__)
 
 
 @venmo_blueprint.route("/api/refresh/venmo")
+@jwt_required()
 def refresh_venmo():
     my_id = venmo_client.my_profile().id
     transactions = venmo_client.user.get_user_transactions(my_id)

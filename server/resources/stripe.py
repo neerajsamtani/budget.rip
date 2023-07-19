@@ -11,6 +11,7 @@ from dao import (
     upsert,
 )
 from flask import Blueprint, jsonify, request
+from flask_jwt_extended import jwt_required
 from helpers import flip_amount
 from line_item_class import LineItem
 
@@ -20,6 +21,7 @@ stripe_blueprint = Blueprint("stripe", __name__)
 
 
 @stripe_blueprint.route("/api/refresh/stripe")
+@jwt_required()
 def refresh_stripe():
     bank_accounts = get_all_data(bank_accounts_collection)
     for account in bank_accounts:
@@ -28,6 +30,7 @@ def refresh_stripe():
 
 
 @stripe_blueprint.route("/api/create-fc-session", methods=["POST"])
+@jwt_required()
 def create_fc_session():
     try:
         # TODO: Is there a better pattern than nested trys?
@@ -47,8 +50,9 @@ def create_fc_session():
 
 
 @stripe_blueprint.route("/api/create_accounts", methods=["POST"])
+@jwt_required()
 def create_accounts():
-    new_accounts = request.json
+    new_accounts = request.get_json()
     if len(new_accounts) == 0:
         return jsonify("Failed to Create Accounts: No Accounts Submitted")
 
@@ -59,6 +63,7 @@ def create_accounts():
 
 
 @stripe_blueprint.route("/api/get_accounts/<session_id>")
+@jwt_required()
 def get_accounts(session_id):
     try:
         session = stripe.financial_connections.Session.retrieve(session_id)
@@ -71,6 +76,7 @@ def get_accounts(session_id):
 
 
 @stripe_blueprint.route("/api/subscribe_to_account/<account_id>")
+@jwt_required()
 def subscribe_to_account(account_id):
     try:
         # TODO: Use requests since we cannot list transactions with the Stripe Python client
@@ -92,6 +98,7 @@ def subscribe_to_account(account_id):
 
 
 @stripe_blueprint.route("/api/get_transactions/<account_id>")
+@jwt_required()
 def get_transactions(account_id):
     # TODO: This gets all transactions ever. We should only get those that we don't have
     try:

@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axiosInstance from './axiosInstance';
 import React, { Fragment, useState } from 'react';
 import { Table } from "react-bootstrap";
 import Button from 'react-bootstrap/Button';
@@ -18,7 +18,7 @@ export default function EventDetailsModal({ show, event, lineItemsForEvent, onHi
 
   const deleteEvent = () => {
     var REACT_APP_API_ENDPOINT = String(process.env.REACT_APP_API_ENDPOINT);
-    axios.delete(`${REACT_APP_API_ENDPOINT}api/events/${event._id}`)
+    axiosInstance.delete(`${REACT_APP_API_ENDPOINT}api/events/${event._id}`)
       .then(response => {
         console.log(response.data);
         setNotification({

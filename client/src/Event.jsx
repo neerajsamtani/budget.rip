@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Button } from "react-bootstrap";
 import EventDetailsModal from "./EventDetailsModal";
-import axios from "axios";
+import axiosInstance from "./axiosInstance";
 
 export default function Event({ event }) {
     const longEnUSFormatter = new Intl.DateTimeFormat('en-US', {
@@ -16,7 +16,7 @@ export default function Event({ event }) {
 
     const showEventDetails = () => {
         var REACT_APP_API_ENDPOINT = String(process.env.REACT_APP_API_ENDPOINT);
-        axios.get(`${REACT_APP_API_ENDPOINT}api/events/${event._id}/line_items_for_event`)
+        axiosInstance.get(`${REACT_APP_API_ENDPOINT}api/events/${event._id}/line_items_for_event`)
             .then(response => {
                 setLineItemsForEvent(response.data.data)
             })

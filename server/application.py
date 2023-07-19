@@ -1,15 +1,21 @@
 from dotenv import load_dotenv
 from flask import Flask, jsonify
+from flask_bcrypt import Bcrypt
 from flask_cors import CORS
+from flask_jwt_extended import JWTManager, jwt_required
 
 from clients import splitwise_client, venmo_client
+from constants import JWT_SECRET_KEY, JWT_COOKIE_DOMAIN
 from dao import (
     bank_accounts_collection,
     events_collection,
     get_all_data,
+    get_item_by_id,
     line_items_collection,
+    users_collection,
     upsert,
 )
+from resources.auth import auth_blueprint
 from resources.cash import cash_blueprint, cash_to_line_items
 from resources.event import events_blueprint
 from resources.line_item import all_line_items, line_items_blueprint
@@ -21,12 +27,32 @@ from resources.splitwise import (
 )
 from resources.stripe import refresh_stripe, stripe_blueprint, stripe_to_line_items
 from resources.venmo import refresh_venmo, venmo_blueprint, venmo_to_line_items
+from bson import ObjectId
 
 # Flask constructor takes the name of
 # current module (__name__) as argument.
 application = Flask(
     __name__, static_folder="public", static_url_path="", template_folder="public"
 )
+
+cors = CORS(application, supports_credentials=True)
+bcrypt = Bcrypt(application)
+jwt = JWTManager(application)
+# JWT Config Links
+# - https://flask-jwt-extended.readthedocs.io/en/stable/options.html
+# - https://flask-jwt-extended.readthedocs.io/en/3.0.0_release/tokens_in_cookies/
+application.config["JWT_SECRET_KEY"] = JWT_SECRET_KEY
+application.config["JWT_COOKIE_DOMAIN"] = JWT_COOKIE_DOMAIN
+application.config["JWT_TOKEN_LOCATION"] = ["cookies"]
+application.config["JWT_ACCESS_COOKIE_PATH"] = "/api/"
+application.config["JWT_COOKIE_SAMESITE"] = "Lax"
+application.config["JWT_COOKIE_CSRF_PROTECT"] = False
+# Only allow JWT cookies to be sent over https. In production, this
+# should likely be True
+# application.config['JWT_COOKIE_SECURE'] = False
+
+
+application.register_blueprint(auth_blueprint)
 application.register_blueprint(line_items_blueprint)
 application.register_blueprint(events_blueprint)
 application.register_blueprint(monthly_breakdown_blueprint)
@@ -34,7 +60,6 @@ application.register_blueprint(venmo_blueprint)
 application.register_blueprint(splitwise_blueprint)
 application.register_blueprint(cash_blueprint)
 application.register_blueprint(stripe_blueprint)
-CORS(application)
 
 # If an environment variable is not found in the .env file,
 # load_dotenv will then search for a variable by the given name in the host environment.
@@ -47,6 +72,17 @@ load_dotenv()
 
 # TODO: Type hints
 
+
+# Register a callback function that loads a user from your database whenever
+# a protected route is accessed. This should return any python object on a
+# successful lookup, or None if the lookup failed for any reason (for example
+# if the user has been deleted from the database).
+@jwt.user_lookup_loader
+def user_lookup_callback(_jwt_header, jwt_data):
+    id = ObjectId(jwt_data["sub"])
+    return get_item_by_id(users_collection, id)
+
+
 ##############
 ### ROUTES ###
 ##############
@@ -58,6 +94,7 @@ def index():
 
 
 @application.route("/api/refresh/all")
+@jwt_required()
 def refresh_all():
     refresh_splitwise()
     refresh_venmo()
@@ -67,6 +104,7 @@ def refresh_all():
 
 
 @application.route("/api/connected_accounts", methods=["GET"])
+@jwt_required()
 def get_connected_accounts():
     connected_accounts = []
     # venmo
@@ -118,4 +156,4 @@ if __name__ == "__main__":
     application.config["DEBUG"] = True
     application.config["TESTING"] = True
     application.debug = True
-    application.run(port=4242)
+    application.run(host="dev.localhost", port=4242)

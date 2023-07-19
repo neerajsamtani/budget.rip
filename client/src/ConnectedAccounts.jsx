@@ -1,6 +1,6 @@
 import React, { useState, useEffect, Fragment } from "react";
 import { Elements } from "@stripe/react-stripe-js";
-import axios from "axios";
+import axiosInstance from "./axiosInstance";
 import FinancialConnectionsForm from "./FinancialConnectionsForm";
 import { Button } from "react-bootstrap";
 import { Table } from "react-bootstrap";
@@ -23,7 +23,7 @@ export default function ConnectedAccounts({ stripePromise }) {
 
     useEffect(() => {
         var REACT_APP_API_ENDPOINT = String(process.env.REACT_APP_API_ENDPOINT);
-        axios.get(`${REACT_APP_API_ENDPOINT}api/connected_accounts`)
+        axiosInstance.get(`${REACT_APP_API_ENDPOINT}api/connected_accounts`)
             .then(response => {
                 setConnectedAccounts(response.data)
             })
@@ -31,7 +31,7 @@ export default function ConnectedAccounts({ stripePromise }) {
     }, [])
 
     const createSession = () => {
-        axios.post(`${REACT_APP_API_ENDPOINT}api/create-fc-session`)
+        axiosInstance.post(`${REACT_APP_API_ENDPOINT}api/create-fc-session`)
             .then(response => setClientSecret(response.data.clientSecret))
             .catch(error => console.log(error));
     }
@@ -39,7 +39,7 @@ export default function ConnectedAccounts({ stripePromise }) {
     const subscribeToAccounts = () => {
         if (stripeAccounts) {
             for (var account of stripeAccounts) {
-                axios.get(`${REACT_APP_API_ENDPOINT}api/subscribe_to_account/${account.id}`)
+                axiosInstance.get(`${REACT_APP_API_ENDPOINT}api/subscribe_to_account/${account.id}`)
                     .then(response => console.log(response.data))
             }
         }

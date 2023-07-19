@@ -1,5 +1,5 @@
 import { loadStripe } from "@stripe/stripe-js";
-import axios from "axios";
+import axiosInstance from "./axiosInstance";
 import React, { useState } from "react";
 import { Button, Spinner } from "react-bootstrap";
 import Container from 'react-bootstrap/Container';
@@ -13,6 +13,7 @@ import { useLineItemsDispatch } from "./contexts/LineItemsContext";
 import Events from "./Events";
 import Graphs from "./Graphs";
 import LineItems from "./LineItems";
+import Login from "./Login";
 import LineItemsToReview from "./LineItemsToReview";
 import Notification from "./Notification";
 
@@ -39,7 +40,7 @@ export default function App() {
 
   const handleRefreshData = () => {
     setLoading(true);
-    axios.get(`${REACT_APP_API_ENDPOINT}api/refresh/all`)
+    axiosInstance.get(`${REACT_APP_API_ENDPOINT}api/refresh/all`)
       .then(response => {
         setNotification({
           ...notification,
@@ -77,6 +78,7 @@ export default function App() {
                 <Link style={padding} to="/line_items">Line Items</Link>
                 <Link style={padding} to="/connected_accounts">Connected Accounts</Link>
                 <Link style={padding} to="/graphs">Graphs</Link>
+                <Link style={padding} to="/login">Login</Link>
               </Nav>
               <Nav>
                 <Button onClick={handleRefreshData}>
@@ -104,6 +106,7 @@ export default function App() {
           <Route path="/line_items" element={<LineItems />} />
           <Route path="/connected_accounts" element={<ConnectedAccounts stripePromise={stripePromise} />} />
           <Route path="/graphs" element={<Graphs />} />
+          <Route path="/login" element={<Login />} />
         </Routes>
       </Router>
     </React.StrictMode>

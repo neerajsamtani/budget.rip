@@ -19,14 +19,15 @@ stripe_raw_account_data_collection = db.stripe_raw_account_data
 line_items_collection = db.line_items
 events_collection = db.events
 bank_accounts_collection = db.accounts
+users_collection = db.users
 
 
 def get_all_data(cur_collection: Collection, filters=None) -> List[_DocumentType]:
     return list(cur_collection.find(filters).sort("date", -1))
 
 
-def get_item_by_id(cur_collection: Collection, id=int):  # TODO: Return Type?
-    return list(cur_collection.find({"_id": {"$eq": id}}))[0]
+def get_item_by_id(cur_collection: Collection, id):  # TODO: Return Type?
+    return cur_collection.find_one({"_id": id})
 
 
 def insert(cur_collection: Collection, item):
@@ -34,7 +35,7 @@ def insert(cur_collection: Collection, item):
     cur_collection.insert_one(item)
 
 
-def delete_from_collection(cur_collection: Collection, id: int):
+def delete_from_collection(cur_collection: Collection, id):
     cur_collection.delete_one({"_id": id})
 
 
@@ -44,12 +45,16 @@ def remove_event_from_line_item(line_item_id: int):
     )
 
 
+def get_user_by_username(username: str):
+    return users_collection.find_one({"username": {"$eq": username}})
+
+
 def upsert(cur_collection: Collection, item):
     item = to_dict(item)
     upsert_with_id(cur_collection, item, item["id"])
 
 
-def upsert_with_id(cur_collection: Collection, item, id: int):
+def upsert_with_id(cur_collection: Collection, item, id):
     item["_id"] = item["id"]
     cur_collection.replace_one({"_id": id}, item, upsert=True)
 
