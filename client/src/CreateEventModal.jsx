@@ -6,6 +6,7 @@ import Modal from 'react-bootstrap/Modal';
 import { useLineItems, useLineItemsDispatch } from "./contexts/LineItemsContext";
 import Notification from './Notification';
 import titleCase from './utils/stringHelpers'
+import { useField } from './hooks/useField';
 
 export default function CreateEventModal({ show, onHide }) {
 
@@ -17,16 +18,17 @@ export default function CreateEventModal({ show, onHide }) {
   // TODO: Make hints more robust with categories
   useEffect(() => {
     if (!show && selectedLineItems.length === 1) {
-      setName(titleCase(selectedLineItems[0].description))
+      name.setCustomValue(titleCase(selectedLineItems[0].description))
     } else if (!show) {
-      setName('')
+      name.setEmpty()
     }
   }, [selectedLineItems, show])
 
-  const [name, setName] = useState('')
-  const [category, setCategory] = useState('')
-  const [date, setDate] = useState('')
-  const [isDuplicateTransaction, setIsDuplicateTransaction] = useState(false)
+  const name = useField("text")
+  const category = useField("text")
+  const date = useField("date")
+  const isDuplicateTransaction = useField("checkbox")
+
   const [notification, setNotification] = useState(
     {
       heading: "Notification",
@@ -35,27 +37,14 @@ export default function CreateEventModal({ show, onHide }) {
     }
   )
 
-  const handleNameChange = (event) => {
-    setName(event.target.value)
-  }
-  const handleCategoryChange = (event) => {
-    setCategory(event.target.value)
-  }
-  const handleDateChange = (event) => {
-    setDate(event.target.value)
-  }
-  const handleIsDuplicateTransactionChange = (event) => {
-    setIsDuplicateTransaction(!isDuplicateTransaction)
-  }
-
   const createEvent = (name, category) => {
     var REACT_APP_API_ENDPOINT = String(process.env.REACT_APP_API_ENDPOINT);
     var newEvent = {
-      "name": name,
-      "category": category,
+      "name": name.value,
+      "category": category.value,
+      "date": date.value,
       "line_items": selectedLineItemIds,
-      "date": date,
-      "is_duplicate_transaction": isDuplicateTransaction
+      "is_duplicate_transaction": isDuplicateTransaction.value
     }
     console.log(newEvent);
     axiosInstance.post(`${REACT_APP_API_ENDPOINT}api/events`, newEvent)
@@ -63,14 +52,14 @@ export default function CreateEventModal({ show, onHide }) {
         console.log(response.data);
       })
       .then(() => {
-        setName('');
-        setCategory('');
+        name.setEmpty()
+        category.setEmpty()
+        date.setEmpty()
         lineItemsDispatch({
           type: 'remove_line_items',
           lineItemIds: selectedLineItemIds
         })
-        setDate('');
-        setIsDuplicateTransaction(false);
+        isDuplicateTransaction.setCustomValue(false);
         setNotification({
           ...notification,
           showNotification: true
@@ -100,12 +89,12 @@ export default function CreateEventModal({ show, onHide }) {
           <Form>
             <Form.Group className="mb-3">
               <Form.Label>Name:</Form.Label>
-              <Form.Control type="text" value={name} onChange={handleNameChange} />
+              <Form.Control type={name.type} value={name.value} onChange={name.onChange} />
             </Form.Group>
             {/* TODO: Can I use a CategoryFilter here? */}
             <Form.Group className="mb-3">
               <Form.Label>Category:</Form.Label>
-              <Form.Select value={category} onChange={handleCategoryChange}>
+              <Form.Select value={category.value} onChange={category.onChange}>
                 <option value="All">All</option>
                 <option value="Alcohol">Alcohol</option>
                 <option value="Dining">Dining</option>
@@ -123,10 +112,10 @@ export default function CreateEventModal({ show, onHide }) {
             </Form.Group>
             <Form.Group className="mb-3">
               <Form.Label>Override Date:</Form.Label>
-              <Form.Control type="date" value={date} onChange={handleDateChange} />
+              <Form.Control type={date.type} value={date.value} onChange={date.onChange} />
             </Form.Group>
             <Form.Group className="mb-3">
-              <Form.Check checked={isDuplicateTransaction} onChange={handleIsDuplicateTransactionChange}
+              <Form.Check checked={isDuplicateTransaction.value} onChange={() => isDuplicateTransaction.setCustomValue(!isDuplicateTransaction.value)}
                 type="checkbox" label="Duplicate Transaction" />
             </Form.Group>
           </Form>
