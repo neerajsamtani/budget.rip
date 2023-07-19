@@ -1,10 +1,14 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 
 export const useField = (type) => {
     const [value, setValue] = useState('')
 
     const setEmpty = () => {
         setValue('')
+    }
+
+    const setCustomValue = (value) => {
+        setValue(value)
     }
 
     const onChange = (event) => {
@@ -15,6 +19,7 @@ export const useField = (type) => {
         type,
         value,
         onChange,
+        setCustomValue,
         setEmpty
     }
 }
