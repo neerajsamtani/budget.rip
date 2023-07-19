@@ -3,12 +3,9 @@ import Button from 'react-bootstrap/Button';
 import Modal from 'react-bootstrap/Modal';
 import axiosInstance from './axiosInstance';
 import Notification from './Notification';
+import { useField } from './hooks/useField';
 
 export default function CreateCashTransactionModal({ show, onHide }) {
-  const [date, setDate] = useState('')
-  const [person, setPerson] = useState('')
-  const [description, setDescription] = useState('')
-  const [amount, setAmount] = useState('')
   const [notification, setNotification] = useState(
     {
       heading: "Notification",
@@ -17,27 +14,18 @@ export default function CreateCashTransactionModal({ show, onHide }) {
     }
   )
 
-
-  const handleDateChange = (event) => {
-    setDate(event.target.value)
-  }
-  const handlePersonChange = (event) => {
-    setPerson(event.target.value)
-  }
-  const handleDescriptionChange = (event) => {
-    setDescription(event.target.value)
-  }
-  const handleAmountChange = (event) => {
-    setAmount(event.target.value)
-  }
+  const date = useField("date")
+  const person = useField("text")
+  const description = useField("text")
+  const amount = useField("number")
 
   const createCashTransaction = () => {
     var REACT_APP_API_ENDPOINT = String(process.env.REACT_APP_API_ENDPOINT);
     var newCashTransaction = {
-      "date": date,
-      "person": person,
-      "description": description,
-      "amount": amount
+      "date": date.value,
+      "person": person.value,
+      "description": description.value,
+      "amount": amount.value
     }
     console.log(newCashTransaction);
     axiosInstance.post(`${REACT_APP_API_ENDPOINT}api/cash_transaction`, newCashTransaction)
@@ -45,10 +33,10 @@ export default function CreateCashTransactionModal({ show, onHide }) {
         console.log(response.data);
       })
       .then(() => {
-        setDate('');
-        setPerson('');
-        setDescription('');
-        setAmount('');
+        date.setEmpty()
+        person.setEmpty()
+        description.setEmpty()
+        amount.setEmpty()
         setNotification({
           ...notification,
           showNotification: true
@@ -79,19 +67,19 @@ export default function CreateCashTransactionModal({ show, onHide }) {
             <div className="form-group">
               {/* TODO: DATE PICKER */}
               <label>Date:</label>
-              <input type="date" className="form-control" id="event-date" value={date} onChange={handleDateChange} />
+              <input className="form-control" id="event-date" value={date.value} onChange={date.onChange} type={date.type} />
             </div>
             <div className="form-group">
               <label>Person:</label>
-              <input type="text" className="form-control" id="event-person" value={person} onChange={handlePersonChange} />
+              <input className="form-control" id="event-person" value={person.value} onChange={person.onChange} type={person.type} />
             </div>
             <div className="form-group">
               <label>Description:</label>
-              <input type="text" className="form-control" id="event-description" value={description} onChange={handleDescriptionChange} />
+              <input className="form-control" id="event-description" value={description.value} onChange={description.onChange} type={description.type} />
             </div>
             <div className="form-group">
               <label>Amount:</label>
-              <input type="number" className="form-control" id="event-amount" value={amount} onChange={handleAmountChange} />
+              <input className="form-control" id="event-amount" value={amount.value} onChange={amount.onChange} type={amount.type} />
             </div>
           </form>
         </Modal.Body>

@@ -18,8 +18,8 @@ export default function Login() {
         }
         axiosInstance.post(`${REACT_APP_API_ENDPOINT}api/auth/login`, newUser)
             .then(() => {
-                username.onEmpty()
-                password.onEmpty()
+                username.setEmpty()
+                password.setEmpty()
                 navigate('/')
             })
             .catch(error => console.log(error));

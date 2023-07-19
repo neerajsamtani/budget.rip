@@ -3,7 +3,7 @@ import React, { useState } from 'react'
 export const useField = (type) => {
     const [value, setValue] = useState('')
 
-    const onEmpty = () => {
+    const setEmpty = () => {
         setValue('')
     }
 
@@ -15,6 +15,6 @@ export const useField = (type) => {
         type,
         value,
         onChange,
-        onEmpty
+        setEmpty
     }
 }
