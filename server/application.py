@@ -46,7 +46,7 @@ application.config["JWT_COOKIE_DOMAIN"] = JWT_COOKIE_DOMAIN
 application.config["JWT_TOKEN_LOCATION"] = ["cookies"]
 application.config["JWT_ACCESS_COOKIE_PATH"] = "/api/"
 application.config["JWT_COOKIE_SAMESITE"] = "Lax"
-application.config["JWT_COOKIE_CSRF_PROTECT"] = True
+application.config["JWT_COOKIE_CSRF_PROTECT"] = False
 # Only allow JWT cookies to be sent over https. In production, this
 # should likely be True
 # application.config['JWT_COOKIE_SECURE'] = False

@@ -54,6 +54,8 @@ LOGIN
 - Get current user and ensure that all data belongs to current user
     - Need to migrate all data to have user id
     - Automatically get user Implementation in server/resources/event.py and implemented in user_lookup_callback
+- Ensure CSRF Protection in server/application.py
+    - Cookie should have samesite and httponly
 - Frontend should have a context provider that provides info for the current user
 
 5. Go to [http://localhost:3000/](http://localhost:3000/)
