@@ -42,6 +42,7 @@ TODO:
 - Paycheck auto suggested
 - Duplicate transaction auto suggested (two transactions same amount)
 - Frontend requiring category is filled
+- Search Line Items and Events
 
 - All Page is diff from create events page
 - Null out Payments? Do I need this

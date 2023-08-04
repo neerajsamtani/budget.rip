@@ -5,6 +5,7 @@ from constants import STRIPE_API_KEY, STRIPE_CUSTOMER_ID
 from dao import (
     bank_accounts_collection,
     get_all_data,
+    get_item_by_id,
     line_items_collection,
     stripe_raw_account_data_collection,
     stripe_raw_transaction_data_collection,
@@ -138,6 +139,10 @@ def stripe_to_line_items():
     payment_method = "Stripe"
     stripe_raw_data = get_all_data(stripe_raw_transaction_data_collection)
     for transaction in stripe_raw_data:
+        transaction_account = get_item_by_id(
+            bank_accounts_collection, transaction["account"]
+        )
+        payment_method = transaction_account["display_name"]
         line_item = LineItem(
             f'line_item_{transaction["_id"]}',
             transaction["transacted_at"],

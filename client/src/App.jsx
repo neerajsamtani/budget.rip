@@ -1,6 +1,6 @@
 import { loadStripe } from "@stripe/stripe-js";
 import axiosInstance from "./axiosInstance";
-import React, { useState } from "react";
+import React, { Fragment, useState } from "react";
 import { Button, Spinner } from "react-bootstrap";
 import Container from 'react-bootstrap/Container';
 import Nav from 'react-bootstrap/Nav';
