@@ -8,6 +8,7 @@ from flask_jwt_extended import (
     unset_jwt_cookies,
 )
 from helpers import check_password, hash_password
+from constants import GATED_USERS
 
 auth_blueprint = Blueprint("auth", __name__)
 
@@ -16,13 +17,18 @@ auth_blueprint = Blueprint("auth", __name__)
 
 @auth_blueprint.route("/api/auth/signup", methods=["POST"])
 def signup_user():
-    # TODO: check that user does not already exist
     body = request.get_json()
     user = {}
-    user["username"] = body["username"]
-    user["password_hash"] = hash_password(body["password"])
-    insert(users_collection, user)
-    return jsonify("Created User")
+    if get_user_by_username(body["username"]):
+        return jsonify("User Already Exists")
+    elif body["username"] not in GATED_USERS:
+        # For now, the user must be gated
+        return jsonify("User Not Signed Up For Private Beta")
+    else:
+        user["username"] = body["username"]
+        user["password_hash"] = hash_password(body["password"])
+        insert(users_collection, user)
+        return jsonify("Created User")
 
 
 @auth_blueprint.route("/api/auth/login", methods=["POST"])
