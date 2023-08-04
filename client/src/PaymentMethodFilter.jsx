@@ -1,7 +1,19 @@
-import React from 'react';
+import React, { useState, useEffect } from "react";
 import { Form, InputGroup } from 'react-bootstrap';
+import axiosInstance from "./axiosInstance";
 
 export default function PaymentMethodFilter({ paymentMethod, setPaymentMethod }) {
+
+  const [paymentMethods, setPaymentMethods] = useState([])
+
+  useEffect(() => {
+    var REACT_APP_API_ENDPOINT = String(process.env.REACT_APP_API_ENDPOINT);
+    axiosInstance.get(`${REACT_APP_API_ENDPOINT}api/payment_methods`)
+      .then(response => {
+        setPaymentMethods(response.data)
+      })
+      .catch(error => console.log(error));
+  }, [])
 
   const handlePaymentMethodChange = (event) => {
     setPaymentMethod(event.target.value);
@@ -14,13 +26,9 @@ export default function PaymentMethodFilter({ paymentMethod, setPaymentMethod })
         <Form.Group controlId="exampleForm.SelectCustom">
           <Form.Select value={paymentMethod} onChange={handlePaymentMethodChange}>
             <option value="All">All</option>
-            {/* <option value="Checking">Checking</option>
-        <option value="Credit">Credit</option>
-        <option value="Savings">Savings</option> */}
-            <option value="Cash">Cash</option>
-            <option value="Splitwise">Splitwise</option>
-            <option value="Stripe">Stripe</option>
-            <option value="Venmo">Venmo</option>
+            {paymentMethods.map(payment_method => {
+              return (<option value={payment_method} key={payment_method}> {payment_method}</option>)
+            })}
           </Form.Select>
         </Form.Group>
       </InputGroup>

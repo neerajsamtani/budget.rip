@@ -122,6 +122,18 @@ def get_connected_accounts():
     return jsonify(connected_accounts)
 
 
+@application.route("/api/payment_methods", methods=["GET"])
+@jwt_required()
+def get_payment_methods():
+    # Cash, Venmo, and Splitwise must be connected
+    payment_methods = ["Cash", "Venmo", "Splitwise"]
+    # stripe
+    bank_accounts = get_all_data(bank_accounts_collection)
+    for account in bank_accounts:
+        payment_methods.append(account["display_name"])
+    return jsonify(payment_methods)
+
+
 # TODO: Need to add webhooks for updates after the server has started
 
 
