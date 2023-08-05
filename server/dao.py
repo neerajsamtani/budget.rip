@@ -45,8 +45,8 @@ def remove_event_from_line_item(line_item_id: int):
     )
 
 
-def get_user_by_username(username: str):
-    return users_collection.find_one({"username": {"$eq": username}})
+def get_user_by_email(email: str):
+    return users_collection.find_one({"email": {"$eq": email}})
 
 
 def upsert(cur_collection: Collection, item):

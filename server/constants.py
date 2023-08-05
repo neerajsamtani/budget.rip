@@ -11,7 +11,7 @@ from helpers import iso_8601_to_posix
 LIMIT = 1000
 MOVING_DATE = "2022-08-03T00:00:00Z"
 MOVING_DATE_POSIX = iso_8601_to_posix(MOVING_DATE)
-GATED_USERS = ["neerajsamtani"]
+GATED_USERS = ["neerajjsamtani@gmail.com"]
 USER_FIRST_NAME = "Neeraj"
 PARTIES_TO_IGNORE = ["Pink Palace Babes", "Nyusha", "John Jonah"]
 STRIPE_API_KEY = os.getenv("STRIPE_LIVE_API_SECRET_KEY")

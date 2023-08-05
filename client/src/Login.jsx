@@ -6,19 +6,19 @@ import axiosInstance from "./axiosInstance";
 import { useField } from './hooks/useField';
 
 export default function Login() {
-    const username = useField("text")
+    const email = useField("text")
     const password = useField("password")
     const navigate = useNavigate()
 
-    const handleLogin = (username, password) => {
+    const handleLogin = (email, password) => {
         var REACT_APP_API_ENDPOINT = String(process.env.REACT_APP_API_ENDPOINT);
         var newUser = {
-            "username": username.value,
+            "email": email.value,
             "password": password.value
         }
         axiosInstance.post(`${REACT_APP_API_ENDPOINT}api/auth/login`, newUser)
             .then(() => {
-                username.setEmpty()
+                email.setEmpty()
                 password.setEmpty()
                 navigate('/')
             })
@@ -38,14 +38,14 @@ export default function Login() {
         <Fragment>
             <Form>
                 <Form.Group className="mb-3">
-                    <Form.Label>Username:</Form.Label>
-                    <Form.Control value={username.value} onChange={username.onChange} type={username.type} />
+                    <Form.Label>Email:</Form.Label>
+                    <Form.Control value={email.value} onChange={email.onChange} type={email.type} />
                 </Form.Group>
                 <Form.Group className="mb-3">
                     <Form.Label>Password:</Form.Label>
                     <Form.Control value={password.value} onChange={password.onChange} type={password.type} />
                 </Form.Group>
-                <Button onClick={() => handleLogin(username, password)} variant="primary">Log In</Button>
+                <Button onClick={() => handleLogin(email, password)} variant="primary">Log In</Button>
                 <Button onClick={handleLogout} variant="primary">Log Out</Button>
             </Form>
         </Fragment>

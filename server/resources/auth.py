@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from dao import get_user_by_username, insert, users_collection
+from dao import get_user_by_email, insert, users_collection
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import (
     create_access_token,
@@ -19,13 +19,15 @@ auth_blueprint = Blueprint("auth", __name__)
 def signup_user():
     body = request.get_json()
     user = {}
-    if get_user_by_username(body["username"]):
+    if get_user_by_email(body["email"]):
         return jsonify("User Already Exists")
-    elif body["username"] not in GATED_USERS:
+    elif body["email"] not in GATED_USERS:
         # For now, the user must be gated
         return jsonify("User Not Signed Up For Private Beta")
     else:
-        user["username"] = body["username"]
+        user["first_name"] = body["first_name"]
+        user["last_name"] = body["last_name"]
+        user["email"] = body["email"]
         user["password_hash"] = hash_password(body["password"])
         insert(users_collection, user)
         return jsonify("Created User")
@@ -34,7 +36,7 @@ def signup_user():
 @auth_blueprint.route("/api/auth/login", methods=["POST"])
 def login_user():
     body = request.get_json()
-    user = get_user_by_username(body["username"])
+    user = get_user_by_email(body["email"])
     authorized = check_password(user["password_hash"], body["password"])
     if not authorized:
         return {"error": "Email or password invalid"}, 401
