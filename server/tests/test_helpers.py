@@ -3,7 +3,7 @@ from datetime import datetime
 from unittest.mock import MagicMock
 
 import helpers
-from line_item_class import LineItem
+from resources.line_item import LineItem
 
 
 class TestFlipAmount(unittest.TestCase):

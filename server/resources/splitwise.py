@@ -9,7 +9,7 @@ from dao import (
 from flask import Blueprint, jsonify
 from flask_jwt_extended import jwt_required
 from helpers import flip_amount, iso_8601_to_posix
-from line_item_class import LineItem
+from resources.line_item import LineItem
 
 splitwise_blueprint = Blueprint("splitwise", __name__)
 

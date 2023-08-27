@@ -17,6 +17,10 @@ def flip_amount(amount: float) -> float:
     return -1 * float(amount)
 
 
+def cents_to_dollars(amount: float) -> float:
+    return 0.01 * round(float(amount), 2)
+
+
 def to_dict(obj) -> Dict:
     return json.loads(json.dumps(obj, default=lambda o: o.__dict__))
 

@@ -13,8 +13,8 @@ from dao import (
 )
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required
-from helpers import flip_amount
-from line_item_class import LineItem
+from helpers import cents_to_dollars, flip_amount
+from resources.line_item import LineItem
 
 import stripe
 
@@ -124,6 +124,10 @@ def get_transactions(account_id):
             for transaction in data:
                 if transaction["status"] == "posted":
                     upsert(stripe_raw_transaction_data_collection, transaction)
+                elif transaction["status"] == "pending":
+                    print(
+                        f"Pending Transaction: {transaction['description']} | ${cents_to_dollars(flip_amount(transaction['amount']))}"
+                    )
             has_more = response["has_more"]
             last_transaction = data[-1]
             params["starting_after"] = last_transaction["id"]

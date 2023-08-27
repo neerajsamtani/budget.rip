@@ -4,7 +4,7 @@ from dao import get_all_data, line_items_collection, upsert, venmo_raw_data_coll
 from flask import Blueprint, jsonify
 from flask_jwt_extended import jwt_required
 from helpers import flip_amount
-from line_item_class import LineItem
+from resources.line_item import LineItem
 
 venmo_blueprint = Blueprint("venmo", __name__)
 
