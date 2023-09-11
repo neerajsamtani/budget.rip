@@ -24,6 +24,12 @@ splitwise_blueprint = Blueprint("splitwise", __name__)
 
 @splitwise_blueprint.route("/api/refresh/splitwise")
 @jwt_required()
+def refresh_splitwise_api():
+    refresh_splitwise()
+    splitwise_to_line_items()
+    return jsonify("Refreshed Splitwise Connection")
+
+
 def refresh_splitwise():
     expenses = splitwise_client.getExpenses(limit=LIMIT, dated_after=MOVING_DATE)
     for expense in expenses:
@@ -32,8 +38,6 @@ def refresh_splitwise():
         if expense.deleted_at is not None:
             continue
         upsert(splitwise_raw_data_collection, expense)
-    splitwise_to_line_items()
-    return jsonify("Refreshed Splitwise Connection")
 
 
 def splitwise_to_line_items():

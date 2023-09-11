@@ -13,7 +13,7 @@ monthly_breakdown_blueprint = Blueprint("monthly_breakdown", __name__)
 
 @monthly_breakdown_blueprint.route("/api/monthly_breakdown")
 @jwt_required()
-def get_monthly_breakdown():
+def get_monthly_breakdown_api():
     """
     Get Monthly Breakdown For Plotly Graph
     """

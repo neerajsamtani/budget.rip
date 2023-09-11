@@ -23,16 +23,14 @@ stripe_blueprint = Blueprint("stripe", __name__)
 
 @stripe_blueprint.route("/api/refresh/stripe")
 @jwt_required()
-def refresh_stripe():
-    bank_accounts = get_all_data(bank_accounts_collection)
-    for account in bank_accounts:
-        get_transactions(account["id"])
+def refresh_stripe_api():
+    refresh_stripe()
     return jsonify("Refreshed Stripe Connection")
 
 
 @stripe_blueprint.route("/api/create-fc-session", methods=["POST"])
 @jwt_required()
-def create_fc_session():
+def create_fc_session_api():
     try:
         # TODO: Is there a better pattern than nested trys?
         try:
@@ -52,7 +50,7 @@ def create_fc_session():
 
 @stripe_blueprint.route("/api/create_accounts", methods=["POST"])
 @jwt_required()
-def create_accounts():
+def create_accounts_api():
     new_accounts = request.get_json()
     if len(new_accounts) == 0:
         return jsonify("Failed to Create Accounts: No Accounts Submitted")
@@ -65,7 +63,7 @@ def create_accounts():
 
 @stripe_blueprint.route("/api/get_accounts/<session_id>")
 @jwt_required()
-def get_accounts(session_id):
+def get_accounts_api(session_id):
     try:
         session = stripe.financial_connections.Session.retrieve(session_id)
         accounts = session["accounts"]
@@ -78,7 +76,7 @@ def get_accounts(session_id):
 
 @stripe_blueprint.route("/api/subscribe_to_account/<account_id>")
 @jwt_required()
-def subscribe_to_account(account_id):
+def subscribe_to_account_api(account_id):
     try:
         # TODO: Use requests since we cannot list transactions with the Stripe Python client
         headers = {
@@ -100,7 +98,7 @@ def subscribe_to_account(account_id):
 
 @stripe_blueprint.route("/api/get_transactions/<account_id>")
 @jwt_required()
-def get_transactions(account_id):
+def get_transactions_api(account_id):
     # TODO: This gets all transactions ever. We should only get those that we don't have
     try:
         # TODO: Use requests since we cannot list transactions with the Stripe Python client
@@ -137,6 +135,12 @@ def get_transactions(account_id):
 
     except Exception as e:
         return jsonify(error=str(e)), 403
+
+
+def refresh_stripe():
+    bank_accounts = get_all_data(bank_accounts_collection)
+    for account in bank_accounts:
+        get_transactions_api(account["id"])
 
 
 def stripe_to_line_items():

@@ -17,7 +17,7 @@ cash_blueprint = Blueprint("cash", __name__)
 
 @cash_blueprint.route("/api/cash_transaction", methods=["POST"])
 @jwt_required()
-def create_cash_transaction():
+def create_cash_transaction_api():
     transaction = request.get_json()
     transaction["date"] = html_date_to_posix(transaction["date"])
     transaction["amount"] = int(transaction["amount"])

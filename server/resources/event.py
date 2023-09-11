@@ -20,7 +20,7 @@ events_blueprint = Blueprint("events", __name__)
 
 @events_blueprint.route("/api/events", methods=["GET"])
 @jwt_required()
-def all_events():
+def all_events_api():
     """
     Get All Events
     Filters:
@@ -39,7 +39,7 @@ def all_events():
 
 @events_blueprint.route("/api/events/<event_id>", methods=["GET"])
 @jwt_required()
-def get_event(event_id):
+def get_event_api(event_id):
     """
     Get An Event
     """
@@ -49,7 +49,7 @@ def get_event(event_id):
 
 @events_blueprint.route("/api/events", methods=["POST"])
 @jwt_required()
-def post_event():
+def post_event_api():
     """
     Create An Event
     """
@@ -83,7 +83,7 @@ def post_event():
 
 @events_blueprint.route("/api/events/<event_id>", methods=["DELETE"])
 @jwt_required()
-def delete_event(event_id):
+def delete_event_api(event_id):
     """
     Delete An Event
     """
@@ -97,7 +97,7 @@ def delete_event(event_id):
 
 @events_blueprint.route("/api/events/<event_id>/line_items_for_event", methods=["GET"])
 @jwt_required()
-def get_line_items_for_event(event_id):
+def get_line_items_for_event_api(event_id):
     """
     Get All Line Items Belonging To An Event
     """

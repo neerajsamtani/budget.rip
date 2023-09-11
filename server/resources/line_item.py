@@ -51,30 +51,35 @@ class LineItem:
 
 @line_items_blueprint.route("/api/line_items", methods=["GET"])
 @jwt_required()
-def all_line_items(local_only_line_items_to_review=False):
+def all_line_items_api():
     """
     Get All Line Items
-    Filters:
         - Payment Method (optional)
         - Only Line Items To Review (optional)
     """
-    filters = {}
-    payment_method = request.args.get("payment_method")
-    if payment_method not in ["All", None]:
-        filters["payment_method"] = payment_method
-
     only_line_items_to_review = request.args.get("only_line_items_to_review")
-    if only_line_items_to_review or local_only_line_items_to_review:
-        filters["event_id"] = {"$exists": False}
-
-    line_items = get_all_data(line_items_collection, filters)
-    line_items = sort_by_date(line_items)
+    payment_method = request.args.get("payment_method")
+    line_items = all_line_items(only_line_items_to_review, payment_method)
     line_items_total = sum(line_item["amount"] for line_item in line_items)
     return jsonify({"total": line_items_total, "data": line_items})
 
 
+def all_line_items(only_line_items_to_review=False, payment_method=None):
+    filters = {}
+    if payment_method not in ["All", None]:
+        filters["payment_method"] = payment_method
+
+    if only_line_items_to_review:
+        # Only get line items that don't have an event associated
+        filters["event_id"] = {"$exists": False}
+
+    line_items = get_all_data(line_items_collection, filters)
+    line_items = sort_by_date(line_items)
+    return line_items
+
+
 @line_items_blueprint.route("/api/line_items/<line_item_id>", methods=["GET"])
-def get_line_item(line_item_id):
+def get_line_item_api(line_item_id):
     """
     Get A Line Item
     """

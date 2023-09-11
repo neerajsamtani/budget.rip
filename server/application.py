@@ -89,23 +89,22 @@ def user_lookup_callback(_jwt_header, jwt_data):
 
 
 @application.route("/api/")
-def index():
+def index_api():
     return jsonify("Welcome to Budgit API")
 
 
 @application.route("/api/refresh/all")
 @jwt_required()
-def refresh_all():
-    refresh_splitwise()
-    refresh_venmo()
-    refresh_stripe()
+def refresh_all_api():
+    refresh_all()
     create_consistent_line_items()
-    return all_line_items(local_only_line_items_to_review=True)
+    line_items = all_line_items(only_line_items_to_review=True)
+    return jsonify({"data": line_items})
 
 
 @application.route("/api/connected_accounts", methods=["GET"])
 @jwt_required()
-def get_connected_accounts():
+def get_connected_accounts_api():
     connected_accounts = []
     # venmo
     connected_accounts.append(f"{venmo_client.my_profile().username} (venmo)")
@@ -124,7 +123,7 @@ def get_connected_accounts():
 
 @application.route("/api/payment_methods", methods=["GET"])
 @jwt_required()
-def get_payment_methods():
+def get_payment_methods_api():
     # Cash, Venmo, and Splitwise must be connected
     payment_methods = ["Cash", "Venmo", "Splitwise"]
     # stripe
@@ -147,6 +146,12 @@ def add_event_ids_to_line_items():
         for line_item in line_items:
             line_item["event_id"] = event["id"]
             upsert(line_items_collection, line_item)
+
+
+def refresh_all():
+    refresh_splitwise()
+    refresh_venmo()
+    refresh_stripe()
 
 
 def create_consistent_line_items():

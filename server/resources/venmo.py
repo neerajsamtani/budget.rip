@@ -16,6 +16,12 @@ venmo_blueprint = Blueprint("venmo", __name__)
 
 @venmo_blueprint.route("/api/refresh/venmo")
 @jwt_required()
+def refresh_venmo_api():
+    refresh_venmo()
+    venmo_to_line_items()
+    return jsonify("Refreshed Venmo Connection")
+
+
 def refresh_venmo():
     my_id = venmo_client.my_profile().id
     transactions = venmo_client.user.get_user_transactions(my_id)
@@ -34,8 +40,6 @@ def refresh_venmo():
         transactions = (
             transactions.get_next_page()
         )  # TODO: This might have one extra network call when we break out of the loop
-    venmo_to_line_items()
-    return jsonify("Refreshed Venmo Connection")
 
 
 def venmo_to_line_items():

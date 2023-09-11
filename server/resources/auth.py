@@ -16,7 +16,7 @@ auth_blueprint = Blueprint("auth", __name__)
 
 
 @auth_blueprint.route("/api/auth/signup", methods=["POST"])
-def signup_user():
+def signup_user_api():
     body = request.get_json()
     user = {}
     if get_user_by_email(body["email"]):
@@ -34,7 +34,7 @@ def signup_user():
 
 
 @auth_blueprint.route("/api/auth/login", methods=["POST"])
-def login_user():
+def login_user_api():
     body = request.get_json()
     user = get_user_by_email(body["email"])
     authorized = check_password(user["password_hash"], body["password"])
@@ -56,7 +56,7 @@ def login_user():
 # in order to logout. unset_jwt_cookies is a helper function to
 # do just that.
 @auth_blueprint.route("/api/auth/logout", methods=["POST"])
-def logout():
+def logout_api():
     resp = jsonify({"logout": True})
     unset_jwt_cookies(resp)
     return resp, 200
