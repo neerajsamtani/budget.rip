@@ -1,19 +1,23 @@
+import logging
+
+from bson import ObjectId
 from dotenv import load_dotenv
 from flask import Flask, jsonify
 from flask_bcrypt import Bcrypt
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager, jwt_required
+from flask_pymongo import PyMongo
 
 from clients import splitwise_client, venmo_client
-from constants import JWT_SECRET_KEY, JWT_COOKIE_DOMAIN
+from constants import JWT_COOKIE_DOMAIN, JWT_SECRET_KEY, MONGODB_HOST
 from dao import (
     bank_accounts_collection,
     events_collection,
     get_all_data,
     get_item_by_id,
     line_items_collection,
-    users_collection,
     upsert,
+    users_collection,
 )
 from resources.auth import auth_blueprint
 from resources.cash import cash_blueprint, cash_to_line_items
@@ -27,7 +31,6 @@ from resources.splitwise import (
 )
 from resources.stripe import refresh_stripe, stripe_blueprint, stripe_to_line_items
 from resources.venmo import refresh_venmo, venmo_blueprint, venmo_to_line_items
-from bson import ObjectId
 
 # Flask constructor takes the name of
 # current module (__name__) as argument.
@@ -51,6 +54,11 @@ application.config["JWT_COOKIE_CSRF_PROTECT"] = False
 # should likely be True
 # application.config['JWT_COOKIE_SECURE'] = False
 
+application.config["MONGO_URI"] = f"mongodb://{MONGODB_HOST}:27017/flask_db"
+application.config["MONGO"] = PyMongo(application)
+
+# Configure the log level (use 'DEBUG' during development and 'INFO' or 'WARNING' in production)
+application.logger.setLevel(logging.DEBUG)
 
 application.register_blueprint(auth_blueprint)
 application.register_blueprint(line_items_blueprint)
@@ -160,13 +168,13 @@ def create_consistent_line_items():
     stripe_to_line_items()
     cash_to_line_items()
     add_event_ids_to_line_items()
+    application.logger.info("Created consistent line items")
 
 
 # main driver function
 if __name__ == "__main__":
     # run() method of Flask class runs the application
     # on the local development server.
-    create_consistent_line_items()
     # TODO: Disable debugging
     application.config["CORS_HEADERS"] = "Content-Type"
     application.config["ENV"] = "development"

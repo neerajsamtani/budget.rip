@@ -8,6 +8,7 @@ from dao import (
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required
 from helpers import html_date_to_posix
+
 from resources.line_item import LineItem
 
 cash_blueprint = Blueprint("cash", __name__)

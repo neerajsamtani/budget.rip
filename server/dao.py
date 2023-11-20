@@ -1,60 +1,64 @@
-from typing import Collection, List
+from typing import List
 
-import mongomock
-from pymongo import MongoClient
-from pymongo.typings import _DocumentType
-from constants import MONGODB_URI
+from flask import current_app
 
 from helpers import to_dict
 
-# TODO: Stop using mock dao
-# client = mongomock.MongoClient(MONGODB_URI, 27017)
-client = MongoClient(MONGODB_URI, 27017)
-db = client.flask_db
-venmo_raw_data_collection = db.venmo_raw_data
-splitwise_raw_data_collection = db.splitwise_raw_data
-cash_raw_data_collection = db.cash_raw_data
-stripe_raw_transaction_data_collection = db.stripe_raw_transaction_data
-stripe_raw_account_data_collection = db.stripe_raw_account_data
-line_items_collection = db.line_items
-events_collection = db.events
-bank_accounts_collection = db.accounts
-users_collection = db.users
+venmo_raw_data_collection = "venmo_raw_data"
+splitwise_raw_data_collection = "splitwise_raw_data"
+cash_raw_data_collection = "cash_raw_data"
+stripe_raw_transaction_data_collection = "stripe_raw_transaction_data"
+stripe_raw_account_data_collection = "stripe_raw_account_data"
+line_items_collection = "line_items"
+events_collection = "events"
+bank_accounts_collection = "accounts"
+users_collection = "users"
 
 
-def get_all_data(cur_collection: Collection, filters=None) -> List[_DocumentType]:
+def get_collection(cur_collection_str: str):
+    # Access the MongoDB collection using current_app
+    mongo = current_app.config["MONGO"]
+    return mongo.db[cur_collection_str]
+
+
+def get_all_data(cur_collection_str: str, filters=None) -> List:
+    cur_collection = get_collection(cur_collection_str)
     return list(cur_collection.find(filters).sort("date", -1))
 
 
-def get_item_by_id(cur_collection: Collection, id):  # TODO: Return Type?
+def get_item_by_id(cur_collection_str: str, id):  # TODO: Return Type?
+    cur_collection = get_collection(cur_collection_str)
     return cur_collection.find_one({"_id": id})
 
 
-def insert(cur_collection: Collection, item):
+def insert(cur_collection_str: str, item):
+    cur_collection = get_collection(cur_collection_str)
     item = to_dict(item)
     cur_collection.insert_one(item)
 
 
-def delete_from_collection(cur_collection: Collection, id):
+def delete_from_collection(cur_collection_str: str, id):
+    cur_collection = get_collection(cur_collection_str)
     cur_collection.delete_one({"_id": id})
 
 
 def remove_event_from_line_item(line_item_id: int):
-    line_items_collection.update_one(
-        {"_id": line_item_id}, {"$unset": {"event_id": ""}}
-    )
+    cur_collection = get_collection(line_items_collection)
+    cur_collection.update_one({"_id": line_item_id}, {"$unset": {"event_id": ""}})
 
 
 def get_user_by_email(email: str):
-    return users_collection.find_one({"email": {"$eq": email}})
+    cur_collection = get_collection(users_collection)
+    return cur_collection.find_one({"email": {"$eq": email}})
 
 
-def upsert(cur_collection: Collection, item):
+def upsert(cur_collection_str: str, item):
     item = to_dict(item)
-    upsert_with_id(cur_collection, item, item["id"])
+    upsert_with_id(cur_collection_str, item, item["id"])
 
 
-def upsert_with_id(cur_collection: Collection, item, id):
+def upsert_with_id(cur_collection_str: str, item, id):
+    cur_collection = get_collection(cur_collection_str)
     item["_id"] = item["id"]
     cur_collection.replace_one({"_id": id}, item, upsert=True)
 
@@ -63,7 +67,8 @@ def get_categorized_data():
     """
     Group totalExpense by month, year, and category
     """
-    query_result = events_collection.aggregate(
+    cur_collection = get_collection(events_collection)
+    query_result = cur_collection.aggregate(
         [
             {"$addFields": {"date": {"$toDate": {"$multiply": ["$date", 1000]}}}},
             {
