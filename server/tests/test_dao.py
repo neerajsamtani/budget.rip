@@ -4,6 +4,7 @@ from constants import MONGODB_HOST
 from dao import get_all_data, insert, get_collection
 from flask import Flask
 from flask_pymongo import PyMongo
+from pymongo.errors import ServerSelectionTimeoutError
 
 MONGODB_DB_NAME = "test_db"
 TEST_COLLECTION = "test_collection"
@@ -23,7 +24,11 @@ class TestDao(unittest.TestCase):
     def tearDown(self):
         # Clean up resources
         with self.app.app_context():
-            self.app.config["MONGO"].db.drop_collection(TEST_COLLECTION)
+            try:
+                self.app.config["MONGO"].db.drop_collection(TEST_COLLECTION)
+            except ServerSelectionTimeoutError:
+                # This error happens on Github Actions
+                pass
 
     def test_get_all_data(self):
         with self.app.app_context():

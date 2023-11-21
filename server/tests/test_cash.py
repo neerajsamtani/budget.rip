@@ -13,6 +13,7 @@ from flask_pymongo import PyMongo
 from helpers import html_date_to_posix
 from resources.cash import cash_blueprint, cash_to_line_items
 from resources.line_item import LineItem
+from pymongo.errors import ServerSelectionTimeoutError
 
 MONGODB_DB_NAME = "test_db"
 
@@ -45,8 +46,12 @@ class CashBlueprintTestCase(unittest.TestCase):
     def tearDown(self):
         # Clean up resources
         with self.app.app_context():
-            self.app.config["MONGO"].db.drop_collection(cash_raw_data_collection)
-            self.app.config["MONGO"].db.drop_collection(line_items_collection)
+            try:
+                self.app.config["MONGO"].db.drop_collection(cash_raw_data_collection)
+                self.app.config["MONGO"].db.drop_collection(line_items_collection)
+            except ServerSelectionTimeoutError:
+                # This error happens on Github Actions
+                pass
 
     def test_create_cash_transaction_api(self):
         # Define a mock request with JSON data
