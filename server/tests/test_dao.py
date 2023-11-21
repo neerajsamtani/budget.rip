@@ -1,4 +1,3 @@
-from asyncio import constants
 import unittest
 
 from constants import MONGODB_HOST
