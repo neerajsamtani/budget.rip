@@ -2,9 +2,9 @@ import os
 
 from dotenv import load_dotenv
 
-load_dotenv()
-
 from helpers import iso_8601_to_posix
+
+load_dotenv()
 
 # TODO: Better abstraction and handling of dates
 
@@ -23,6 +23,6 @@ SPLITWISE_CONSUMER_KEY = os.getenv("SPLITWISE_CONSUMER_KEY")
 SPLITWISE_CONSUMER_SECRET = os.getenv("SPLITWISE_CONSUMER_SECRET")
 SPLITWISE_API_KEY = os.getenv("SPLITWISE_API_KEY")
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "testSecretKey123")
-JWT_COOKIE_DOMAIN = os.getenv("JWT_COOKIE_DOMAIN", "localhost")
+JWT_COOKIE_DOMAIN = os.getenv("JWT_COOKIE_DOMAIN")
 SMALLEST_EPOCH_TIME = float(0)
 LARGEST_EPOCH_TIME = float(9999999999)
