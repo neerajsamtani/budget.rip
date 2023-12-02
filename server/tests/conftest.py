@@ -1,6 +1,6 @@
 import pytest
 from constants import JWT_SECRET_KEY, MONGODB_DB_NAME, MONGODB_HOST
-from dao import cash_raw_data_collection, line_items_collection
+from dao import cash_raw_data_collection, line_items_collection, test_collection
 from flask import Flask
 from flask_jwt_extended import JWTManager, create_access_token
 from flask_pymongo import PyMongo
@@ -39,6 +39,7 @@ def setup_teardown(flask_app, request):
     # This fixture will be used for setup and teardown
     with flask_app.app_context():
         try:
+            flask_app.config["MONGO"].db.drop_collection(test_collection)
             flask_app.config["MONGO"].db.drop_collection(cash_raw_data_collection)
             flask_app.config["MONGO"].db.drop_collection(line_items_collection)
         except ServerSelectionTimeoutError:
@@ -48,6 +49,7 @@ def setup_teardown(flask_app, request):
     def teardown():
         with flask_app.app_context():
             try:
+                flask_app.config["MONGO"].db.drop_collection(test_collection)
                 flask_app.config["MONGO"].db.drop_collection(cash_raw_data_collection)
                 flask_app.config["MONGO"].db.drop_collection(line_items_collection)
             except ServerSelectionTimeoutError:
