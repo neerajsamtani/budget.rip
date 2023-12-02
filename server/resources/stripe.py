@@ -13,10 +13,10 @@ from dao import (
 )
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required
-from helpers import cents_to_dollars, flip_amount
-from resources.line_item import LineItem
+from helpers import flip_amount
 
 import stripe
+from resources.line_item import LineItem
 
 stripe_blueprint = Blueprint("stripe", __name__)
 
@@ -35,7 +35,7 @@ def create_fc_session_api():
         # TODO: Is there a better pattern than nested trys?
         try:
             customer = stripe.Customer.retrieve(STRIPE_CUSTOMER_ID)
-        except stripe.error.InvalidRequestError as e:
+        except stripe.error.InvalidRequestError:
             print("Creating a new customer...")
             customer = stripe.Customer.create(email="neeraj@gmail.com", name="Neeraj")
 
@@ -124,7 +124,8 @@ def get_transactions_api(account_id):
                     upsert(stripe_raw_transaction_data_collection, transaction)
                 elif transaction["status"] == "pending":
                     print(
-                        f"Pending Transaction: {transaction['description']} | ${cents_to_dollars(flip_amount(transaction['amount']))}"
+                        f"Pending Transaction: {transaction['description']} | "
+                        + "${cents_to_dollars(flip_amount(transaction['amount']))}"
                     )
             has_more = response["has_more"]
             last_transaction = data[-1]

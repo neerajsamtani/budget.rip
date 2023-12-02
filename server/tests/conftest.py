@@ -16,7 +16,7 @@ def flask_app():
     with app.app_context():
         app.config["MONGO_URI"] = f"mongodb://{MONGODB_HOST}:27017/{MONGODB_DB_NAME}"
         app.config["MONGO"] = PyMongo(app)
-        jwt = JWTManager(app)
+        JWTManager(app)
         app.config["JWT_SECRET_KEY"] = JWT_SECRET_KEY
     yield app
 

@@ -2,9 +2,9 @@ import os
 
 from dotenv import load_dotenv
 
-load_dotenv()
-
 from helpers import iso_8601_to_posix
+
+load_dotenv()
 
 # TODO: Better abstraction and handling of dates
 
