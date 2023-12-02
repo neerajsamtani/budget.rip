@@ -13,6 +13,7 @@ line_items_collection = "line_items"
 events_collection = "events"
 bank_accounts_collection = "accounts"
 users_collection = "users"
+test_collection = "test_data"
 
 
 def get_collection(cur_collection_str: str):
