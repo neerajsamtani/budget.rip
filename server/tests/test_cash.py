@@ -22,7 +22,7 @@ def mock_cash_raw_data():
 
 
 @pytest.fixture
-def expected_line_item(mock_cash_raw_data):
+def expected_line_item():
     return LineItem(
         "line_item_1",
         1234567890,
