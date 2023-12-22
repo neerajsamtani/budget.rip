@@ -25,9 +25,11 @@ export default function CreateEventModal({ show, onHide }) {
   }, [selectedLineItems, show])
 
   const name = useField("text")
-  const category = useField("text")
+  const category = useField("text", "All")
   const date = useField("date")
   const isDuplicateTransaction = useField("checkbox")
+
+  const disableSubmit = name.value === "" || category.value === "" || category.value === "All"
 
   const [notification, setNotification] = useState(
     {
@@ -36,6 +38,14 @@ export default function CreateEventModal({ show, onHide }) {
       showNotification: false,
     }
   )
+
+  const closeModal = () => {
+    name.setEmpty()
+    category.setEmpty()
+    date.setEmpty()
+    isDuplicateTransaction.setCustomValue(false);
+    onHide()
+  }
 
   const createEvent = (name, category) => {
     var REACT_APP_API_ENDPOINT = String(process.env.REACT_APP_API_ENDPOINT);
@@ -52,20 +62,16 @@ export default function CreateEventModal({ show, onHide }) {
         console.log(response.data);
       })
       .then(() => {
-        name.setEmpty()
-        category.setEmpty()
-        date.setEmpty()
+        closeModal()
         lineItemsDispatch({
           type: 'remove_line_items',
           lineItemIds: selectedLineItemIds
         })
-        isDuplicateTransaction.setCustomValue(false);
         setNotification({
           ...notification,
           showNotification: true
         })
         // TODO: Uncheck all checkboxes
-        onHide();
       })
       .catch(error => console.log(error));
   }
@@ -75,7 +81,7 @@ export default function CreateEventModal({ show, onHide }) {
       <Notification notification={notification} setNotification={setNotification} />
       <Modal
         show={show}
-        onHide={onHide}
+        onHide={closeModal}
         size="lg"
         aria-labelledby="contained-modal-title-vcenter"
         centered
@@ -123,8 +129,8 @@ export default function CreateEventModal({ show, onHide }) {
           </Form>
         </Modal.Body>
         <Modal.Footer>
-          <Button onClick={onHide} variant="secondary">Cancel</Button>
-          <Button onClick={() => createEvent(name, category)} variant="primary">Submit</Button>
+          <Button onClick={closeModal} variant="secondary">Cancel</Button>
+          <Button onClick={() => createEvent(name, category)} variant="primary" disabled={disableSubmit}>Submit</Button>
         </Modal.Footer>
       </Modal>
     </Fragment>
