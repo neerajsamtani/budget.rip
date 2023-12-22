@@ -1,7 +1,7 @@
 import { useState } from 'react'
 
-export const useField = (type) => {
-    const [value, setValue] = useState('')
+export const useField = (type, defaultState = "") => {
+    const [value, setValue] = useState(defaultState)
 
     const setEmpty = () => {
         setValue('')
