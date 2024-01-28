@@ -15,6 +15,7 @@ export default function YearFilter({ year, setYear }) {
           <Form.Select value={year} onChange={handleYearChange}>
             <option value="2022">2022</option>
             <option value="2023">2023</option>
+            <option value="2024">2024</option>
           </Form.Select>
         </Form.Group>
       </InputGroup>
