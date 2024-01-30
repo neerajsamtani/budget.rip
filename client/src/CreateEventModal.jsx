@@ -5,7 +5,7 @@ import Form from 'react-bootstrap/Form';
 import Modal from 'react-bootstrap/Modal';
 import { useLineItems, useLineItemsDispatch } from "./contexts/LineItemsContext";
 import Notification from './Notification';
-import titleCase from './utils/stringHelpers'
+import defaultNameCleanup from './utils/stringHelpers'
 import { useField } from './hooks/useField';
 
 export default function CreateEventModal({ show, onHide }) {
@@ -18,7 +18,7 @@ export default function CreateEventModal({ show, onHide }) {
   // TODO: Make hints more robust with categories
   useEffect(() => {
     if (!show && selectedLineItems.length === 1) {
-      name.setCustomValue(titleCase(selectedLineItems[0].description))
+      name.setCustomValue(defaultNameCleanup(selectedLineItems[0].description))
     } else if (!show) {
       name.setEmpty()
     }

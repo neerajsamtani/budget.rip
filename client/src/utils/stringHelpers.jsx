@@ -2,7 +2,22 @@ function isAlphanumeric(str) {
     return /^[a-zA-Z0-9]+$/.test(str);
 }
 
-export default function titleCase(str) {
+function removePrefixes(inputString) {
+    // Define prefixes to remove
+    const prefixesToRemove = ["SQ *", "TST* "];
+
+    // Iterate through prefixes and remove them if found at the start of the string
+    for (const prefix of prefixesToRemove) {
+        if (inputString.startsWith(prefix)) {
+            return inputString.slice(prefix.length);
+        }
+    }
+
+    // If no matching prefix found, return the original string
+    return inputString;
+}
+
+function titleCase(str) {
     return str
         .trim()
         .toLowerCase()
@@ -15,4 +30,8 @@ export default function titleCase(str) {
             return word.replace(word[0], word[0].toUpperCase());
         })
         .join(' ');
+}
+
+export default function defaultNameCleanup(str) {
+    return titleCase(removePrefixes(str))
 }
