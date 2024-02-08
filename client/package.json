@@ -9,6 +9,7 @@
     "bootstrap": "^5.2.3",
     "dotenv": "^16.0.3",
     "luxon": "^3.3.0",
+    "plotly.js": "^2.29.0",
     "react": "^16.9.0",
     "react-bootstrap": "^2.6.0",
     "react-dom": "^16.9.0",
