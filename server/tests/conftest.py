@@ -1,5 +1,5 @@
 import pytest
-from constants import JWT_SECRET_KEY, MONGODB_DB_NAME, MONGODB_HOST
+from constants import JWT_SECRET_KEY, MONGO_URI
 from dao import cash_raw_data_collection, line_items_collection, test_collection
 from flask import Flask
 from flask_jwt_extended import JWTManager, create_access_token
@@ -14,7 +14,7 @@ def flask_app():
     app.debug = True
     app.register_blueprint(cash_blueprint)
     with app.app_context():
-        app.config["MONGO_URI"] = f"mongodb://{MONGODB_HOST}:27017/{MONGODB_DB_NAME}"
+        app.config["MONGO_URI"] = MONGO_URI
         app.config["MONGO"] = PyMongo(app)
         JWTManager(app)
         app.config["JWT_SECRET_KEY"] = JWT_SECRET_KEY

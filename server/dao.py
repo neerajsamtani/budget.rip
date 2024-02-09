@@ -19,7 +19,8 @@ test_collection = "test_data"
 def get_collection(cur_collection_str: str):
     # Access the MongoDB collection using current_app
     mongo = current_app.config["MONGO"]
-    return mongo.db[cur_collection_str]
+    client = mongo.cx["flask_db"]
+    return client[cur_collection_str]
 
 
 def get_all_data(cur_collection_str: str, filters=None) -> List:

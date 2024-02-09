@@ -9,7 +9,7 @@ from flask_jwt_extended import JWTManager, jwt_required
 from flask_pymongo import PyMongo
 
 from clients import splitwise_client, venmo_client
-from constants import JWT_COOKIE_DOMAIN, JWT_SECRET_KEY, MONGODB_HOST, MONGODB_DB_NAME
+from constants import JWT_COOKIE_DOMAIN, JWT_SECRET_KEY, MONGO_URI
 from dao import (
     bank_accounts_collection,
     events_collection,
@@ -54,7 +54,7 @@ application.config["JWT_COOKIE_CSRF_PROTECT"] = False
 # should likely be True
 # application.config['JWT_COOKIE_SECURE'] = False
 
-application.config["MONGO_URI"] = f"mongodb://{MONGODB_HOST}:27017/{MONGODB_DB_NAME}"
+application.config["MONGO_URI"] = MONGO_URI
 application.config["MONGO"] = PyMongo(application)
 
 # Configure the log level (use 'DEBUG' during development and 'INFO' or 'WARNING' in production)
