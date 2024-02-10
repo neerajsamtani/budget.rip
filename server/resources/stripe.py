@@ -99,6 +99,7 @@ def subscribe_to_account_api(account_id):
 @stripe_blueprint.route("/api/get_transactions/<account_id>")
 @jwt_required()
 def get_transactions_api(account_id):
+    print(f"Getting Transactions for {account_id}")
     # TODO: This gets all transactions ever. We should only get those that we don't have
     try:
         # TODO: Use requests since we cannot list transactions with the Stripe Python client
@@ -139,6 +140,7 @@ def get_transactions_api(account_id):
 
 
 def refresh_stripe():
+    print("Refreshing Stripe Data")
     bank_accounts = get_all_data(bank_accounts_collection)
     for account in bank_accounts:
         get_transactions_api(account["id"])

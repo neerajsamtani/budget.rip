@@ -157,12 +157,14 @@ def add_event_ids_to_line_items():
 
 
 def refresh_all():
+    print("Refreshing All Data")
     refresh_splitwise()
     refresh_venmo()
     refresh_stripe()
 
 
 def create_consistent_line_items():
+    print("Creating Consistent Line Items")
     splitwise_to_line_items()
     venmo_to_line_items()
     stripe_to_line_items()

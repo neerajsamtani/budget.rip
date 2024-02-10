@@ -31,6 +31,7 @@ def refresh_splitwise_api():
 
 
 def refresh_splitwise():
+    print("Refreshing Splitwise Data")
     expenses = splitwise_client.getExpenses(limit=LIMIT, dated_after=MOVING_DATE)
     for expense in expenses:
         # TODO: What if an expense is deleted? What if it's part of an event?

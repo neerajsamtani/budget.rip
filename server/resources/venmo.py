@@ -23,6 +23,7 @@ def refresh_venmo_api():
 
 
 def refresh_venmo():
+    print("Refreshing Venmo Data")
     my_id = venmo_client.my_profile().id
     transactions = venmo_client.user.get_user_transactions(my_id)
     transactions_after_moving_date = True
