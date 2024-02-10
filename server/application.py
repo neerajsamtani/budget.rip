@@ -48,11 +48,11 @@ application.config["JWT_SECRET_KEY"] = JWT_SECRET_KEY
 application.config["JWT_COOKIE_DOMAIN"] = JWT_COOKIE_DOMAIN
 application.config["JWT_TOKEN_LOCATION"] = ["cookies"]
 application.config["JWT_ACCESS_COOKIE_PATH"] = "/api/"
-application.config["JWT_COOKIE_SAMESITE"] = "Lax"
+application.config["JWT_COOKIE_SAMESITE"] = "None"
 application.config["JWT_COOKIE_CSRF_PROTECT"] = False
 # Only allow JWT cookies to be sent over https. In production, this
 # should likely be True
-# application.config['JWT_COOKIE_SECURE'] = False
+application.config["JWT_COOKIE_SECURE"] = True
 
 application.config["MONGO_URI"] = MONGO_URI
 application.config["MONGO"] = PyMongo(application)
