@@ -17,6 +17,7 @@ from helpers import flip_amount
 
 import stripe
 from resources.line_item import LineItem
+from server.helpers import cents_to_dollars
 
 stripe_blueprint = Blueprint("stripe", __name__)
 
@@ -126,7 +127,7 @@ def get_transactions_api(account_id):
                 elif transaction["status"] == "pending":
                     print(
                         f"Pending Transaction: {transaction['description']} | "
-                        + "${cents_to_dollars(flip_amount(transaction['amount']))}"
+                        + f"{cents_to_dollars(flip_amount(transaction['amount']))}"
                     )
             has_more = response["has_more"]
             last_transaction = data[-1]
