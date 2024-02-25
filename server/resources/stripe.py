@@ -42,7 +42,7 @@ def create_fc_session_api():
 
         session = stripe.financial_connections.Session.create(
             account_holder={"type": "customer", "customer": customer["id"]},
-            permissions=["transactions"],
+            permissions=["transactions", "balances"],
         )
         return jsonify({"clientSecret": session["client_secret"]})
     except Exception as e:
