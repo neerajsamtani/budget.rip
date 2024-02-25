@@ -17,7 +17,7 @@ from helpers import flip_amount
 
 import stripe
 from resources.line_item import LineItem
-from server.helpers import cents_to_dollars
+from helpers import cents_to_dollars
 
 stripe_blueprint = Blueprint("stripe", __name__)
 
