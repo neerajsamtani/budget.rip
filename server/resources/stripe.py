@@ -17,6 +17,7 @@ from helpers import flip_amount
 
 import stripe
 from resources.line_item import LineItem
+from helpers import cents_to_dollars
 
 stripe_blueprint = Blueprint("stripe", __name__)
 
@@ -41,7 +42,7 @@ def create_fc_session_api():
 
         session = stripe.financial_connections.Session.create(
             account_holder={"type": "customer", "customer": customer["id"]},
-            permissions=["transactions"],
+            permissions=["transactions", "balances"],
         )
         return jsonify({"clientSecret": session["client_secret"]})
     except Exception as e:
@@ -126,7 +127,7 @@ def get_transactions_api(account_id):
                 elif transaction["status"] == "pending":
                     print(
                         f"Pending Transaction: {transaction['description']} | "
-                        + "${cents_to_dollars(flip_amount(transaction['amount']))}"
+                        + f"{cents_to_dollars(flip_amount(transaction['amount']))}"
                     )
             has_more = response["has_more"]
             last_transaction = data[-1]
