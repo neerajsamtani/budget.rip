@@ -7,6 +7,8 @@ import { useLineItems, useLineItemsDispatch } from "./contexts/LineItemsContext"
 import Notification from './Notification';
 import defaultNameCleanup from './utils/stringHelpers'
 import { useField } from './hooks/useField';
+import Stack from 'react-bootstrap/Stack';
+import Badge from 'react-bootstrap/Badge';
 
 export default function CreateEventModal({ show, onHide }) {
 
@@ -17,7 +19,7 @@ export default function CreateEventModal({ show, onHide }) {
   const selectedLineItemIds = lineItems.filter(lineItem => lineItem.isSelected).map(lineItem => lineItem.id);
   // TODO: Make hints more robust with categories
   useEffect(() => {
-    if (!show && selectedLineItems.length === 1) {
+    if (!show && selectedLineItems.length > 0) {
       name.setCustomValue(defaultNameCleanup(selectedLineItems[0].description))
     } else if (!show) {
       name.setEmpty()
@@ -30,6 +32,15 @@ export default function CreateEventModal({ show, onHide }) {
   const isDuplicateTransaction = useField("checkbox")
 
   const disableSubmit = name.value === "" || category.value === "" || category.value === "All"
+
+  const total = React.useMemo(() => {
+    return selectedLineItems.reduce((prev, cur) => {
+      if (!!isDuplicateTransaction.value) {
+        return prev + cur.amount / 2;
+      }
+      return prev + cur.amount;
+    }, 0);
+  }, [selectedLineItems, isDuplicateTransaction]);
 
   const [notification, setNotification] = useState(
     {
@@ -129,10 +140,13 @@ export default function CreateEventModal({ show, onHide }) {
           </Form>
         </Modal.Body>
         <Modal.Footer>
-          <Button onClick={closeModal} variant="secondary">Cancel</Button>
-          <Button onClick={() => createEvent(name, category)} variant="primary" disabled={disableSubmit}>Submit</Button>
+          <Stack className='me-auto' direction="horizontal" gap={3} style={{ width: '100%' }}>
+            <Badge className="p-2" bg="secondary">Total: ${total}</Badge>
+            <Button className="p-2 ms-auto" onClick={closeModal} variant="secondary">Cancel</Button>
+            <Button className="p-2" onClick={() => createEvent(name, category)} variant="primary" disabled={disableSubmit}>Submit</Button>
+          </Stack>
         </Modal.Footer>
       </Modal>
-    </Fragment>
+    </Fragment >
   );
 }
