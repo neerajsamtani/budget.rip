@@ -21,6 +21,7 @@ export default function CategoryFilter({ category, setCategory }) {
             <option value="Groceries">Groceries</option>
             <option value="Hobbies">Hobbies</option>
             <option value="Income">Income</option>
+            <option value="Investment">Investment</option>
             <option value="Rent">Rent</option>
             <option value="Shopping">Shopping</option>
             <option value="Subscription">Subscription</option>
