@@ -2,7 +2,13 @@ import React, { useState, useEffect } from "react";
 import { Form, InputGroup } from 'react-bootstrap';
 import axiosInstance from "./axiosInstance";
 
-export default function PaymentMethodFilter({ paymentMethod, setPaymentMethod }) {
+type PaymentMethod = string
+interface PaymentMethodFilterProps {
+  paymentMethod: PaymentMethod,
+  setPaymentMethod: (paymentMethod: PaymentMethod) => void
+}
+
+export default function PaymentMethodFilter({ paymentMethod, setPaymentMethod }: PaymentMethodFilterProps) {
 
   const [paymentMethods, setPaymentMethods] = useState([])
 
@@ -15,7 +21,7 @@ export default function PaymentMethodFilter({ paymentMethod, setPaymentMethod })
       .catch(error => console.log(error));
   }, [])
 
-  const handlePaymentMethodChange = (event) => {
+  const handlePaymentMethodChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     setPaymentMethod(event.target.value);
   }
 

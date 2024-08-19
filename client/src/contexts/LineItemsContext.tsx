@@ -1,9 +1,26 @@
-import React, { createContext, useEffect, useReducer } from 'react';
+import React, { createContext, ReactNode, useEffect, useReducer } from 'react';
 import { useContext } from "react";
 import axiosInstance from '../axiosInstance';
 
-export const LineItemsContext = createContext([]);
-export const LineItemsDispatchContext = createContext([]);
+// Define TypeScript interfaces for the line item and props
+export interface LineItem {
+    _id: string;
+    id: string;
+    date: number; // Assuming date is a UNIX timestamp in seconds
+    payment_method: string;
+    description: string;
+    responsible_party: string;
+    amount: number;
+    isSelected?: boolean; // Optional if not used in this context
+}
+
+type Action =
+    | { type: 'populate_line_items'; fetchedLineItems: LineItem[] }
+    | { type: 'toggle_line_item_select'; lineItemId: string }
+    | { type: 'remove_line_items'; lineItemIds: string[] };
+
+export const LineItemsContext = createContext<LineItem[]>([]);
+export const LineItemsDispatchContext = createContext<React.Dispatch<Action>>(() => { });
 
 export function useLineItems() {
     return useContext(LineItemsContext);
@@ -13,7 +30,7 @@ export function useLineItemsDispatch() {
     return useContext(LineItemsDispatchContext);
 }
 
-function lineItemsReducer(lineItems, action) {
+function lineItemsReducer(lineItems: LineItem[], action: Action) {
     switch (action.type) {
         case "populate_line_items": {
             return action.fetchedLineItems
@@ -32,13 +49,15 @@ function lineItemsReducer(lineItems, action) {
             return lineItems.filter(lineItem => !action.lineItemIds.includes(lineItem.id))
         }
         default: {
-            throw Error('Unknown action: ' + action.type);
+            // Use `never` to signal an unreachable case
+            const _exhaustiveCheck: never = action;
+            return _exhaustiveCheck;
         }
     }
 }
 
-export function LineItemsProvider({ children }) {
-    const initialLineItems = []
+export function LineItemsProvider({ children }: { children: ReactNode }) {
+    const initialLineItems: LineItem[] = []
     const [lineItems, lineItemsDispatch] = useReducer(lineItemsReducer, initialLineItems);
 
     useEffect(() => {

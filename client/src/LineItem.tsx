@@ -1,23 +1,35 @@
 import React from "react";
-import { useLineItems, useLineItemsDispatch } from "./contexts/LineItemsContext";
+import { useLineItems, useLineItemsDispatch, LineItem } from "./contexts/LineItemsContext";
 
-export default function LineItem({ lineItem, showCheckBox }) {
+interface LineItemProps {
+    lineItem: LineItem;
+    showCheckBox: boolean;
+}
+
+export default function LineItem({ lineItem, showCheckBox }: LineItemProps) {
+    // Date formatter
     const longEnUSFormatter = new Intl.DateTimeFormat('en-US', {
         year: 'numeric',
         month: 'short',
         day: 'numeric',
     });
+
+    // Convert the UNIX timestamp to a readable date
     const readableDate = longEnUSFormatter.format(lineItem.date * 1000);
 
+    // Get line items and dispatch from context
     const lineItems = useLineItems();
     const lineItemsDispatch = useLineItemsDispatch();
-    const isChecked = lineItems.filter(li => li.isSelected).filter(li => li.id === lineItem._id).length > 0;
 
+    // Check if the current line item is selected
+    const isChecked = lineItems.some(li => li.isSelected && li.id === lineItem._id);
+
+    // Handle checkbox toggle
     const handleToggle = () => {
         lineItemsDispatch({
             type: "toggle_line_item_select",
             lineItemId: lineItem.id
-        })
+        });
     }
 
     return (
@@ -29,5 +41,5 @@ export default function LineItem({ lineItem, showCheckBox }) {
             <td>{lineItem.responsible_party}</td>
             <td>{lineItem.amount}</td>
         </tr>
-    )
+    );
 }
