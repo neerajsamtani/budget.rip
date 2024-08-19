@@ -1,6 +1,6 @@
 import React, { createContext, ReactNode, useEffect, useReducer } from 'react';
 import { useContext } from "react";
-import axiosInstance from '../axiosInstance';
+import axiosInstance from '../utils/axiosInstance';
 
 // Define TypeScript interfaces for the line item and props
 export interface LineItemInterface {

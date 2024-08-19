@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Form, InputGroup } from 'react-bootstrap';
-import axiosInstance from "./axiosInstance";
+import axiosInstance from "../utils/axiosInstance";
 
 type PaymentMethod = string
 interface PaymentMethodFilterProps {

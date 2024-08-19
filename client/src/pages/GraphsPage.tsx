@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axiosInstance from "./axiosInstance";
+import axiosInstance from "../utils/axiosInstance";
 // @ts-expect-error TODO: Solve dependency issues
 import Plot from 'react-plotly.js';
 
@@ -12,7 +12,7 @@ interface CategoryExpense {
   [key: string]: Expense[];
 }
 
-export default function Graphs() {
+export default function GraphsPage() {
 
   const [categorizedData, setCategorizedData] = useState<CategoryExpense>({})
 

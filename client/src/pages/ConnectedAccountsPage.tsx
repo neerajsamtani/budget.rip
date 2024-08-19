@@ -1,14 +1,14 @@
 import React, { useState, useEffect, Fragment } from "react";
 import { Elements } from "@stripe/react-stripe-js";
-import axiosInstance from "./axiosInstance";
-import FinancialConnectionsForm from "./FinancialConnectionsForm";
+import axiosInstance from "../utils/axiosInstance";
+import FinancialConnectionsForm from "../components/FinancialConnectionsForm";
 import { Button } from "react-bootstrap";
 import { Table } from "react-bootstrap";
-import Notification from "./Notification";
+import Notification from "../components/Notification";
 import { Stripe } from "@stripe/stripe-js/types/stripe-js";
 import { FinancialConnectionsSession } from "@stripe/stripe-js/types/api"
 
-export default function ConnectedAccounts({ stripePromise }: { stripePromise: Promise<Stripe | null> }) {
+export default function ConnectedAccountsPage({ stripePromise }: { stripePromise: Promise<Stripe | null> }) {
 
     const [connectedAccounts, setConnectedAccounts] = useState([])
     const [clientSecret, setClientSecret] = useState("");

@@ -1,12 +1,12 @@
 import React, { Fragment, useState, useEffect } from 'react';
-import axiosInstance from './axiosInstance';
+import axiosInstance from '../utils/axiosInstance';
 import Button from 'react-bootstrap/Button';
 import Form from 'react-bootstrap/Form';
 import Modal from 'react-bootstrap/Modal';
-import { useLineItems, useLineItemsDispatch } from "./contexts/LineItemsContext";
+import { useLineItems, useLineItemsDispatch } from "../contexts/LineItemsContext";
 import Notification from './Notification';
-import defaultNameCleanup from './utils/stringHelpers'
-import { FormField, useField } from './hooks/useField';
+import defaultNameCleanup from '../utils/stringHelpers'
+import { FormField, useField } from '../hooks/useField';
 import Stack from 'react-bootstrap/Stack';
 import Badge from 'react-bootstrap/Badge';
 

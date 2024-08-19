@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import {
   useStripe
 } from "@stripe/react-stripe-js";
-import axiosInstance from "./axiosInstance";
+import axiosInstance from "../utils/axiosInstance";
 import { Button, Spinner } from 'react-bootstrap';
 import Notification from "./Notification";
 import { FinancialConnectionsSession } from "@stripe/stripe-js/types/api"

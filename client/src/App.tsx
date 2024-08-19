@@ -1,5 +1,5 @@
 import { loadStripe } from "@stripe/stripe-js";
-import axiosInstance from "./axiosInstance";
+import axiosInstance from "./utils/axiosInstance";
 import React, { useState } from "react";
 import { Button, Spinner } from "react-bootstrap";
 import Container from 'react-bootstrap/Container';
@@ -8,14 +8,14 @@ import Navbar from 'react-bootstrap/Navbar';
 import {
   BrowserRouter as Router, Link, Route, Routes
 } from "react-router-dom";
-import ConnectedAccounts from "./ConnectedAccounts";
+import ConnectedAccountsPage from "./pages/ConnectedAccountsPage";
 import { useLineItemsDispatch } from "./contexts/LineItemsContext";
-import Events from "./Events";
-import Graphs from "./Graphs";
-import LineItems from "./LineItems";
-import Login from "./Login";
-import LineItemsToReview from "./LineItemsToReview";
-import Notification from "./Notification";
+import EventsPage from "./pages/EventsPage";
+import GraphsPage from "./pages/GraphsPage";
+import LineItemsPage from "./pages/LineItemsPage";
+import LoginPage from "./pages/LoginPage";
+import LineItemsToReviewPage from "./pages/LineItemsToReviewPage";
+import Notification from "./components/Notification";
 
 // Make sure to call loadStripe outside of a component’s render to avoid
 // recreating the Stripe object on every render.
@@ -101,12 +101,12 @@ export default function App() {
         </Navbar>
 
         <Routes>
-          <Route path="/" element={<LineItemsToReview />} />
-          <Route path="/events" element={<Events />} />
-          <Route path="/line_items" element={<LineItems />} />
-          <Route path="/connected_accounts" element={<ConnectedAccounts stripePromise={stripePromise} />} />
-          <Route path="/graphs" element={<Graphs />} />
-          <Route path="/login" element={<Login />} />
+          <Route path="/" element={<LineItemsToReviewPage />} />
+          <Route path="/events" element={<EventsPage />} />
+          <Route path="/line_items" element={<LineItemsPage />} />
+          <Route path="/connected_accounts" element={<ConnectedAccountsPage stripePromise={stripePromise} />} />
+          <Route path="/graphs" element={<GraphsPage />} />
+          <Route path="/login" element={<LoginPage />} />
         </Routes>
       </Router>
     </React.StrictMode>

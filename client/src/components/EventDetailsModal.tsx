@@ -1,11 +1,11 @@
-import axiosInstance from './axiosInstance';
+import axiosInstance from '../utils/axiosInstance';
 import React, { Fragment, useState } from 'react';
 import { Table } from "react-bootstrap";
 import Button from 'react-bootstrap/Button';
 import Modal from 'react-bootstrap/Modal';
 import LineItem from './LineItem';
 import Notification from './Notification';
-import { LineItemInterface } from './contexts/LineItemsContext';
+import { LineItemInterface } from '../contexts/LineItemsContext';
 import { EventInterface } from './Event';
 
 export default function EventDetailsModal({ show, event, lineItemsForEvent, onHide }:

@@ -2,13 +2,13 @@ import React, { useEffect, useState } from "react";
 import { Table, Form, Row, Col, InputGroup } from "react-bootstrap";
 // @ts-expect-error TODO: Resolve dependency issues
 import { DateTime } from "luxon";
-import Event, { EventInterface } from "./Event";
-import CategoryFilter, { Category } from "./CategoryFilter";
-import MonthFilter from "./MonthFilter";
-import YearFilter from "./YearFilter";
-import axiosInstance from "./axiosInstance";
+import Event, { EventInterface } from "../components/Event";
+import CategoryFilter, { Category } from "../components/CategoryFilter";
+import MonthFilter from "../components/MonthFilter";
+import YearFilter from "../components/YearFilter";
+import axiosInstance from "../utils/axiosInstance";
 
-export default function Events() {
+export default function EventsPage() {
 
     // Events for the selected month and year are fetched from the DB
     // Category filtering is done on the frontend

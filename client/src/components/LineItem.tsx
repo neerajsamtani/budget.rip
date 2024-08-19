@@ -1,5 +1,5 @@
 import React from "react";
-import { useLineItems, useLineItemsDispatch, LineItemInterface } from "./contexts/LineItemsContext";
+import { useLineItems, useLineItemsDispatch, LineItemInterface } from "../contexts/LineItemsContext";
 
 interface LineItemProps {
     lineItem: LineItemInterface;

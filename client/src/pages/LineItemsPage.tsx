@@ -1,11 +1,11 @@
-import axiosInstance from "./axiosInstance";
+import axiosInstance from "../utils/axiosInstance";
 import React, { useEffect, useState } from "react";
 import { Table } from "react-bootstrap";
-import { useLineItems, useLineItemsDispatch } from "./contexts/LineItemsContext";
-import LineItem from "./LineItem";
-import PaymentMethodFilter from "./PaymentMethodFilter";
+import { useLineItems, useLineItemsDispatch } from "../contexts/LineItemsContext";
+import LineItem from "../components/LineItem";
+import PaymentMethodFilter from "../components/PaymentMethodFilter";
 
-export default function LineItems() {
+export default function LineItemsPage() {
 
     const lineItems = useLineItems();
     const lineItemsDispatch = useLineItemsDispatch();

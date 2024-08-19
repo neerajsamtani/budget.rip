@@ -2,10 +2,10 @@ import React, { Fragment } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from 'react-bootstrap/Button';
 import Form from 'react-bootstrap/Form';
-import axiosInstance from "./axiosInstance";
-import { useField, FormField } from './hooks/useField';
+import axiosInstance from "../utils/axiosInstance";
+import { useField, FormField } from '../hooks/useField';
 
-export default function Login() {
+export default function LoginPage() {
     const email = useField("text", "" as string)
     const password = useField("password", "" as string)
     const navigate = useNavigate()

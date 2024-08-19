@@ -1,9 +1,9 @@
 import React, { useState, Fragment } from 'react';
 import Button from 'react-bootstrap/Button';
 import Modal from 'react-bootstrap/Modal';
-import axiosInstance from './axiosInstance';
+import axiosInstance from '../utils/axiosInstance';
 import Notification from './Notification';
-import { useField } from './hooks/useField';
+import { useField } from '../hooks/useField';
 
 export default function CreateCashTransactionModal({ show, onHide }: { show: boolean, onHide: () => void }) {
   const [notification, setNotification] = useState(

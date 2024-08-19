@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { Button } from "react-bootstrap";
+import { LineItemInterface } from "../contexts/LineItemsContext";
 import EventDetailsModal from "./EventDetailsModal";
-import axiosInstance from "./axiosInstance";
+import axiosInstance from "../utils/axiosInstance";
 
 export type EventInterface = {
     _id: string;
@@ -20,7 +21,7 @@ export default function Event({ event }: { event: EventInterface }) {
     const readableDate = longEnUSFormatter.format(event.date * 1000);
 
     const [eventDetailsModalShow, setEventDetailsModalShow] = useState(false);
-    const [lineItemsForEvent, setLineItemsForEvent] = useState([])
+    const [lineItemsForEvent, setLineItemsForEvent] = useState<LineItemInterface[]>([])
 
     const showEventDetails = () => {
         var REACT_APP_API_ENDPOINT = String(process.env.REACT_APP_API_ENDPOINT);

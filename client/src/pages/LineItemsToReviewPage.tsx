@@ -1,11 +1,11 @@
 import React, { useState } from "react";
 import { Button, Nav, Navbar, Table } from "react-bootstrap";
-import { useLineItems } from "./contexts/LineItemsContext";
-import CreateCashTransactionModal from "./CreateCashTransactionModal";
-import CreateEventModal from "./CreateEventModal";
-import LineItem from "./LineItem";
+import { useLineItems } from "../contexts/LineItemsContext";
+import CreateCashTransactionModal from "../components/CreateCashTransactionModal";
+import CreateEventModal from "../components/CreateEventModal";
+import LineItem from "../components/LineItem";
 
-export default function LineItemsToReview() {
+export default function LineItemsToReviewPage() {
 
     const [eventModalShow, setEventModalShow] = useState(false);
     const [cashModalShow, setCashModalShow] = useState(false);
