@@ -1,8 +1,8 @@
 import React from "react";
-import { useLineItems, useLineItemsDispatch, LineItem } from "./contexts/LineItemsContext";
+import { useLineItems, useLineItemsDispatch, LineItemInterface } from "./contexts/LineItemsContext";
 
 interface LineItemProps {
-    lineItem: LineItem;
+    lineItem: LineItemInterface;
     showCheckBox: boolean;
 }
 

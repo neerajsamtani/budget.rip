@@ -3,7 +3,7 @@ import { useContext } from "react";
 import axiosInstance from '../axiosInstance';
 
 // Define TypeScript interfaces for the line item and props
-export interface LineItem {
+export interface LineItemInterface {
     _id: string;
     id: string;
     date: number; // Assuming date is a UNIX timestamp in seconds
@@ -15,11 +15,11 @@ export interface LineItem {
 }
 
 type Action =
-    | { type: 'populate_line_items'; fetchedLineItems: LineItem[] }
+    | { type: 'populate_line_items'; fetchedLineItems: LineItemInterface[] }
     | { type: 'toggle_line_item_select'; lineItemId: string }
     | { type: 'remove_line_items'; lineItemIds: string[] };
 
-export const LineItemsContext = createContext<LineItem[]>([]);
+export const LineItemsContext = createContext<LineItemInterface[]>([]);
 export const LineItemsDispatchContext = createContext<React.Dispatch<Action>>(() => { });
 
 export function useLineItems() {
@@ -30,7 +30,7 @@ export function useLineItemsDispatch() {
     return useContext(LineItemsDispatchContext);
 }
 
-function lineItemsReducer(lineItems: LineItem[], action: Action) {
+function lineItemsReducer(lineItems: LineItemInterface[], action: Action) {
     switch (action.type) {
         case "populate_line_items": {
             return action.fetchedLineItems
@@ -57,7 +57,7 @@ function lineItemsReducer(lineItems: LineItem[], action: Action) {
 }
 
 export function LineItemsProvider({ children }: { children: ReactNode }) {
-    const initialLineItems: LineItem[] = []
+    const initialLineItems: LineItemInterface[] = []
     const [lineItems, lineItemsDispatch] = useReducer(lineItemsReducer, initialLineItems);
 
     useEffect(() => {
