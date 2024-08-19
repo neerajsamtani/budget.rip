@@ -5,8 +5,10 @@ import {
 import axiosInstance from "./axiosInstance";
 import { Button, Spinner } from 'react-bootstrap';
 import Notification from "./Notification";
+import { FinancialConnectionsSession } from "@stripe/stripe-js/types/api"
 
-export default function FinancialConnectionsForm({ fcsess_secret, setStripeAccounts }) {
+export default function FinancialConnectionsForm({ fcsess_secret, setStripeAccounts }:
+  { fcsess_secret: string, setStripeAccounts: (accounts: FinancialConnectionsSession.Account[]) => void }) {
   const stripe = useStripe();
 
   const [notification, setNotification] = useState(
@@ -19,14 +21,14 @@ export default function FinancialConnectionsForm({ fcsess_secret, setStripeAccou
 
   const [isLoading, setIsLoading] = useState(false);
 
-  const storeAccounts = (accounts) => {
+  const storeAccounts = (accounts: FinancialConnectionsSession.Account[]) => {
     var REACT_APP_API_ENDPOINT = String(process.env.REACT_APP_API_ENDPOINT);
     axiosInstance.post(`${REACT_APP_API_ENDPOINT}api/create_accounts`, accounts)
       .then(response => console.log(response.data))
       .catch(error => console.log(error));
   }
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
 
     if (!stripe) {

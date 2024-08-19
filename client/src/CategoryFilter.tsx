@@ -21,7 +21,7 @@ const CATEGORIES = [
 ] as const;
 
 // Infer the Category type from the CATEGORIES array
-type Category = typeof CATEGORIES[number];
+export type Category = typeof CATEGORIES[number];
 
 export default function CategoryFilter({ category, setCategory }: { category: Category, setCategory: (category: Category) => void }) {
 

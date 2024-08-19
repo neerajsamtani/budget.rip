@@ -3,7 +3,7 @@ import { useLineItems, useLineItemsDispatch, LineItemInterface } from "./context
 
 interface LineItemProps {
     lineItem: LineItemInterface;
-    showCheckBox: boolean;
+    showCheckBox?: boolean;
 }
 
 export default function LineItem({ lineItem, showCheckBox }: LineItemProps) {
@@ -34,7 +34,7 @@ export default function LineItem({ lineItem, showCheckBox }: LineItemProps) {
 
     return (
         <tr>
-            {showCheckBox && <td><input type="checkbox" checked={isChecked} onChange={handleToggle} /></td>}
+            {!!showCheckBox && <td><input type="checkbox" checked={isChecked} onChange={handleToggle} /></td>}
             <td>{readableDate}</td>
             <td>{lineItem.payment_method}</td>
             <td>{lineItem.description}</td>

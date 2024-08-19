@@ -5,12 +5,14 @@ import FinancialConnectionsForm from "./FinancialConnectionsForm";
 import { Button } from "react-bootstrap";
 import { Table } from "react-bootstrap";
 import Notification from "./Notification";
+import { Stripe } from "@stripe/stripe-js/types/stripe-js";
+import { FinancialConnectionsSession } from "@stripe/stripe-js/types/api"
 
-export default function ConnectedAccounts({ stripePromise }) {
+export default function ConnectedAccounts({ stripePromise }: { stripePromise: Promise<Stripe | null> }) {
 
     const [connectedAccounts, setConnectedAccounts] = useState([])
     const [clientSecret, setClientSecret] = useState("");
-    const [stripeAccounts, setStripeAccounts] = useState([])
+    const [stripeAccounts, setStripeAccounts] = useState<FinancialConnectionsSession.Account[]>([])
     const [notification, setNotification] = useState(
         {
             heading: "Notification",
@@ -53,7 +55,7 @@ export default function ConnectedAccounts({ stripePromise }) {
     }
 
     const appearance = {
-        theme: 'stripe',
+        theme: 'stripe' as const,
     };
     const options = {
         // clientSecret,
@@ -125,11 +127,10 @@ export default function ConnectedAccounts({ stripePromise }) {
                                     </tr>
                                 ))
                             :
-                            <tr align="center">
-                                <td colSpan="4">
-                                    No connected accounts found
-                                </td>
-                            </tr>
+                            // @ts-expect-error TODO: Need to look into this type error
+                            <tr align="center"><td colSpan="4">
+                                No connected accounts found
+                            </td></tr>
                         }
                     </tbody>
                 </Table>

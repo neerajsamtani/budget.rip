@@ -1,10 +1,20 @@
 import React, { useEffect, useState } from "react";
 import axiosInstance from "./axiosInstance";
+// @ts-expect-error TODO: Solve dependency issues
 import Plot from 'react-plotly.js';
+
+interface Expense {
+  amount: number;
+  date: string;
+}
+
+interface CategoryExpense {
+  [key: string]: Expense[];
+}
 
 export default function Graphs() {
 
-  const [categorizedData, setCategorizedData] = useState([])
+  const [categorizedData, setCategorizedData] = useState<CategoryExpense>({})
 
   useEffect(() => {
     var REACT_APP_API_ENDPOINT = String(process.env.REACT_APP_API_ENDPOINT);

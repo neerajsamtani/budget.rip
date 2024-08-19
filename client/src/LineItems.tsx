@@ -45,11 +45,10 @@ export default function LineItems() {
                     {lineItems.length > 0 ?
                         lineItems.map(lineItem => <LineItem key={lineItem._id} lineItem={lineItem} />)
                         :
-                        <tr align="center">
-                            <td colSpan="5">
-                                No Line Items found
-                            </td>
-                        </tr>
+                        // @ts-expect-error TODO: Need to look into this type error
+                        <tr align="center"><td colSpan="5">
+                            No Line Items found
+                        </td></tr>
                     }
                 </tbody>
             </Table>
