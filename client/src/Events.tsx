@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { Table, Form, Row, Col, InputGroup } from "react-bootstrap";
+// @ts-expect-error TODO: Resolve dependency issues
 import { DateTime } from "luxon";
-import Event from "./Event";
-import CategoryFilter from "./CategoryFilter";
+import Event, { EventInterface } from "./Event";
+import CategoryFilter, { Category } from "./CategoryFilter";
 import MonthFilter from "./MonthFilter";
 import YearFilter from "./YearFilter";
 import axiosInstance from "./axiosInstance";
@@ -14,7 +15,7 @@ export default function Events() {
 
     const now = DateTime.now()
 
-    const [events, setEvents] = useState([])
+    const [events, setEvents] = useState<EventInterface[]>([])
     const [total, setTotal] = useState(0)
     const [category, setCategory] = useState("All")
     const [month, setMonth] = useState(now.monthLong)
@@ -43,9 +44,9 @@ export default function Events() {
             .catch(error => console.log(error));
     }, [month, year])
 
-    const matchCategory = (event) => category === "All" || category === event.category
+    const matchCategory = (event: EventInterface) => category === "All" || category === event.category
 
-    const calculateSpending = (events) => {
+    const calculateSpending = (events: EventInterface[]) => {
         var sum = 0;
         if (events.length > 0) {
             events.forEach((e) => {
@@ -63,7 +64,7 @@ export default function Events() {
             <Form>
                 <Row>
                     <Col>
-                        <CategoryFilter category={category} setCategory={setCategory} />
+                        <CategoryFilter category={category as Category} setCategory={setCategory} />
                     </Col>
                     <Col>
                         <MonthFilter month={month} setMonth={setMonth} />
@@ -101,11 +102,10 @@ export default function Events() {
                             .filter(event => matchCategory(event))
                             .map(event => <Event key={event._id} event={event} />)
                         :
-                        <tr align="center">
-                            <td colSpan="4">
-                                No events found
-                            </td>
-                        </tr>
+                        // @ts-expect-error TODO: Need to look into this type error
+                        <tr align="center"><td colSpan="4">
+                            No events found
+                        </td></tr>
                     }
                 </tbody>
             </Table>

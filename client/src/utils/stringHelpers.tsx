@@ -1,8 +1,8 @@
-function isAlphanumeric(str) {
+function isAlphanumeric(str: string) {
     return /^[a-zA-Z0-9]+$/.test(str);
 }
 
-function removePrefixes(inputString) {
+function removePrefixes(inputString: string) {
     // Define prefixes to remove
     const prefixesToRemove = ["SQ *", "TST* "];
 
@@ -17,7 +17,7 @@ function removePrefixes(inputString) {
     return inputString;
 }
 
-function titleCase(str) {
+function titleCase(str: string) {
     return str
         .trim()
         .toLowerCase()
@@ -32,6 +32,6 @@ function titleCase(str) {
         .join(' ');
 }
 
-export default function defaultNameCleanup(str) {
+export default function defaultNameCleanup(str: string) {
     return titleCase(removePrefixes(str))
 }

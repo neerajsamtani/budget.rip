@@ -3,7 +3,15 @@ import { Button } from "react-bootstrap";
 import EventDetailsModal from "./EventDetailsModal";
 import axiosInstance from "./axiosInstance";
 
-export default function Event({ event }) {
+export type EventInterface = {
+    _id: string;
+    date: number; // Assuming `date` is a Unix timestamp in seconds
+    name: string;
+    category: string;
+    amount: number;
+};
+
+export default function Event({ event }: { event: EventInterface }) {
     const longEnUSFormatter = new Intl.DateTimeFormat('en-US', {
         year: 'numeric',
         month: 'short',

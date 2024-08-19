@@ -5,7 +5,7 @@ import axiosInstance from './axiosInstance';
 import Notification from './Notification';
 import { useField } from './hooks/useField';
 
-export default function CreateCashTransactionModal({ show, onHide }) {
+export default function CreateCashTransactionModal({ show, onHide }: { show: boolean, onHide: () => void }) {
   const [notification, setNotification] = useState(
     {
       heading: "Notification",
