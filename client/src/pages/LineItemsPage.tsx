@@ -1,14 +1,13 @@
 import axiosInstance from "../utils/axiosInstance";
 import React, { useEffect, useState } from "react";
 import { Table } from "react-bootstrap";
-import { useLineItems, useLineItemsDispatch } from "../contexts/LineItemsContext";
+import { LineItemInterface } from "../contexts/LineItemsContext";
 import LineItem from "../components/LineItem";
 import PaymentMethodFilter from "../components/PaymentMethodFilter";
 
 export default function LineItemsPage() {
 
-    const lineItems = useLineItems();
-    const lineItemsDispatch = useLineItemsDispatch();
+    const [lineItems, setLineItems] = useState<LineItemInterface[]>([]);
     const [paymentMethod, setPaymentMethod] = useState("All")
 
     useEffect(() => {
@@ -19,10 +18,7 @@ export default function LineItemsPage() {
             }
         })
             .then(response => {
-                lineItemsDispatch({
-                    type: "populate_line_items",
-                    fetchedLineItems: response.data.data
-                })
+                setLineItems(response.data.data)
             })
             .catch(error => console.log(error));
     }, [paymentMethod])
