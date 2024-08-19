@@ -9,6 +9,7 @@ import defaultNameCleanup from '../utils/stringHelpers'
 import { FormField, useField } from '../hooks/useField';
 import Stack from 'react-bootstrap/Stack';
 import Badge from 'react-bootstrap/Badge';
+import { getPrefillFromLineItems } from '.././data/EventHints'
 
 export default function CreateEventModal({ show, onHide }: { show: boolean, onHide: () => void }) {
 
@@ -20,9 +21,16 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
   // TODO: Make hints more robust with categories
   useEffect(() => {
     if (!show && selectedLineItems.length > 0) {
-      name.setCustomValue(defaultNameCleanup(selectedLineItems[0].description))
+      const prefillSuggestion = getPrefillFromLineItems(selectedLineItems);
+      if (prefillSuggestion !== null) {
+        name.setCustomValue(prefillSuggestion.name)
+        category.setCustomValue(prefillSuggestion.category)
+      } else {
+        name.setCustomValue(defaultNameCleanup(selectedLineItems[0].description))
+      }
     } else if (!show) {
       name.setEmpty()
+      category.setEmpty()
     }
   }, [selectedLineItems, show])
 
