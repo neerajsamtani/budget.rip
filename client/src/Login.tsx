@@ -3,14 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import Button from 'react-bootstrap/Button';
 import Form from 'react-bootstrap/Form';
 import axiosInstance from "./axiosInstance";
-import { useField } from './hooks/useField';
+import { useField, FormField } from './hooks/useField';
 
 export default function Login() {
-    const email = useField("text")
-    const password = useField("password")
+    const email = useField("text", "" as string)
+    const password = useField("password", "" as string)
     const navigate = useNavigate()
 
-    const handleLogin = (email, password) => {
+    const handleLogin = (email: FormField<string>, password: FormField<string>) => {
         var REACT_APP_API_ENDPOINT = String(process.env.REACT_APP_API_ENDPOINT);
         var newUser = {
             "email": email.value,

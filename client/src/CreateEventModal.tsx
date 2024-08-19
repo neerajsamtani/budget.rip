@@ -6,11 +6,11 @@ import Modal from 'react-bootstrap/Modal';
 import { useLineItems, useLineItemsDispatch } from "./contexts/LineItemsContext";
 import Notification from './Notification';
 import defaultNameCleanup from './utils/stringHelpers'
-import { useField } from './hooks/useField';
+import { FormField, useField } from './hooks/useField';
 import Stack from 'react-bootstrap/Stack';
 import Badge from 'react-bootstrap/Badge';
 
-export default function CreateEventModal({ show, onHide }) {
+export default function CreateEventModal({ show, onHide }: { show: boolean, onHide: () => void }) {
 
   const lineItems = useLineItems();
   const lineItemsDispatch = useLineItemsDispatch();
@@ -26,10 +26,10 @@ export default function CreateEventModal({ show, onHide }) {
     }
   }, [selectedLineItems, show])
 
-  const name = useField("text")
-  const category = useField("text", "All")
-  const date = useField("date")
-  const isDuplicateTransaction = useField("checkbox")
+  const name = useField<string>("text", "" as string)
+  const category = useField("select", "All" as string)
+  const date = useField<string>("date", "" as string)
+  const isDuplicateTransaction = useField<boolean>("checkbox", false)
 
   const disableSubmit = name.value === "" || category.value === "" || category.value === "All"
 
@@ -58,7 +58,7 @@ export default function CreateEventModal({ show, onHide }) {
     onHide()
   }
 
-  const createEvent = (name, category) => {
+  const createEvent = (name: FormField<string>, category: FormField<string>) => {
     var REACT_APP_API_ENDPOINT = String(process.env.REACT_APP_API_ENDPOINT);
     var newEvent = {
       "name": name.value,

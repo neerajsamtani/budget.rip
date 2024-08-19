@@ -14,10 +14,10 @@ export default function CreateCashTransactionModal({ show, onHide }: { show: boo
     }
   )
 
-  const date = useField("date")
-  const person = useField("text")
-  const description = useField("text")
-  const amount = useField("number")
+  const date = useField<string>("date", "" as string)
+  const person = useField<string>("text", "" as string)
+  const description = useField<string>("text", "" as string)
+  const amount = useField<number>("number", 0 as number)
 
   const createCashTransaction = () => {
     var REACT_APP_API_ENDPOINT = String(process.env.REACT_APP_API_ENDPOINT);
