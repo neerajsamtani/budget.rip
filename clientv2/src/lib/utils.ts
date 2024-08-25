@@ -1,5 +1,6 @@
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
+import axios from "axios";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -13,3 +14,7 @@ export function toSentenceCase(str: string) {
   // Capitalize the first character and lowercase the rest of the string
   return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
 }
+
+export const axiosInstance = axios.create({
+  withCredentials: true
+})
