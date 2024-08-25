@@ -8,3 +8,14 @@ export type Year = typeof YEARS[number];
 
 // Infer the Year type from the YEARS array
 export type Month = typeof MONTHS[number];
+
+export interface LineItemInterface {
+    _id: string;
+    id: string;
+    date: number; // Assuming date is a UNIX timestamp in seconds
+    payment_method: string;
+    description: string;
+    responsible_party: string;
+    amount: number;
+    isSelected?: boolean; // Optional if not used in this context
+}

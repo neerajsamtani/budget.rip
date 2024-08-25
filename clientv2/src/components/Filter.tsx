@@ -1,7 +1,6 @@
 "use client"
 import * as React from "react"
 import { useSearchParams, usePathname, useRouter } from 'next/navigation';
-import { toSentenceCase } from "@/lib/utils";
 
 import { Button } from "@/components/ui/button"
 import {
@@ -18,20 +17,23 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 
+export const filterInUrlParam = (paramName: string) => paramName.toLowerCase().replaceAll(" ", "_");
+
 export default function Filter({ paramName, options, defaultValue }: { paramName: string, options: readonly string[], defaultValue: string }) {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const { replace } = useRouter();
+  const urlParamName = filterInUrlParam(paramName);
 
   const [open, setOpen] = React.useState(false)
-  const selectedValue = searchParams.get(paramName)?.toString() || defaultValue
+  const selectedValue = searchParams.get(urlParamName)?.toString() || defaultValue
 
   function handleSelection(selection: string) {
     const params = new URLSearchParams(searchParams);
     if (selection) {
-      params.set(paramName, selection);
+      params.set(urlParamName, selection);
     } else {
-      params.delete(paramName);
+      params.delete(urlParamName);
     }
     replace(`${pathname}?${params.toString()}`);
     setOpen(false)
@@ -39,7 +41,7 @@ export default function Filter({ paramName, options, defaultValue }: { paramName
 
   return (
     <div className="flex items-center space-x-4">
-      <p className="text-sm text-muted-foreground">{toSentenceCase(paramName)}</p>
+      <p className="text-sm text-muted-foreground">{paramName}</p>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button variant="outline" className="w-[150px] justify-start">
