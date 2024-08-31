@@ -23,10 +23,16 @@ import { UpdateIcon } from "@radix-ui/react-icons"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { set, useForm } from "react-hook-form"
-import { login } from './actions'
+import { signup } from './actions'
 import { useState } from "react"
 
 const formSchema = z.object({
+    first_name: z.string().min(1, {
+        message: "First name cannot be blank",
+    }),
+    last_name: z.string().min(1, {
+        message: "Last name cannot be blank",
+    }),
     email: z.string().email({
         message: "Please enter a valid email address",
     }),
@@ -35,32 +41,66 @@ const formSchema = z.object({
     })
 })
 
-export default function LoginPage() {
+export default function SignupPage() {
     const [isLoading, setIsLoading] = useState(false)
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
+            first_name: "",
+            last_name: "",
             email: "",
             password: "",
         },
     })
     async function onSubmit(values: z.infer<typeof formSchema>) {
         setIsLoading(true)
-        await login(values)
+        await signup(values)
         setIsLoading(false)
     }
     return (
         <div className="flex items-center justify-center min-h-screen bg-gray-100">
             <Card className="w-full max-w-sm">
                 <CardHeader>
-                    <CardTitle className="text-2xl">Login</CardTitle>
+                    <CardTitle className="text-2xl">Sign Up</CardTitle>
                     <CardDescription>
-                        Enter your email below to login to your account.
+                        Enter your information to create an account
                     </CardDescription>
                 </CardHeader>
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
                         <CardContent className="grid gap-4">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="grid gap-2">
+                                    <FormField
+                                        control={form.control}
+                                        name="first_name"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>First name</FormLabel>
+                                                <FormControl>
+                                                    <Input id="first_name" type="text" required placeholder="John" {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
+                                <div className="grid gap-2">
+                                    <FormField
+                                        control={form.control}
+                                        name="last_name"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Last name</FormLabel>
+                                                <FormControl>
+                                                    <Input id="last_name" type="text" required placeholder="Doe" {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
+                            </div>
                             <div className="grid gap-2">
                                 <FormField
                                     control={form.control}
@@ -99,13 +139,13 @@ export default function LoginPage() {
                                             Please wait
                                         </Button>
                                         :
-                                        <Button className="w-full" type="submit">Log in</Button>
+                                        <Button className="w-full" type="submit">Sign Up</Button>
                                 }
                             </div>
                             <div className="text-center text-sm">
-                                Don&apos;t have an account?{" "}
-                                <Link href="/signup" className="underline">
-                                    Sign up
+                                Already have an account?{" "}
+                                <Link href="/login" className="underline">
+                                    Log In
                                 </Link>
                             </div>
                         </CardContent>
