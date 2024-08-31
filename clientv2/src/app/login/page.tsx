@@ -22,7 +22,7 @@ import { Input } from "@/components/ui/input"
 import { UpdateIcon } from "@radix-ui/react-icons"
 import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { set, useForm } from "react-hook-form"
+import { useForm } from "react-hook-form"
 import { login } from './actions'
 import { useState } from "react"
 
