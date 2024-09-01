@@ -1,15 +1,20 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
 import { SignOut } from '@/components/SignOut'
+import { getLineItemsToReviewSupabase } from '@/lib/data'
 
 export default async function PrivatePage() {
     const supabase = createClient()
 
-    const { data, error } = await supabase.auth.getUser()
-    if (error || !data?.user) {
-        console.log('error', error)
+    const { data, error: authError } = await supabase.auth.getUser()
+    if (authError || !data?.user) {
+        console.log('error', authError)
         redirect('/login')
     }
+
+
+    const line_items = await getLineItemsToReviewSupabase()
+    console.log('line_items', line_items)
 
     return (
         <div>
