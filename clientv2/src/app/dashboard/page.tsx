@@ -44,7 +44,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Card as TremorCard, SparkAreaChart } from '@tremor/react';
-import { getLineItemsToReviewSupabase } from "@/lib/data"
+import { getLineItemsToReviewSupabase } from "@/lib/serverData"
 import { SignOut } from "@/components/SignOut"
 
 
