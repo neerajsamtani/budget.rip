@@ -29,11 +29,11 @@ export default function ComponentsPage() {
     }, [payment_method, month, year]); // Empty dependency array means this effect runs once on mount
 
     return (
-        <pre>
+        <>
             <Filter paramName="Category" options={CATEGORIES} defaultValue="All" />
             <Filter paramName="Month" options={MONTHS} defaultValue="All" />
             <Filter paramName="Year" options={YEARS} defaultValue="All" />
             <Filter paramName="Payment Method" options={paymentMethods} defaultValue="All" />
             <LineItemsTable />
-        </pre>)
+        </>)
 }
