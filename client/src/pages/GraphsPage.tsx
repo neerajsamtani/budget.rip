@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import axiosInstance from "../utils/axiosInstance";
-// @ts-expect-error TODO: Solve dependency issues
 import Plot from 'react-plotly.js';
 
 interface Expense {

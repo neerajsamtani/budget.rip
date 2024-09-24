@@ -114,18 +114,17 @@ def refresh_all_api():
 @jwt_required()
 def get_connected_accounts_api():
     connected_accounts = []
-    # venmo
-    connected_accounts.append(f"{venmo_client.my_profile().username} (venmo)")
+    # # venmo
+    connected_accounts.append({"venmo": [venmo_client.my_profile().username]})
     # splitwise
     connected_accounts.append(
-        f"{splitwise_client.getCurrentUser().getFirstName()} {splitwise_client.getCurrentUser().getLastName()} (splitwise)"
+        {"splitwise": [f"{splitwise_client.getCurrentUser().getFirstName()} {splitwise_client.getCurrentUser().getLastName()}"]}
     )
     # stripe
     bank_accounts = get_all_data(bank_accounts_collection)
-    for account in bank_accounts:
-        connected_accounts.append(
-            f"{account['display_name']} {account['last4']} (stripe)"
-        )
+    connected_accounts.append(
+        {"stripe": bank_accounts}
+    )
     return jsonify(connected_accounts)
 
 

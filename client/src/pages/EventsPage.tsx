@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { Table, Form, Row, Col, InputGroup } from "react-bootstrap";
-// @ts-expect-error TODO: Resolve dependency issues
 import { DateTime } from "luxon";
 import Event, { EventInterface } from "../components/Event";
 import CategoryFilter, { Category } from "../components/CategoryFilter";
