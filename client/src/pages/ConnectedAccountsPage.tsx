@@ -3,9 +3,9 @@ import { Elements } from "@stripe/react-stripe-js";
 import axiosInstance from "../utils/axiosInstance";
 import FinancialConnectionsForm from "../components/FinancialConnectionsForm";
 import { Button } from "react-bootstrap";
-import { Table } from "react-bootstrap";
 import Notification from "../components/Notification";
 import { Stripe } from "@stripe/stripe-js/types/stripe-js";
+import { Table } from "react-bootstrap";
 import { FinancialConnectionsSession } from "@stripe/stripe-js/types/api"
 
 export default function ConnectedAccountsPage({ stripePromise }: { stripePromise: Promise<Stripe | null> }) {
@@ -54,12 +54,57 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
         })
     }
 
+    const relinkAccount = (accountId) => {
+        axiosInstance.get(`${REACT_APP_API_ENDPOINT}api/relink_account/${accountId}`)
+            .then(response => setClientSecret(response.data.clientSecret))
+            .catch(error => console.log(error));
+    }
+
     const appearance = {
         theme: 'stripe' as const,
     };
     const options = {
         // clientSecret,
         appearance,
+    };
+
+    const renderConnectedAccount = (connectedAccount) => {
+        // Handle Venmo data (array)
+        if (connectedAccount.venmo) {
+            return connectedAccount.venmo.map((venmoUser, index) => (
+                <tr key={`venmo-${venmoUser}-${index}`}>
+                    <td>Venmo - {venmoUser}</td>
+                    <td>-</td>
+                </tr>
+            ));
+        }
+
+        // Handle Splitwise data (array)
+        if (connectedAccount.splitwise) {
+            return connectedAccount.splitwise.map((splitwiseUser, index) => (
+                <tr key={`splitwise-${splitwiseUser}-${index}`}>
+                    <td>Splitwise - {splitwiseUser}</td>
+                    <td>-</td>
+                </tr>
+            ));
+        }
+
+        // Handle Stripe data (array of objects)
+        if (connectedAccount.stripe) {
+            return connectedAccount.stripe.map((stripeAccount) => {
+                const { institution_name, display_name, last4, _id, status } = stripeAccount;
+                return (
+                    <tr key={`stripe-${_id}`}>
+                        <td>{institution_name} {display_name} {last4}</td>
+                        {status === 'inactive' ?
+                            <td><Button onClick={() => { relinkAccount(_id) }} variant="secondary">Reactivate</Button></td>
+                            : <td>Active</td>}
+                    </tr>
+                );
+            });
+        }
+
+        return null;
     };
 
     return (
@@ -114,21 +159,15 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
                     <thead>
                         <tr>
                             <th>Connected Accounts</th>
+                            <th>Status</th>
                         </tr>
                     </thead>
                     <tbody>
                         {connectedAccounts.length > 0 ?
-                            connectedAccounts
-                                .map(connectedAccount => (
-                                    <tr key={connectedAccount}>
-                                        <td>
-                                            {connectedAccount}
-                                        </td>
-                                    </tr>
-                                ))
+                            connectedAccounts.flatMap(renderConnectedAccount)
                             :
                             // @ts-expect-error TODO: Need to look into this type error
-                            <tr align="center"><td colSpan="4">
+                            <tr align="center"><td colSpan="2">
                                 No connected accounts found
                             </td></tr>
                         }

@@ -31,7 +31,7 @@ def refresh_stripe_api():
 
 @stripe_blueprint.route("/api/create-fc-session", methods=["POST"])
 @jwt_required()
-def create_fc_session_api():
+def create_fc_session_api(relink_auth = None):
     try:
         # TODO: Is there a better pattern than nested trys?
         try:
@@ -40,11 +40,29 @@ def create_fc_session_api():
             print("Creating a new customer...")
             customer = stripe.Customer.create(email="neeraj@gmail.com", name="Neeraj")
 
-        session = stripe.financial_connections.Session.create(
-            account_holder={"type": "customer", "customer": customer["id"]},
-            permissions=["transactions", "balances"],
-        )
-        return jsonify({"clientSecret": session["client_secret"]})
+        # API endpoint
+        url = "https://api.stripe.com/v1/financial_connections/sessions"
+
+        headers = {
+            "Stripe-Version": "2022-08-01; financial_connections_transactions_beta=v1; financial_connections_relink_api_beta=v1",
+            "Content-Type": "application/x-www-form-urlencoded",
+        }
+
+        # Payload
+        data = {
+            "account_holder[type]": "customer",
+            "account_holder[customer]": customer["id"],
+            "permissions[]": ["transactions", "balances"],
+        }
+
+        # Add relink_options[authorization] if provided
+        if relink_auth:
+            data["relink_options[authorization]"] = relink_auth
+
+        # Make the request
+        session = requests.post(url, headers=headers, data=data, auth=(STRIPE_API_KEY, ""))
+
+        return jsonify({"clientSecret": session.json()["client_secret"]})
     except Exception as e:
         return jsonify(error=str(e)), 403
 
@@ -96,6 +114,41 @@ def subscribe_to_account_api(account_id):
     except Exception as e:
         return jsonify(error=str(e)), 403
 
+@stripe_blueprint.route("/api/refresh_account/<account_id>")
+@jwt_required()
+def refresh_account_api(account_id):
+    try:
+        print(f"Refreshing {account_id}")
+        stripe.api_version = "2022-08-01; financial_connections_transactions_beta=v1; financial_connections_relink_api_beta=v1"
+        account = stripe.financial_connections.Account.retrieve(account_id)
+        upsert(bank_accounts_collection, account)
+        return jsonify(account)
+    except Exception as e:
+        return jsonify(error=str(e)), 403
+
+@stripe_blueprint.route("/api/relink_account/<account_id>")
+@jwt_required()
+def relink_account_api(account_id):
+    try:
+        print(f"Relinking {account_id}")
+        stripe.api_version = "2022-08-01; financial_connections_transactions_beta=v1; financial_connections_relink_api_beta=v1"
+        account = stripe.financial_connections.Account.retrieve(account_id)
+        headers = {
+            "Stripe-Version": "2022-08-01; financial_connections_transactions_beta=v1; financial_connections_relink_api_beta=v1",
+        }
+        response = requests.get(
+            f"https://api.stripe.com/v1/financial_connections/authorizations/{account['authorization']}",
+            headers=headers,
+            auth=(STRIPE_API_KEY, ""),
+        )
+        if (response.json()["status_details"]["inactive"]["action"] != "relink_required"):
+            return jsonify({"relink_required": False})
+
+        response = create_fc_session_api(account["authorization"])
+        return jsonify(response.json)
+
+    except Exception as e:
+        return jsonify(error=str(e)), 403
 
 @stripe_blueprint.route("/api/get_transactions/<account_id>")
 @jwt_required()
@@ -144,6 +197,7 @@ def refresh_stripe():
     print("Refreshing Stripe Data")
     bank_accounts = get_all_data(bank_accounts_collection)
     for account in bank_accounts:
+        refresh_account_api(account["id"])
         get_transactions_api(account["id"])
 
 
