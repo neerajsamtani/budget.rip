@@ -137,7 +137,7 @@ def relink_account_api(account_id):
             "Stripe-Version": "2022-08-01; financial_connections_transactions_beta=v1; financial_connections_relink_api_beta=v1",
         }
         response = requests.get(
-            f"https://api.stripe.com/v1/financial_connections/authorizations/{account["authorization"]}",
+            f"https://api.stripe.com/v1/financial_connections/authorizations/{account['authorization']}",
             headers=headers,
             auth=(STRIPE_API_KEY, ""),
         )
