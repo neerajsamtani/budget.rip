@@ -115,14 +115,13 @@ def subscribe_to_account_api(account_id):
         return jsonify(error=str(e)), 403
 
 @stripe_blueprint.route("/api/refresh_account/<account_id>")
-@jwt_required()
 def refresh_account_api(account_id):
     try:
         print(f"Refreshing {account_id}")
         stripe.api_version = "2022-08-01; financial_connections_transactions_beta=v1; financial_connections_relink_api_beta=v1"
         account = stripe.financial_connections.Account.retrieve(account_id)
         upsert(bank_accounts_collection, account)
-        return jsonify(account)
+        return jsonify({"data": "success"})
     except Exception as e:
         return jsonify(error=str(e)), 403
 
@@ -150,9 +149,8 @@ def relink_account_api(account_id):
     except Exception as e:
         return jsonify(error=str(e)), 403
 
-@stripe_blueprint.route("/api/get_transactions/<account_id>")
-@jwt_required()
-def get_transactions_api(account_id):
+@stripe_blueprint.route("/api/refresh_transactions/<account_id>")
+def refresh_transactions_api(account_id):
     print(f"Getting Transactions for {account_id}")
     # TODO: This gets all transactions ever. We should only get those that we don't have
     try:
@@ -198,7 +196,7 @@ def refresh_stripe():
     bank_accounts = get_all_data(bank_accounts_collection)
     for account in bank_accounts:
         refresh_account_api(account["id"])
-        get_transactions_api(account["id"])
+        refresh_transactions_api(account["id"])
 
 
 def stripe_to_line_items():
