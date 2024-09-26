@@ -1,3 +1,4 @@
+from datetime import datetime
 import logging
 
 from bson import ObjectId
@@ -100,6 +101,16 @@ def user_lookup_callback(_jwt_header, jwt_data):
 def index_api():
     return jsonify("Welcome to Budgit API")
 
+@application.route("/api/refresh/scheduled")
+def schedule_refresh_api():
+    print("Initiating scheduled refresh at " + str(datetime.now()))
+    try:
+        refresh_all()
+        create_consistent_line_items()
+    except Exception as e:
+        print("Error refreshing all: " + str(e))
+        return jsonify({"error": str(e)})
+    return jsonify({"message": "success"})
 
 @application.route("/api/refresh/all")
 @jwt_required()
