@@ -96,7 +96,7 @@ def get_accounts_api(session_id):
 @jwt_required()
 def get_accounts_and_balances_api():
     accounts = get_all_data(bank_accounts_collection)
-    accounts_and_balances = []
+    accounts_and_balances = {}
     for account in accounts:
         account_id = account["id"]
         headers = {
@@ -112,14 +112,14 @@ def get_accounts_and_balances_api():
             auth=(STRIPE_API_KEY, ""),
         )
         account_name = f'{account["institution_name"]} {account["display_name"]} {account["last4"]}'
-        accounts_and_balances.append(
-            {
-                "account_name": account_name,
-                "balance": response.json()["data"][0]["current"]["usd"]/100,
-            }
-        )
+        accounts_and_balances[account_id] = {
+            "id": account_id,
+            "name": account_name,
+            "balance": response.json()["data"][0]["current"]["usd"]/100,
+            "as_of" : response.json()["data"][0]["as_of"],
+        }
 
-    return jsonify({"accounts_and_balances": accounts_and_balances})
+    return jsonify(accounts_and_balances)
 
 @stripe_blueprint.route("/api/subscribe_to_account/<account_id>")
 @jwt_required()

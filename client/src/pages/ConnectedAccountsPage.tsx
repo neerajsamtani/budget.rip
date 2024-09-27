@@ -11,6 +11,7 @@ import { FinancialConnectionsSession } from "@stripe/stripe-js/types/api"
 export default function ConnectedAccountsPage({ stripePromise }: { stripePromise: Promise<Stripe | null> }) {
 
     const [connectedAccounts, setConnectedAccounts] = useState([])
+    const [accountsAndBalances, setAccountsAndBalances] = useState({})
     const [clientSecret, setClientSecret] = useState("");
     const [stripeAccounts, setStripeAccounts] = useState<FinancialConnectionsSession.Account[]>([])
     const [notification, setNotification] = useState(
@@ -21,6 +22,24 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
         }
     )
 
+    const currencyFormatter = new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+    });
+    const formatBalance = (balance: number) => currencyFormatter.format(balance)
+
+    const dateFormatter = new Intl.DateTimeFormat("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+    });
+    const formatDate = (unixTime: number) => dateFormatter.format(new Date(unixTime * 1000))
+
+    let netWorth = 0;
+    Object.keys(accountsAndBalances).forEach(key => {
+        netWorth += accountsAndBalances[key]["balance"]
+    })
+
     var REACT_APP_API_ENDPOINT = String(process.env.REACT_APP_API_ENDPOINT);
 
     useEffect(() => {
@@ -28,6 +47,11 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
         axiosInstance.get(`${REACT_APP_API_ENDPOINT}api/connected_accounts`)
             .then(response => {
                 setConnectedAccounts(response.data)
+            })
+            .catch(error => console.log(error));
+        axiosInstance.get(`${REACT_APP_API_ENDPOINT}api/accounts_and_balances`)
+            .then(response => {
+                setAccountsAndBalances(response.data)
             })
             .catch(error => console.log(error));
     }, [])
@@ -74,7 +98,9 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
             return connectedAccount.venmo.map((venmoUser, index) => (
                 <tr key={`venmo-${venmoUser}-${index}`}>
                     <td>Venmo - {venmoUser}</td>
-                    <td>-</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
                 </tr>
             ));
         }
@@ -84,7 +110,9 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
             return connectedAccount.splitwise.map((splitwiseUser, index) => (
                 <tr key={`splitwise-${splitwiseUser}-${index}`}>
                     <td>Splitwise - {splitwiseUser}</td>
-                    <td>-</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
                 </tr>
             ));
         }
@@ -99,6 +127,8 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
                         {status === 'inactive' ?
                             <td><Button onClick={() => { relinkAccount(_id) }} variant="secondary">Reactivate</Button></td>
                             : <td>Active</td>}
+                        <td>{accountsAndBalances[_id] && formatBalance(accountsAndBalances[_id]["balance"])}</td>
+                        <td>{accountsAndBalances[_id] && formatDate(accountsAndBalances[_id]["as_of"])}</td>
                     </tr>
                 );
             });
@@ -160,6 +190,8 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
                         <tr>
                             <th>Connected Accounts</th>
                             <th>Status</th>
+                            <th>Balance</th>
+                            <th>Last Updated</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -167,12 +199,13 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
                             connectedAccounts.flatMap(renderConnectedAccount)
                             :
                             // @ts-expect-error TODO: Need to look into this type error
-                            <tr align="center"><td colSpan="2">
+                            <tr align="center"><td colSpan="4">
                                 No connected accounts found
                             </td></tr>
                         }
                     </tbody>
                 </Table>
+                <h4>Net Worth: {formatBalance(netWorth)}</h4>
             </div>
         </>
     )
