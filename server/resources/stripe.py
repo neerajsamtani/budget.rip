@@ -92,6 +92,34 @@ def get_accounts_api(session_id):
     except Exception as e:
         return jsonify(error=str(e)), 403
 
+@stripe_blueprint.route("/api/accounts_and_balances")
+@jwt_required()
+def get_accounts_and_balances_api():
+    accounts = get_all_data(bank_accounts_collection)
+    accounts_and_balances = []
+    for account in accounts:
+        account_id = account["id"]
+        headers = {
+            "Stripe-Version": "2022-08-01;",
+        }
+        data = {
+            "limit": 1,
+        }
+        response = requests.get(
+            f"https://api.stripe.com/v1/financial_connections/accounts/{account_id}/inferred_balances",
+            headers=headers,
+            data=data,
+            auth=(STRIPE_API_KEY, ""),
+        )
+        account_name = f'{account["institution_name"]} {account["display_name"]} {account["last4"]}'
+        accounts_and_balances.append(
+            {
+                "account_name": account_name,
+                "balance": response.json()["data"][0]["current"]["usd"]/100,
+            }
+        )
+
+    return jsonify({"accounts_and_balances": accounts_and_balances})
 
 @stripe_blueprint.route("/api/subscribe_to_account/<account_id>")
 @jwt_required()
@@ -102,7 +130,9 @@ def subscribe_to_account_api(account_id):
             "Stripe-Version": "2022-08-01; financial_connections_transactions_beta=v1",
             "Content-Type": "application/x-www-form-urlencoded",
         }
-        data = "features[]=transactions"
+        data = {
+            "features[]": ["transactions", "inferred_balances"],
+        }
         response = requests.post(
             f"https://api.stripe.com/v1/financial_connections/accounts/{account_id}/subscribe",
             headers=headers,
