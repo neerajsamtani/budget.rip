@@ -10,6 +10,12 @@ import { FormField, useField } from '../hooks/useField';
 import Stack from 'react-bootstrap/Stack';
 import Badge from 'react-bootstrap/Badge';
 import { getPrefillFromLineItems } from '.././data/EventHints'
+import { Badge as BootstrapBadge } from 'react-bootstrap';
+
+interface Tag {
+  id: string;
+  text: string;
+}
 
 export default function CreateEventModal({ show, onHide }: { show: boolean, onHide: () => void }) {
 
@@ -38,6 +44,8 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
   const category = useField("select", "All" as string)
   const date = useField<string>("date", "" as string)
   const isDuplicateTransaction = useField<boolean>("checkbox", false)
+  const [tags, setTags] = useState<Tag[]>([]);
+  const [tagInput, setTagInput] = useState('');
 
   const disableSubmit = name.value === "" || category.value === "" || category.value === "All"
 
@@ -62,9 +70,27 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
     name.setEmpty()
     category.setEmpty()
     date.setEmpty()
+    setTags([])
+    setTagInput('')
     isDuplicateTransaction.setCustomValue(false);
     onHide()
   }
+
+  const handleTagInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && tagInput.trim()) {
+      e.preventDefault();
+      const newTag = {
+        id: Math.random().toString(36).substring(2, 9),
+        text: tagInput.trim()
+      };
+      setTags([...tags, newTag]);
+      setTagInput('');
+    }
+  };
+
+  const removeTag = (tagId: string) => {
+    setTags(tags.filter(tag => tag.id !== tagId));
+  };
 
   const createEvent = (name: FormField<string>, category: FormField<string>) => {
     var REACT_APP_API_ENDPOINT = String(process.env.REACT_APP_API_ENDPOINT);
@@ -73,7 +99,8 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
       "category": category.value,
       "date": date.value,
       "line_items": selectedLineItemIds,
-      "is_duplicate_transaction": isDuplicateTransaction.value
+      "is_duplicate_transaction": isDuplicateTransaction.value,
+      "tags": tags.map(tag => tag.text)
     }
     console.log(newEvent);
     axiosInstance.post(`${REACT_APP_API_ENDPOINT}api/events`, newEvent)
@@ -136,6 +163,33 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
                 <option value="Transit">Transit</option>
                 <option value="Travel">Travel</option>
               </Form.Select>
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Tags:</Form.Label>
+              <div className="d-flex flex-wrap gap-2 mb-2">
+                {tags.map(tag => (
+                  <BootstrapBadge
+                    key={tag.id}
+                    bg="primary"
+                    className="d-flex align-items-center p-2"
+                  >
+                    {tag.text}
+                    <span
+                      onClick={() => removeTag(tag.id)}
+                      style={{ marginLeft: '5px', cursor: 'pointer' }}
+                    >
+                      ×
+                    </span>
+                  </BootstrapBadge>
+                ))}
+              </div>
+              <Form.Control
+                type="text"
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                onKeyDown={handleTagInputKeyDown}
+                placeholder="Type a tag and press Enter"
+              />
             </Form.Group>
             <Form.Group className="mb-3">
               <Form.Label>Override Date:</Form.Label>

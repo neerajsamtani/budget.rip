@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Table, Form, Row, Col, InputGroup } from "react-bootstrap";
+import { Table, Form, Row, Col, InputGroup, Badge } from "react-bootstrap";
 import { DateTime } from "luxon";
 import Event, { EventInterface } from "../components/Event";
 import CategoryFilter, { Category } from "../components/CategoryFilter";
@@ -93,18 +93,25 @@ export default function EventsPage() {
                         <th>Name</th>
                         <th>Category</th>
                         <th>Amount</th>
+                        <th>Tags</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     {events.length > 0 ?
                         events
                             .filter(event => matchCategory(event))
-                            .map(event => <Event key={event._id} event={event} />)
+                            .map(event => (
+                                <tr key={event._id}>
+                                    <Event event={event} />
+                                </tr>
+                            ))
                         :
-                        // @ts-expect-error TODO: Need to look into this type error
-                        <tr align="center"><td colSpan="4">
-                            No events found
-                        </td></tr>
+                        <tr>
+                            <td colSpan={6} className="text-center">
+                                No events found
+                            </td>
+                        </tr>
                     }
                 </tbody>
             </Table>

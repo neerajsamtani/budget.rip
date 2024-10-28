@@ -1,6 +1,6 @@
 import axiosInstance from '../utils/axiosInstance';
 import React, { Fragment, useState } from 'react';
-import { Table } from "react-bootstrap";
+import { Table, Badge } from "react-bootstrap";
 import Button from 'react-bootstrap/Button';
 import Modal from 'react-bootstrap/Modal';
 import LineItem from './LineItem';
@@ -65,6 +65,18 @@ export default function EventDetailsModal({ show, event, lineItemsForEvent, onHi
               )}
             </tbody>
           </Table>
+          {event.tags && event.tags.length > 0 && (
+            <div className="mb-3">
+              <strong>Tags: </strong>
+              <div className="d-flex flex-wrap gap-2">
+                {event.tags.map((tag, index) => (
+                  <Badge key={index} bg="primary" className="p-2">
+                    {tag}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
         </Modal.Body>
         <Modal.Footer>
           <Button onClick={onHide} variant="secondary">Cancel</Button>

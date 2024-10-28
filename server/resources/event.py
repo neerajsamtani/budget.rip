@@ -73,6 +73,9 @@ def post_event_api():
     else:
         new_event["amount"] = sum(line_item["amount"] for line_item in line_items)
 
+    # Ensure tags is always a list
+    new_event["tags"] = new_event.get("tags", [])
+
     upsert_with_id(events_collection, new_event, new_event["id"])
     for line_item in line_items:
         line_item["event_id"] = new_event["id"]

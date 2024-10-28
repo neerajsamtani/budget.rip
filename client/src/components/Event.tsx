@@ -1,16 +1,18 @@
 import React, { useState } from "react";
-import { Button } from "react-bootstrap";
+import { Button, Badge } from "react-bootstrap";
 import { LineItemInterface } from "../contexts/LineItemsContext";
 import EventDetailsModal from "./EventDetailsModal";
 import axiosInstance from "../utils/axiosInstance";
 
-export type EventInterface = {
+export interface EventInterface {
     _id: string;
-    date: number; // Assuming `date` is a Unix timestamp in seconds
     name: string;
     category: string;
     amount: number;
-};
+    date: number; // Assuming date is a Unix timestamp in seconds
+    line_items: string[];
+    tags?: string[];
+}
 
 export default function Event({ event }: { event: EventInterface }) {
     const longEnUSFormatter = new Intl.DateTimeFormat('en-US', {
@@ -35,13 +37,27 @@ export default function Event({ event }: { event: EventInterface }) {
             .catch(error => console.log(error));
     }
 
-    // February 14, 2020
     return (
-        <tr>
+        <>
             <td>{readableDate}</td>
             <td>{event.name}</td>
             <td>{event.category}</td>
             <td>{event.amount}</td>
+            <td>
+                {event.tags && event.tags.length > 0 ? (
+                    <div className="d-flex flex-wrap gap-1">
+                        {event.tags.map((tag, index) => (
+                            <Badge
+                                key={index}
+                                bg="primary"
+                                className="p-2"
+                            >
+                                {tag}
+                            </Badge>
+                        ))}
+                    </div>
+                ) : null}
+            </td>
             <td>
                 <Button onClick={showEventDetails} variant="secondary">Details</Button>
                 <EventDetailsModal
@@ -51,7 +67,6 @@ export default function Event({ event }: { event: EventInterface }) {
                     onHide={() => setEventDetailsModalShow(false)}
                 />
             </td>
-            {/* <td>{event.line_items}</td> */}
-        </tr>
+        </>
     )
 }
