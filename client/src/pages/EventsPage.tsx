@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { Table, Form, Row, Col, InputGroup, Badge } from "react-bootstrap";
+import { Table, Form, Row, Col, InputGroup, Badge, FormControl } from "react-bootstrap";
 import { DateTime } from "luxon";
 import Event, { EventInterface } from "../components/Event";
 import CategoryFilter, { Category } from "../components/CategoryFilter";
 import MonthFilter from "../components/MonthFilter";
 import YearFilter from "../components/YearFilter";
+import TagsFilter from "../components/TagsFilter";
 import axiosInstance from "../utils/axiosInstance";
 
 export default function EventsPage() {
@@ -15,10 +16,10 @@ export default function EventsPage() {
     const now = DateTime.now()
 
     const [events, setEvents] = useState<EventInterface[]>([])
-    const [total, setTotal] = useState(0)
     const [category, setCategory] = useState("All")
     const [month, setMonth] = useState(now.monthLong)
     const [year, setYear] = useState(now.year)
+    const [tagFilter, setTagFilter] = useState<string>('');
 
     useEffect(() => {
         var REACT_APP_API_ENDPOINT = String(process.env.REACT_APP_API_ENDPOINT);
@@ -38,7 +39,6 @@ export default function EventsPage() {
         })
             .then(response => {
                 setEvents(response.data.data)
-                setTotal(response.data.total.toFixed(2) * -1)
             })
             .catch(error => console.log(error));
     }, [month, year])
@@ -46,39 +46,58 @@ export default function EventsPage() {
     const matchCategory = (event: EventInterface) => category === "All" || category === event.category
 
     const calculateSpending = (events: EventInterface[]) => {
-        var sum = 0;
-        if (events.length > 0) {
-            events.forEach((e) => {
-                if (e["category"] !== "Income" && e["category"] !== "Rent" && matchCategory(e)) {
-                    sum += e["amount"]
-                }
-            });
-        }
+        const filteredEvents = events
+            .filter(event =>
+                matchCategory(event) &&
+                matchTags(event) &&
+                event.category !== "Rent" &&
+                event.category !== "Income"
+            );
+        const sum = filteredEvents.reduce((acc, event) => acc + event.amount, 0);
+        return sum.toFixed(2);
+    }
+
+    const matchTags = (event: EventInterface) => {
+        if (!tagFilter) return true;
+        if (!event.tags) return false;
+        return event.tags.some(tag =>
+            tag.toLowerCase().includes(tagFilter.toLowerCase())
+        );
+    }
+
+    const calculateNetIncome = (events: EventInterface[]) => {
+        const filteredEvents = events.filter(event => matchCategory(event) && matchTags(event));
+        const sum = filteredEvents.reduce((acc, event) => acc + event.amount, 0);
         return sum.toFixed(2);
     }
 
     return (
         <div>
             <h1>Events</h1>
-            <Form>
-                <Row>
-                    <Col>
+            <Form className="mb-4">
+                <Row className="mb-3">
+                    <Col md={3}>
                         <CategoryFilter category={category as Category} setCategory={setCategory} />
                     </Col>
-                    <Col>
+                    <Col md={3}>
                         <MonthFilter month={month} setMonth={setMonth} />
                     </Col>
-                    <Col>
+                    <Col md={3}>
                         <YearFilter year={year} setYear={setYear} />
                     </Col>
-                    <Col>
-                        <InputGroup className="mb-3">
+                    <Col md={3}>
+                        <TagsFilter tagFilter={tagFilter} setTagFilter={setTagFilter} />
+                    </Col>
+                </Row>
+                <Row>
+                    <Col md={6}>
+                        <InputGroup>
                             <InputGroup.Text>Net Income</InputGroup.Text>
-                            <InputGroup.Text>${Number(total).toFixed(2)}</InputGroup.Text>
+                            <InputGroup.Text>${calculateNetIncome(events)}</InputGroup.Text>
                         </InputGroup>
                     </Col>
-                    <Col>
-                        <InputGroup className="mb-3">
+                    <Col md={6}>
+                        <InputGroup>
                             <InputGroup.Text>Spending w/o Rent</InputGroup.Text>
                             <InputGroup.Text>${calculateSpending(events)}</InputGroup.Text>
                         </InputGroup>
@@ -100,7 +119,7 @@ export default function EventsPage() {
                 <tbody>
                     {events.length > 0 ?
                         events
-                            .filter(event => matchCategory(event))
+                            .filter(event => matchCategory(event) && matchTags(event))
                             .map(event => (
                                 <tr key={event._id}>
                                     <Event event={event} />
