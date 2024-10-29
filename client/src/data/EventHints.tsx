@@ -13,8 +13,8 @@ function evaluateCEL(expression: string, context: LineItemInterface) {
     // Helper function to evaluate a single condition
     const evaluateCondition = (left: any, operator: any, right: any) => {
         switch (operator) {
-            case '==': return left == right;
-            case '!=': return left != right;
+            case '==': return left === right;
+            case '!=': return left !== right;
             case '>': return left > right;
             case '<': return left < right;
             case '>=': return left >= right;
@@ -156,6 +156,13 @@ const eventHints: EventHint[] = [
         prefill: {
             name: "Chaat Corner",
             category: "Dining",
+        }
+    },
+    {
+        cel_expression: 'description contains "AMC 9640 ONLINE" && amount < 25.00 && amount > 24.00',
+        prefill: {
+            name: "AMC A-List",
+            category: "Subscription",
         }
     }
 ];
