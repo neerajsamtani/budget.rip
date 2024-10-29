@@ -42,7 +42,7 @@ export default function Event({ event }: { event: EventInterface }) {
             <td>{readableDate}</td>
             <td>{event.name}</td>
             <td>{event.category}</td>
-            <td>{event.amount}</td>
+            <td>${event.amount.toFixed(2)}</td>
             <td>
                 {event.tags && event.tags.length > 0 ? (
                     <div className="d-flex flex-wrap gap-1">

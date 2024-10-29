@@ -74,7 +74,7 @@ export default function EventsPage() {
                     <Col>
                         <InputGroup className="mb-3">
                             <InputGroup.Text>Net Income</InputGroup.Text>
-                            <InputGroup.Text>${total}</InputGroup.Text>
+                            <InputGroup.Text>${Number(total).toFixed(2)}</InputGroup.Text>
                         </InputGroup>
                     </Col>
                     <Col>
