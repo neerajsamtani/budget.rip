@@ -96,13 +96,6 @@ const eventHints: EventHint[] = [
         }
     },
     {
-        cel_expression: 'description contains "APPLE.COM/BILL" && amount == 0.99',
-        prefill: {
-            name: "iCloud+",
-            category: "Subscription",
-        }
-    },
-    {
         cel_expression: 'description contains "Internet" && amount < 70.00',
         prefill: {
             name: "Internet",
@@ -113,6 +106,13 @@ const eventHints: EventHint[] = [
         cel_expression: 'description contains "Uber" && amount < 50.00',
         prefill: {
             name: "Uber",
+            category: "Transit",
+        }
+    },
+    {
+        cel_expression: 'description contains "Lyft" && amount < 50.00',
+        prefill: {
+            name: "Lyft",
             category: "Transit",
         }
     },
@@ -163,6 +163,34 @@ const eventHints: EventHint[] = [
         prefill: {
             name: "AMC A-List",
             category: "Subscription",
+        }
+    },
+    {
+        cel_expression: 'description contains "Netflix.com" && amount == 6.99',
+        prefill: {
+            name: "Netflix",
+            category: "Subscription",
+        }
+    },
+    {
+        cel_expression: 'description contains "The Cumin Club"',
+        prefill: {
+            name: "The Cumin Club",
+            category: "Groceries",
+        }
+    },
+    {
+        cel_expression: 'description contains "Interest"',
+        prefill: {
+            name: "Interest",
+            category: "Investment",
+        }
+    },
+    {
+        cel_expression: 'description contains "contribution"',
+        prefill: {
+            name: "Contribution",
+            category: "Investment",
         }
     }
 ];
