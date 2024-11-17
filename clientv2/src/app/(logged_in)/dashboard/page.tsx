@@ -1,4 +1,3 @@
-import Link from "next/link"
 import {
   ArrowUpRight,
   CircleUser,
@@ -6,7 +5,9 @@ import {
   DollarSign,
   Users,
 } from "lucide-react"
+import Link from "next/link"
 
+import { CustomBarChart } from "@/components/CustomBarChart"
 import {
   Avatar,
   AvatarFallback,
@@ -28,14 +29,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Card as TremorCard, SparkAreaChart } from '@tremor/react';
 import { getAmountPerCategoryPerMonth, getLineItemsToReview, getNetEarningsPerMonth } from "@/lib/serverData"
-import { CustomBarChart } from "@/components/CustomBarChart"
+import { createClient } from "@/utils/supabase/server"
+import { SparkAreaChart } from '@tremor/react'
 
 export default async function Dashboard() {
-  const line_items = await getLineItemsToReview()
-  const chartdata = await getNetEarningsPerMonth()
-  const amount_per_category_per_month = await getAmountPerCategoryPerMonth()
+  const supabaseClient = createClient()
+  const line_items = await getLineItemsToReview(supabaseClient)
+  const chartdata = await getNetEarningsPerMonth(supabaseClient)
+  const amount_per_category_per_month = await getAmountPerCategoryPerMonth(supabaseClient)
 
   // Currency formatter
   const currencyFormatter = new Intl.NumberFormat('en-US', {
