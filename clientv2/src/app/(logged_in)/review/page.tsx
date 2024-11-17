@@ -1,14 +1,12 @@
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { getLineItemsToReview } from "@/lib/serverData"
-import { ArrowUpRight, CircleUser, Plus } from "lucide-react"
-import Link from "next/link"
-import { LineItemColumn, columns } from "./columns"
 import { DataTable } from "@/components/data-table/data-table"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { getLineItemsToReview } from "@/lib/serverData"
+import { createClient } from "@/utils/supabase/server"
+import { columns } from "./columns"
 
 export default async function ReviewPage() {
-    const line_items = await getLineItemsToReview()
+    const supabaseClient = createClient()
+    const line_items = await getLineItemsToReview(supabaseClient)
 
     return (
         <div className="flex flex-col gap-4">

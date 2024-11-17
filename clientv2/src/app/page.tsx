@@ -1,7 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
 import { SignOut } from '@/components/SignOut'
-import { getLineItemsToReview, getNetEarningsPerMonth } from '@/lib/serverData'
 
 export default async function PrivatePage() {
     const supabase = createClient()
