@@ -4,10 +4,7 @@ import { Cross2Icon } from "@radix-ui/react-icons"
 import { Table } from "@tanstack/react-table"
 
 import { Button } from "../ui/button"
-import { Input } from "../ui/input"
-import { DataTableViewOptions } from "./data-table-view-options"
 
-import { DataTableFacetedFilter } from "./data-table-faceted-filter"
 import {
     ArrowDownIcon,
     ArrowRightIcon,
@@ -18,9 +15,19 @@ import {
     QuestionMarkCircledIcon,
     StopwatchIcon,
 } from "@radix-ui/react-icons"
+import pluralize from 'pluralize'
+import { DataTableFacetedFilter } from "./data-table-faceted-filter"
+import { DataTableViewOptions } from "./data-table-view-options"
 
 interface DataTableToolbarProps<TData> {
     table: Table<TData>
+    filterableColumns?: {
+        id: string
+        options: {
+            label: string
+            value: string
+        }[]
+    }[]
 }
 
 export const labels = [
@@ -86,39 +93,27 @@ export const priorities = [
 
 export function DataTableToolbar<TData>({
     table,
+    filterableColumns = [],
 }: DataTableToolbarProps<TData>) {
     const isFiltered = table.getState().columnFilters.length > 0
 
     return (
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between p-1">
             <div className="flex flex-1 items-center space-x-2">
-                <Input
-                    placeholder="Filter items..."
-                    value={(table.getColumn("description")?.getFilterValue() as string) ?? ""}
-                    onChange={(event) =>
-                        table.getColumn("description")?.setFilterValue(event.target.value)
-                    }
-                    className="h-8 w-[150px] lg:w-[250px]"
-                />
-                {/* TODO: Add faceted filters for each column */}
-                {table.getColumn("status") && (
+                {filterableColumns.map((column) => (
                     <DataTableFacetedFilter
-                        column={table.getColumn("status")}
-                        title="Status"
-                        options={statuses}
+                        key={column.id}
+                        column={table.getColumn(column.id)}
+                        title={pluralize(column.id)}
+                        options={column.options}
                     />
-                )}
-                {table.getColumn("priority") && (
-                    <DataTableFacetedFilter
-                        column={table.getColumn("priority")}
-                        title="Priority"
-                        options={priorities}
-                    />
-                )}
+                ))}
                 {isFiltered && (
                     <Button
                         variant="ghost"
-                        onClick={() => table.resetColumnFilters()}
+                        onClick={() => {
+                            table.resetColumnFilters()
+                        }}
                         className="h-8 px-2 lg:px-3"
                     >
                         Reset
