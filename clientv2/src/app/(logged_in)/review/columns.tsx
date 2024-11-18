@@ -1,10 +1,8 @@
 "use client"
 
-import { ColumnDef } from "@tanstack/react-table"
-import { currencyFormatter, dateFormatter } from "@/lib/utils"
-import { ArrowUpDown } from "lucide-react"
-import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
+import { currencyFormatter, dateFormatter } from "@/lib/utils"
+import { ColumnDef } from "@tanstack/react-table"
 
 // This type is used to define the shape of our data.
 // You can use a Zod schema here if you want.
@@ -42,17 +40,8 @@ export const columns: ColumnDef<LineItemColumn>[] = [
     },
     {
         accessorKey: "date",
-        header: ({ column }) => {
-            return (
-                <Button
-                    variant="ghost"
-                    onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-                >
-                    Date
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
-                </Button>
-            )
-        },
+        header: "Date",
+        enableSorting: true,
         cell: ({ row }) => {
             const dateInMillis = parseFloat(row.getValue("date")) * 1000
             const formatted = dateFormatter.format(dateInMillis)
@@ -61,17 +50,8 @@ export const columns: ColumnDef<LineItemColumn>[] = [
     },
     {
         accessorKey: "amount",
-        header: ({ column }) => {
-            return (
-                <Button
-                    variant="ghost"
-                    onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-                >
-                    <div className="text-right">Amount</div>
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
-                </Button>
-            )
-        },
+        header: "Amount",
+        enableSorting: true,
         cell: ({ row }) => {
             const amount = parseFloat(row.getValue("amount"))
             const formatted = currencyFormatter.format(amount)
@@ -81,13 +61,16 @@ export const columns: ColumnDef<LineItemColumn>[] = [
     {
         accessorKey: "description",
         header: "Description",
+        enableSorting: false,
     },
     {
         accessorKey: "responsible_party",
         header: "Responsible Party",
+        enableSorting: false,
     },
     {
         accessorKey: "payment_method",
         header: "Payment Method",
+        enableSorting: false,
     },
 ]

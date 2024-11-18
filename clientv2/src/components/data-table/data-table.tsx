@@ -1,7 +1,5 @@
 "use client"
 
-import * as React from "react"
-
 import {
     ColumnDef,
     ColumnFiltersState,
@@ -24,6 +22,8 @@ import {
     TableRow,
 } from "@/components/ui/table"
 
+import React from "react"
+import { DataTableColumnHeader } from "./data-table-column-header"
 import { DataTablePagination } from "./data-table-pagination"
 import { DataTableToolbar } from "./data-table-toolbar"
 
@@ -82,12 +82,12 @@ export function DataTable<TData, TValue>({
                                 {headerGroup.headers.map((header) => {
                                     return (
                                         <TableHead key={header.id}>
-                                            {header.isPlaceholder
-                                                ? null
-                                                : flexRender(
-                                                    header.column.columnDef.header,
-                                                    header.getContext()
-                                                )}
+                                            {header.isPlaceholder ? null : (
+                                                <DataTableColumnHeader
+                                                    column={header.column}
+                                                    title={header.column.columnDef.header as string}
+                                                />
+                                            )}
                                         </TableHead>
                                     )
                                 })}
