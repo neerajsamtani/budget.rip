@@ -72,5 +72,8 @@ export const columns: ColumnDef<LineItemColumn>[] = [
         accessorKey: "payment_method",
         header: "Payment Method",
         enableSorting: false,
+        filterFn: (row, id, value: string[]) => {
+            return value.includes(row.getValue(id))
+        },
     },
 ]

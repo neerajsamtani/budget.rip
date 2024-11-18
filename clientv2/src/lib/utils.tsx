@@ -23,13 +23,13 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function toSentenceCase(str?: string) {
+export function toTitleCase(str?: string) {
   if (str === undefined || str.length === 0) {
     return str; // Return the input if it's not a string or it's empty
   }
 
-  // Capitalize the first character and lowercase the rest of the string
-  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+  // Split the string into words and capitalize the first letter of each word
+  return str.split(/[\s_\-]+/).map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
 }
 
 export const axiosInstance = axios.create({

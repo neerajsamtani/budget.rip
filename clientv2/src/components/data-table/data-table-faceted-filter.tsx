@@ -2,7 +2,7 @@ import { CheckIcon, Cross2Icon, PlusCircledIcon } from "@radix-ui/react-icons"
 import { Column } from "@tanstack/react-table"
 import * as React from "react"
 
-import { cn, toSentenceCase } from "@/lib/utils"
+import { cn, toTitleCase } from "@/lib/utils"
 import { Badge } from "../ui/badge"
 import { Button } from "../ui/button"
 import {
@@ -69,7 +69,7 @@ export function DataTableFacetedFilter<TData, TValue>({
                     {selectedValues?.size > 0 ? null : (
                         <PlusCircledIcon className="mr-2 h-4 w-4" />
                     )}
-                    {toSentenceCase(title)}
+                    {toTitleCase(title)}
                     {selectedValues?.size > 0 && (
                         <>
                             <Separator orientation="vertical" className="mx-2 h-4" />
@@ -80,7 +80,7 @@ export function DataTableFacetedFilter<TData, TValue>({
                                 {selectedValues.size}
                             </Badge>
                             <div className="hidden space-x-1 lg:flex">
-                                {selectedValues.size > 2 ? (
+                                {selectedValues.size > 4 ? (
                                     <Badge
                                         variant="secondary"
                                         className="rounded-sm px-1 font-normal"
@@ -123,7 +123,7 @@ export function DataTableFacetedFilter<TData, TValue>({
             >
                 <Command className="rounded-lg border shadow-md">
                     <CommandInput
-                        placeholder={`Search ${toSentenceCase(title)}...`}
+                        placeholder={`Search...`}
                         className="h-9 px-3 border-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-none"
                     />
                     <CommandList>
