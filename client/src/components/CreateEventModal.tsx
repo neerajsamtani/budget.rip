@@ -1,16 +1,16 @@
-import React, { Fragment, useState, useEffect } from 'react';
-import axiosInstance from '../utils/axiosInstance';
+import React, { Fragment, useEffect, useState } from 'react';
+import { Badge as BootstrapBadge } from 'react-bootstrap';
+import Badge from 'react-bootstrap/Badge';
 import Button from 'react-bootstrap/Button';
 import Form from 'react-bootstrap/Form';
 import Modal from 'react-bootstrap/Modal';
-import { useLineItems, useLineItemsDispatch } from "../contexts/LineItemsContext";
-import Notification from './Notification';
-import defaultNameCleanup from '../utils/stringHelpers'
-import { FormField, useField } from '../hooks/useField';
 import Stack from 'react-bootstrap/Stack';
-import Badge from 'react-bootstrap/Badge';
-import { getPrefillFromLineItems } from '.././data/EventHints'
-import { Badge as BootstrapBadge } from 'react-bootstrap';
+import { getPrefillFromLineItems } from '.././data/EventHints';
+import { useLineItems, useLineItemsDispatch } from "../contexts/LineItemsContext";
+import { FormField, useField } from '../hooks/useField';
+import axiosInstance from '../utils/axiosInstance';
+import defaultNameCleanup from '../utils/stringHelpers';
+import Notification from './Notification';
 
 interface Tag {
   id: string;
@@ -156,6 +156,7 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
                 <option value="Hobbies">Hobbies</option>
                 <option value="Income">Income</option>
                 <option value="Investment">Investment</option>
+                <option value="Medical">Medical</option>
                 <option value="Rent">Rent</option>
                 <option value="Shopping">Shopping</option>
                 <option value="Subscription">Subscription</option>

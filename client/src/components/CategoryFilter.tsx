@@ -12,6 +12,7 @@ const CATEGORIES = [
   'Hobbies',
   'Income',
   'Investment',
+  'Medical',
   'Rent',
   'Shopping',
   'Subscription',

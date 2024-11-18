@@ -192,6 +192,13 @@ const eventHints: EventHint[] = [
             name: "Contribution",
             category: "Investment",
         }
+    },
+    {
+        cel_expression: 'description contains "ORIG CO NAME"',
+        prefill: {
+            name: "Paycheck",
+            category: "Income",
+        }
     }
 ];
 
