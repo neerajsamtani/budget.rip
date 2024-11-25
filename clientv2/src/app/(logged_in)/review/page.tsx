@@ -1,46 +1,26 @@
-"use client"
-
 import { DataTable } from "@/components/data-table/data-table"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { getLineItemsToReview } from "@/lib/serverData"
+import { FilterableColumn } from "@/types"
 import { createClient } from "@/utils/supabase/client"
-import { useEffect, useState } from "react"
-import { LineItemColumn, columns } from "./columns"
+import { columns } from "./columns"
 
-type FilterableColumn = {
-    id: string
-    options: {
-        label: string
-        value: string
-    }[]
-}
-
-export default function ReviewPage() {
-    const [lineItems, setLineItems] = useState<LineItemColumn[]>([])
-    const [filterableColumns, setFilterableColumns] = useState<FilterableColumn[]>([])
+export default async function ReviewPage() {
     const supabaseClient = createClient()
+    const lineItems = await getLineItemsToReview(supabaseClient)
 
-    useEffect(() => {
-        const fetchData = async () => {
-            const fetchedLineItems = await getLineItemsToReview(supabaseClient)
-            setLineItems(fetchedLineItems)
+    const paymentMethods = lineItems.map((item) => item.payment_method)
+    const uniquePaymentMethods = Array.from(new Set(paymentMethods))
 
-            const paymentMethods = fetchedLineItems.map((item) => item.payment_method)
-            const uniquePaymentMethods = Array.from(new Set(paymentMethods))
-
-            setFilterableColumns([
-                {
-                    id: "payment_method",
-                    options: uniquePaymentMethods.map((method) => ({
-                        label: method,
-                        value: method,
-                    })),
-                },
-            ])
-        }
-
-        fetchData()
-    }, [supabaseClient])
+    const filterableColumns: FilterableColumn[] = [
+        {
+            id: "payment_method",
+            options: uniquePaymentMethods.map((method) => ({
+                label: method,
+                value: method,
+            })),
+        },
+    ]
 
     return (
         <div className="flex flex-col gap-4">

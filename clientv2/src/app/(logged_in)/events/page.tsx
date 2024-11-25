@@ -1,46 +1,26 @@
-"use client"
-
 import { DataTable } from "@/components/data-table/data-table"
 import { CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { getEvents } from "@/lib/serverData"
-import { createClient } from "@/utils/supabase/client"
-import { useEffect, useState } from "react"
-import { EventColumn, columns } from "./columns"
+import { FilterableColumn } from "@/types"
+import { createClient } from "@/utils/supabase/server"
+import { columns } from "./columns"
 
-type FilterableColumn = {
-    id: string
-    options: {
-        label: string
-        value: string
-    }[]
-}
-
-export default function EventsPage() {
-    const [events, setEvents] = useState<EventColumn[]>([])
-    const [filterableColumns, setFilterableColumns] = useState<FilterableColumn[]>([])
+export default async function EventsPage() {
     const supabaseClient = createClient()
+    const events = await getEvents(supabaseClient)
 
-    useEffect(() => {
-        const fetchData = async () => {
-            const fetchedEvents = await getEvents(supabaseClient)
-            setEvents(fetchedEvents)
+    const categories = events.map((event) => event.category)
+    const uniqueCategories = Array.from(new Set(categories))
 
-            const categories = fetchedEvents.map((event) => event.category)
-            const uniqueCategories = Array.from(new Set(categories))
-
-            setFilterableColumns([
-                {
-                    id: "category",
-                    options: uniqueCategories.map((category) => ({
-                        label: category,
-                        value: category,
-                    })),
-                },
-            ])
-        }
-
-        fetchData()
-    }, [supabaseClient])
+    const filterableColumns: FilterableColumn[] = [
+        {
+            id: "category",
+            options: uniqueCategories.map((category) => ({
+                label: category,
+                value: category,
+            })),
+        },
+    ]
 
     return (
         <div className="xl:col-span-2 text-card-foreground">
