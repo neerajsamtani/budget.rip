@@ -7,7 +7,6 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 
-import { CustomBarChart } from "@/components/CustomBarChart"
 import {
   Avatar,
   AvatarFallback,
@@ -29,15 +28,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { getAmountPerCategoryPerMonth, getLineItemsToReview, getNetEarningsPerMonth } from "@/lib/serverData"
+import { getAmountPerCategoryPerMonth, getLineItemsToReview } from "@/lib/serverData"
 import { createClient } from "@/utils/supabase/server"
-import { SparkAreaChart } from '@tremor/react'
 
 export default async function Dashboard() {
   const supabaseClient = createClient()
   const line_items = await getLineItemsToReview(supabaseClient)
-  const chartdata = await getNetEarningsPerMonth(supabaseClient)
-  const amount_per_category_per_month = await getAmountPerCategoryPerMonth(supabaseClient)
+  const apcm = await getAmountPerCategoryPerMonth(supabaseClient)
 
   // Currency formatter
   const currencyFormatter = new Intl.NumberFormat('en-US', {
@@ -78,34 +75,21 @@ export default async function Dashboard() {
         </Card>
         <Card x-chunk="dashboard-01-chunk-2">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Sales</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Income</CardTitle>
             <CreditCard className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">+12,234</div>
-            <p className="text-xs text-muted-foreground">
-              +19% from last month
-            </p>
+            <div className="text-2xl font-bold">{currencyFormatter.format(apcm.filter(item => (item.category === 'Income' || item.category === 'Investment')).reduce((acc, curr) => acc - curr.total_amount, 0))}</div>
           </CardContent>
         </Card>
-        <Card x-chunk="dashboard-01-chunk-3" className="mx-auto flex max-w-lg items-center justify-between px-4 py-3.5">
-          <div className="flex items-center space-x-2.5">
-            <p className="text-tremor-content-strong dark:text-dark-tremor-content-strong font-medium">APPL</p>
-            <span className="text-tremor-default text-tremor-content dark:text-dark-tremor-content">Apple Inc.</span>
-          </div>
-          <SparkAreaChart
-            data={chartdata}
-            categories={['total_amount']}
-            index={'month'}
-            colors={['emerald']}
-            className="h-8 w-20 sm:h-10 sm:w-36"
-          />
-          <div className="flex items-center space-x-2.5">
-            <span className="font-medium text-tremor-content-strong dark:text-dark-tremor-content-strong">179.26</span>
-            <span className="rounded bg-emerald-500 px-2 py-1 text-tremor-default font-medium text-white">
-              +1.72%
-            </span>
-          </div>
+        <Card x-chunk="dashboard-01-chunk-2">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Net Earnings</CardTitle>
+            <CreditCard className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{currencyFormatter.format(apcm.filter(item => (item.category !== 'Income' && item.category !== 'Investment')).reduce((acc, curr) => acc + curr.total_amount, 0))}</div>
+          </CardContent>
         </Card>
       </div>
       <div className="grid gap-4 md:gap-8 lg:grid-cols-2 xl:grid-cols-3">
@@ -136,7 +120,7 @@ export default async function Dashboard() {
               </TableHeader>
               <TableBody>
                 {
-                  line_items.map((line_item) => (
+                  line_items.slice(0, 7).map((line_item) => (
                     <TableRow key={line_item.id}>
                       <TableCell>
                         <div className="font-medium">
@@ -246,7 +230,6 @@ export default async function Dashboard() {
             </div>
           </CardContent>
         </Card>
-        <CustomBarChart chartData={amount_per_category_per_month} />
       </div>
     </main>
   )
