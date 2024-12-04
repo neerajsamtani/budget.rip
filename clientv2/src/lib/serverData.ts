@@ -1,4 +1,5 @@
 import { SupabaseClient } from '@supabase/supabase-js';
+import moment from 'moment';
 
 export const getLineItemsToReview = async (supabaseClient: SupabaseClient) => {
     const { data: line_items, error } = await supabaseClient
@@ -11,10 +12,15 @@ export const getLineItemsToReview = async (supabaseClient: SupabaseClient) => {
     return line_items;
 };
 
-export const getNetEarningsPerMonth = async (supabaseClient: SupabaseClient) => {
+export const getNetEarningsPerMonth = async (supabaseClient: SupabaseClient, startDate?: string, endDate?: string) => {
+    const utcStartDate = startDate ? moment(startDate).utc().format('YYYY-MM-DD') : moment(0).utc().format('YYYY-MM-DD');
+    const utcEndDate = endDate ? moment(endDate).utc().format('YYYY-MM-DD') : moment().utc().format('YYYY-MM-DD');
+
     const { data, error } = await supabaseClient
         .from('net_earnings_per_month')
         .select('*')
+        .gte('month', utcStartDate)
+        .lte('month', utcEndDate)
     if (error) {
         console.error("Error fetching NetEarningsPerMonth:", error);
         throw error; // Re-throw the error for handling in the caller function
@@ -22,10 +28,16 @@ export const getNetEarningsPerMonth = async (supabaseClient: SupabaseClient) => 
     return data;
 };
 
-export const getAmountPerCategoryPerMonth = async (supabaseClient: SupabaseClient) => {
+export const getAmountPerCategoryPerMonth = async (supabaseClient: SupabaseClient, startDate?: string, endDate?: string) => {
+    const utcStartDate = startDate ? moment(startDate).utc().format('YYYY-MM-DD') : moment(0).utc().format('YYYY-MM-DD');
+    const utcEndDate = endDate ? moment(endDate).utc().format('YYYY-MM-DD') : moment().utc().format('YYYY-MM-DD');
+
     const { data, error } = await supabaseClient
         .from('amount_per_category_per_month')
         .select('*')
+        .gte('month', utcStartDate)
+        .lte('month', utcEndDate)
+        .order('month', { ascending: true })
     if (error) {
         console.error("Error fetching AmountPerCategoryPerMonth:", error);
         throw error; // Re-throw the error for handling in the caller function

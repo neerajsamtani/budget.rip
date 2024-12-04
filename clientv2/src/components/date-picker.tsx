@@ -13,6 +13,7 @@ import {
     PopoverTrigger,
 } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 
 const today = new Date()
 
@@ -70,19 +71,46 @@ const presets = [
 export default function DatePickerWithRange({
     className,
 }: React.HTMLAttributes<HTMLDivElement>) {
-    const [date, setDate] = React.useState<DateRange | undefined>({
-        from: new Date(2024, 10, 1),
-        to: new Date(2024, 10, 30),
-    })
+    /*
+    * TODO: Add support for timezone and upgrade to the new react-day-picker
+    * This component is used to select a date range for the app.
+    * It uses the search params to get the date range, and the pathname to navigate to the correct page.
+    */
     const [activePreset, setActivePreset] = React.useState<string | null>(null)
+    const searchParams = useSearchParams()
+    const pathname = usePathname()
+    const { replace } = useRouter()
+    const [open, setOpen] = React.useState(false)
+
+    const dateRange = searchParams.get("from") && searchParams.get("to") ? {
+        from: new Date(searchParams.get("from") || ""),
+        to: new Date(searchParams.get("to") || ""),
+    } : {
+        from: presets[presets.length - 1].dateRange.from,
+        to: presets[presets.length - 1].dateRange.to,
+    }
+
+
+    const handleDateRangeChange = (dateRange: DateRange | undefined) => {
+        const params = new URLSearchParams(searchParams)
+        if (dateRange?.from && dateRange?.to) {
+            params.set("from", dateRange.from.toISOString())
+            params.set("to", dateRange.to.toISOString())
+        } else {
+            params.delete("from")
+            params.delete("to")
+        }
+        replace(`${pathname}?${params.toString()}`);
+    }
 
     const handlePresetClick = (preset: typeof presets[number]) => {
-        setDate(preset.dateRange)
+        handleDateRangeChange(preset.dateRange)
         setActivePreset(preset.value)
+        setOpen(false)
     }
 
     const handleDateSelect = (selectedDateRange: DateRange | undefined) => {
-        setDate(selectedDateRange)
+        handleDateRangeChange(selectedDateRange)
         if (selectedDateRange?.from && selectedDateRange?.to) {
             const matchingPreset = presets.find(
                 (preset) =>
@@ -97,7 +125,7 @@ export default function DatePickerWithRange({
     }
 
     const getButtonText = () => {
-        if (!date?.from) {
+        if (!dateRange?.from) {
             return "Pick a date"
         }
 
@@ -105,23 +133,23 @@ export default function DatePickerWithRange({
             return presets.find(preset => preset.value === activePreset)?.label
         }
 
-        if (date.to) {
-            return `${format(date.from, "LLL dd, y")} - ${format(date.to, "LLL dd, y")}`
+        if (dateRange.to) {
+            return `${format(dateRange.from, "LLL dd, y")} - ${format(dateRange.to, "LLL dd, y")}`
         }
 
-        return format(date.from, "LLL dd, y")
+        return format(dateRange.from, "LLL dd, y")
     }
 
     return (
         <div className={cn("grid gap-2", className)}>
-            <Popover>
+            <Popover open={open} onOpenChange={setOpen}>
                 <PopoverTrigger asChild>
                     <Button
                         id="date"
                         variant={"outline"}
                         className={cn(
                             "w-[260px] justify-start text-left font-normal",
-                            !date && "text-muted-foreground"
+                            !dateRange && "text-muted-foreground"
                         )}
                     >
                         <CalendarIcon className="mr-2 h-4 w-4" />
@@ -155,8 +183,8 @@ export default function DatePickerWithRange({
                                 fixedWeeks
                                 showOutsideDays={false}
                                 mode="range"
-                                defaultMonth={date?.to}
-                                selected={date}
+                                defaultMonth={dateRange?.from}
+                                selected={dateRange}
                                 onSelect={handleDateSelect}
                                 numberOfMonths={2}
                                 toMonth={today}
