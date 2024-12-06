@@ -1,7 +1,7 @@
 "use client"
-import Filter, { filterInUrlParam } from "@/components/Filter"
-import LineItemsTable from "@/components/LineItemsTable"
-import { CATEGORIES, MONTHS, YEARS } from "@/lib/constants"
+import Filter, { filterInUrlParam } from "@/components/Filter";
+import LineItemsTable from "@/components/LineItemsTable";
+import { CATEGORIES, MONTHS, YEARS } from "@/lib/constants";
 import { getPaymentMethods } from "@/lib/data";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -14,6 +14,7 @@ export default function ComponentsPage() {
     const payment_method = searchParams.get(filterInUrlParam("Payment Method")) || undefined;
     const month = searchParams.get(filterInUrlParam("Month")) || undefined;
     const year = searchParams.get(filterInUrlParam("Year")) || undefined;
+    const category = searchParams.get(filterInUrlParam("Category")) || undefined;
 
     useEffect(() => {
         const fetchPaymentMethods = async () => {
@@ -34,6 +35,12 @@ export default function ComponentsPage() {
             <Filter paramName="Month" options={MONTHS} defaultValue="All" />
             <Filter paramName="Year" options={YEARS} defaultValue="All" />
             <Filter paramName="Payment Method" options={paymentMethods} defaultValue="All" />
+
+            <p>Category: {category}</p>
+            <p>Month: {month}</p>
+            <p>Year: {year}</p>
+            <p>Payment Method: {payment_method}</p>
+
             <LineItemsTable />
         </>)
 }
