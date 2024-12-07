@@ -5,6 +5,7 @@ export const getLineItemsToReview = async (supabaseClient: SupabaseClient) => {
     const { data: line_items, error } = await supabaseClient
         .from('line_items_to_review')
         .select('date,amount,description,responsible_party,payment_method,id')
+        .order('date', { ascending: false })
     if (error) {
         console.error("Error fetching line items:", error);
         throw error; // Re-throw the error for handling in the caller function
@@ -55,7 +56,7 @@ export const getAccounts = async (supabaseClient: SupabaseClient) => {
 };
 
 export const getEvents = async (supabaseClient: SupabaseClient) => {
-    const { data, error } = await supabaseClient.from('events').select('*')
+    const { data, error } = await supabaseClient.from('events').select('*').order('date', { ascending: false })
     if (error) {
         console.error("Error fetching Events:", error);
         throw error; // Re-throw the error for handling in the caller function

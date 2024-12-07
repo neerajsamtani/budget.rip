@@ -96,7 +96,7 @@ export default async function Dashboard() {
           </CardContent>
         </Card>
       </div>
-      <div className="grid gap-4 md:gap-8 lg:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-4 md:gap-8 lg:grid-cols-2 xl:grid-cols-4">
         <Card
           className="xl:col-span-2" x-chunk="dashboard-01-chunk-4"
         >
@@ -124,7 +124,7 @@ export default async function Dashboard() {
               </TableHeader>
               <TableBody>
                 {
-                  line_items.slice(0, 7).map((line_item) => (
+                  line_items.slice(0, 10).map((line_item) => (
                     <TableRow key={line_item.id}>
                       <TableCell>
                         <div className="font-medium">
@@ -152,7 +152,7 @@ export default async function Dashboard() {
             </Table>
           </CardContent>
         </Card>
-        <Card x-chunk="dashboard-01-chunk-5">
+        <Card className="xl:col-span-2" x-chunk="dashboard-01-chunk-5">
           <CardHeader>
             <CardTitle>Accounts</CardTitle>
           </CardHeader>
