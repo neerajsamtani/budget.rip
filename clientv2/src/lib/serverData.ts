@@ -45,6 +45,15 @@ export const getAmountPerCategoryPerMonth = async (supabaseClient: SupabaseClien
     return data;
 };
 
+export const getAccounts = async (supabaseClient: SupabaseClient) => {
+    const { data, error } = await supabaseClient.from('accounts').select('*').order('institution_name', { ascending: true })
+    if (error) {
+        console.error("Error fetching Accounts:", error);
+        throw error; // Re-throw the error for handling in the caller function
+    }
+    return data;
+};
+
 export const getEvents = async (supabaseClient: SupabaseClient) => {
     const { data, error } = await supabaseClient.from('events').select('*')
     if (error) {

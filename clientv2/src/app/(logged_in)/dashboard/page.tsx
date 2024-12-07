@@ -28,13 +28,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { getAmountPerCategoryPerMonth, getLineItemsToReview } from "@/lib/serverData"
+import { getAccounts, getAmountPerCategoryPerMonth, getLineItemsToReview } from "@/lib/serverData"
+import { toKebabCase } from "@/lib/utils"
+import { generateImageMap, ImageMap } from "@/utils/getImageMap"
 import { createClient } from "@/utils/supabase/server"
 
 export default async function Dashboard() {
   const supabaseClient = createClient()
   const line_items = await getLineItemsToReview(supabaseClient)
   const apcm = await getAmountPerCategoryPerMonth(supabaseClient)
+  const accounts = await getAccounts(supabaseClient)
+  const institutionLogos: ImageMap = generateImageMap('institution_logos')
 
   // Currency formatter
   const currencyFormatter = new Intl.NumberFormat('en-US', {
@@ -150,84 +154,27 @@ export default async function Dashboard() {
         </Card>
         <Card x-chunk="dashboard-01-chunk-5">
           <CardHeader>
-            <CardTitle>Recent Sales</CardTitle>
+            <CardTitle>Accounts</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-8">
-            <div className="flex items-center gap-4">
-              <Avatar className="hidden h-9 w-9 sm:flex">
-                <AvatarImage src="/avatars/01.png" alt="Avatar" />
-                <AvatarFallback>OM</AvatarFallback>
-              </Avatar>
-              <div className="grid gap-1">
-                <p className="text-sm font-medium leading-none">
-                  Olivia Martin
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  olivia.martin@email.com
-                </p>
-              </div>
-              <div className="ml-auto font-medium">+$1,999.00</div>
-            </div>
-            <div className="flex items-center gap-4">
-              <Avatar className="hidden h-9 w-9 sm:flex">
-                <AvatarImage src="/avatars/02.png" alt="Avatar" />
-                <AvatarFallback>JL</AvatarFallback>
-              </Avatar>
-              <div className="grid gap-1">
-                <p className="text-sm font-medium leading-none">
-                  Jackson Lee
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  jackson.lee@email.com
-                </p>
-              </div>
-              <div className="ml-auto font-medium">+$39.00</div>
-            </div>
-            <div className="flex items-center gap-4">
-              <Avatar className="hidden h-9 w-9 sm:flex">
-                <AvatarImage src="/avatars/03.png" alt="Avatar" />
-                <AvatarFallback>IN</AvatarFallback>
-              </Avatar>
-              <div className="grid gap-1">
-                <p className="text-sm font-medium leading-none">
-                  Isabella Nguyen
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  isabella.nguyen@email.com
-                </p>
-              </div>
-              <div className="ml-auto font-medium">+$299.00</div>
-            </div>
-            <div className="flex items-center gap-4">
-              <Avatar className="hidden h-9 w-9 sm:flex">
-                <AvatarImage src="/avatars/04.png" alt="Avatar" />
-                <AvatarFallback>WK</AvatarFallback>
-              </Avatar>
-              <div className="grid gap-1">
-                <p className="text-sm font-medium leading-none">
-                  William Kim
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  will@email.com
-                </p>
-              </div>
-              <div className="ml-auto font-medium">+$99.00</div>
-            </div>
-            <div className="flex items-center gap-4">
-              <Avatar className="hidden h-9 w-9 sm:flex">
-                <AvatarImage src="/avatars/05.png" alt="Avatar" />
-                <AvatarFallback>SD</AvatarFallback>
-              </Avatar>
-              <div className="grid gap-1">
-                <p className="text-sm font-medium leading-none">
-                  Sofia Davis
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  sofia.davis@email.com
-                </p>
-              </div>
-              <div className="ml-auto font-medium">+$39.00</div>
-            </div>
+            {
+              accounts.map((account) => (
+                <div className="flex items-center gap-4" key={account.id}>
+                  <Avatar className="hidden h-9 w-9 sm:flex">
+                    <AvatarImage src={institutionLogos[toKebabCase(account.institution_name)]} alt="Avatar" />
+                    <AvatarFallback><CreditCard className="h-4 w-4 text-muted-foreground" /></AvatarFallback>
+                  </Avatar>
+                  <div className="grid gap-1">
+                    <p className="text-sm font-medium leading-none">
+                      {account.display_name}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {account.institution_name}
+                    </p>
+                  </div>
+                  <div className="ml-auto font-medium">{currencyFormatter.format(account.balance)}</div>
+                </div>))
+            }
           </CardContent>
         </Card>
       </div>

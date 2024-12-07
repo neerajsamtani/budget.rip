@@ -32,6 +32,10 @@ export function toTitleCase(str?: string) {
   return str.split(/[\s_\-]+/).map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
 }
 
+export function toKebabCase(str: string) {
+  return str.toLowerCase().replace(/\s+/g, '-');
+}
+
 export const axiosInstance = axios.create({
   withCredentials: true
 })
