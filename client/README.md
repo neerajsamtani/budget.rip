@@ -49,7 +49,7 @@ TODO:
 - On server start, loop through all events and ensure the line_items have the event_id attached
 - Clean Up Categories Drop Down. Allow Multiple Categories, Exclude Categories
 - backup mongo
-sudo mongodump --db flask_db --out ~/backups/mongobackups/$(date +'%m-%d-%y')
+sudo mongodump --uri <uri> --db flask_db --out ~/backups/mongobackups/$(date +'%m-%d-%y')
 
 LOGIN
 - Get current user and ensure that all data belongs to current user
