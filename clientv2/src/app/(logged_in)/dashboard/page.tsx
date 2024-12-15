@@ -2,8 +2,7 @@ import {
   ArrowUpRight,
   CircleUser,
   CreditCard,
-  DollarSign,
-  Users,
+  DollarSign
 } from "lucide-react"
 import Link from "next/link"
 
@@ -40,6 +39,10 @@ export default async function Dashboard() {
   const accounts = await getAccounts(supabaseClient)
   const institutionLogos: ImageMap = generateImageMap('institution_logos')
 
+  const total_income = apcm.filter(item => (item.category === 'Income' || item.category === 'Investment')).reduce((acc, curr) => acc - curr.total_amount, 0)
+  const total_spending = apcm.filter(item => (item.category !== 'Income' && item.category !== 'Investment')).reduce((acc, curr) => acc + curr.total_amount, 0)
+  const total_net_earnings = apcm.reduce((acc, curr) => acc - curr.total_amount, 0)
+
   // Currency formatter
   const currencyFormatter = new Intl.NumberFormat('en-US', {
     style: 'currency',
@@ -65,25 +68,20 @@ export default async function Dashboard() {
         </Card>
         <Card x-chunk="dashboard-01-chunk-1">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Subscriptions
-            </CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">+2350</div>
-            <p className="text-xs text-muted-foreground">
-              +180.1% from last month
-            </p>
-          </CardContent>
-        </Card>
-        <Card x-chunk="dashboard-01-chunk-2">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Income</CardTitle>
             <CreditCard className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{currencyFormatter.format(apcm.filter(item => (item.category === 'Income' || item.category === 'Investment')).reduce((acc, curr) => acc - curr.total_amount, 0))}</div>
+            <div className="text-2xl font-bold">{currencyFormatter.format(total_income)}</div>
+          </CardContent>
+        </Card>
+        <Card x-chunk="dashboard-01-chunk-2">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Spending</CardTitle>
+            <CreditCard className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{currencyFormatter.format(total_spending)}</div>
           </CardContent>
         </Card>
         <Card x-chunk="dashboard-01-chunk-2">
@@ -92,7 +90,7 @@ export default async function Dashboard() {
             <CreditCard className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{currencyFormatter.format(apcm.filter(item => (item.category !== 'Income' && item.category !== 'Investment')).reduce((acc, curr) => acc + curr.total_amount, 0))}</div>
+            <div className="text-2xl font-bold">{currencyFormatter.format(total_net_earnings)}</div>
           </CardContent>
         </Card>
       </div>
