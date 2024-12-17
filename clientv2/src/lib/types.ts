@@ -37,6 +37,7 @@ export type Database = {
                 Row: {
                     _id: string
                     account_holder: Json | null
+                    authorization: string | null
                     balance: Json | null
                     balance_refresh: Json | null
                     category: string | null
@@ -51,6 +52,7 @@ export type Database = {
                     ownership: Json | null
                     ownership_refresh: Json | null
                     permissions: Json | null
+                    profile_id: string
                     status: string | null
                     subcategory: string | null
                     subscriptions: Json | null
@@ -60,6 +62,7 @@ export type Database = {
                 Insert: {
                     _id: string
                     account_holder?: Json | null
+                    authorization?: string | null
                     balance?: Json | null
                     balance_refresh?: Json | null
                     category?: string | null
@@ -74,6 +77,7 @@ export type Database = {
                     ownership?: Json | null
                     ownership_refresh?: Json | null
                     permissions?: Json | null
+                    profile_id: string
                     status?: string | null
                     subcategory?: string | null
                     subscriptions?: Json | null
@@ -83,6 +87,7 @@ export type Database = {
                 Update: {
                     _id?: string
                     account_holder?: Json | null
+                    authorization?: string | null
                     balance?: Json | null
                     balance_refresh?: Json | null
                     category?: string | null
@@ -97,13 +102,22 @@ export type Database = {
                     ownership?: Json | null
                     ownership_refresh?: Json | null
                     permissions?: Json | null
+                    profile_id?: string
                     status?: string | null
                     subcategory?: string | null
                     subscriptions?: Json | null
                     supported_payment_method_types?: Json | null
                     transaction_refresh?: Json | null
                 }
-                Relationships: []
+                Relationships: [
+                    {
+                        foreignKeyName: "accounts_profile_id_fkey"
+                        columns: ["profile_id"]
+                        isOneToOne: false
+                        referencedRelation: "profiles"
+                        referencedColumns: ["id"]
+                    },
+                ]
             }
             cash_raw_data: {
                 Row: {
@@ -139,6 +153,8 @@ export type Database = {
                     is_duplicate_transaction: boolean | null
                     line_items: Json | null
                     name: string | null
+                    profile_id: string
+                    tags: string[] | null
                 }
                 Insert: {
                     _id: string
@@ -149,6 +165,8 @@ export type Database = {
                     is_duplicate_transaction?: boolean | null
                     line_items?: Json | null
                     name?: string | null
+                    profile_id: string
+                    tags?: string[] | null
                 }
                 Update: {
                     _id?: string
@@ -159,8 +177,18 @@ export type Database = {
                     is_duplicate_transaction?: boolean | null
                     line_items?: Json | null
                     name?: string | null
+                    profile_id?: string
+                    tags?: string[] | null
                 }
-                Relationships: []
+                Relationships: [
+                    {
+                        foreignKeyName: "events_profile_id_fkey"
+                        columns: ["profile_id"]
+                        isOneToOne: false
+                        referencedRelation: "profiles"
+                        referencedColumns: ["id"]
+                    },
+                ]
             }
             line_item_to_event: {
                 Row: {
@@ -190,6 +218,13 @@ export type Database = {
                         referencedRelation: "line_items"
                         referencedColumns: ["id"]
                     },
+                    {
+                        foreignKeyName: "line_item_to_event_line_item_id_fkey"
+                        columns: ["line_item_id"]
+                        isOneToOne: true
+                        referencedRelation: "line_items_to_review"
+                        referencedColumns: ["id"]
+                    },
                 ]
             }
             line_items: {
@@ -200,6 +235,7 @@ export type Database = {
                     description: string | null
                     id: string | null
                     payment_method: string | null
+                    profile_id: string
                     responsible_party: string | null
                 }
                 Insert: {
@@ -209,6 +245,7 @@ export type Database = {
                     description?: string | null
                     id?: string | null
                     payment_method?: string | null
+                    profile_id: string
                     responsible_party?: string | null
                 }
                 Update: {
@@ -218,7 +255,46 @@ export type Database = {
                     description?: string | null
                     id?: string | null
                     payment_method?: string | null
+                    profile_id?: string
                     responsible_party?: string | null
+                }
+                Relationships: [
+                    {
+                        foreignKeyName: "line_items_profile_id_fkey"
+                        columns: ["profile_id"]
+                        isOneToOne: false
+                        referencedRelation: "profiles"
+                        referencedColumns: ["id"]
+                    },
+                ]
+            }
+            profiles: {
+                Row: {
+                    avatar_url: string | null
+                    created_at: string
+                    email: string | null
+                    first_name: string | null
+                    id: string
+                    last_name: string | null
+                    updated_at: string | null
+                }
+                Insert: {
+                    avatar_url?: string | null
+                    created_at?: string
+                    email?: string | null
+                    first_name?: string | null
+                    id?: string
+                    last_name?: string | null
+                    updated_at?: string | null
+                }
+                Update: {
+                    avatar_url?: string | null
+                    created_at?: string
+                    email?: string | null
+                    first_name?: string | null
+                    id?: string
+                    last_name?: string | null
+                    updated_at?: string | null
                 }
                 Relationships: []
             }
@@ -502,6 +578,18 @@ export type Database = {
                 }
                 Relationships: []
             }
+            line_items_to_review: {
+                Row: {
+                    _id: string | null
+                    amount: number | null
+                    date: number | null
+                    description: string | null
+                    id: string | null
+                    payment_method: string | null
+                    responsible_party: string | null
+                }
+                Relationships: []
+            }
             net_earnings_per_month: {
                 Row: {
                     month: string | null
@@ -602,4 +690,19 @@ export type Enums<
     ? Database[PublicEnumNameOrOptions["schema"]]["Enums"][EnumName]
     : PublicEnumNameOrOptions extends keyof PublicSchema["Enums"]
     ? PublicSchema["Enums"][PublicEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+    PublicCompositeTypeNameOrOptions extends
+    | keyof PublicSchema["CompositeTypes"]
+    | { schema: keyof Database },
+    CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+        schema: keyof Database
+    }
+    ? keyof Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends { schema: keyof Database }
+    ? Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+    : PublicCompositeTypeNameOrOptions extends keyof PublicSchema["CompositeTypes"]
+    ? PublicSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
