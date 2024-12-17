@@ -1,6 +1,10 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+// Add constants for protected paths
+const PUBLIC_PATHS = ['/login', '/auth', '/signup', '/error'] as const
+const AUTH_PATHS = ['/login', '/signup'] as const
+
 export async function updateSession(request: NextRequest) {
     let supabaseResponse = NextResponse.next({
         request,
@@ -35,25 +39,23 @@ export async function updateSession(request: NextRequest) {
         data: { user },
     } = await supabase.auth.getUser()
 
-    if (
-        !user &&
-        !request.nextUrl.pathname.startsWith('/login') &&
-        !request.nextUrl.pathname.startsWith('/auth') &&
-        !request.nextUrl.pathname.startsWith('/signup')
-    ) {
+    const url = request.nextUrl.clone()
+    const isPublicPath = PUBLIC_PATHS.some(path => request.nextUrl.pathname.startsWith(path))
+    const isAuthPath = AUTH_PATHS.some(path => request.nextUrl.pathname.startsWith(path))
+
+    // Handle API routes separately
+    if (request.nextUrl.pathname.startsWith('/api/')) {
+        return supabaseResponse
+    }
+
+    if (!user && !isPublicPath) {
         // no user, respond by redirecting the user to the login page
-        const url = request.nextUrl.clone()
         url.pathname = '/login'
         return NextResponse.redirect(url)
     }
 
-    if (
-        user &&
-        (request.nextUrl.pathname.startsWith('/login') ||
-            request.nextUrl.pathname.startsWith('/signup'))
-    ) {
+    if (user && isAuthPath) {
         // user is logged in, respond by redirecting the user to the home page
-        const url = request.nextUrl.clone()
         url.pathname = '/'
         return NextResponse.redirect(url)
     }

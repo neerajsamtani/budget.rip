@@ -1,14 +1,13 @@
 "use client"
 
-import Link from "next/link"
+import { useToast } from "@/components/hooks/use-toast"
 import { Button } from "@/components/ui/button"
 import {
     Card,
     CardContent,
     CardDescription,
-    CardFooter,
     CardHeader,
-    CardTitle,
+    CardTitle
 } from "@/components/ui/card"
 import {
     Form,
@@ -19,12 +18,13 @@ import {
     FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { UpdateIcon } from "@radix-ui/react-icons"
-import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
-import { login } from './actions'
+import { UpdateIcon } from "@radix-ui/react-icons"
+import Link from "next/link"
 import { useState } from "react"
+import { useForm } from "react-hook-form"
+import { z } from "zod"
+import { login } from './actions'
 
 const formSchema = z.object({
     email: z.string().email({
@@ -36,6 +36,7 @@ const formSchema = z.object({
 })
 
 export default function LoginPage() {
+    const { toast } = useToast()
     const [isLoading, setIsLoading] = useState(false)
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -46,7 +47,14 @@ export default function LoginPage() {
     })
     async function onSubmit(values: z.infer<typeof formSchema>) {
         setIsLoading(true)
-        await login(values)
+        const result = await login(values)
+        if (result?.error) {
+            toast({
+                variant: "destructive",
+                title: "Error",
+                description: result.error,
+            })
+        }
         setIsLoading(false)
     }
     return (

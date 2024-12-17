@@ -1,14 +1,13 @@
 "use client"
 
-import Link from "next/link"
+import { useToast } from "@/components/hooks/use-toast"
 import { Button } from "@/components/ui/button"
 import {
     Card,
     CardContent,
     CardDescription,
-    CardFooter,
     CardHeader,
-    CardTitle,
+    CardTitle
 } from "@/components/ui/card"
 import {
     Form,
@@ -19,20 +18,15 @@ import {
     FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { UpdateIcon } from "@radix-ui/react-icons"
-import { z } from "zod"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { set, useForm } from "react-hook-form"
-import { signup } from './actions'
+import { UpdateIcon } from "@radix-ui/react-icons"
+import Link from "next/link"
 import { useState } from "react"
+import { useForm } from "react-hook-form"
+import { z } from "zod"
+import { signup } from './actions'
 
 const formSchema = z.object({
-    first_name: z.string().min(1, {
-        message: "First name cannot be blank",
-    }),
-    last_name: z.string().min(1, {
-        message: "Last name cannot be blank",
-    }),
     email: z.string().email({
         message: "Please enter a valid email address",
     }),
@@ -42,19 +36,25 @@ const formSchema = z.object({
 })
 
 export default function SignupPage() {
+    const { toast } = useToast()
     const [isLoading, setIsLoading] = useState(false)
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            first_name: "",
-            last_name: "",
             email: "",
             password: "",
         },
     })
     async function onSubmit(values: z.infer<typeof formSchema>) {
         setIsLoading(true)
-        await signup(values)
+        const result = await signup(values)
+        if (result?.error) {
+            toast({
+                variant: "destructive",
+                title: "Error",
+                description: result.error,
+            })
+        }
         setIsLoading(false)
     }
     return (
@@ -69,38 +69,6 @@ export default function SignupPage() {
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
                         <CardContent className="grid gap-4">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="grid gap-2">
-                                    <FormField
-                                        control={form.control}
-                                        name="first_name"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>First name</FormLabel>
-                                                <FormControl>
-                                                    <Input id="first_name" type="text" required placeholder="John" {...field} />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                </div>
-                                <div className="grid gap-2">
-                                    <FormField
-                                        control={form.control}
-                                        name="last_name"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Last name</FormLabel>
-                                                <FormControl>
-                                                    <Input id="last_name" type="text" required placeholder="Doe" {...field} />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                </div>
-                            </div>
                             <div className="grid gap-2">
                                 <FormField
                                     control={form.control}

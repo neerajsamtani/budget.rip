@@ -5,20 +5,16 @@ import { redirect } from 'next/navigation'
 
 import { createClient } from '@/utils/supabase/server'
 
-export async function signup({ first_name, last_name, email, password }: { first_name: string, last_name: string, email: string, password: string }) {
+export async function signup({ email, password }: { email: string, password: string }) {
     const supabase = createClient()
 
-    const data = {
-        first_name,
-        last_name,
+    const { error } = await supabase.auth.signUp({
         email,
         password,
-    }
-
-    const { error } = await supabase.auth.signUp(data)
+    })
 
     if (error) {
-        redirect('/error')
+        return { error: error.message }
     }
 
     revalidatePath('/', 'layout')
