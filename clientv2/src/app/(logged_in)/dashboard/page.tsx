@@ -55,15 +55,15 @@ export default async function Dashboard() {
         <Card x-chunk="dashboard-01-chunk-0">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Total Revenue
+              Savings Rate
             </CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">$45,231.89</div>
-            <p className="text-xs text-muted-foreground">
+            <div className="text-2xl font-bold">{total_income === 0 ? '0.00' : ((total_net_earnings * 100) / total_income).toFixed(2)}%</div>
+            {/* <p className="text-xs text-muted-foreground">
               +20.1% from last month
-            </p>
+            </p> */}
           </CardContent>
         </Card>
         <Card x-chunk="dashboard-01-chunk-1">
@@ -106,23 +106,27 @@ export default async function Dashboard() {
               </CardDescription>
             </div>
             <Button asChild size="sm" className="ml-auto gap-1">
-              <Link href="#">
+              <Link href="/review">
                 View All
                 <ArrowUpRight className="h-4 w-4" />
               </Link>
             </Button>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Description</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {
-                  line_items.slice(0, 10).map((line_item) => (
+            {line_items.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                No transactions to review
+              </p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Description</TableHead>
+                    <TableHead className="text-right">Amount</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {line_items.slice(0, 10).map((line_item) => (
                     <TableRow key={line_item.id}>
                       <TableCell>
                         <div className="font-medium">
@@ -144,18 +148,33 @@ export default async function Dashboard() {
                       </TableCell>
                       <TableCell className="text-right">{currencyFormatter.format(line_item.amount)}</TableCell>
                     </TableRow>
-                  ))
-                }
-              </TableBody>
-            </Table>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
           </CardContent>
         </Card>
         <Card className="xl:col-span-2" x-chunk="dashboard-01-chunk-5">
-          <CardHeader>
-            <CardTitle>Accounts</CardTitle>
+          <CardHeader className="flex flex-row items-center">
+            <div className="grid gap-2">
+              <CardTitle>Connected Accounts</CardTitle>
+              <CardDescription>
+                View your linked accounts.
+              </CardDescription>
+            </div>
+            <Button asChild size="sm" className="ml-auto gap-1">
+              <Link href="/accounts">
+                Manage Accounts
+                <ArrowUpRight className="h-4 w-4" />
+              </Link>
+            </Button>
           </CardHeader>
           <CardContent className="grid gap-8">
-            {
+            {accounts.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                No accounts connected
+              </p>
+            ) : (
               accounts.map((account) => (
                 <div className="flex items-center gap-4" key={account.id}>
                   <Avatar className="hidden h-9 w-9 sm:flex">
@@ -171,8 +190,9 @@ export default async function Dashboard() {
                     </p>
                   </div>
                   <div className="ml-auto font-medium">{currencyFormatter.format(account.balance)}</div>
-                </div>))
-            }
+                </div>
+              ))
+            )}
           </CardContent>
         </Card>
       </div>

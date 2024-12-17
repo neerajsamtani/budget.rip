@@ -2,7 +2,7 @@ import { DataTable } from "@/components/data-table/data-table"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { getLineItemsToReview } from "@/lib/serverData"
 import { FilterableColumn } from "@/types"
-import { createClient } from "@/utils/supabase/client"
+import { createClient } from "@/utils/supabase/server"
 import { columns } from "./columns"
 
 export default async function ReviewPage() {

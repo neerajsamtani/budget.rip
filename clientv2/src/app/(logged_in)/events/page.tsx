@@ -8,7 +8,6 @@ import { columns } from "./columns"
 export default async function EventsPage() {
     const supabaseClient = createClient()
     const events = await getEvents(supabaseClient)
-
     const categories = events.map((event) => event.category)
     const uniqueCategories = Array.from(new Set(categories))
 
