@@ -7,7 +7,7 @@ import { CATEGORIES } from "@/lib/constants"
 import { getAmountPerCategoryPerMonth, getNetEarningsPerMonth } from "@/lib/serverData"
 import { createClient } from "@/utils/supabase/client"
 import { useSearchParams } from "next/navigation"
-import { useEffect, useState } from "react"
+import { Suspense, useEffect, useState } from "react"
 
 interface ChartDataItem {
     month: string;
@@ -18,7 +18,8 @@ interface ChartDataItem {
 const dateLabelFormatter = (value: string) =>
     `${new Date(value).toLocaleDateString('en-US', { timeZone: 'UTC', month: 'long', year: 'numeric' })}`
 
-export default function AnalyticsPage() {
+// Create a separate component for the analytics content
+function AnalyticsContent() {
     const searchParams = useSearchParams();
     const startDate = searchParams.get(encodeURIComponent("from")) || undefined;
     const endDate = searchParams.get(encodeURIComponent("to")) || undefined;
@@ -85,5 +86,14 @@ export default function AnalyticsPage() {
                 <CustomLineChart chartData={netEarningsPerMonth} />
             </div>
         </main>
+    )
+}
+
+// Main page component with Suspense
+export default function AnalyticsPage() {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <AnalyticsContent />
+        </Suspense>
     )
 }

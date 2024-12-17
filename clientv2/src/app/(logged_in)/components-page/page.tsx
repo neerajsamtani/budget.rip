@@ -4,9 +4,9 @@ import LineItemsTable from "@/components/LineItemsTable";
 import { CATEGORIES, MONTHS, YEARS } from "@/lib/constants";
 import { getPaymentMethods } from "@/lib/data";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 
-export default function ComponentsPage() {
+function ComponentsContent() {
     const searchParams = useSearchParams();
 
     const [paymentMethods, setPaymentMethods] = useState([]);
@@ -42,5 +42,14 @@ export default function ComponentsPage() {
             <p>Payment Method: {payment_method}</p>
 
             <LineItemsTable />
-        </>)
+        </>
+    )
+}
+
+export default function ComponentsPage() {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <ComponentsContent />
+        </Suspense>
+    )
 }

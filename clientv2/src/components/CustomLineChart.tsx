@@ -33,7 +33,7 @@ const chartConfig = {
     },
 } satisfies ChartConfig
 
-export function CustomLineChart(data: any) {
+export function CustomLineChart(_data: any) {
     return (
         <Card>
             <CardHeader>
