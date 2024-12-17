@@ -4,7 +4,6 @@ __pycache__/
 .env.prod
 .DS_Store
 .vscode
-package.json
 build
 env
 venv
