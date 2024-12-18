@@ -40,3 +40,16 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/deploym
 ```bash
 supabase gen types typescript --project-id exlgwhvovrfghnitwuqc > src/lib/types.ts
 ```
+
+## Toast
+
+```jsx
+toast({
+    title: "You submitted the following values:",
+    description: (
+        <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4" >
+            <code className="text-white"> {JSON.stringify(data, null, 2)} </code>
+        </pre>
+    ),
+})
+```

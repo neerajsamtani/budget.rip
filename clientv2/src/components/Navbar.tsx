@@ -88,7 +88,9 @@ export default function Navbar() {
                     <DropdownMenuContent align="end">
                         <DropdownMenuLabel>My Account</DropdownMenuLabel>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem>Settings</DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                            <Link href="/settings">Settings</Link>
+                        </DropdownMenuItem>
                         <DropdownMenuItem>Support</DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem><SignOut /></DropdownMenuItem>
