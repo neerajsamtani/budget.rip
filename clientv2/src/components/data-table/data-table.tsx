@@ -22,6 +22,7 @@ import {
     TableRow,
 } from "@/components/ui/table"
 
+import { cn } from "@/lib/utils"
 import React from "react"
 import { DataTableColumnHeader } from "./data-table-column-header"
 import { DataTablePagination } from "./data-table-pagination"
@@ -83,10 +84,7 @@ export function DataTable<TData, TValue>({
                                     return (
                                         <TableHead key={header.id}>
                                             {header.isPlaceholder ? null : (
-                                                <DataTableColumnHeader
-                                                    column={header.column}
-                                                    title={header.column.columnDef.header as string}
-                                                />
+                                                <DataTableColumnHeader header={header} />
                                             )}
                                         </TableHead>
                                     )
@@ -100,9 +98,16 @@ export function DataTable<TData, TValue>({
                                 <TableRow
                                     key={row.id}
                                     data-state={row.getIsSelected() && "selected"}
+                                    className={cn(
+                                        "h-[48px] overflow-hidden",
+                                        row.getIsSelected() && "bg-muted hover:bg-muted"
+                                    )}
                                 >
                                     {row.getVisibleCells().map((cell) => (
-                                        <TableCell key={cell.id}>
+                                        <TableCell
+                                            key={cell.id}
+                                            className="p-2 overflow-hidden truncate"
+                                        >
                                             {flexRender(cell.column.columnDef.cell, cell.getContext())}
                                         </TableCell>
                                     ))}

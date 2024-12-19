@@ -59,6 +59,14 @@ export const columns: ColumnDef<LineItemColumn>[] = [
         },
     },
     {
+        accessorKey: "payment_method",
+        header: "Payment Method",
+        enableSorting: false,
+        filterFn: (row, id, value: string[]) => {
+            return value.includes(row.getValue(id))
+        },
+    },
+    {
         accessorKey: "description",
         header: "Description",
         enableSorting: false,
@@ -67,13 +75,5 @@ export const columns: ColumnDef<LineItemColumn>[] = [
         accessorKey: "responsible_party",
         header: "Responsible Party",
         enableSorting: false,
-    },
-    {
-        accessorKey: "payment_method",
-        header: "Payment Method",
-        enableSorting: false,
-        filterFn: (row, id, value: string[]) => {
-            return value.includes(row.getValue(id))
-        },
     },
 ]

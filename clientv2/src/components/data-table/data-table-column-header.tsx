@@ -4,32 +4,34 @@ import {
     ArrowUpIcon,
     CaretSortIcon,
 } from "@radix-ui/react-icons"
-import { Column } from "@tanstack/react-table"
+import { flexRender, Header } from "@tanstack/react-table"
 import { Button } from "../ui/button"
 
 interface DataTableColumnHeaderProps<TData, TValue>
     extends React.HTMLAttributes<HTMLDivElement> {
-    column: Column<TData, TValue>
-    title: string
+    header: Header<TData, TValue>
 }
 
 export function DataTableColumnHeader<TData, TValue>({
-    column,
-    title,
+    header,
     className,
 }: DataTableColumnHeaderProps<TData, TValue>) {
-    if (!column.getCanSort()) {
-        return <div className={cn(className)}>{title}</div>
+    if (!header.column.getCanSort()) {
+        return <div className={cn(className)}>{flexRender(header.column.columnDef.header, {
+            column: header.column,
+            header: header,
+            table: header.getContext().table,
+        })}</div>
     }
 
     const handleSort = () => {
-        const currentSort = column.getIsSorted()
+        const currentSort = header.column.getIsSorted()
         if (currentSort === false) {
-            column.toggleSorting(true) // desc
+            header.column.toggleSorting(true) // desc
         } else if (currentSort === "desc") {
-            column.toggleSorting(false) // asc
+            header.column.toggleSorting(false) // asc
         } else {
-            column.clearSorting() // remove sorting
+            header.column.clearSorting() // remove sorting
         }
     }
 
@@ -40,10 +42,14 @@ export function DataTableColumnHeader<TData, TValue>({
             className={cn("-ml-3 h-8 data-[state=open]:bg-accent", className)}
             onClick={handleSort}
         >
-            <span>{title}</span>
-            {column.getIsSorted() === "desc" ? (
+            <span>{flexRender(header.column.columnDef.header, {
+                column: header.column,
+                header: header,
+                table: header.getContext().table,
+            })}</span>
+            {header.column.getIsSorted() === "desc" ? (
                 <ArrowDownIcon className="ml-2 h-4 w-4" />
-            ) : column.getIsSorted() === "asc" ? (
+            ) : header.column.getIsSorted() === "asc" ? (
                 <ArrowUpIcon className="ml-2 h-4 w-4" />
             ) : (
                 <CaretSortIcon className="ml-2 h-4 w-4" />
