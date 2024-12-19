@@ -1,5 +1,6 @@
 "use client"
 
+import type { Table as TableInterface } from "@tanstack/react-table"
 import {
     ColumnDef,
     ColumnFiltersState,
@@ -38,12 +39,16 @@ interface DataTableProps<TData, TValue> {
             value: string
         }[]
     }[]
+    ToolbarButton?: React.ReactNode
+    onTableUpdate?: (table: TableInterface<any>) => void
 }
 
 export function DataTable<TData, TValue>({
     columns,
     data,
     filterableColumns = [],
+    ToolbarButton,
+    onTableUpdate: onTableUpdate,
 }: DataTableProps<TData, TValue>) {
     const [sorting, setSorting] = React.useState<SortingState>([])
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -72,9 +77,14 @@ export function DataTable<TData, TValue>({
         },
     })
 
+    React.useEffect(() => {
+        // If the table is updated, we need pass up the updated table
+        onTableUpdate?.(table)
+    }, [onTableUpdate, table, rowSelection, columnFilters, columnVisibility, sorting])
+
     return (
         <div>
-            <DataTableToolbar table={table} filterableColumns={filterableColumns} />
+            <DataTableToolbar table={table} filterableColumns={filterableColumns} ToolbarButton={ToolbarButton} />
             <div className="rounded-md border">
                 <Table>
                     <TableHeader>

@@ -6,6 +6,7 @@ import { Table } from "@tanstack/react-table"
 import { Button } from "../ui/button"
 
 import pluralize from 'pluralize'
+import React from "react"
 import { DataTableFacetedFilter } from "./data-table-faceted-filter"
 import { DataTableViewOptions } from "./data-table-view-options"
 
@@ -18,11 +19,12 @@ interface DataTableToolbarProps<TData> {
             value: string
         }[]
     }[]
+    ToolbarButton?: React.ReactNode
 }
-
 export function DataTableToolbar<TData>({
     table,
     filterableColumns = [],
+    ToolbarButton,
 }: DataTableToolbarProps<TData>) {
     const isFiltered = table.getState().columnFilters.length > 0
 
@@ -50,7 +52,10 @@ export function DataTableToolbar<TData>({
                     </Button>
                 )}
             </div>
-            <DataTableViewOptions table={table} />
+            <div className="flex flex-1 items-center justify-end space-x-2">
+                {ToolbarButton}
+                <DataTableViewOptions table={table} />
+            </div>
         </div>
     )
 }

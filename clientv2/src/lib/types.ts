@@ -10,7 +10,7 @@ export type Year = typeof YEARS[number];
 export type Month = typeof MONTHS[number];
 
 export interface LineItemInterface {
-    _id: string;
+    _id?: string;
     id: string;
     date: number; // Assuming date is a UNIX timestamp in seconds
     payment_method: string;

@@ -1,13 +1,34 @@
+"use client"
+
 import { DataTable } from "@/components/data-table/data-table"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { getLineItemsToReview } from "@/lib/serverData"
+import { Database, LineItemInterface } from "@/lib/types"
 import { FilterableColumn } from "@/types"
-import { createClient } from "@/utils/supabase/server"
+import { createClient } from "@/utils/supabase/client"
+import { Table } from "@tanstack/react-table"
+import React from "react"
 import { columns } from "./columns"
+import CreateEvent from "./create-event"
 
-export default async function ReviewPage() {
+export default function ReviewPage() {
     const supabaseClient = createClient()
-    const lineItems = await getLineItemsToReview(supabaseClient)
+    const [lineItems, setLineItems] = React.useState<LineItemInterface[]>([])
+    const [selectedRows, setSelectedRows] = React.useState<Database['public']['Tables']['line_items']['Row'][]>([])
+
+    React.useEffect(() => {
+        const fetchLineItems = async () => {
+            const lineItems = await getLineItemsToReview(supabaseClient)
+            setLineItems(lineItems)
+        }
+
+        fetchLineItems()
+    }, [supabaseClient])
+
+    const onTableUpdate = React.useCallback((updatedTable: Table<Database['public']['Tables']['line_items']['Row']>) => {
+        const newSelectedRows = updatedTable.getSelectedRowModel().rows.map((row) => row.original)
+        setSelectedRows(newSelectedRows)
+    }, [])
 
     const paymentMethods = lineItems.map((item) => item.payment_method)
     const uniquePaymentMethods = Array.from(new Set(paymentMethods))
@@ -38,6 +59,8 @@ export default async function ReviewPage() {
                         columns={columns}
                         data={lineItems}
                         filterableColumns={filterableColumns}
+                        ToolbarButton={<CreateEvent selectedRows={selectedRows} />}
+                        onTableUpdate={onTableUpdate}
                     />
                 </CardContent>
             </Card>
