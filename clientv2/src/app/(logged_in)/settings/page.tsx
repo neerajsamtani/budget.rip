@@ -92,7 +92,7 @@ export default function SettingsPage() {
         }
 
         fetchData()
-    }, [supabaseClient, form])
+    }, [supabaseClient, form, toast])
 
     async function onSubmit(data: ProfileFormValues) {
         setIsLoading(true)
