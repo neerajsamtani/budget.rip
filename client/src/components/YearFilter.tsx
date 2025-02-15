@@ -5,7 +5,8 @@ import { Form, InputGroup } from 'react-bootstrap';
 const YEARS = [
   '2022',
   '2023',
-  '2024'
+  '2024',
+  '2025'
 ] as const;
 
 // Infer the Year type from the YEARS array
