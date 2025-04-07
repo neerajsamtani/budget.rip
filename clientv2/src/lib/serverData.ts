@@ -46,8 +46,8 @@ export const getAmountPerCategoryPerMonth = async (supabaseClient: SupabaseClien
     return data;
 };
 
-export const getAccounts = async (supabaseClient: SupabaseClient) => {
-    const { data, error } = await supabaseClient.from('accounts').select('*').order('institution_name', { ascending: true })
+export const getActiveAccounts = async (supabaseClient: SupabaseClient) => {
+    const { data, error } = await supabaseClient.from('accounts').select('*').order('institution_name', { ascending: true }).eq('status', 'active')
     if (error) {
         console.error("Error fetching Accounts:", error);
         throw error; // Re-throw the error for handling in the caller function
@@ -55,6 +55,14 @@ export const getAccounts = async (supabaseClient: SupabaseClient) => {
     return data;
 };
 
+export const getStripeInferredBalances = async (supabaseClient: SupabaseClient) => {
+    const { data, error } = await supabaseClient.from('latest_stripe_inferred_balances').select('*')
+    if (error) {
+        console.error("Error fetching StripeInferredBalances:", error);
+        throw error; // Re-throw the error for handling in the caller function
+    }
+    return data;
+};
 export const getEvents = async (supabaseClient: SupabaseClient) => {
     const { data, error } = await supabaseClient.from('events').select('*').order('date', { ascending: false })
     if (error) {

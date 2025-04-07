@@ -27,7 +27,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { getAccounts, getAmountPerCategoryPerMonth, getLineItemsToReview } from "@/lib/serverData"
+import { getActiveAccounts, getAmountPerCategoryPerMonth, getLineItemsToReview, getStripeInferredBalances } from "@/lib/serverData"
 import { toKebabCase } from "@/lib/utils"
 import { generateImageMap, ImageMap } from "@/utils/getImageMap"
 import { createClient } from "@/utils/supabase/server"
@@ -36,7 +36,8 @@ export default async function Dashboard() {
   const supabaseClient = createClient()
   const line_items = await getLineItemsToReview(supabaseClient)
   const apcm = await getAmountPerCategoryPerMonth(supabaseClient)
-  const accounts = await getAccounts(supabaseClient)
+  const accounts = await getActiveAccounts(supabaseClient)
+  const stripe_inferred_balances = await getStripeInferredBalances(supabaseClient)
   const institutionLogos: ImageMap = generateImageMap('institution_logos')
 
   const total_income = apcm.filter(item => (item.category === 'Income' || item.category === 'Investment')).reduce((acc, curr) => acc - curr.total_amount, 0)
@@ -189,7 +190,7 @@ export default async function Dashboard() {
                       {account.institution_name}
                     </p>
                   </div>
-                  <div className="ml-auto font-medium">{currencyFormatter.format(account.balance)}</div>
+                  <div className="ml-auto font-medium">{currencyFormatter.format(stripe_inferred_balances.find(balance => balance.account_id === account.id)?.balance / 100 || 0)}</div>
                 </div>
               ))
             )}
