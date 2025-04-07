@@ -1,3 +1,4 @@
+import datetime
 import json
 
 import requests
@@ -112,11 +113,12 @@ def get_accounts_and_balances_api():
             auth=(STRIPE_API_KEY, ""),
         )
         account_name = f'{account["institution_name"]} {account["display_name"]} {account["last4"]}'
+        response_data = response.json()["data"]
         accounts_and_balances[account_id] = {
             "id": account_id,
             "name": account_name,
-            "balance": response.json()["data"][0]["current"]["usd"]/100,
-            "as_of" : response.json()["data"][0]["as_of"],
+            "balance": response_data[0]["current"]["usd"]/100 if len(response_data) > 0 else 0,
+            "as_of" : response_data[0]["as_of"] if len(response_data) > 0 else None,
         }
 
     return jsonify(accounts_and_balances)
@@ -194,6 +196,8 @@ def refresh_transactions_api(account_id):
             "account": account_id,
         }
         while has_more:
+            # Print human readable time
+            print("Last request at: ", datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             response = requests.get(
                 "https://api.stripe.com/v1/financial_connections/transactions",
                 params=params,
@@ -214,7 +218,8 @@ def refresh_transactions_api(account_id):
             last_transaction = data[-1]
             params["starting_after"] = last_transaction["id"]
 
-        stripe_to_line_items()
+        # If we want to enable only refreshing a single account, we need to uncomment this
+        # stripe_to_line_items()
         return jsonify("Refreshed Stripe Connection for Given Account")
 
     except Exception as e:
@@ -227,6 +232,7 @@ def refresh_stripe():
     for account in bank_accounts:
         refresh_account_api(account["id"])
         refresh_transactions_api(account["id"])
+    stripe_to_line_items()
 
 
 def stripe_to_line_items():
