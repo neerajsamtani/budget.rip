@@ -159,16 +159,51 @@ const eventHints: EventHint[] = [
         }
     },
     {
-        cel_expression: 'description contains "AMC 9640 ONLINE" && amount < 25.00 && amount > 24.00',
+        cel_expression: 'description contains "CHAATCORNERSF.COM"',
+        prefill: {
+            name: "Chaat Corner",
+            category: "Dining",
+        }
+    },
+    {
+        cel_expression: 'description contains "AMC 9640 ONLINE" && amount < 28.00 && amount > 27.00',
         prefill: {
             name: "AMC A-List",
             category: "Subscription",
         }
     },
     {
-        cel_expression: 'description contains "Netflix.com" && amount == 6.99',
+        cel_expression: 'description contains "Netflix.com" && amount < 18.00 && amount > 17.00',
         prefill: {
             name: "Netflix",
+            category: "Subscription",
+        }
+    },
+    {
+        cel_expression: 'description contains "WHOLEFDS"',
+        prefill: {
+            name: "Wholefoods",
+            category: "Groceries",
+        }
+    },
+    {
+        cel_expression: 'description contains "Whole Foods"',
+        prefill: {
+            name: "Wholefoods",
+            category: "Groceries",
+        }
+    },
+    {
+        cel_expression: 'description contains "ATLASCOFFEECLUB"',
+        prefill: {
+            name: "Atlas Coffee Club",
+            category: "Subscription",
+        }
+    },
+    {
+        cel_expression: 'description contains "CBS Mobile App"',
+        prefill: {
+            name: "Paramount Plus",
             category: "Subscription",
         }
     },
