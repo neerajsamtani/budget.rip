@@ -119,6 +119,7 @@ def get_accounts_and_balances_api():
             "name": account_name,
             "balance": response_data[0]["current"]["usd"]/100 if len(response_data) > 0 else 0,
             "as_of" : response_data[0]["as_of"] if len(response_data) > 0 else None,
+            "status": account["status"],
         }
 
     return jsonify(accounts_and_balances)
