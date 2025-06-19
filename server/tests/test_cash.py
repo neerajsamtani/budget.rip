@@ -1,4 +1,5 @@
 import pytest
+
 from dao import (
     cash_raw_data_collection,
     get_all_data,
@@ -49,8 +50,8 @@ def test_create_cash_transaction_api(test_client, jwt_token, flask_app):
         headers={"Authorization": "Bearer " + jwt_token},
     )
 
-    # Ensure that the status code is 200 (OK)
-    assert response.status_code == 200
+    # Ensure that the status code is 201 (Created)
+    assert response.status_code == 201
 
     # Ensure that the JSON response is as expected
     expected_response = "Created Cash Transaction"
