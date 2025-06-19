@@ -21,6 +21,11 @@ auth_blueprint = Blueprint("auth", __name__)
 def signup_user_api() -> tuple[Response, int]:
     body: Dict[str, Any] = request.get_json()
     user: Dict[str, Any] = {}
+    # Required fields
+    required_fields = ["first_name", "last_name", "email", "password"]
+    for field in required_fields:
+        if field not in body or not body[field]:
+            return jsonify({"error": f"Missing required field: {field}"}), 400
     if get_user_by_email(body["email"]):
         return jsonify("User Already Exists"), 400
     elif body["email"] not in GATED_USERS:
@@ -38,6 +43,11 @@ def signup_user_api() -> tuple[Response, int]:
 @auth_blueprint.route("/api/auth/login", methods=["POST"])
 def login_user_api() -> tuple[Response, int]:
     body: Dict[str, Any] = request.get_json()
+    # Required fields
+    required_fields = ["email", "password"]
+    for field in required_fields:
+        if field not in body or not body[field]:
+            return jsonify({"error": f"Missing required field: {field}"}), 400
     user: Optional[Dict[str, Any]] = get_user_by_email(body["email"])
     if user is None:
         return jsonify({"error": "Email or password invalid"}), 401
