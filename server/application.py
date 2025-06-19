@@ -92,7 +92,7 @@ load_dotenv()
 def user_lookup_callback(
     _jwt_header: Dict[str, Any], jwt_data: Dict[str, Any]
 ) -> Optional[Dict[str, Any]]:
-    id: str = str(ObjectId(jwt_data["sub"]))
+    id: ObjectId = ObjectId(jwt_data["sub"])
     return get_item_by_id(users_collection, id)
 
 
