@@ -1,5 +1,5 @@
 from datetime import timedelta
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from flask import Blueprint, Response, jsonify, request
 from flask_jwt_extended import (
@@ -38,7 +38,9 @@ def signup_user_api() -> tuple[Response, int]:
 @auth_blueprint.route("/api/auth/login", methods=["POST"])
 def login_user_api() -> tuple[Response, int]:
     body: Dict[str, Any] = request.get_json()
-    user: Dict[str, Any] = get_user_by_email(body["email"])
+    user: Optional[Dict[str, Any]] = get_user_by_email(body["email"])
+    if user is None:
+        return jsonify({"error": "Email or password invalid"}), 401
     authorized: bool = check_password(user["password_hash"], body["password"])
     if not authorized:
         return jsonify({"error": "Email or password invalid"}), 401

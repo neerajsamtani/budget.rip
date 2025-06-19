@@ -98,5 +98,9 @@ def get_line_item_api(line_item_id: str) -> tuple[Response, int]:
     """
     Get A Line Item
     """
-    line_item: Dict[str, Any] = get_item_by_id(line_items_collection, line_item_id)
+    line_item: Optional[Dict[str, Any]] = get_item_by_id(
+        line_items_collection, line_item_id
+    )
+    if line_item is None:
+        return jsonify({"error": "Line item not found"}), 404
     return jsonify(line_item), 200

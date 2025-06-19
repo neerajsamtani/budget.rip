@@ -1,4 +1,4 @@
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from flask import Blueprint, Response, jsonify, request
 from flask_jwt_extended import get_current_user, jwt_required
@@ -46,7 +46,9 @@ def get_event_api(event_id: str) -> tuple[Response, int]:
     """
     Get An Event
     """
-    event: Dict[str, Any] = get_item_by_id(events_collection, event_id)
+    event: Optional[Dict[str, Any]] = get_item_by_id(events_collection, event_id)
+    if event is None:
+        return jsonify({"error": "Event not found"}), 404
     return jsonify(event), 200
 
 
@@ -98,7 +100,9 @@ def delete_event_api(event_id: str) -> tuple[Response, int]:
     """
     Delete An Event
     """
-    event: Dict[str, Any] = get_item_by_id(events_collection, event_id)
+    event: Optional[Dict[str, Any]] = get_item_by_id(events_collection, event_id)
+    if event is None:
+        return jsonify({"error": "Event not found"}), 404
     line_item_ids: List[str] = event["line_items"]
     delete_from_collection(events_collection, event_id)
     for line_item_id in line_item_ids:
@@ -115,10 +119,16 @@ def get_line_items_for_event_api(
     Get All Line Items Belonging To An Event
     """
     try:
-        event: Dict[str, Any] = get_item_by_id(events_collection, event_id)
+        event: Optional[Dict[str, Any]] = get_item_by_id(events_collection, event_id)
+        if event is None:
+            return jsonify({"error": "Event not found"}), 404
         line_items: List[Dict[str, Any]] = []
         for line_item_id in event["line_items"]:
-            line_items.append(get_item_by_id(line_items_collection, line_item_id))
+            line_item: Optional[Dict[str, Any]] = get_item_by_id(
+                line_items_collection, line_item_id
+            )
+            if line_item is not None:
+                line_items.append(line_item)
         return jsonify({"data": line_items}), 200
     except Exception as e:
         return jsonify(error=str(e)), 500
