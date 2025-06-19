@@ -47,6 +47,20 @@ def to_dict_robust(obj) -> Dict:
         return to_dict(obj)
 
 
+def str_to_bool(value: str | bool | None) -> bool:
+    """Convert string to boolean."""
+    if isinstance(value, bool):
+        return value
+    if value is None:
+        return False
+    if value.lower() in ("yes", "true", "t", "y", "1"):
+        return True
+    elif value.lower() in ("no", "false", "f", "n", "0"):
+        return False
+    else:
+        raise ValueError(f'Cannot convert "{value}" to boolean')
+
+
 def iso_8601_to_readable(date: str) -> str:
     # TODO: Don't strip time data from date
     # Check that the input is a valid ISO 8601 date string with a time component.

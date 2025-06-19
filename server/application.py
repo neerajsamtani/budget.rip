@@ -1,7 +1,16 @@
 import logging
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 from bson import ObjectId
+from dotenv import load_dotenv
+from flask import Flask, Response, jsonify
+from flask_bcrypt import Bcrypt
+from flask_cors import CORS
+from flask_jwt_extended import JWTManager, jwt_required
+from flask_pymongo import PyMongo
+from venmo_api.models.user import User
+
 from clients import splitwise_client, venmo_client
 from constants import JWT_COOKIE_DOMAIN, JWT_SECRET_KEY, MONGO_URI
 from dao import (
@@ -11,15 +20,8 @@ from dao import (
     get_all_data,
     get_item_by_id,
     line_items_collection,
-    upsert,
     users_collection,
 )
-from dotenv import load_dotenv
-from flask import Flask, jsonify
-from flask_bcrypt import Bcrypt
-from flask_cors import CORS
-from flask_jwt_extended import JWTManager, jwt_required
-from flask_pymongo import PyMongo
 from resources.auth import auth_blueprint
 from resources.cash import cash_blueprint, cash_to_line_items
 from resources.event import events_blueprint
@@ -35,13 +37,13 @@ from resources.venmo import refresh_venmo, venmo_blueprint, venmo_to_line_items
 
 # Flask constructor takes the name of
 # current module (__name__) as argument.
-application = Flask(
+application: Flask = Flask(
     __name__, static_folder="public", static_url_path="", template_folder="public"
 )
 
-cors = CORS(application, supports_credentials=True)
-bcrypt = Bcrypt(application)
-jwt = JWTManager(application)
+cors: CORS = CORS(application, supports_credentials=True)
+bcrypt: Bcrypt = Bcrypt(application)
+jwt: JWTManager = JWTManager(application)
 # JWT Config Links
 # - https://flask-jwt-extended.readthedocs.io/en/stable/options.html
 # - https://flask-jwt-extended.readthedocs.io/en/3.0.0_release/tokens_in_cookies/
@@ -87,8 +89,10 @@ load_dotenv()
 # successful lookup, or None if the lookup failed for any reason (for example
 # if the user has been deleted from the database).
 @jwt.user_lookup_loader
-def user_lookup_callback(_jwt_header, jwt_data):
-    id = ObjectId(jwt_data["sub"])
+def user_lookup_callback(
+    _jwt_header: Dict[str, Any], jwt_data: Dict[str, Any]
+) -> Optional[Dict[str, Any]]:
+    id: ObjectId = ObjectId(jwt_data["sub"])
     return get_item_by_id(users_collection, id)
 
 
@@ -98,37 +102,40 @@ def user_lookup_callback(_jwt_header, jwt_data):
 
 
 @application.route("/api/")
-def index_api():
-    return jsonify("Welcome to Budgit API")
+def index_api() -> tuple[Response, int]:
+    return jsonify("Welcome to Budgit API"), 200
 
 
 @application.route("/api/refresh/scheduled")
-def schedule_refresh_api():
+def schedule_refresh_api() -> tuple[Response, int]:
     print("Initiating scheduled refresh at " + str(datetime.now()))
     try:
         refresh_all()
         create_consistent_line_items()
     except Exception as e:
         print("Error refreshing all: " + str(e))
-        return jsonify({"error": str(e)})
-    return jsonify({"message": "success"})
+        return jsonify({"error": str(e)}), 500
+    return jsonify({"message": "success"}), 200
 
 
 @application.route("/api/refresh/all")
 @jwt_required()
-def refresh_all_api():
+def refresh_all_api() -> tuple[Response, int]:
     refresh_all()
     create_consistent_line_items()
-    line_items = all_line_items(only_line_items_to_review=True)
-    return jsonify({"data": line_items})
+    line_items: List[Dict[str, Any]] = all_line_items(only_line_items_to_review=True)
+    return jsonify({"data": line_items}), 200
 
 
 @application.route("/api/connected_accounts", methods=["GET"])
 @jwt_required()
-def get_connected_accounts_api():
-    connected_accounts = []
+def get_connected_accounts_api() -> tuple[Response, int]:
+    connected_accounts: List[Dict[str, Any]] = []
     # # venmo
-    connected_accounts.append({"venmo": [venmo_client.my_profile().username]})
+    profile: User | None = venmo_client.my_profile()
+    if profile is None:
+        raise Exception("Failed to get Venmo profile")
+    connected_accounts.append({"venmo": [profile.username]})
     # splitwise
     connected_accounts.append(
         {
@@ -138,27 +145,27 @@ def get_connected_accounts_api():
         }
     )
     # stripe
-    bank_accounts = get_all_data(bank_accounts_collection)
+    bank_accounts: List[Dict[str, Any]] = get_all_data(bank_accounts_collection)
     connected_accounts.append({"stripe": bank_accounts})
-    return jsonify(connected_accounts)
+    return jsonify(connected_accounts), 200
 
 
 @application.route("/api/payment_methods", methods=["GET"])
 @jwt_required()
-def get_payment_methods_api():
+def get_payment_methods_api() -> tuple[Response, int]:
     # Cash, Venmo, and Splitwise must be connected
-    payment_methods = ["Cash", "Venmo", "Splitwise"]
+    payment_methods: List[str] = ["Cash", "Venmo", "Splitwise"]
     # stripe
-    bank_accounts = get_all_data(bank_accounts_collection)
+    bank_accounts: List[Dict[str, Any]] = get_all_data(bank_accounts_collection)
     for account in bank_accounts:
         payment_methods.append(account["display_name"])
-    return jsonify(payment_methods)
+    return jsonify(payment_methods), 200
 
 
 # TODO: Need to add webhooks for updates after the server has started
 
 
-def add_event_ids_to_line_items():
+def add_event_ids_to_line_items() -> None:
     """
     Add event IDs to line items with optimized database operations.
 
@@ -167,15 +174,15 @@ def add_event_ids_to_line_items():
     2. Collect all line items before bulk upserting
     3. Process line items in batches for better memory management
     """
-    events = get_all_data(events_collection)
+    events: List[Dict[str, Any]] = get_all_data(events_collection)
 
     # Collect all line items that need updating for bulk upsert
-    all_line_items_to_update = []
+    all_line_items_to_update: List[Dict[str, Any]] = []
 
     for event in events:
-        filters = {}
+        filters: Dict[str, Any] = {}
         filters["_id"] = {"$in": event["line_items"]}
-        line_items = get_all_data(line_items_collection, filters)
+        line_items: List[Dict[str, Any]] = get_all_data(line_items_collection, filters)
 
         for line_item in line_items:
             line_item["event_id"] = event["id"]
@@ -186,14 +193,14 @@ def add_event_ids_to_line_items():
         bulk_upsert(line_items_collection, all_line_items_to_update)
 
 
-def refresh_all():
+def refresh_all() -> None:
     print("Refreshing All Data")
     refresh_splitwise()
     refresh_venmo()
     refresh_stripe()
 
 
-def create_consistent_line_items():
+def create_consistent_line_items() -> None:
     print("Creating Consistent Line Items")
     splitwise_to_line_items()
     venmo_to_line_items()

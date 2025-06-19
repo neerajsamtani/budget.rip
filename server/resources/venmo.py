@@ -1,3 +1,9 @@
+from typing import Any, Dict, List
+
+from flask import Blueprint, Response, jsonify
+from flask_jwt_extended import jwt_required
+from venmo_api.models.user import User
+
 from clients import venmo_client
 from constants import MOVING_DATE_POSIX, PARTIES_TO_IGNORE, USER_FIRST_NAME
 from dao import (
@@ -6,8 +12,6 @@ from dao import (
     line_items_collection,
     venmo_raw_data_collection,
 )
-from flask import Blueprint, jsonify
-from flask_jwt_extended import jwt_required
 from helpers import flip_amount
 from resources.line_item import LineItem
 
@@ -21,20 +25,23 @@ venmo_blueprint = Blueprint("venmo", __name__)
 
 @venmo_blueprint.route("/api/refresh/venmo")
 @jwt_required()
-def refresh_venmo_api():
+def refresh_venmo_api() -> tuple[Response, int]:
     refresh_venmo()
     venmo_to_line_items()
-    return jsonify("Refreshed Venmo Connection")
+    return jsonify("Refreshed Venmo Connection"), 200
 
 
-def refresh_venmo():
+def refresh_venmo() -> None:
     print("Refreshing Venmo Data")
-    my_id = venmo_client.my_profile().id
-    transactions = venmo_client.user.get_user_transactions(my_id)
-    transactions_after_moving_date = True
+    profile: User | None = venmo_client.my_profile()
+    if profile is None:
+        raise Exception("Failed to get Venmo profile")
+    my_id: int = profile.id
+    transactions: Any = venmo_client.user.get_user_transactions(str(my_id))  # type: ignore
+    transactions_after_moving_date: bool = True
 
     # Collect all transactions for bulk upsert
-    all_transactions = []
+    all_transactions: List[Any] = []
 
     while transactions and transactions_after_moving_date:
         for transaction in transactions:
@@ -56,7 +63,7 @@ def refresh_venmo():
         bulk_upsert(venmo_raw_data_collection, all_transactions)
 
 
-def venmo_to_line_items():
+def venmo_to_line_items() -> None:
     """
     Convert Venmo transactions to line items with optimized database operations.
 
@@ -65,14 +72,14 @@ def venmo_to_line_items():
     2. Collect all line items before bulk upserting
     3. Improved logic flow for better performance
     """
-    payment_method = "Venmo"
-    venmo_raw_data = get_all_data(venmo_raw_data_collection)
+    payment_method: str = "Venmo"
+    venmo_raw_data: List[Dict[str, Any]] = get_all_data(venmo_raw_data_collection)
 
     # Collect all line items for bulk upsert
-    all_line_items = []
+    all_line_items: List[LineItem] = []
 
     for transaction in venmo_raw_data:
-        posix_date = float(transaction["date_created"])
+        posix_date: float = float(transaction["date_created"])
 
         if (
             transaction["actor"]["first_name"] == USER_FIRST_NAME
@@ -103,9 +110,9 @@ def venmo_to_line_items():
         else:
             # current user gets money
             if transaction["target"]["first_name"] == USER_FIRST_NAME:
-                other_name = transaction["actor"]["first_name"]
+                other_name: str = transaction["actor"]["first_name"]
             else:
-                other_name = transaction["target"]["first_name"]
+                other_name: str = transaction["target"]["first_name"]
             line_item = LineItem(
                 f'line_item_{transaction["_id"]}',
                 posix_date,
