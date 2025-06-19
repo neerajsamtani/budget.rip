@@ -1,4 +1,5 @@
 import pytest
+
 from dao import get_all_data, get_collection, insert, test_collection
 
 
