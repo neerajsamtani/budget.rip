@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+from constants import GATED_USERS
 from dao import get_user_by_email, insert, users_collection
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import (
@@ -8,7 +9,6 @@ from flask_jwt_extended import (
     unset_jwt_cookies,
 )
 from helpers import check_password, hash_password
-from constants import GATED_USERS
 
 auth_blueprint = Blueprint("auth", __name__)
 

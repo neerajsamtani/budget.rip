@@ -2,9 +2,11 @@ import datetime
 import json
 
 import requests
+import stripe
 from constants import STRIPE_API_KEY, STRIPE_CUSTOMER_ID
 from dao import (
     bank_accounts_collection,
+    bulk_upsert,
     get_all_data,
     get_item_by_id,
     line_items_collection,
@@ -14,11 +16,8 @@ from dao import (
 )
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required
-from helpers import flip_amount
-
-import stripe
+from helpers import cents_to_dollars, flip_amount
 from resources.line_item import LineItem
-from helpers import cents_to_dollars
 
 stripe_blueprint = Blueprint("stripe", __name__)
 
@@ -32,7 +31,7 @@ def refresh_stripe_api():
 
 @stripe_blueprint.route("/api/create-fc-session", methods=["POST"])
 @jwt_required()
-def create_fc_session_api(relink_auth = None):
+def create_fc_session_api(relink_auth=None):
     try:
         # TODO: Is there a better pattern than nested trys?
         try:
@@ -61,7 +60,9 @@ def create_fc_session_api(relink_auth = None):
             data["relink_options[authorization]"] = relink_auth
 
         # Make the request
-        session = requests.post(url, headers=headers, data=data, auth=(STRIPE_API_KEY, ""))
+        session = requests.post(
+            url, headers=headers, data=data, auth=(STRIPE_API_KEY, "")
+        )
 
         return jsonify({"clientSecret": session.json()["client_secret"]})
     except Exception as e:
@@ -93,6 +94,7 @@ def get_accounts_api(session_id):
     except Exception as e:
         return jsonify(error=str(e)), 403
 
+
 @stripe_blueprint.route("/api/accounts_and_balances")
 @jwt_required()
 def get_accounts_and_balances_api():
@@ -117,12 +119,17 @@ def get_accounts_and_balances_api():
         accounts_and_balances[account_id] = {
             "id": account_id,
             "name": account_name,
-            "balance": response_data[0]["current"]["usd"]/100 if len(response_data) > 0 else 0,
-            "as_of" : response_data[0]["as_of"] if len(response_data) > 0 else None,
+            "balance": (
+                response_data[0]["current"]["usd"] / 100
+                if len(response_data) > 0
+                else 0
+            ),
+            "as_of": response_data[0]["as_of"] if len(response_data) > 0 else None,
             "status": account["status"],
         }
 
     return jsonify(accounts_and_balances)
+
 
 @stripe_blueprint.route("/api/subscribe_to_account/<account_id>")
 @jwt_required()
@@ -147,6 +154,7 @@ def subscribe_to_account_api(account_id):
     except Exception as e:
         return jsonify(error=str(e)), 403
 
+
 @stripe_blueprint.route("/api/refresh_account/<account_id>")
 def refresh_account_api(account_id):
     try:
@@ -157,6 +165,7 @@ def refresh_account_api(account_id):
         return jsonify({"data": "success"})
     except Exception as e:
         return jsonify(error=str(e)), 403
+
 
 @stripe_blueprint.route("/api/relink_account/<account_id>")
 @jwt_required()
@@ -173,7 +182,7 @@ def relink_account_api(account_id):
             headers=headers,
             auth=(STRIPE_API_KEY, ""),
         )
-        if (response.json()["status_details"]["inactive"]["action"] != "relink_required"):
+        if response.json()["status_details"]["inactive"]["action"] != "relink_required":
             return jsonify({"relink_required": False})
 
         response = create_fc_session_api(account["authorization"])
@@ -181,6 +190,7 @@ def relink_account_api(account_id):
 
     except Exception as e:
         return jsonify(error=str(e)), 403
+
 
 @stripe_blueprint.route("/api/refresh_transactions/<account_id>")
 def refresh_transactions_api(account_id):
@@ -196,9 +206,16 @@ def refresh_transactions_api(account_id):
             "limit": "100",
             "account": account_id,
         }
+
+        # Collect all transactions for bulk upsert
+        all_transactions = []
+
         while has_more:
             # Print human readable time
-            print("Last request at: ", datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+            print(
+                "Last request at: ",
+                datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            )
             response = requests.get(
                 "https://api.stripe.com/v1/financial_connections/transactions",
                 params=params,
@@ -207,17 +224,23 @@ def refresh_transactions_api(account_id):
             )
             response = json.loads(response.text)
             data = response["data"]
+
             for transaction in data:
                 if transaction["status"] == "posted":
-                    upsert(stripe_raw_transaction_data_collection, transaction)
+                    all_transactions.append(transaction)
                 elif transaction["status"] == "pending":
                     print(
                         f"Pending Transaction: {transaction['description']} | "
                         + f"{cents_to_dollars(flip_amount(transaction['amount']))}"
                     )
+
             has_more = response["has_more"]
             last_transaction = data[-1]
             params["starting_after"] = last_transaction["id"]
+
+        # Bulk upsert all collected transactions at once
+        if all_transactions:
+            bulk_upsert(stripe_raw_transaction_data_collection, all_transactions)
 
         # If we want to enable only refreshing a single account, we need to uncomment this
         # stripe_to_line_items()
@@ -237,13 +260,35 @@ def refresh_stripe():
 
 
 def stripe_to_line_items():
-    payment_method = "Stripe"
+    """
+    Convert Stripe transactions to line items with optimized database operations.
+
+    Optimizations:
+    1. Pre-fetch all accounts and create a lookup dictionary to avoid repeated database calls
+    2. Use bulk upsert operations instead of individual upserts
+    3. Process transactions in batches to handle large datasets efficiently
+    """
+    # Pre-fetch all accounts and create a lookup dictionary
+    all_accounts = get_all_data(bank_accounts_collection)
+    account_lookup = {account["_id"]: account for account in all_accounts}
+
+    # Get all stripe transactions
     stripe_raw_data = get_all_data(stripe_raw_transaction_data_collection)
+
+    # Process transactions in batches for better memory management
+    batch_size = 1000
+    line_items_batch = []
+
     for transaction in stripe_raw_data:
-        transaction_account = get_item_by_id(
-            bank_accounts_collection, transaction["account"]
-        )
-        payment_method = transaction_account["display_name"]
+        # Use memoized account lookup instead of database call
+        transaction_account = account_lookup.get(transaction["account"])
+
+        if transaction_account:
+            payment_method = transaction_account["display_name"]
+        else:
+            # Fallback to default if account not found
+            payment_method = "Stripe"
+
         line_item = LineItem(
             f'line_item_{transaction["_id"]}',
             transaction["transacted_at"],
@@ -252,4 +297,14 @@ def stripe_to_line_items():
             transaction["description"],
             flip_amount(transaction["amount"]) / 100,
         )
-        upsert(line_items_collection, line_item)
+
+        line_items_batch.append(line_item)
+
+        # Bulk upsert when batch is full
+        if len(line_items_batch) >= batch_size:
+            bulk_upsert(line_items_collection, line_items_batch)
+            line_items_batch = []
+
+    # Upsert remaining items in the final batch
+    if line_items_batch:
+        bulk_upsert(line_items_collection, line_items_batch)

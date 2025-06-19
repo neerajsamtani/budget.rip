@@ -1,6 +1,7 @@
 from clients import splitwise_client
 from constants import LIMIT, MOVING_DATE, PARTIES_TO_IGNORE, USER_FIRST_NAME
 from dao import (
+    bulk_upsert,
     get_all_data,
     line_items_collection,
     splitwise_raw_data_collection,
@@ -33,30 +34,55 @@ def refresh_splitwise_api():
 def refresh_splitwise():
     print("Refreshing Splitwise Data")
     expenses = splitwise_client.getExpenses(limit=LIMIT, dated_after=MOVING_DATE)
+
+    # Collect all non-deleted expenses for bulk upsert
+    all_expenses = []
     for expense in expenses:
         # TODO: What if an expense is deleted? What if it's part of an event?
         # Should I send a notification?
         if expense.deleted_at is not None:
             continue
-        upsert(splitwise_raw_data_collection, expense)
+        all_expenses.append(expense)
+
+    # Bulk upsert all collected expenses at once
+    if all_expenses:
+        bulk_upsert(splitwise_raw_data_collection, all_expenses)
 
 
 def splitwise_to_line_items():
+    """
+    Convert Splitwise expenses to line items with optimized database operations.
+
+    Optimizations:
+    1. Use bulk upsert operations instead of individual upserts
+    2. Collect all line items before bulk upserting
+    3. Improved logic flow for better performance
+    """
     payment_method = "Splitwise"
     expenses = get_all_data(splitwise_raw_data_collection)
+
+    # Collect all line items for bulk upsert
+    all_line_items = []
+
     for expense in expenses:
+        # Determine responsible party
         responsible_party = ""
-        # Get Person Name
         for user in expense["users"]:
             if user["first_name"] != USER_FIRST_NAME:
                 # TODO: Set up comma separated list of responsible parties
                 responsible_party += f'{user["first_name"]} '
+
+        # Skip if responsible party is in ignore list
         if responsible_party in PARTIES_TO_IGNORE:
             continue
+
         posix_date = iso_8601_to_posix(expense["date"])
+
+        # Find the current user's data and create line item
         for user in expense["users"]:
             if user["first_name"] != USER_FIRST_NAME:
                 continue
+
             line_item = LineItem(
                 f'line_item_{expense["_id"]}',
                 posix_date,
@@ -65,5 +91,9 @@ def splitwise_to_line_items():
                 expense["description"],
                 flip_amount(user["net_balance"]),
             )
-            upsert(line_items_collection, line_item)
-            break
+            all_line_items.append(line_item)
+            break  # Found the user, no need to continue loop
+
+    # Bulk upsert all collected line items at once
+    if all_line_items:
+        bulk_upsert(line_items_collection, all_line_items)

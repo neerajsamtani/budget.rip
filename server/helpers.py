@@ -25,6 +25,28 @@ def to_dict(obj) -> Dict:
     return json.loads(json.dumps(obj, default=lambda o: o.__dict__))
 
 
+def to_dict_robust(obj) -> Dict:
+    """
+    More robust version of to_dict that handles complex objects better.
+    Falls back to the original to_dict if the robust version fails.
+    """
+    try:
+        if isinstance(obj, dict):
+            return obj
+        elif hasattr(obj, "__dict__"):
+            # For objects with __dict__ attribute
+            return json.loads(json.dumps(obj, default=lambda o: o.__dict__))
+        elif hasattr(obj, "__slots__"):
+            # For objects with __slots__ (like some API objects)
+            return {slot: getattr(obj, slot, None) for slot in obj.__slots__}
+        else:
+            # Fallback: try to convert to string and back
+            return json.loads(json.dumps(obj, default=str))
+    except Exception:
+        # Final fallback to original to_dict
+        return to_dict(obj)
+
+
 def iso_8601_to_readable(date: str) -> str:
     # TODO: Don't strip time data from date
     # Check that the input is a valid ISO 8601 date string with a time component.
