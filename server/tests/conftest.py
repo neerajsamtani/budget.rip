@@ -66,6 +66,38 @@ def flask_app():
         def user_lookup_callback(jwt_header, jwt_payload):
             return {"email": "test@example.com", "id": "user_id"}
 
+        # Import and register main application routes from application.py
+        from application import (
+            get_connected_accounts_api,
+            get_payment_methods_api,
+            index_api,
+            refresh_all_api,
+            schedule_refresh_api,
+        )
+
+        app.add_url_rule("/api/", "index_api", index_api, methods=["GET"])
+        app.add_url_rule(
+            "/api/refresh/scheduled",
+            "schedule_refresh_api",
+            schedule_refresh_api,
+            methods=["GET"],
+        )
+        app.add_url_rule(
+            "/api/refresh/all", "refresh_all_api", refresh_all_api, methods=["GET"]
+        )
+        app.add_url_rule(
+            "/api/connected_accounts",
+            "get_connected_accounts_api",
+            get_connected_accounts_api,
+            methods=["GET"],
+        )
+        app.add_url_rule(
+            "/api/payment_methods",
+            "get_payment_methods_api",
+            get_payment_methods_api,
+            methods=["GET"],
+        )
+
     yield app
 
 
