@@ -128,9 +128,6 @@ class TestStripeAPI:
                     headers={"Authorization": "Bearer " + jwt_token},
                 )
 
-                print(f"Response status: {response.status_code}")
-                print(f"Response data: {response.get_data(as_text=True)}")
-
                 assert response.status_code == 200
                 data = response.get_json()
                 assert "clientSecret" in data
@@ -172,9 +169,6 @@ class TestStripeAPI:
                     "/api/create-fc-session",
                     headers={"Authorization": "Bearer " + jwt_token},
                 )
-
-                print(f"Response status: {response.status_code}")
-                print(f"Response data: {response.get_data(as_text=True)}")
 
                 assert response.status_code == 200
                 mock_create.assert_called_once()
@@ -369,9 +363,6 @@ class TestStripeAPI:
                     headers={"Authorization": "Bearer " + jwt_token},
                 )
 
-                print(f"Response status: {response.status_code}")
-                print(f"Response data: {response.get_data(as_text=True)}")
-
                 assert response.status_code == 200
                 data = response.get_json()
                 assert "client_secret" in data
@@ -436,9 +427,6 @@ class TestStripeAPI:
                 mock_get.return_value = mock_response
 
                 response = test_client.get("/api/refresh_transactions/fca_test123")
-
-                print(f"Response status: {response.status_code}")
-                print(f"Response data: {response.get_data(as_text=True)}")
 
                 assert response.status_code == 200
                 assert (

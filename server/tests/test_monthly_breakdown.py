@@ -264,11 +264,8 @@ class TestMonthlyBreakdownAPI:
         assert response.status_code == 200
         data = response.get_json()
 
-        print(f"Full response data: {data}")
-
         # Verify Food category has data for Jan and Feb, and zeros for Mar and Apr
         food_data = data["Food"]
-        print(f"Food data: {food_data}")
         assert len(food_data) == 4  # 4 months (Jan, Feb, Mar, Apr)
 
         jan_food = next(item for item in food_data if item["date"] == "1-2023")
@@ -285,7 +282,6 @@ class TestMonthlyBreakdownAPI:
 
         # Verify Transportation category has data for Jan and Apr, and zeros for Feb and Mar
         transport_data = data["Transportation"]
-        print(f"Transportation data: {transport_data}")
         assert len(transport_data) == 4  # 4 months (Jan, Feb, Mar, Apr)
 
         jan_transport = next(
