@@ -1,7 +1,6 @@
 node_modules/
 __pycache__/
-.env
-.env.prod
+.env*
 .DS_Store
 .vscode
 build

@@ -1,9 +1,10 @@
 from typing import List
 
 from flask import current_app
-from helpers import to_dict, to_dict_robust
 from pymongo import UpdateOne
 from pymongo.errors import BulkWriteError
+
+from helpers import to_dict, to_dict_robust
 
 venmo_raw_data_collection = "venmo_raw_data"
 splitwise_raw_data_collection = "splitwise_raw_data"
@@ -20,7 +21,10 @@ test_collection = "test_data"
 def get_collection(cur_collection_str: str):
     # Access the MongoDB collection using current_app
     mongo = current_app.config["MONGO"]
-    client = mongo.cx["flask_db"]
+    # Use the configured database name, fallback to "flask_db" for backward compatibility
+    db_name = current_app.config.get("MONGO_DB_NAME", "flask_db")
+    client = mongo.cx[db_name]
+    print(f"client: {client}")
     return client[cur_collection_str]
 
 
