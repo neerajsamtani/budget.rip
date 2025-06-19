@@ -77,7 +77,7 @@ def splitwise_to_line_items() -> None:
                 responsible_party += f'{user["first_name"]} '
 
         # Skip if responsible party is in ignore list
-        if responsible_party in PARTIES_TO_IGNORE:
+        if responsible_party.strip() in PARTIES_TO_IGNORE:
             continue
 
         posix_date: float = iso_8601_to_posix(expense["date"])
