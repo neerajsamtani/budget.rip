@@ -1,8 +1,9 @@
 from typing import List
 
 from flask import current_app
-
-from helpers import to_dict
+from helpers import to_dict, to_dict_robust
+from pymongo import UpdateOne
+from pymongo.errors import BulkWriteError
 
 venmo_raw_data_collection = "venmo_raw_data"
 splitwise_raw_data_collection = "splitwise_raw_data"
@@ -63,6 +64,66 @@ def upsert_with_id(cur_collection_str: str, item, id):
     cur_collection = get_collection(cur_collection_str)
     item["_id"] = item["id"]
     cur_collection.replace_one({"_id": id}, item, upsert=True)
+
+
+def bulk_upsert(cur_collection_str: str, items: List):
+    """
+    Bulk upsert multiple items for better performance.
+
+    This function handles both insert (new items) and update (existing items) operations
+    using MongoDB's UpdateOne with upsert=True, which is equivalent to the single upsert operation.
+
+    Args:
+        cur_collection_str: Collection name
+        items: List of items to upsert
+    """
+    if not items:
+        return
+
+    cur_collection = get_collection(cur_collection_str)
+
+    # Prepare bulk operations using PyMongo's UpdateOne class
+    bulk_operations = []
+    for item in items:
+        try:
+            # Convert item to dictionary using robust serialization
+            item_dict = to_dict_robust(item)
+
+            # Ensure _id field is set correctly
+            if "id" in item_dict:
+                item_dict["_id"] = item_dict["id"]
+            elif hasattr(item, "id"):
+                item_dict["_id"] = item.id
+            elif hasattr(item, "_id"):
+                item_dict["_id"] = item._id
+
+            # Use PyMongo's UpdateOne class for proper bulk operations
+            bulk_operations.append(
+                UpdateOne({"_id": item_dict["_id"]}, {"$set": item_dict}, upsert=True)
+            )
+        except Exception as e:
+            print(f"Error preparing item for bulk upsert: {e}")
+            print(f"Item type: {type(item)}")
+            print(f"Item: {item}")
+            continue
+
+    # Execute bulk operations
+    if bulk_operations:
+        try:
+            result = cur_collection.bulk_write(bulk_operations, ordered=False)
+            print(
+                f"Bulk upsert completed: {result.upserted_count} inserted, {result.modified_count} updated"
+            )
+        except Exception as e:
+            print(f"Error in bulk upsert: {e}")
+            if isinstance(e, BulkWriteError):
+                print(f"BulkWriteError: {e.details}")
+            # Fallback to individual upserts for better error isolation
+            for item in items:
+                try:
+                    upsert(cur_collection_str, item)
+                except Exception as individual_error:
+                    print(f"Error upserting individual item: {individual_error}")
 
 
 def get_categorized_data():

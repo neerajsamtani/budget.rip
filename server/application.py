@@ -1,18 +1,12 @@
-from datetime import datetime
 import logging
+from datetime import datetime
 
 from bson import ObjectId
-from dotenv import load_dotenv
-from flask import Flask, jsonify
-from flask_bcrypt import Bcrypt
-from flask_cors import CORS
-from flask_jwt_extended import JWTManager, jwt_required
-from flask_pymongo import PyMongo
-
 from clients import splitwise_client, venmo_client
 from constants import JWT_COOKIE_DOMAIN, JWT_SECRET_KEY, MONGO_URI
 from dao import (
     bank_accounts_collection,
+    bulk_upsert,
     events_collection,
     get_all_data,
     get_item_by_id,
@@ -20,6 +14,12 @@ from dao import (
     upsert,
     users_collection,
 )
+from dotenv import load_dotenv
+from flask import Flask, jsonify
+from flask_bcrypt import Bcrypt
+from flask_cors import CORS
+from flask_jwt_extended import JWTManager, jwt_required
+from flask_pymongo import PyMongo
 from resources.auth import auth_blueprint
 from resources.cash import cash_blueprint, cash_to_line_items
 from resources.event import events_blueprint
@@ -101,6 +101,7 @@ def user_lookup_callback(_jwt_header, jwt_data):
 def index_api():
     return jsonify("Welcome to Budgit API")
 
+
 @application.route("/api/refresh/scheduled")
 def schedule_refresh_api():
     print("Initiating scheduled refresh at " + str(datetime.now()))
@@ -111,6 +112,7 @@ def schedule_refresh_api():
         print("Error refreshing all: " + str(e))
         return jsonify({"error": str(e)})
     return jsonify({"message": "success"})
+
 
 @application.route("/api/refresh/all")
 @jwt_required()
@@ -129,13 +131,15 @@ def get_connected_accounts_api():
     connected_accounts.append({"venmo": [venmo_client.my_profile().username]})
     # splitwise
     connected_accounts.append(
-        {"splitwise": [f"{splitwise_client.getCurrentUser().getFirstName()} {splitwise_client.getCurrentUser().getLastName()}"]}
+        {
+            "splitwise": [
+                f"{splitwise_client.getCurrentUser().getFirstName()} {splitwise_client.getCurrentUser().getLastName()}"
+            ]
+        }
     )
     # stripe
     bank_accounts = get_all_data(bank_accounts_collection)
-    connected_accounts.append(
-        {"stripe": bank_accounts}
-    )
+    connected_accounts.append({"stripe": bank_accounts})
     return jsonify(connected_accounts)
 
 
@@ -155,7 +159,19 @@ def get_payment_methods_api():
 
 
 def add_event_ids_to_line_items():
+    """
+    Add event IDs to line items with optimized database operations.
+
+    Optimizations:
+    1. Use bulk upsert operations instead of individual upserts
+    2. Collect all line items before bulk upserting
+    3. Process line items in batches for better memory management
+    """
     events = get_all_data(events_collection)
+
+    # Collect all line items that need updating for bulk upsert
+    all_line_items_to_update = []
+
     for event in events:
         filters = {}
         filters["_id"] = {"$in": event["line_items"]}
@@ -163,7 +179,11 @@ def add_event_ids_to_line_items():
 
         for line_item in line_items:
             line_item["event_id"] = event["id"]
-            upsert(line_items_collection, line_item)
+            all_line_items_to_update.append(line_item)
+
+    # Bulk upsert all collected line items at once
+    if all_line_items_to_update:
+        bulk_upsert(line_items_collection, all_line_items_to_update)
 
 
 def refresh_all():

@@ -1,5 +1,6 @@
 from constants import LARGEST_EPOCH_TIME, SMALLEST_EPOCH_TIME
 from dao import (
+    bulk_upsert,
     delete_from_collection,
     events_collection,
     get_all_data,
@@ -10,7 +11,7 @@ from dao import (
     upsert_with_id,
 )
 from flask import Blueprint, jsonify, request
-from flask_jwt_extended import jwt_required, get_current_user
+from flask_jwt_extended import get_current_user, jwt_required
 from helpers import html_date_to_posix
 
 events_blueprint = Blueprint("events", __name__)
@@ -77,9 +78,12 @@ def post_event_api():
     new_event["tags"] = new_event.get("tags", [])
 
     upsert_with_id(events_collection, new_event, new_event["id"])
+
+    # Update all line items with event_id and bulk upsert
     for line_item in line_items:
         line_item["event_id"] = new_event["id"]
-        upsert(line_items_collection, line_item)
+
+    bulk_upsert(line_items_collection, line_items)
 
     return jsonify("Created Event")
 

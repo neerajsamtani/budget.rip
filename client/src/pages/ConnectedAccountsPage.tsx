@@ -1,12 +1,11 @@
-import React, { useState, useEffect, Fragment } from "react";
 import { Elements } from "@stripe/react-stripe-js";
-import axiosInstance from "../utils/axiosInstance";
-import FinancialConnectionsForm from "../components/FinancialConnectionsForm";
-import { Button } from "react-bootstrap";
-import Notification from "../components/Notification";
+import { FinancialConnectionsSession } from "@stripe/stripe-js/types/api";
 import { Stripe } from "@stripe/stripe-js/types/stripe-js";
-import { Table } from "react-bootstrap";
-import { FinancialConnectionsSession } from "@stripe/stripe-js/types/api"
+import React, { Fragment, useEffect, useState } from "react";
+import { Button, Table } from "react-bootstrap";
+import FinancialConnectionsForm from "../components/FinancialConnectionsForm";
+import Notification from "../components/Notification";
+import axiosInstance from "../utils/axiosInstance";
 
 export default function ConnectedAccountsPage({ stripePromise }: { stripePromise: Promise<Stripe | null> }) {
 
@@ -36,8 +35,11 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
     const formatDate = (unixTime: number) => dateFormatter.format(new Date(unixTime * 1000))
 
     let netWorth = 0;
+    // Only active accounts are included in the net worth calculation
     Object.keys(accountsAndBalances).forEach(key => {
-        netWorth += accountsAndBalances[key]["balance"]
+        if (accountsAndBalances[key]["status"] === "active") {
+            netWorth += accountsAndBalances[key]["balance"]
+        }
     })
 
     var REACT_APP_API_ENDPOINT = String(process.env.REACT_APP_API_ENDPOINT);
@@ -137,6 +139,16 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
         return null;
     };
 
+    const renderStripeAccount = (stripeAccount) => {
+        return (
+            <tr key={stripeAccount.id}>
+                <td>{stripeAccount.institution_name} {stripeAccount.subcategory} ({stripeAccount.id})</td>
+                <td><Button onClick={() => { relinkAccount(stripeAccount.id) }} variant="secondary">Reactivate</Button></td>
+                <td>{accountsAndBalances[stripeAccount.id] && formatDate(accountsAndBalances[stripeAccount.id]["as_of"])}</td>
+            </tr>
+        )
+    }
+
     return (
         <>
             <div>
@@ -205,7 +217,29 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
                         }
                     </tbody>
                 </Table>
+                <br />
                 <h4>Net Worth: {formatBalance(netWorth)}</h4>
+                <br />
+                <h4>Inactive Accounts</h4>
+                <Table striped bordered hover>
+                    <thead>
+                        <tr>
+                            <th>Connected Accounts</th>
+                            <th>Reactivate</th>
+                            <th>Last Updated</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {connectedAccounts.length > 0 ?
+                            connectedAccounts.find(account => account.stripe)?.stripe.filter(account => account.status === "inactive").flatMap(renderStripeAccount)
+                            :
+                            // @ts-expect-error TODO: Need to look into this type error
+                            <tr align="center"><td colSpan="4">
+                                No inactive connected accounts found
+                            </td></tr>
+                        }
+                    </tbody>
+                </Table>
             </div>
         </>
     )
