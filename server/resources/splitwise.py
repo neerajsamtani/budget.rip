@@ -1,3 +1,8 @@
+from typing import Any, Dict, List
+
+from flask import Blueprint, Response, jsonify
+from flask_jwt_extended import jwt_required
+
 from clients import splitwise_client
 from constants import LIMIT, MOVING_DATE, PARTIES_TO_IGNORE, USER_FIRST_NAME
 from dao import (
@@ -5,10 +10,7 @@ from dao import (
     get_all_data,
     line_items_collection,
     splitwise_raw_data_collection,
-    upsert,
 )
-from flask import Blueprint, jsonify
-from flask_jwt_extended import jwt_required
 from helpers import flip_amount, iso_8601_to_posix
 from resources.line_item import LineItem
 
@@ -25,18 +27,20 @@ splitwise_blueprint = Blueprint("splitwise", __name__)
 
 @splitwise_blueprint.route("/api/refresh/splitwise")
 @jwt_required()
-def refresh_splitwise_api():
+def refresh_splitwise_api() -> tuple[Response, int]:
     refresh_splitwise()
     splitwise_to_line_items()
-    return jsonify("Refreshed Splitwise Connection")
+    return jsonify("Refreshed Splitwise Connection"), 200
 
 
-def refresh_splitwise():
+def refresh_splitwise() -> None:
     print("Refreshing Splitwise Data")
-    expenses = splitwise_client.getExpenses(limit=LIMIT, dated_after=MOVING_DATE)
+    expenses: List[Any] = splitwise_client.getExpenses(
+        limit=LIMIT, dated_after=MOVING_DATE
+    )
 
     # Collect all non-deleted expenses for bulk upsert
-    all_expenses = []
+    all_expenses: List[Any] = []
     for expense in expenses:
         # TODO: What if an expense is deleted? What if it's part of an event?
         # Should I send a notification?
@@ -49,7 +53,7 @@ def refresh_splitwise():
         bulk_upsert(splitwise_raw_data_collection, all_expenses)
 
 
-def splitwise_to_line_items():
+def splitwise_to_line_items() -> None:
     """
     Convert Splitwise expenses to line items with optimized database operations.
 
@@ -58,15 +62,15 @@ def splitwise_to_line_items():
     2. Collect all line items before bulk upserting
     3. Improved logic flow for better performance
     """
-    payment_method = "Splitwise"
-    expenses = get_all_data(splitwise_raw_data_collection)
+    payment_method: str = "Splitwise"
+    expenses: List[Dict[str, Any]] = get_all_data(splitwise_raw_data_collection)
 
     # Collect all line items for bulk upsert
-    all_line_items = []
+    all_line_items: List[LineItem] = []
 
     for expense in expenses:
         # Determine responsible party
-        responsible_party = ""
+        responsible_party: str = ""
         for user in expense["users"]:
             if user["first_name"] != USER_FIRST_NAME:
                 # TODO: Set up comma separated list of responsible parties
@@ -76,7 +80,7 @@ def splitwise_to_line_items():
         if responsible_party in PARTIES_TO_IGNORE:
             continue
 
-        posix_date = iso_8601_to_posix(expense["date"])
+        posix_date: float = iso_8601_to_posix(expense["date"])
 
         # Find the current user's data and create line item
         for user in expense["users"]:
