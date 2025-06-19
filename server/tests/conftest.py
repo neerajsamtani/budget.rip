@@ -8,18 +8,25 @@ from pymongo.errors import ServerSelectionTimeoutError
 
 from constants import JWT_SECRET_KEY
 from dao import (
+    bank_accounts_collection,
     cash_raw_data_collection,
     events_collection,
     line_items_collection,
     splitwise_raw_data_collection,
+    stripe_raw_account_data_collection,
+    stripe_raw_transaction_data_collection,
     test_collection,
     users_collection,
+    venmo_raw_data_collection,
 )
 from resources.auth import auth_blueprint
 from resources.cash import cash_blueprint
 from resources.event import events_blueprint
 from resources.line_item import line_items_blueprint
+from resources.monthly_breakdown import monthly_breakdown_blueprint
 from resources.splitwise import splitwise_blueprint
+from resources.stripe import stripe_blueprint
+from resources.venmo import venmo_blueprint
 
 # Import test configuration
 try:
@@ -40,7 +47,10 @@ def flask_app():
     app.register_blueprint(cash_blueprint)
     app.register_blueprint(line_items_blueprint)
     app.register_blueprint(events_blueprint)
+    app.register_blueprint(monthly_breakdown_blueprint)
     app.register_blueprint(splitwise_blueprint)
+    app.register_blueprint(stripe_blueprint)
+    app.register_blueprint(venmo_blueprint)
 
     # Use a separate test database
     app.config["MONGO_URI"] = TEST_MONGO_URI
@@ -85,8 +95,12 @@ def setup_teardown(flask_app, request):
             test_db.drop_collection(cash_raw_data_collection)
             test_db.drop_collection(line_items_collection)
             test_db.drop_collection(splitwise_raw_data_collection)
+            test_db.drop_collection(stripe_raw_account_data_collection)
+            test_db.drop_collection(stripe_raw_transaction_data_collection)
+            test_db.drop_collection(bank_accounts_collection)
             test_db.drop_collection(events_collection)
             test_db.drop_collection(users_collection)
+            test_db.drop_collection(venmo_raw_data_collection)
         except ServerSelectionTimeoutError:
             # This error happens on Github Actions
             pass
@@ -104,8 +118,12 @@ def setup_teardown(flask_app, request):
                 test_db.drop_collection(cash_raw_data_collection)
                 test_db.drop_collection(line_items_collection)
                 test_db.drop_collection(splitwise_raw_data_collection)
+                test_db.drop_collection(stripe_raw_account_data_collection)
+                test_db.drop_collection(stripe_raw_transaction_data_collection)
+                test_db.drop_collection(bank_accounts_collection)
                 test_db.drop_collection(events_collection)
                 test_db.drop_collection(users_collection)
+                test_db.drop_collection(venmo_raw_data_collection)
             except ServerSelectionTimeoutError:
                 # This error happens on Github Actions
                 pass
