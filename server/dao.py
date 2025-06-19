@@ -1,5 +1,7 @@
+import logging
 from typing import Any, Dict, List, Optional, Union
 
+from bson import ObjectId
 from flask import current_app
 from pymongo import UpdateOne
 from pymongo.collection import Collection
@@ -38,7 +40,7 @@ def get_all_data(
 
 
 def get_item_by_id(
-    cur_collection_str: str, id: Union[str, int]
+    cur_collection_str: str, id: Union[str, int, ObjectId]
 ) -> Optional[Dict[str, Any]]:
     cur_collection: Collection = get_collection(cur_collection_str)
     return cur_collection.find_one({"_id": id})
@@ -55,9 +57,43 @@ def delete_from_collection(cur_collection_str: str, id: Union[str, int]) -> None
     cur_collection.delete_one({"_id": id})
 
 
-def remove_event_from_line_item(line_item_id: int) -> None:
+def remove_event_from_line_item(line_item_id: Union[str, int, ObjectId]) -> None:
+    """
+    Remove event_id from a line item by its ID.
+
+    Args:
+        line_item_id: The ID of the line item (can be string, int, or ObjectId)
+    """
     cur_collection: Collection = get_collection(line_items_collection)
-    cur_collection.update_one({"_id": line_item_id}, {"$unset": {"event_id": ""}})
+
+    # Try to unset event_id using the provided ID as-is
+    result = cur_collection.update_one(
+        {"_id": line_item_id}, {"$unset": {"event_id": ""}}
+    )
+
+    if result.matched_count == 0:
+        # If no document was found, try alternative ID formats
+        if isinstance(line_item_id, str):
+            # Try converting string to int if it's numeric
+            int_id = int(line_item_id)
+            result = cur_collection.update_one(
+                {"_id": int_id}, {"$unset": {"event_id": ""}}
+            )
+        elif isinstance(line_item_id, ObjectId):
+            result = cur_collection.update_one(
+                {"_id": line_item_id}, {"$unset": {"event_id": ""}}
+            )
+        elif isinstance(line_item_id, int):
+            # Try converting int to string
+            str_id = str(line_item_id)
+            result = cur_collection.update_one(
+                {"_id": str_id}, {"$unset": {"event_id": ""}}
+            )
+
+        # If we still haven't found the document, log a warning
+        logging.warning(
+            f"Could not find line item with ID {line_item_id} to remove event_id"
+        )
 
 
 def get_user_by_email(email: str) -> Optional[Dict[str, Any]]:
@@ -71,7 +107,7 @@ def upsert(cur_collection_str: str, item: Any) -> None:
 
 
 def upsert_with_id(
-    cur_collection_str: str, item: Dict[str, Any], id: Union[str, int]
+    cur_collection_str: str, item: Dict[str, Any], id: Union[str, int, ObjectId]
 ) -> None:
     cur_collection: Collection = get_collection(cur_collection_str)
     item["_id"] = item["id"]

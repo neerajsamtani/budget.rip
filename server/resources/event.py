@@ -106,7 +106,7 @@ def delete_event_api(event_id: str) -> tuple[Response, int]:
     line_item_ids: List[str] = event["line_items"]
     delete_from_collection(events_collection, event_id)
     for line_item_id in line_item_ids:
-        remove_event_from_line_item(int(line_item_id))
+        remove_event_from_line_item(line_item_id)
     return jsonify("Deleted Event"), 200
 
 

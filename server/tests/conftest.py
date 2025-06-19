@@ -7,8 +7,15 @@ from flask_pymongo import PyMongo
 from pymongo.errors import ServerSelectionTimeoutError
 
 from constants import JWT_SECRET_KEY
-from dao import cash_raw_data_collection, line_items_collection, test_collection
+from dao import (
+    cash_raw_data_collection,
+    events_collection,
+    line_items_collection,
+    test_collection,
+)
 from resources.cash import cash_blueprint
+from resources.event import events_blueprint
+from resources.line_item import line_items_blueprint
 
 # Import test configuration
 try:
@@ -26,6 +33,8 @@ def flask_app():
     app = Flask(__name__)
     app.debug = True
     app.register_blueprint(cash_blueprint)
+    app.register_blueprint(line_items_blueprint)
+    app.register_blueprint(events_blueprint)
 
     # Use a separate test database
     app.config["MONGO_URI"] = TEST_MONGO_URI
@@ -33,8 +42,14 @@ def flask_app():
 
     with app.app_context():
         app.config["MONGO"] = PyMongo(app)
-        JWTManager(app)
+        jwt = JWTManager(app)
         app.config["JWT_SECRET_KEY"] = JWT_SECRET_KEY
+
+        # Add user lookup loader for JWT
+        @jwt.user_lookup_loader
+        def user_lookup_callback(jwt_header, jwt_payload):
+            return {"email": "test@example.com", "id": "user_id"}
+
     yield app
 
 
@@ -63,6 +78,7 @@ def setup_teardown(flask_app, request):
             test_db.drop_collection(test_collection)
             test_db.drop_collection(cash_raw_data_collection)
             test_db.drop_collection(line_items_collection)
+            test_db.drop_collection(events_collection)
         except ServerSelectionTimeoutError:
             # This error happens on Github Actions
             pass
@@ -79,6 +95,7 @@ def setup_teardown(flask_app, request):
                 test_db.drop_collection(test_collection)
                 test_db.drop_collection(cash_raw_data_collection)
                 test_db.drop_collection(line_items_collection)
+                test_db.drop_collection(events_collection)
             except ServerSelectionTimeoutError:
                 # This error happens on Github Actions
                 pass
