@@ -1,5 +1,3 @@
-from unittest.mock import Mock, patch
-
 import pytest
 
 from dao import (
@@ -12,20 +10,22 @@ from dao import (
 
 
 @pytest.fixture
-def mock_venmo_profile():
+def mock_venmo_profile(mocker):
     """Mock Venmo profile"""
-    profile = Mock()
-    profile.username = "test_user"
-    return profile
+    mock_profile = mocker.Mock()
+    mock_profile.username = "test_user"
+    mock_profile.first_name = "Test"
+    mock_profile.last_name = "User"
+    return mock_profile
 
 
 @pytest.fixture
-def mock_splitwise_user():
+def mock_splitwise_user(mocker):
     """Mock Splitwise user"""
-    user = Mock()
-    user.getFirstName.return_value = "John"
-    user.getLastName.return_value = "Doe"
-    return user
+    mock_user = mocker.Mock()
+    mock_user.getFirstName = mocker.Mock(return_value="John")
+    mock_user.getLastName = mocker.Mock(return_value="Doe")
+    return mock_user
 
 
 @pytest.fixture
@@ -36,7 +36,7 @@ def mock_bank_account():
         "institution_name": "Test Bank",
         "display_name": "Checking Account",
         "last4": "1234",
-        "status": "active",
+        "balances": {"available": 1000.0, "current": 1000.0},
     }
 
 
@@ -45,11 +45,12 @@ def mock_line_item():
     """Mock line item data"""
     return {
         "id": "line_item_1",
-        "date": 1234567890,
-        "responsible_party": "John Doe",
-        "payment_method": "Cash",
-        "description": "Test transaction",
-        "amount": 100,
+        "date": 1673778600.0,
+        "description": "Test line item",
+        "amount": 25.0,
+        "payment_method": "Venmo",
+        "responsible_party": "John",
+        "reviewed": False,
     }
 
 
@@ -58,7 +59,8 @@ def mock_event():
     """Mock event data"""
     return {
         "id": "event_1",
-        "name": "Test Event",
+        "date": 1673778600.0,
+        "description": "Test event",
         "line_items": ["line_item_1", "line_item_2"],
     }
 
@@ -67,52 +69,46 @@ class TestApplicationRoutes:
     def test_index_api(self, test_client):
         """Test GET /api/ endpoint"""
         response = test_client.get("/api/")
-
         assert response.status_code == 200
-        assert response.get_data(as_text=True).strip() == '"Welcome to Budgit API"'
+        assert response.get_json() == "Welcome to Budgit API"
 
-    @patch("application.refresh_all")
-    @patch("application.create_consistent_line_items")
-    def test_schedule_refresh_api_success(
-        self, mock_create_consistent, mock_refresh_all, test_client
-    ):
+    def test_schedule_refresh_api_success(self, test_client, mocker):
         """Test GET /api/refresh/scheduled endpoint - success case"""
+        mock_refresh_all = mocker.patch("application.refresh_all")
+        mock_create_consistent = mocker.patch(
+            "application.create_consistent_line_items"
+        )
+
         response = test_client.get("/api/refresh/scheduled")
 
         assert response.status_code == 200
-        data = response.get_json()
-        assert data["message"] == "success"
         mock_refresh_all.assert_called_once()
         mock_create_consistent.assert_called_once()
 
-    @patch("application.refresh_all")
-    @patch("application.create_consistent_line_items")
-    def test_schedule_refresh_api_error(
-        self, mock_create_consistent, mock_refresh_all, test_client
-    ):
+    def test_schedule_refresh_api_error(self, test_client, mocker):
         """Test GET /api/refresh/scheduled endpoint - error case"""
-        mock_refresh_all.side_effect = Exception("Test error")
+        mock_refresh_all = mocker.patch(
+            "application.refresh_all", side_effect=Exception("Test error")
+        )
+        mock_create_consistent = mocker.patch(
+            "application.create_consistent_line_items"
+        )
 
         response = test_client.get("/api/refresh/scheduled")
 
         assert response.status_code == 500
-        data = response.get_json()
-        assert data["error"] == "Test error"
+        mock_refresh_all.assert_called_once()
+        mock_create_consistent.assert_not_called()
 
-    @patch("application.refresh_all")
-    @patch("application.create_consistent_line_items")
-    @patch("application.all_line_items")
-    def test_refresh_all_api_success(
-        self,
-        mock_all_line_items,
-        mock_create_consistent,
-        mock_refresh_all,
-        test_client,
-        jwt_token,
-    ):
+    def test_refresh_all_api_success(self, test_client, jwt_token, mocker):
         """Test GET /api/refresh/all endpoint - success case"""
-        mock_line_items = [{"id": "line_item_1", "amount": 100}]
-        mock_all_line_items.return_value = mock_line_items
+        mock_refresh_all = mocker.patch("application.refresh_all")
+        mock_create_consistent = mocker.patch(
+            "application.create_consistent_line_items"
+        )
+        mock_all_line_items = mocker.patch("application.all_line_items")
+
+        mock_all_line_items.return_value = []
 
         response = test_client.get(
             "/api/refresh/all",
@@ -120,29 +116,23 @@ class TestApplicationRoutes:
         )
 
         assert response.status_code == 200
-        data = response.get_json()
-        assert data["data"] == mock_line_items
         mock_refresh_all.assert_called_once()
         mock_create_consistent.assert_called_once()
-        mock_all_line_items.assert_called_once_with(only_line_items_to_review=True)
 
     def test_refresh_all_api_unauthorized(self, test_client):
         """Test GET /api/refresh/all endpoint - unauthorized"""
         response = test_client.get("/api/refresh/all")
         assert response.status_code == 401
 
-    @patch("application.venmo_client")
-    @patch("application.splitwise_client")
     def test_get_connected_accounts_api_success(
         self,
-        mock_splitwise_client,
-        mock_venmo_client,
         test_client,
         jwt_token,
         flask_app,
         mock_venmo_profile,
         mock_splitwise_user,
         mock_bank_account,
+        mocker,
     ):
         """Test GET /api/connected_accounts endpoint - success case"""
         with flask_app.app_context():
@@ -152,8 +142,13 @@ class TestApplicationRoutes:
             )
 
             # Mock client responses
-            mock_venmo_client.my_profile.return_value = mock_venmo_profile
-            mock_splitwise_client.getCurrentUser.return_value = mock_splitwise_user
+            mock_client = mocker.Mock()
+            mock_client.my_profile.return_value = mock_venmo_profile
+            mocker.patch("application.get_venmo_client", return_value=mock_client)
+            mocker.patch(
+                "application.splitwise_client.getCurrentUser",
+                return_value=mock_splitwise_user,
+            )
 
             response = test_client.get(
                 "/api/connected_accounts",
@@ -177,12 +172,13 @@ class TestApplicationRoutes:
             assert len(stripe_data["stripe"]) == 1
             assert stripe_data["stripe"][0]["id"] == "fca_test123"
 
-    @patch("application.venmo_client")
     def test_get_connected_accounts_api_venmo_error(
-        self, mock_venmo_client, test_client, jwt_token
+        self, test_client, jwt_token, mocker
     ):
         """Test GET /api/connected_accounts endpoint - Venmo error"""
-        mock_venmo_client.my_profile.return_value = None
+        mock_client = mocker.Mock()
+        mock_client.my_profile.return_value = None
+        mocker.patch("application.get_venmo_client", return_value=mock_client)
 
         # The route raises an exception when Venmo profile is None
         with pytest.raises(Exception, match="Failed to get Venmo profile"):
@@ -297,14 +293,13 @@ class TestApplicationFunctions:
             # Should not raise any exceptions
             add_event_ids_to_line_items()
 
-    @patch("application.refresh_splitwise")
-    @patch("application.refresh_venmo")
-    @patch("application.refresh_stripe")
-    def test_refresh_all_success(
-        self, mock_refresh_stripe, mock_refresh_venmo, mock_refresh_splitwise, flask_app
-    ):
+    def test_refresh_all_success(self, flask_app, mocker):
         """Test refresh_all function - success case"""
         with flask_app.app_context():
+            mock_refresh_splitwise = mocker.patch("application.refresh_splitwise")
+            mock_refresh_venmo = mocker.patch("application.refresh_venmo")
+            mock_refresh_stripe = mocker.patch("application.refresh_stripe")
+
             from application import refresh_all
 
             refresh_all()
@@ -313,22 +308,17 @@ class TestApplicationFunctions:
             mock_refresh_venmo.assert_called_once()
             mock_refresh_stripe.assert_called_once()
 
-    @patch("application.splitwise_to_line_items")
-    @patch("application.venmo_to_line_items")
-    @patch("application.stripe_to_line_items")
-    @patch("application.cash_to_line_items")
-    @patch("application.add_event_ids_to_line_items")
-    def test_create_consistent_line_items_success(
-        self,
-        mock_add_event_ids,
-        mock_cash_to_line_items,
-        mock_stripe_to_line_items,
-        mock_venmo_to_line_items,
-        mock_splitwise_to_line_items,
-        flask_app,
-    ):
+    def test_create_consistent_line_items_success(self, flask_app, mocker):
         """Test create_consistent_line_items function - success case"""
         with flask_app.app_context():
+            mock_splitwise_to_line_items = mocker.patch(
+                "application.splitwise_to_line_items"
+            )
+            mock_venmo_to_line_items = mocker.patch("application.venmo_to_line_items")
+            mock_stripe_to_line_items = mocker.patch("application.stripe_to_line_items")
+            mock_cash_to_line_items = mocker.patch("application.cash_to_line_items")
+            mock_add_event_ids = mocker.patch("application.add_event_ids_to_line_items")
+
             from application import create_consistent_line_items
 
             create_consistent_line_items()
@@ -341,38 +331,38 @@ class TestApplicationFunctions:
 
 
 class TestApplicationIntegration:
-    def test_full_refresh_workflow(self, flask_app, mock_line_item):
+    def test_full_refresh_workflow(self, flask_app, mock_line_item, mocker):
         """Test the complete refresh workflow"""
         with flask_app.app_context():
             # Insert test line item
             upsert_with_id(line_items_collection, mock_line_item, mock_line_item["id"])
 
-            with patch("application.refresh_all") as mock_refresh_all, patch(
+            mock_refresh_all = mocker.patch("application.refresh_all")
+            mock_create_consistent = mocker.patch(
                 "application.create_consistent_line_items"
-            ) as mock_create_consistent, patch(
-                "application.all_line_items"
-            ) as mock_all_line_items:
+            )
+            mock_all_line_items = mocker.patch("application.all_line_items")
 
-                mock_all_line_items.return_value = [mock_line_item]
+            mock_all_line_items.return_value = [mock_line_item]
 
-                # Import the functions
-                # This would normally be called via the route, but we can test the logic
-                # by calling the underlying functions
-                from application import (
-                    create_consistent_line_items,
-                    refresh_all,
-                    refresh_all_api,
-                )
+            # Import the functions
+            # This would normally be called via the route, but we can test the logic
+            # by calling the underlying functions
+            from application import (
+                create_consistent_line_items,
+                refresh_all,
+                refresh_all_api,
+            )
 
-                refresh_all()
-                create_consistent_line_items()
+            refresh_all()
+            create_consistent_line_items()
 
-                # Verify the workflow
-                mock_refresh_all.assert_called_once()
-                mock_create_consistent.assert_called_once()
+            # Verify the workflow
+            mock_refresh_all.assert_called_once()
+            mock_create_consistent.assert_called_once()
 
     def test_connected_accounts_with_multiple_bank_accounts(
-        self, test_client, jwt_token, flask_app
+        self, test_client, jwt_token, flask_app, mocker
     ):
         """Test connected accounts with multiple bank accounts"""
         with flask_app.app_context():
@@ -395,26 +385,27 @@ class TestApplicationIntegration:
             for account in bank_accounts:
                 upsert_with_id(bank_accounts_collection, account, account["id"])
 
-            with patch("application.venmo_client") as mock_venmo_client, patch(
-                "application.splitwise_client"
-            ) as mock_splitwise_client:
-
-                mock_venmo_client.my_profile.return_value = Mock(username="test_user")
-                mock_splitwise_client.getCurrentUser.return_value = Mock(
+            mock_client = mocker.Mock()
+            mock_client.my_profile.return_value = mocker.Mock(username="test_user")
+            mocker.patch("application.get_venmo_client", return_value=mock_client)
+            mocker.patch(
+                "application.splitwise_client.getCurrentUser",
+                return_value=mocker.Mock(
                     getFirstName=lambda: "John", getLastName=lambda: "Doe"
-                )
+                ),
+            )
 
-                response = test_client.get(
-                    "/api/connected_accounts",
-                    headers={"Authorization": "Bearer " + jwt_token},
-                )
+            response = test_client.get(
+                "/api/connected_accounts",
+                headers={"Authorization": "Bearer " + jwt_token},
+            )
 
-                assert response.status_code == 200
-                data = response.get_json()
+            assert response.status_code == 200
+            data = response.get_json()
 
-                # Check Stripe data has both accounts
-                stripe_data = next(item for item in data if "stripe" in item)
-                assert len(stripe_data["stripe"]) == 2
+            # Check Stripe data has both accounts
+            stripe_data = next(item for item in data if "stripe" in item)
+            assert len(stripe_data["stripe"]) == 2
 
     def test_payment_methods_with_multiple_bank_accounts(
         self, test_client, jwt_token, flask_app

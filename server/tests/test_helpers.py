@@ -1,7 +1,7 @@
 from datetime import datetime
-from unittest.mock import MagicMock
 
 import pytest
+
 import helpers
 from resources.line_item import LineItem
 
@@ -25,8 +25,8 @@ def test_flip_amount_with_string_amount():
 
 def test_to_dict():
     input_line_item = LineItem(
-        id=1234,
-        date="2022-03-27",
+        id="1234",
+        date=1648339200.0,  # 2022-03-27 as timestamp
         responsible_party="John Smith",
         payment_method="Venmo",
         description="Groceries",
@@ -34,8 +34,8 @@ def test_to_dict():
     )
 
     expected_dict = {
-        "id": 1234,
-        "date": "2022-03-27",
+        "id": "1234",
+        "date": 1648339200.0,
         "responsible_party": "John Smith",
         "payment_method": "Venmo",
         "description": "Groceries",
@@ -110,16 +110,22 @@ def test_iso_8601_to_posix(iso_date, expected_output):
 
 def test_sort_by_date():
     line_items = [
-        LineItem(1, datetime(2022, 1, 1), "John", "Venmo", "item 1", 100.0).__dict__,
-        LineItem(2, datetime(2022, 2, 1), "Mary", "Splitwise", "item 2", 50.0).__dict__,
-        LineItem(3, datetime(2021, 12, 31), "Jane", "Cash", "item 3", 75.0).__dict__,
+        LineItem(
+            "1", datetime(2022, 1, 1).timestamp(), "John", "Venmo", "item 1", 100.0
+        ).__dict__,
+        LineItem(
+            "2", datetime(2022, 2, 1).timestamp(), "Mary", "Splitwise", "item 2", 50.0
+        ).__dict__,
+        LineItem(
+            "3", datetime(2021, 12, 31).timestamp(), "Jane", "Cash", "item 3", 75.0
+        ).__dict__,
     ]
 
     sorted_items = helpers.sort_by_date(line_items)
 
-    assert sorted_items[0]["id"] == 2
-    assert sorted_items[1]["id"] == 1
-    assert sorted_items[2]["id"] == 3
+    assert sorted_items[0]["id"] == "2"
+    assert sorted_items[1]["id"] == "1"
+    assert sorted_items[2]["id"] == "3"
 
 
 class MockVenmoClient:

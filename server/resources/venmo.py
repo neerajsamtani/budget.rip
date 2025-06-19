@@ -4,7 +4,7 @@ from flask import Blueprint, Response, jsonify
 from flask_jwt_extended import jwt_required
 from venmo_api.models.user import User
 
-from clients import venmo_client
+from clients import get_venmo_client
 from constants import MOVING_DATE_POSIX, PARTIES_TO_IGNORE, USER_FIRST_NAME
 from dao import (
     bulk_upsert,
@@ -33,11 +33,11 @@ def refresh_venmo_api() -> tuple[Response, int]:
 
 def refresh_venmo() -> None:
     print("Refreshing Venmo Data")
-    profile: User | None = venmo_client.my_profile()
+    profile: User | None = get_venmo_client().my_profile()
     if profile is None:
         raise Exception("Failed to get Venmo profile")
     my_id: int = profile.id
-    transactions: Any = venmo_client.user.get_user_transactions(str(my_id))  # type: ignore
+    transactions: Any = get_venmo_client().user.get_user_transactions(str(my_id))  # type: ignore
     transactions_after_moving_date: bool = True
 
     # Collect all transactions for bulk upsert
