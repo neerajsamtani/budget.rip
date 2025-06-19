@@ -1,4 +1,5 @@
 from dao import (
+    bulk_upsert,
     cash_raw_data_collection,
     get_all_data,
     insert,
@@ -8,7 +9,6 @@ from dao import (
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required
 from helpers import html_date_to_posix
-
 from resources.line_item import LineItem
 
 cash_blueprint = Blueprint("cash", __name__)
@@ -28,8 +28,20 @@ def create_cash_transaction_api():
 
 
 def cash_to_line_items():
+    """
+    Convert cash transactions to line items with optimized database operations.
+
+    Optimizations:
+    1. Use bulk upsert operations instead of individual upserts
+    2. Collect all line items before bulk upserting
+    3. Improved performance for large datasets
+    """
     payment_method = "Cash"
     cash_raw_data = get_all_data(cash_raw_data_collection)
+
+    # Collect all line items for bulk upsert
+    all_line_items = []
+
     for transaction in cash_raw_data:
         line_item = LineItem(
             f'line_item_{transaction["_id"]}',
@@ -39,4 +51,8 @@ def cash_to_line_items():
             transaction["description"],
             transaction["amount"],
         )
-        upsert(line_items_collection, line_item)
+        all_line_items.append(line_item)
+
+    # Bulk upsert all collected line items at once
+    if all_line_items:
+        bulk_upsert(line_items_collection, all_line_items)

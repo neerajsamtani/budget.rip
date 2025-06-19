@@ -76,8 +76,8 @@ def create_accounts_api():
     if len(new_accounts) == 0:
         return jsonify("Failed to Create Accounts: No Accounts Submitted")
 
-    for account in new_accounts:
-        upsert(bank_accounts_collection, account)
+    # Bulk upsert all accounts at once
+    bulk_upsert(bank_accounts_collection, new_accounts)
 
     return jsonify({"data": new_accounts})
 
@@ -88,8 +88,10 @@ def get_accounts_api(session_id):
     try:
         session = stripe.financial_connections.Session.retrieve(session_id)
         accounts = session["accounts"]
-        for account in accounts:
-            upsert(stripe_raw_account_data_collection, account)
+
+        # Bulk upsert all accounts at once
+        bulk_upsert(stripe_raw_account_data_collection, accounts)
+
         return jsonify({"accounts": accounts})
     except Exception as e:
         return jsonify(error=str(e)), 403
