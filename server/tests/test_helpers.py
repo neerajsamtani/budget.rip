@@ -112,7 +112,7 @@ def test_iso_8601_to_posix(iso_date, expected_output):
             helpers.iso_8601_to_posix(iso_date)
 
 
-def test_sort_by_date():
+def test_sort_by_date_descending():
     line_items = [
         LineItem(
             "1", datetime(2022, 1, 1).timestamp(), "John", "Venmo", "item 1", 100.0
@@ -125,7 +125,7 @@ def test_sort_by_date():
         ).__dict__,
     ]
 
-    sorted_items = helpers.sort_by_date(line_items)
+    sorted_items = helpers.sort_by_date_descending(line_items)
 
     assert sorted_items[0]["id"] == "2"
     assert sorted_items[1]["id"] == "1"

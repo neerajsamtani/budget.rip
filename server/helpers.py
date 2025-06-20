@@ -97,7 +97,7 @@ def iso_8601_to_posix(date: str) -> float:
         raise ValueError("Invalid ISO 8601 format") from exc
 
 
-def sort_by_date(line_items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def sort_by_date_descending(line_items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
     Input a list of dictionaries representing LineItems (not actual LineItem objects)
     """
