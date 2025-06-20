@@ -11,7 +11,7 @@ from flask_jwt_extended import JWTManager, jwt_required
 from flask_pymongo import PyMongo
 from venmo_api.models.user import User
 
-from clients import splitwise_client, venmo_client
+from clients import get_venmo_client, splitwise_client
 from constants import JWT_COOKIE_DOMAIN, JWT_SECRET_KEY, MONGO_URI
 from dao import (
     bank_accounts_collection,
@@ -132,7 +132,7 @@ def refresh_all_api() -> tuple[Response, int]:
 def get_connected_accounts_api() -> tuple[Response, int]:
     connected_accounts: List[Dict[str, Any]] = []
     # # venmo
-    profile: User | None = venmo_client.my_profile()
+    profile: User | None = get_venmo_client().my_profile()
     if profile is None:
         raise Exception("Failed to get Venmo profile")
     connected_accounts.append({"venmo": [profile.username]})

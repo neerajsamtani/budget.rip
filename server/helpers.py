@@ -1,6 +1,6 @@
 import json
 import re
-from datetime import datetime, timedelta
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Union
 
 from flask_bcrypt import check_password_hash, generate_password_hash
@@ -83,27 +83,21 @@ def posix_to_readable(date: float) -> str:
 
 
 def iso_8601_to_posix(date: str) -> float:
-    # TODO: Check if this handles timezones correctly
-    posix_timestamp: float = -1
     try:
         if re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\+\d{2}:\d{2}", date):
-            dt: datetime = datetime.strptime(date[:-6], "%Y-%m-%dT%H:%M:%S")
-            tz_offset: Union[timedelta, None] = datetime.strptime(
-                date[-6:], "%z"
-            ).utcoffset()
-            if tz_offset is None:
-                raise ValueError("Invalid timezone offset")
-            posix_timestamp = (dt - tz_offset).timestamp()
+            dt = datetime.strptime(date, "%Y-%m-%dT%H:%M:%S%z")
+            return dt.timestamp()
         elif re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z", date):
-            posix_timestamp = datetime.fromisoformat(date[:10]).timestamp()
+            dt = datetime.strptime(date[:-1], "%Y-%m-%dT%H:%M:%S")
+            dt = dt.replace(tzinfo=timezone.utc)
+            return dt.timestamp()
         else:
             raise ValueError
     except (TypeError, ValueError) as exc:
         raise ValueError("Invalid ISO 8601 format") from exc
-    return posix_timestamp
 
 
-def sort_by_date(line_items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def sort_by_date_descending(line_items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
     Input a list of dictionaries representing LineItems (not actual LineItem objects)
     """

@@ -5,7 +5,7 @@ from flask import Blueprint, Response, jsonify, request
 from flask_jwt_extended import jwt_required
 
 from dao import get_all_data, get_item_by_id, line_items_collection
-from helpers import sort_by_date, str_to_bool
+from helpers import sort_by_date_descending, str_to_bool
 
 line_items_blueprint = Blueprint("line_items", __name__)
 
@@ -89,7 +89,7 @@ def all_line_items(
         filters["event_id"] = {"$exists": False}
 
     line_items: List[Dict[str, Any]] = get_all_data(line_items_collection, filters)
-    line_items = sort_by_date(line_items)
+    line_items = sort_by_date_descending(line_items)
     return line_items
 
 
