@@ -95,11 +95,11 @@ def test_posix_to_readable(input_timestamp, expected_output):
     [
         (
             "2022-03-28T10:15:30+00:00",
-            1648487730.0,
+            1648462530.0,
         ),  # Test with timezone offset
         (
             "2023-01-15T10:30:00Z",
-            1673807400.0,
+            1673778600.0,
         ),  # Test with Z timezone indicator
         ("2022/03/28", None),  # Invalid input, expecting None
     ],
