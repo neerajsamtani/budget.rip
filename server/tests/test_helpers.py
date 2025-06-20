@@ -132,27 +132,24 @@ def test_sort_by_date_descending():
     assert sorted_items[2]["id"] == "3"
 
 
-class MockVenmoClient:
-    def get_access_token(self, username, password):
-        return "test_access_token"
-
-
 @pytest.fixture
-def mock_venmo_client(monkeypatch):
-    def mock_get_access_token(username, password):
-        return "test_access_token"
-
-    mock_client = MockVenmoClient()
-    monkeypatch.setattr(mock_client, "get_access_token", mock_get_access_token)
+def mock_venmo_client(mocker):
+    """Mock Venmo client with access token functionality"""
+    mock_client = mocker.Mock()
+    mock_client.get_access_token.return_value = "test_access_token"
     return mock_client
 
 
-def test_get_venmo_access_token(mock_venmo_client, monkeypatch):
+def test_get_venmo_access_token(mock_venmo_client, mocker):
     username = "test_username"
     password = "test_password"
 
-    monkeypatch.setattr(helpers, "VenmoClient", lambda: mock_venmo_client)
+    # Mock the VenmoClient class to return our mock client
+    mocker.patch("helpers.VenmoClient", return_value=mock_venmo_client)
 
     access_token = helpers.get_venmo_access_token(username, password, mock_venmo_client)
 
     assert access_token == "test_access_token"
+    mock_venmo_client.get_access_token.assert_called_once_with(
+        username=username, password=password
+    )
