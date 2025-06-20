@@ -21,7 +21,6 @@ auth_blueprint = Blueprint("auth", __name__)
 def signup_user_api() -> tuple[Response, int]:
     body: Dict[str, Any] = request.get_json()
     user: Dict[str, Any] = {}
-    # Required fields
     required_fields = ["first_name", "last_name", "email", "password"]
     for field in required_fields:
         if field not in body or not body[field]:
@@ -43,7 +42,6 @@ def signup_user_api() -> tuple[Response, int]:
 @auth_blueprint.route("/api/auth/login", methods=["POST"])
 def login_user_api() -> tuple[Response, int]:
     body: Dict[str, Any] = request.get_json()
-    # Required fields
     required_fields = ["email", "password"]
     for field in required_fields:
         if field not in body or not body[field]:
