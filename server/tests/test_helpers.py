@@ -20,7 +20,7 @@ def test_flip_amount(input_amount, expected_result):
 
 def test_flip_amount_with_string_amount():
     with pytest.raises(ValueError):
-        helpers.flip_amount("invalid_input")
+        helpers.flip_amount("invalid_input")  # type: ignore
 
 
 def test_to_dict():
@@ -96,13 +96,17 @@ def test_posix_to_readable(input_timestamp, expected_output):
         (
             "2022-03-28T10:15:30+00:00",
             1648487730.0,
-        ),  # Currently not handling timezones, expecting None
+        ),  # Test with timezone offset
+        (
+            "2023-01-15T10:30:00Z",
+            1673807400.0,
+        ),  # Test with Z timezone indicator
         ("2022/03/28", None),  # Invalid input, expecting None
     ],
 )
 def test_iso_8601_to_posix(iso_date, expected_output):
     if expected_output is not None:
-        assert isinstance(helpers.iso_8601_to_posix(iso_date), float)
+        assert helpers.iso_8601_to_posix(iso_date) == expected_output
     else:
         with pytest.raises(ValueError):
             helpers.iso_8601_to_posix(iso_date)

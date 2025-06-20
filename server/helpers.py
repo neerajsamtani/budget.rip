@@ -83,7 +83,7 @@ def posix_to_readable(date: float) -> str:
 
 
 def iso_8601_to_posix(date: str) -> float:
-    # TODO: Check if this handles timezones correctly
+    # TODO: This doesn't handle timezones correctly, it always assumes UTC
     posix_timestamp: float = -1
     try:
         if re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\+\d{2}:\d{2}", date):
@@ -95,7 +95,9 @@ def iso_8601_to_posix(date: str) -> float:
                 raise ValueError("Invalid timezone offset")
             posix_timestamp = (dt - tz_offset).timestamp()
         elif re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z", date):
-            posix_timestamp = datetime.fromisoformat(date[:10]).timestamp()
+            # Parse the full datetime string without the Z, treating it as UTC
+            dt: datetime = datetime.strptime(date[:-1], "%Y-%m-%dT%H:%M:%S")
+            posix_timestamp = dt.timestamp()
         else:
             raise ValueError
     except (TypeError, ValueError) as exc:

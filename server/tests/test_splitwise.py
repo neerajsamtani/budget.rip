@@ -354,7 +354,7 @@ class TestSplitwiseFunctions:
             assert len(line_items) == 1
             line_item = line_items[0]
             # The date should be converted to timestamp
-            assert line_item.date == 1673769600.0  # 2023-01-15T10:30:00Z as timestamp
+            assert line_item.date == 1673807400.0  # 2023-01-15T10:30:00Z as timestamp
 
     def test_splitwise_to_line_items_amount_flipping(self, flask_app, mocker):
         """Test splitwise_to_line_items function - amount flipping logic"""
