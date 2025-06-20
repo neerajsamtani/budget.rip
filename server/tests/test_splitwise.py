@@ -101,17 +101,17 @@ class TestSplitwiseFunctions:
     def test_refresh_splitwise_success(self, flask_app, mock_splitwise_expense, mocker):
         """Test refresh_splitwise function - success case"""
         with flask_app.app_context():
-            mock_client = mocker.patch("resources.splitwise.splitwise_client")
+            mock_splitwise_client = mocker.patch("resources.splitwise.splitwise_client")
             mock_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert")
 
             # Mock the getExpenses method
-            mock_client.getExpenses.return_value = [mock_splitwise_expense]
+            mock_splitwise_client.getExpenses.return_value = [mock_splitwise_expense]
 
             # Call the function
             refresh_splitwise()
 
             # Verify getExpenses was called with correct parameters
-            mock_client.getExpenses.assert_called_once_with(
+            mock_splitwise_client.getExpenses.assert_called_once_with(
                 limit=1000, dated_after="2022-08-03T00:00:00Z"
             )
 
@@ -125,11 +125,11 @@ class TestSplitwiseFunctions:
     ):
         """Test refresh_splitwise function - filters out deleted expenses"""
         with flask_app.app_context():
-            mock_client = mocker.patch("resources.splitwise.splitwise_client")
+            mock_splitwise_client = mocker.patch("resources.splitwise.splitwise_client")
             mock_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert")
 
             # Mock the getExpenses method to return both regular and deleted expenses
-            mock_client.getExpenses.return_value = [
+            mock_splitwise_client.getExpenses.return_value = [
                 mock_splitwise_expense,
                 mock_splitwise_expense_deleted,
             ]
@@ -145,11 +145,11 @@ class TestSplitwiseFunctions:
     def test_refresh_splitwise_no_expenses(self, flask_app, mocker):
         """Test refresh_splitwise function - no expenses returned"""
         with flask_app.app_context():
-            mock_client = mocker.patch("resources.splitwise.splitwise_client")
+            mock_splitwise_client = mocker.patch("resources.splitwise.splitwise_client")
             mock_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert")
 
             # Mock the getExpenses method to return empty list
-            mock_client.getExpenses.return_value = []
+            mock_splitwise_client.getExpenses.return_value = []
 
             # Call the function
             refresh_splitwise()
@@ -393,7 +393,7 @@ class TestSplitwiseIntegration:
     def test_full_refresh_workflow(self, flask_app, mocker):
         """Test the complete refresh workflow from API to database"""
         with flask_app.app_context():
-            mock_client = mocker.patch("resources.splitwise.splitwise_client")
+            mock_splitwise_client = mocker.patch("resources.splitwise.splitwise_client")
             mock_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert")
             mock_get_data = mocker.patch("resources.splitwise.get_all_data")
 
@@ -409,7 +409,7 @@ class TestSplitwiseIntegration:
             ]
 
             # Mock client responses
-            mock_client.getExpenses.return_value = [mock_expense]
+            mock_splitwise_client.getExpenses.return_value = [mock_expense]
 
             # Mock get_all_data for conversion
             mock_get_data.return_value = [
@@ -428,7 +428,7 @@ class TestSplitwiseIntegration:
             refresh_splitwise()
 
             # Verify refresh was called
-            mock_client.getExpenses.assert_called_once()
+            mock_splitwise_client.getExpenses.assert_called_once()
             assert mock_bulk_upsert.call_count == 1
 
             # Reset mock for conversion test

@@ -141,10 +141,10 @@ class TestApplicationRoutes:
                 bank_accounts_collection, mock_bank_account, mock_bank_account["id"]
             )
 
-            # Mock client responses
-            mock_client = mocker.Mock()
-            mock_client.my_profile.return_value = mock_venmo_profile
-            mocker.patch("application.get_venmo_client", return_value=mock_client)
+            # Mock venmoclient responses
+            mock_venmo_client = mocker.Mock()
+            mock_venmo_client.my_profile.return_value = mock_venmo_profile
+            mocker.patch("application.get_venmo_client", return_value=mock_venmo_client)
             mocker.patch(
                 "application.splitwise_client.getCurrentUser",
                 return_value=mock_splitwise_user,
@@ -176,9 +176,9 @@ class TestApplicationRoutes:
         self, test_client, jwt_token, mocker
     ):
         """Test GET /api/connected_accounts endpoint - Venmo error"""
-        mock_client = mocker.Mock()
-        mock_client.my_profile.return_value = None
-        mocker.patch("application.get_venmo_client", return_value=mock_client)
+        mock_venmo_client = mocker.Mock()
+        mock_venmo_client.my_profile.return_value = None
+        mocker.patch("application.get_venmo_client", return_value=mock_venmo_client)
 
         # The route raises an exception when Venmo profile is None
         with pytest.raises(Exception, match="Failed to get Venmo profile"):
@@ -385,9 +385,11 @@ class TestApplicationIntegration:
             for account in bank_accounts:
                 upsert_with_id(bank_accounts_collection, account, account["id"])
 
-            mock_client = mocker.Mock()
-            mock_client.my_profile.return_value = mocker.Mock(username="test_user")
-            mocker.patch("application.get_venmo_client", return_value=mock_client)
+            mock_venmo_client = mocker.Mock()
+            mock_venmo_client.my_profile.return_value = mocker.Mock(
+                username="test_user"
+            )
+            mocker.patch("application.get_venmo_client", return_value=mock_venmo_client)
             mocker.patch(
                 "application.splitwise_client.getCurrentUser",
                 return_value=mocker.Mock(

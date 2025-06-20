@@ -109,9 +109,11 @@ class TestVenmoFunctions:
         """Test refresh_venmo function - success case"""
         with flask_app.app_context():
             # Mock the get_venmo_client function
-            mock_client = mocker.Mock()
-            mock_client.my_profile.return_value = mock_venmo_user
-            mocker.patch("resources.venmo.get_venmo_client", return_value=mock_client)
+            mock_venmo_client = mocker.Mock()
+            mock_venmo_client.my_profile.return_value = mock_venmo_user
+            mocker.patch(
+                "resources.venmo.get_venmo_client", return_value=mock_venmo_client
+            )
 
             # Mock bulk_upsert
             mock_bulk_upsert = mocker.patch("resources.venmo.bulk_upsert")
@@ -131,7 +133,9 @@ class TestVenmoFunctions:
             mock_transactions.__iter__ = lambda self: iter([mock_transaction1])
             mock_transactions.get_next_page.return_value = None
 
-            mock_client.user.get_user_transactions.return_value = mock_transactions
+            mock_venmo_client.user.get_user_transactions.return_value = (
+                mock_transactions
+            )
 
             # Call the function
             refresh_venmo()
@@ -151,9 +155,11 @@ class TestVenmoFunctions:
         """Test refresh_venmo function - ignores transactions before moving date"""
         with flask_app.app_context():
             # Mock the get_venmo_client function
-            mock_client = mocker.Mock()
-            mock_client.my_profile.return_value = mock_venmo_user
-            mocker.patch("resources.venmo.get_venmo_client", return_value=mock_client)
+            mock_venmo_client = mocker.Mock()
+            mock_venmo_client.my_profile.return_value = mock_venmo_user
+            mocker.patch(
+                "resources.venmo.get_venmo_client", return_value=mock_venmo_client
+            )
 
             # Mock bulk_upsert
             mock_bulk_upsert = mocker.patch("resources.venmo.bulk_upsert")
@@ -171,7 +177,9 @@ class TestVenmoFunctions:
             mock_transactions.__iter__ = lambda self: iter([mock_transaction])
             mock_transactions.get_next_page.return_value = None
 
-            mock_client.user.get_user_transactions.return_value = mock_transactions
+            mock_venmo_client.user.get_user_transactions.return_value = (
+                mock_transactions
+            )
 
             # Call the function
             refresh_venmo()
@@ -185,9 +193,11 @@ class TestVenmoFunctions:
         """Test refresh_venmo function - ignores transactions with parties to ignore"""
         with flask_app.app_context():
             # Mock the get_venmo_client function
-            mock_client = mocker.Mock()
-            mock_client.my_profile.return_value = mock_venmo_user
-            mocker.patch("resources.venmo.get_venmo_client", return_value=mock_client)
+            mock_venmo_client = mocker.Mock()
+            mock_venmo_client.my_profile.return_value = mock_venmo_user
+            mocker.patch(
+                "resources.venmo.get_venmo_client", return_value=mock_venmo_client
+            )
 
             # Mock bulk_upsert
             mock_bulk_upsert = mocker.patch("resources.venmo.bulk_upsert")
@@ -205,7 +215,9 @@ class TestVenmoFunctions:
             mock_transactions.__iter__ = lambda self: iter([mock_transaction])
             mock_transactions.get_next_page.return_value = None
 
-            mock_client.user.get_user_transactions.return_value = mock_transactions
+            mock_venmo_client.user.get_user_transactions.return_value = (
+                mock_transactions
+            )
 
             # Call the function
             refresh_venmo()
@@ -217,9 +229,11 @@ class TestVenmoFunctions:
         """Test refresh_venmo function - handles pagination correctly"""
         with flask_app.app_context():
             # Mock the get_venmo_client function
-            mock_client = mocker.Mock()
-            mock_client.my_profile.return_value = mock_venmo_user
-            mocker.patch("resources.venmo.get_venmo_client", return_value=mock_client)
+            mock_venmo_client = mocker.Mock()
+            mock_venmo_client.my_profile.return_value = mock_venmo_user
+            mocker.patch(
+                "resources.venmo.get_venmo_client", return_value=mock_venmo_client
+            )
 
             # Mock bulk_upsert
             mock_bulk_upsert = mocker.patch("resources.venmo.bulk_upsert")
@@ -256,7 +270,7 @@ class TestVenmoFunctions:
                 None,
             ]
 
-            mock_client.user.get_user_transactions.return_value = (
+            mock_venmo_client.user.get_user_transactions.return_value = (
                 mock_transactions_page1
             )
 
@@ -273,9 +287,11 @@ class TestVenmoFunctions:
         """Test refresh_venmo function - profile retrieval failure"""
         with flask_app.app_context():
             # Mock the get_venmo_client function
-            mock_client = mocker.Mock()
-            mock_client.my_profile.return_value = None
-            mocker.patch("resources.venmo.get_venmo_client", return_value=mock_client)
+            mock_venmo_client = mocker.Mock()
+            mock_venmo_client.my_profile.return_value = None
+            mocker.patch(
+                "resources.venmo.get_venmo_client", return_value=mock_venmo_client
+            )
 
             # Call the function and expect exception
             with pytest.raises(Exception, match="Failed to get Venmo profile"):
@@ -453,9 +469,11 @@ class TestVenmoIntegration:
         """Test the complete refresh workflow from API to database"""
         with flask_app.app_context():
             # Mock the get_venmo_client function
-            mock_client = mocker.Mock()
-            mock_client.my_profile.return_value = mock_venmo_user
-            mocker.patch("resources.venmo.get_venmo_client", return_value=mock_client)
+            mock_venmo_client = mocker.Mock()
+            mock_venmo_client.my_profile.return_value = mock_venmo_user
+            mocker.patch(
+                "resources.venmo.get_venmo_client", return_value=mock_venmo_client
+            )
 
             # Use a Mock for the transaction for refresh_venmo
             mock_transaction = mocker.Mock()
@@ -471,7 +489,9 @@ class TestVenmoIntegration:
             mock_transactions = mocker.Mock()
             mock_transactions.__iter__ = lambda self: iter([mock_transaction])
             mock_transactions.get_next_page.return_value = None
-            mock_client.user.get_user_transactions.return_value = mock_transactions
+            mock_venmo_client.user.get_user_transactions.return_value = (
+                mock_transactions
+            )
 
             # Call refresh function (this will store a Mock in the DB, which we don't want for the next step)
             refresh_venmo()
@@ -510,9 +530,11 @@ class TestVenmoIntegration:
         """Test various edge cases in Venmo processing"""
         with flask_app.app_context():
             # Mock the get_venmo_client function
-            mock_client = mocker.Mock()
-            mock_client.my_profile.return_value = mock_venmo_user
-            mocker.patch("resources.venmo.get_venmo_client", return_value=mock_client)
+            mock_venmo_client = mocker.Mock()
+            mock_venmo_client.my_profile.return_value = mock_venmo_user
+            mocker.patch(
+                "resources.venmo.get_venmo_client", return_value=mock_venmo_client
+            )
 
             # Mock bulk_upsert
             mock_bulk_upsert = mocker.patch("resources.venmo.bulk_upsert")
@@ -543,7 +565,9 @@ class TestVenmoIntegration:
             )
             mock_transactions.get_next_page.return_value = None
 
-            mock_client.user.get_user_transactions.return_value = mock_transactions
+            mock_venmo_client.user.get_user_transactions.return_value = (
+                mock_transactions
+            )
 
             # Call the function
             refresh_venmo()
