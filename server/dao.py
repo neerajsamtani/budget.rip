@@ -72,25 +72,7 @@ def remove_event_from_line_item(line_item_id: Union[str, int, ObjectId]) -> None
     )
 
     if result.matched_count == 0:
-        # If no document was found, try alternative ID formats
-        if isinstance(line_item_id, str):
-            # Try converting string to int if it's numeric
-            int_id = int(line_item_id)
-            result = cur_collection.update_one(
-                {"_id": int_id}, {"$unset": {"event_id": ""}}
-            )
-        elif isinstance(line_item_id, ObjectId):
-            result = cur_collection.update_one(
-                {"_id": line_item_id}, {"$unset": {"event_id": ""}}
-            )
-        elif isinstance(line_item_id, int):
-            # Try converting int to string
-            str_id = str(line_item_id)
-            result = cur_collection.update_one(
-                {"_id": str_id}, {"$unset": {"event_id": ""}}
-            )
-
-        # If we still haven't found the document, log a warning
+        # If we haven't found the document, log a warning
         logging.warning(
             f"Could not find line item with ID {line_item_id} to remove event_id"
         )

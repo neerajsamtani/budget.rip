@@ -491,6 +491,8 @@ class TestEventAPI:
     def test_remove_event_from_line_item_different_id_types(self, flask_app):
         """Test remove_event_from_line_item function with different ID types"""
         with flask_app.app_context():
+            from bson import ObjectId
+
             from dao import get_item_by_id, remove_event_from_line_item
 
             # Test with string ID
@@ -521,13 +523,34 @@ class TestEventAPI:
                 line_items_collection, test_line_item_int, test_line_item_int["id"]
             )
 
-            # Verify both line items have event_id
+            # Test with ObjectId
+            test_line_item_objectid = {
+                "id": ObjectId(),
+                "date": 1234567892,
+                "responsible_party": "Bob Johnson",
+                "payment_method": "Stripe",
+                "description": "Test transaction 3",
+                "amount": 75,
+                "event_id": "event_3",
+            }
+            upsert_with_id(
+                line_items_collection,
+                test_line_item_objectid,
+                test_line_item_objectid["id"],
+            )
+
+            # Verify all line items have event_id
             line_item_str = get_item_by_id(line_items_collection, "line_item_str")
             line_item_int = get_item_by_id(line_items_collection, 12345)
+            line_item_objectid = get_item_by_id(
+                line_items_collection, test_line_item_objectid["id"]
+            )
             assert line_item_str is not None
             assert line_item_int is not None
+            assert line_item_objectid is not None
             assert line_item_str["event_id"] == "event_1"
             assert line_item_int["event_id"] == "event_2"
+            assert line_item_objectid["event_id"] == "event_3"
 
             # Test removing event_id with string ID
             remove_event_from_line_item("line_item_str")
@@ -540,3 +563,11 @@ class TestEventAPI:
             line_item_int_after = get_item_by_id(line_items_collection, 12345)
             assert line_item_int_after is not None
             assert "event_id" not in line_item_int_after
+
+            # Test removing event_id with ObjectId
+            remove_event_from_line_item(test_line_item_objectid["id"])
+            line_item_objectid_after = get_item_by_id(
+                line_items_collection, test_line_item_objectid["id"]
+            )
+            assert line_item_objectid_after is not None
+            assert "event_id" not in line_item_objectid_after
