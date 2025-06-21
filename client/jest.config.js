@@ -64,5 +64,13 @@ module.exports = {
     verbose: true,
 
     // Force Jest to exit after all tests complete
-    forceExit: true
+    forceExit: true,
+
+    // Transform ignore patterns
+    transformIgnorePatterns: [
+        'node_modules/(?!(axios)/)'
+    ],
+
+    // Extensions to treat as ES modules
+    extensionsToTreatAsEsm: ['.ts', '.tsx']
 }; 

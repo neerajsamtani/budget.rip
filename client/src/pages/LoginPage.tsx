@@ -1,9 +1,9 @@
 import React, { Fragment } from 'react';
-import { useNavigate } from 'react-router-dom';
 import Button from 'react-bootstrap/Button';
 import Form from 'react-bootstrap/Form';
+import { useNavigate } from 'react-router-dom';
+import { FormField, useField } from '../hooks/useField';
 import axiosInstance from "../utils/axiosInstance";
-import { useField, FormField } from '../hooks/useField';
 
 export default function LoginPage() {
     const email = useField("text", "" as string)
@@ -38,12 +38,12 @@ export default function LoginPage() {
         <Fragment>
             <Form>
                 <Form.Group className="mb-3">
-                    <Form.Label>Email:</Form.Label>
-                    <Form.Control value={email.value} onChange={email.onChange} type={email.type} />
+                    <Form.Label htmlFor="login-email-input">Email:</Form.Label>
+                    <Form.Control id="login-email-input" value={email.value} onChange={email.onChange} type={email.type} />
                 </Form.Group>
                 <Form.Group className="mb-3">
-                    <Form.Label>Password:</Form.Label>
-                    <Form.Control value={password.value} onChange={password.onChange} type={password.type} />
+                    <Form.Label htmlFor="login-password-input">Password:</Form.Label>
+                    <Form.Control id="login-password-input" value={password.value} onChange={password.onChange} type={password.type} />
                 </Form.Group>
                 <Button onClick={() => handleLogin(email, password)} variant="primary">Log In</Button>
                 <Button onClick={handleLogout} variant="primary">Log Out</Button>

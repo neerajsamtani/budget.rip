@@ -20,6 +20,14 @@ import '@testing-library/jest-dom';
     unobserve() { }
 };
 
+// Mock MutationObserver if not available in test environment
+(global as any).MutationObserver = class MutationObserver {
+    constructor(callback: any) { }
+    disconnect() { }
+    observe() { }
+    takeRecords() { return []; }
+};
+
 // Mock window.matchMedia
 Object.defineProperty(window, 'matchMedia', {
     writable: true,

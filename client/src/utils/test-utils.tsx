@@ -2,14 +2,28 @@ import { render, RenderOptions } from '@testing-library/react';
 import React, { ReactElement } from 'react';
 import { BrowserRouter } from 'react-router-dom';
 
-// Mock axios instance for API calls
-jest.mock('./axiosInstance', () => ({
-    axiosInstance: {
-        get: jest.fn(),
-        post: jest.fn(),
-        put: jest.fn(),
-        delete: jest.fn(),
+// Mock axios instance for API calls - create mock without importing axios
+const mockAxiosInstance = {
+    get: jest.fn(),
+    post: jest.fn(),
+    put: jest.fn(),
+    delete: jest.fn(),
+    patch: jest.fn(),
+    defaults: {
+        headers: {
+            common: {}
+        }
     },
+    interceptors: {
+        request: { use: jest.fn() },
+        response: { use: jest.fn() }
+    }
+};
+
+// Mock the axios instance module
+jest.mock('./axiosInstance', () => ({
+    __esModule: true,
+    default: mockAxiosInstance,
 }));
 
 // Custom render function that includes basic providers
@@ -31,6 +45,9 @@ export * from '@testing-library/react';
 
 // Override render method
 export { customRender as render };
+
+// Export mock axios instance for tests
+export { mockAxiosInstance };
 
 // Mock data for tests
 export const mockLineItem = {
