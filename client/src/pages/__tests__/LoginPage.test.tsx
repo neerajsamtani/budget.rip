@@ -1,4 +1,4 @@
-import { fireEvent } from '@testing-library/react';
+import { act, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { mockAxiosInstance, render, screen, waitFor } from '../../utils/test-utils';
@@ -18,8 +18,10 @@ describe('LoginPage', () => {
     });
 
     describe('Rendering', () => {
-        it('renders login form with all required elements', () => {
-            render(<LoginPage />);
+        it('renders login form with all required elements', async () => {
+            await act(async () => {
+                render(<LoginPage />);
+            });
 
             expect(screen.getByLabelText('Email:')).toBeInTheDocument();
             expect(screen.getByLabelText('Password:')).toBeInTheDocument();
@@ -27,8 +29,10 @@ describe('LoginPage', () => {
             expect(screen.getByRole('button', { name: /log out/i })).toBeInTheDocument();
         });
 
-        it('renders form fields with correct types', () => {
-            render(<LoginPage />);
+        it('renders form fields with correct types', async () => {
+            await act(async () => {
+                render(<LoginPage />);
+            });
 
             const emailField = screen.getByLabelText('Email:') as HTMLInputElement;
             const passwordField = screen.getByLabelText('Password:') as HTMLInputElement;
@@ -37,8 +41,10 @@ describe('LoginPage', () => {
             expect(passwordField.type).toBe('password');
         });
 
-        it('renders form fields with empty initial values', () => {
-            render(<LoginPage />);
+        it('renders form fields with empty initial values', async () => {
+            await act(async () => {
+                render(<LoginPage />);
+            });
 
             const emailField = screen.getByLabelText('Email:') as HTMLInputElement;
             const passwordField = screen.getByLabelText('Password:') as HTMLInputElement;
@@ -49,8 +55,10 @@ describe('LoginPage', () => {
     });
 
     describe('User Interactions', () => {
-        it('allows typing in email field', () => {
-            render(<LoginPage />);
+        it('allows typing in email field', async () => {
+            await act(async () => {
+                render(<LoginPage />);
+            });
 
             const emailField = screen.getByLabelText('Email:');
             fireEvent.change(emailField, { target: { value: 'test@example.com' } });
@@ -58,8 +66,10 @@ describe('LoginPage', () => {
             expect(emailField).toHaveValue('test@example.com');
         });
 
-        it('allows typing in password field', () => {
-            render(<LoginPage />);
+        it('allows typing in password field', async () => {
+            await act(async () => {
+                render(<LoginPage />);
+            });
 
             const passwordField = screen.getByLabelText('Password:');
             fireEvent.change(passwordField, { target: { value: 'password123' } });
@@ -68,7 +78,9 @@ describe('LoginPage', () => {
         });
 
         it('calls login API when Log In button is clicked', async () => {
-            render(<LoginPage />);
+            await act(async () => {
+                render(<LoginPage />);
+            });
 
             const emailField = screen.getByLabelText('Email:');
             const passwordField = screen.getByLabelText('Password:');
@@ -76,7 +88,9 @@ describe('LoginPage', () => {
 
             fireEvent.change(emailField, { target: { value: 'test@example.com' } });
             fireEvent.change(passwordField, { target: { value: 'password123' } });
-            await userEvent.click(loginButton);
+            await act(async () => {
+                await userEvent.click(loginButton);
+            });
 
             await waitFor(() => {
                 expect(mockAxiosInstance.post).toHaveBeenCalledWith(
@@ -90,10 +104,14 @@ describe('LoginPage', () => {
         });
 
         it('calls logout API when Log Out button is clicked', async () => {
-            render(<LoginPage />);
+            await act(async () => {
+                render(<LoginPage />);
+            });
 
             const logoutButton = screen.getByRole('button', { name: /log out/i });
-            await userEvent.click(logoutButton);
+            await act(async () => {
+                await userEvent.click(logoutButton);
+            });
 
             await waitFor(() => {
                 expect(mockAxiosInstance.post).toHaveBeenCalledWith(
@@ -103,7 +121,9 @@ describe('LoginPage', () => {
         });
 
         it('navigates to home page after successful login', async () => {
-            render(<LoginPage />);
+            await act(async () => {
+                render(<LoginPage />);
+            });
 
             const emailField = screen.getByLabelText('Email:');
             const passwordField = screen.getByLabelText('Password:');
@@ -111,7 +131,9 @@ describe('LoginPage', () => {
 
             fireEvent.change(emailField, { target: { value: 'test@example.com' } });
             fireEvent.change(passwordField, { target: { value: 'password123' } });
-            await userEvent.click(loginButton);
+            await act(async () => {
+                await userEvent.click(loginButton);
+            });
 
             await waitFor(() => {
                 expect(mockNavigate).toHaveBeenCalledWith('/');
@@ -119,7 +141,9 @@ describe('LoginPage', () => {
         });
 
         it('clears form fields after successful login', async () => {
-            render(<LoginPage />);
+            await act(async () => {
+                render(<LoginPage />);
+            });
 
             const emailField = screen.getByLabelText('Email:');
             const passwordField = screen.getByLabelText('Password:');
@@ -127,7 +151,9 @@ describe('LoginPage', () => {
 
             fireEvent.change(emailField, { target: { value: 'test@example.com' } });
             fireEvent.change(passwordField, { target: { value: 'password123' } });
-            await userEvent.click(loginButton);
+            await act(async () => {
+                await userEvent.click(loginButton);
+            });
 
             await waitFor(() => {
                 expect(emailField).toHaveValue('');
@@ -141,7 +167,9 @@ describe('LoginPage', () => {
             const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
             mockAxiosInstance.post.mockRejectedValue(new Error('Login failed'));
 
-            render(<LoginPage />);
+            await act(async () => {
+                render(<LoginPage />);
+            });
 
             const emailField = screen.getByLabelText('Email:');
             const passwordField = screen.getByLabelText('Password:');
@@ -149,7 +177,9 @@ describe('LoginPage', () => {
 
             fireEvent.change(emailField, { target: { value: 'test@example.com' } });
             fireEvent.change(passwordField, { target: { value: 'password123' } });
-            await userEvent.click(loginButton);
+            await act(async () => {
+                await userEvent.click(loginButton);
+            });
 
             await waitFor(() => {
                 expect(consoleSpy).toHaveBeenCalledWith(expect.any(Error));
@@ -162,10 +192,14 @@ describe('LoginPage', () => {
             const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
             mockAxiosInstance.post.mockRejectedValueOnce(new Error('Logout failed'));
 
-            render(<LoginPage />);
+            await act(async () => {
+                render(<LoginPage />);
+            });
 
             const logoutButton = screen.getByRole('button', { name: /log out/i });
-            await userEvent.click(logoutButton);
+            await act(async () => {
+                await userEvent.click(logoutButton);
+            });
 
             await waitFor(() => {
                 expect(consoleSpy).toHaveBeenCalledWith(expect.any(Error));
@@ -177,7 +211,9 @@ describe('LoginPage', () => {
         it('does not navigate on login error', async () => {
             mockAxiosInstance.post.mockRejectedValue(new Error('Login failed'));
 
-            render(<LoginPage />);
+            await act(async () => {
+                render(<LoginPage />);
+            });
 
             const emailField = screen.getByLabelText('Email:');
             const passwordField = screen.getByLabelText('Password:');
@@ -185,7 +221,9 @@ describe('LoginPage', () => {
 
             fireEvent.change(emailField, { target: { value: 'test@example.com' } });
             fireEvent.change(passwordField, { target: { value: 'password123' } });
-            await userEvent.click(loginButton);
+            await act(async () => {
+                await userEvent.click(loginButton);
+            });
 
             await waitFor(() => {
                 expect(mockNavigate).not.toHaveBeenCalled();
@@ -194,8 +232,10 @@ describe('LoginPage', () => {
     });
 
     describe('Accessibility', () => {
-        it('has proper form labels', () => {
-            render(<LoginPage />);
+        it('has proper form labels', async () => {
+            await act(async () => {
+                render(<LoginPage />);
+            });
 
             expect(screen.getByLabelText('Email:')).toBeInTheDocument();
             expect(screen.getByLabelText('Password:')).toBeInTheDocument();
@@ -220,23 +260,6 @@ describe('LoginPage', () => {
     });
 
     describe('Form Validation', () => {
-        it('allows empty fields to be submitted', async () => {
-            render(<LoginPage />);
-
-            const loginButton = screen.getByRole('button', { name: /log in/i });
-            await userEvent.click(loginButton);
-
-            await waitFor(() => {
-                expect(mockAxiosInstance.post).toHaveBeenCalledWith(
-                    expect.stringContaining('api/auth/login'),
-                    {
-                        email: '',
-                        password: ''
-                    }
-                );
-            });
-        });
-
         it('handles special characters in email and password', async () => {
             render(<LoginPage />);
 
@@ -246,7 +269,9 @@ describe('LoginPage', () => {
 
             fireEvent.change(emailField, { target: { value: 'test+tag@example.com' } });
             fireEvent.change(passwordField, { target: { value: 'pass@word!123' } });
-            await userEvent.click(loginButton);
+            await act(async () => {
+                await userEvent.click(loginButton);
+            });
 
             await waitFor(() => {
                 expect(mockAxiosInstance.post).toHaveBeenCalledWith(
@@ -256,6 +281,245 @@ describe('LoginPage', () => {
                         password: 'pass@word!123'
                     }
                 );
+            });
+        });
+
+        it('validates required fields', async () => {
+            await act(async () => {
+                render(<LoginPage />);
+            });
+
+            const submitButton = screen.getByRole('button', { name: /log in/i });
+
+            await act(async () => {
+                await userEvent.click(submitButton);
+            });
+
+            // Form should not submit without required fields
+            expect(mockAxiosInstance.post).not.toHaveBeenCalled();
+            expect(screen.getByRole('alert')).toHaveTextContent(/required/i);
+        });
+
+        it('validates email format', async () => {
+            await act(async () => {
+                render(<LoginPage />);
+            });
+
+            const emailInput = screen.getByLabelText(/email/i);
+            const passwordInput = screen.getByLabelText(/password/i);
+            const submitButton = screen.getByRole('button', { name: /log in/i });
+
+            fireEvent.change(emailInput, { target: { value: 'invalid-email' } });
+            fireEvent.change(passwordInput, { target: { value: 'password123' } });
+
+            await act(async () => {
+                await userEvent.click(submitButton);
+            });
+
+            // Form should not submit with invalid email
+            expect(mockAxiosInstance.post).not.toHaveBeenCalled();
+            expect(screen.getByRole('alert')).toHaveTextContent(/valid email/i);
+        });
+
+        it('does not submit when fields are empty and shows error', async () => {
+            await act(async () => {
+                render(<LoginPage />);
+            });
+
+            const submitButton = screen.getByRole('button', { name: /log in/i });
+
+            await act(async () => {
+                await userEvent.click(submitButton);
+            });
+
+            // Form should not submit without required fields
+            expect(mockAxiosInstance.post).not.toHaveBeenCalled();
+            expect(screen.getByRole('alert')).toHaveTextContent(/required/i);
+        });
+    });
+
+    describe('Form Submission', () => {
+        it('submits form with valid credentials', async () => {
+            mockAxiosInstance.post.mockResolvedValueOnce({ data: { success: true } });
+
+            await act(async () => {
+                render(<LoginPage />);
+            });
+
+            const emailInput = screen.getByLabelText(/email/i);
+            const passwordInput = screen.getByLabelText(/password/i);
+            const submitButton = screen.getByRole('button', { name: /log in/i });
+
+            fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
+            fireEvent.change(passwordInput, { target: { value: 'password123' } });
+
+            await act(async () => {
+                await userEvent.click(submitButton);
+            });
+
+            await waitFor(() => {
+                expect(mockAxiosInstance.post).toHaveBeenCalledWith(
+                    expect.stringContaining('api/auth/login'),
+                    {
+                        email: 'test@example.com',
+                        password: 'password123'
+                    }
+                );
+            });
+        });
+
+        it('handles login failure', async () => {
+            mockAxiosInstance.post.mockRejectedValueOnce(new Error('Login failed'));
+
+            await act(async () => {
+                render(<LoginPage />);
+            });
+
+            const emailInput = screen.getByLabelText(/email/i);
+            const passwordInput = screen.getByLabelText(/password/i);
+            const submitButton = screen.getByRole('button', { name: /log in/i });
+
+            fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
+            fireEvent.change(passwordInput, { target: { value: 'wrongpassword' } });
+
+            await act(async () => {
+                await userEvent.click(submitButton);
+            });
+
+            await waitFor(() => {
+                expect(mockAxiosInstance.post).toHaveBeenCalledWith(
+                    expect.stringContaining('api/auth/login'),
+                    {
+                        email: 'test@example.com',
+                        password: 'wrongpassword'
+                    }
+                );
+            });
+        });
+
+        it('validates required fields', async () => {
+            await act(async () => {
+                render(<LoginPage />);
+            });
+
+            const submitButton = screen.getByRole('button', { name: /log in/i });
+
+            await act(async () => {
+                await userEvent.click(submitButton);
+            });
+
+            // Form should not submit without required fields
+            expect(mockAxiosInstance.post).not.toHaveBeenCalled();
+            expect(screen.getByRole('alert')).toHaveTextContent(/required/i);
+        });
+
+        it('validates email format', async () => {
+            await act(async () => {
+                render(<LoginPage />);
+            });
+
+            const emailInput = screen.getByLabelText(/email/i);
+            const passwordInput = screen.getByLabelText(/password/i);
+            const submitButton = screen.getByRole('button', { name: /log in/i });
+
+            fireEvent.change(emailInput, { target: { value: 'invalid-email' } });
+            fireEvent.change(passwordInput, { target: { value: 'password123' } });
+
+            await act(async () => {
+                await userEvent.click(submitButton);
+            });
+
+            // Form should not submit with invalid email
+            expect(mockAxiosInstance.post).not.toHaveBeenCalled();
+            expect(screen.getByRole('alert')).toHaveTextContent(/valid email/i);
+        });
+    });
+
+    describe('Error Handling', () => {
+        it('displays error message on login failure', async () => {
+            mockAxiosInstance.post.mockRejectedValueOnce(new Error('Login failed'));
+
+            await act(async () => {
+                render(<LoginPage />);
+            });
+
+            const emailInput = screen.getByLabelText(/email/i);
+            const passwordInput = screen.getByLabelText(/password/i);
+            const submitButton = screen.getByRole('button', { name: /log in/i });
+
+            fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
+            fireEvent.change(passwordInput, { target: { value: 'wrongpassword' } });
+
+            await act(async () => {
+                await userEvent.click(submitButton);
+            });
+
+            await waitFor(() => {
+                expect(screen.getByRole('alert')).toHaveTextContent(/login failed/i);
+            });
+        });
+
+        it('handles network errors gracefully', async () => {
+            mockAxiosInstance.post.mockRejectedValueOnce(new Error('Network Error'));
+
+            await act(async () => {
+                render(<LoginPage />);
+            });
+
+            const emailInput = screen.getByLabelText(/email/i);
+            const passwordInput = screen.getByLabelText(/password/i);
+            const submitButton = screen.getByRole('button', { name: /log in/i });
+
+            fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
+            fireEvent.change(passwordInput, { target: { value: 'password123' } });
+
+            await act(async () => {
+                await userEvent.click(submitButton);
+            });
+
+            await waitFor(() => {
+                expect(screen.getByRole('alert')).toHaveTextContent(/network error/i);
+            });
+        });
+    });
+
+    describe('Form State Management', () => {
+        it('updates form fields on user input', async () => {
+            await act(async () => {
+                render(<LoginPage />);
+            });
+
+            const emailInput = screen.getByLabelText(/email/i);
+            const passwordInput = screen.getByLabelText(/password/i);
+
+            fireEvent.change(emailInput, { target: { value: 'new@example.com' } });
+            fireEvent.change(passwordInput, { target: { value: 'newpassword' } });
+
+            expect(emailInput).toHaveValue('new@example.com');
+            expect(passwordInput).toHaveValue('newpassword');
+        });
+
+        it('clears form fields after successful submission', async () => {
+            mockAxiosInstance.post.mockResolvedValueOnce({ data: { success: true } });
+
+            await act(async () => {
+                render(<LoginPage />);
+            });
+
+            const emailInput = screen.getByLabelText(/email/i);
+            const passwordInput = screen.getByLabelText(/password/i);
+            const submitButton = screen.getByRole('button', { name: /log in/i });
+
+            fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
+            fireEvent.change(passwordInput, { target: { value: 'password123' } });
+
+            await act(async () => {
+                await userEvent.click(submitButton);
+            });
+
+            await waitFor(() => {
+                expect(emailInput).toHaveValue('');
+                expect(passwordInput).toHaveValue('');
             });
         });
     });

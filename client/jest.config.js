@@ -40,7 +40,8 @@ module.exports = {
 
     // The test environment options that will be passed to the testEnvironment
     testEnvironmentOptions: {
-        url: 'http://localhost'
+        url: 'http://localhost',
+        customExportConditions: ['node', 'node-addons']
     },
 
     // Setup files that will be run before each test
@@ -72,5 +73,8 @@ module.exports = {
     ],
 
     // Extensions to treat as ES modules
-    extensionsToTreatAsEsm: ['.ts', '.tsx']
+    extensionsToTreatAsEsm: ['.ts', '.tsx'],
+
+    // Global setup to suppress deprecation warnings
+    globalSetup: '<rootDir>/src/test-setup.js'
 }; 

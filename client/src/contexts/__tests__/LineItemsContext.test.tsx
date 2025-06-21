@@ -163,7 +163,9 @@ describe('LineItemsContext', () => {
             });
 
             const toggleButton = screen.getByTestId('toggle-button');
-            await userEvent.click(toggleButton);
+            await act(async () => {
+                await userEvent.click(toggleButton);
+            });
 
             await waitFor(() => {
                 expect(screen.getByTestId('line-item-1')).toHaveTextContent('Test transaction 1 - selected');
@@ -184,7 +186,9 @@ describe('LineItemsContext', () => {
             });
 
             const removeButton = screen.getByTestId('remove-button');
-            await userEvent.click(removeButton);
+            await act(async () => {
+                await userEvent.click(removeButton);
+            });
 
             await waitFor(() => {
                 expect(screen.getByTestId('line-items-count')).toHaveTextContent('0');
@@ -275,7 +279,9 @@ describe('LineItemsContext', () => {
 
             // Toggle first item
             const toggleButton = screen.getByTestId('toggle-button');
-            await userEvent.click(toggleButton);
+            await act(async () => {
+                await userEvent.click(toggleButton);
+            });
 
             await waitFor(() => {
                 expect(screen.getByTestId('line-item-1')).toHaveTextContent('Test transaction 1 - selected');
@@ -283,7 +289,9 @@ describe('LineItemsContext', () => {
 
             // Remove items
             const removeButton = screen.getByTestId('remove-button');
-            await userEvent.click(removeButton);
+            await act(async () => {
+                await userEvent.click(removeButton);
+            });
 
             await waitFor(() => {
                 expect(screen.getByTestId('line-items-count')).toHaveTextContent('0');
@@ -306,13 +314,17 @@ describe('LineItemsContext', () => {
             const toggleButton = screen.getByTestId('toggle-button');
 
             // Toggle on
-            await userEvent.click(toggleButton);
+            await act(async () => {
+                await userEvent.click(toggleButton);
+            });
             await waitFor(() => {
                 expect(screen.getByTestId('line-item-1')).toHaveTextContent('Test transaction 1 - selected');
             });
 
             // Toggle off
-            await userEvent.click(toggleButton);
+            await act(async () => {
+                await userEvent.click(toggleButton);
+            });
             await waitFor(() => {
                 expect(screen.getByTestId('line-item-1')).toHaveTextContent('Test transaction 1 - not selected');
             });

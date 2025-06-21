@@ -1,3 +1,4 @@
+import { act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { mockAxiosInstance, render, screen, waitFor } from '../../utils/test-utils';
@@ -50,10 +51,12 @@ describe('Event', () => {
     });
 
     describe('Rendering', () => {
-        it('renders event data correctly', () => {
-            render(
-                <table><tbody><tr><Event event={mockEvent} /></tr></tbody></table>
-            );
+        it('renders event data correctly', async () => {
+            await act(async () => {
+                render(
+                    <table><tbody><tr><Event event={mockEvent} /></tr></tbody></table>
+                );
+            });
 
             expect(screen.getByText('Test Event')).toBeInTheDocument();
             expect(screen.getByText('Entertainment')).toBeInTheDocument();
@@ -61,30 +64,36 @@ describe('Event', () => {
             expect(screen.getByText('Jan 1, 2022')).toBeInTheDocument();
         });
 
-        it('renders tags when present', () => {
-            render(
-                <table><tbody><tr><Event event={mockEvent} /></tr></tbody></table>
-            );
+        it('renders tags when present', async () => {
+            await act(async () => {
+                render(
+                    <table><tbody><tr><Event event={mockEvent} /></tr></tbody></table>
+                );
+            });
 
             expect(screen.getByText('fun')).toBeInTheDocument();
             expect(screen.getByText('social')).toBeInTheDocument();
         });
 
-        it('does not render tags when not present', () => {
+        it('does not render tags when not present', async () => {
             const eventWithoutTags = { ...mockEvent, tags: undefined };
-            render(
-                <table><tbody><tr><Event event={eventWithoutTags} /></tr></tbody></table>
-            );
+            await act(async () => {
+                render(
+                    <table><tbody><tr><Event event={eventWithoutTags} /></tr></tbody></table>
+                );
+            });
 
             expect(screen.queryByText('fun')).not.toBeInTheDocument();
             expect(screen.queryByText('social')).not.toBeInTheDocument();
         });
 
-        it('renders empty tags array correctly', () => {
+        it('renders empty tags array correctly', async () => {
             const eventWithEmptyTags = { ...mockEvent, tags: [] };
-            render(
-                <table><tbody><tr><Event event={eventWithEmptyTags} /></tr></tbody></table>
-            );
+            await act(async () => {
+                render(
+                    <table><tbody><tr><Event event={eventWithEmptyTags} /></tr></tbody></table>
+                );
+            });
 
             expect(screen.queryByText('fun')).not.toBeInTheDocument();
             expect(screen.queryByText('social')).not.toBeInTheDocument();
@@ -93,12 +102,16 @@ describe('Event', () => {
 
     describe('User Interactions', () => {
         it('shows event details modal when Details button is clicked', async () => {
-            render(
-                <table><tbody><tr><Event event={mockEvent} /></tr></tbody></table>
-            );
+            await act(async () => {
+                render(
+                    <table><tbody><tr><Event event={mockEvent} /></tr></tbody></table>
+                );
+            });
 
             const detailsButton = screen.getByRole('button', { name: /details/i });
-            await userEvent.click(detailsButton);
+            await act(async () => {
+                await userEvent.click(detailsButton);
+            });
 
             await waitFor(() => {
                 expect(screen.getByTestId('event-details-modal')).toBeInTheDocument();
@@ -106,12 +119,16 @@ describe('Event', () => {
         });
 
         it('fetches line items when Details button is clicked', async () => {
-            render(
-                <table><tbody><tr><Event event={mockEvent} /></tr></tbody></table>
-            );
+            await act(async () => {
+                render(
+                    <table><tbody><tr><Event event={mockEvent} /></tr></tbody></table>
+                );
+            });
 
             const detailsButton = screen.getByRole('button', { name: /details/i });
-            await userEvent.click(detailsButton);
+            await act(async () => {
+                await userEvent.click(detailsButton);
+            });
 
             await waitFor(() => {
                 expect(mockAxiosInstance.get).toHaveBeenCalledWith(
@@ -124,12 +141,16 @@ describe('Event', () => {
             const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
             mockAxiosInstance.get.mockRejectedValue(new Error('API Error'));
 
-            render(
-                <table><tbody><tr><Event event={mockEvent} /></tr></tbody></table>
-            );
+            await act(async () => {
+                render(
+                    <table><tbody><tr><Event event={mockEvent} /></tr></tbody></table>
+                );
+            });
 
             const detailsButton = screen.getByRole('button', { name: /details/i });
-            await userEvent.click(detailsButton);
+            await act(async () => {
+                await userEvent.click(detailsButton);
+            });
 
             await waitFor(() => {
                 expect(consoleSpy).toHaveBeenCalledWith(expect.any(Error));
@@ -140,21 +161,25 @@ describe('Event', () => {
     });
 
     describe('Date Formatting', () => {
-        it('formats date correctly for different timestamps', () => {
+        it('formats date correctly for different timestamps', async () => {
             const eventWithDifferentDate = { ...mockEvent, date: 1640995200 }; // Jan 1, 2022
-            render(
-                <table><tbody><tr><Event event={eventWithDifferentDate} /></tr></tbody></table>
-            );
+            await act(async () => {
+                render(
+                    <table><tbody><tr><Event event={eventWithDifferentDate} /></tr></tbody></table>
+                );
+            });
 
             expect(screen.getByText('Jan 1, 2022')).toBeInTheDocument();
         });
     });
 
     describe('Accessibility', () => {
-        it('has accessible button with proper label', () => {
-            render(
-                <table><tbody><tr><Event event={mockEvent} /></tr></tbody></table>
-            );
+        it('has accessible button with proper label', async () => {
+            await act(async () => {
+                render(
+                    <table><tbody><tr><Event event={mockEvent} /></tr></tbody></table>
+                );
+            });
 
             const detailsButton = screen.getByRole('button', { name: /details/i });
             expect(detailsButton).toBeInTheDocument();

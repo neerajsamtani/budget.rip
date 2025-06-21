@@ -4,6 +4,22 @@
 // learn more: https://github.com/testing-library/jest-dom
 import '@testing-library/jest-dom';
 
+// Suppress console logs during tests to reduce noise
+const originalConsoleLog = console.log;
+const originalConsoleError = console.error;
+
+beforeAll(() => {
+    // Suppress console.log and console.error during tests
+    console.log = jest.fn();
+    console.error = jest.fn();
+});
+
+afterAll(() => {
+    // Restore original console methods
+    console.log = originalConsoleLog;
+    console.error = originalConsoleError;
+});
+
 // Mock IntersectionObserver if not available in test environment
 (global as any).IntersectionObserver = class IntersectionObserver {
     constructor() { }
