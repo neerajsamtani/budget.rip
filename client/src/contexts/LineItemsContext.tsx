@@ -1,5 +1,4 @@
-import React, { createContext, ReactNode, useEffect, useReducer } from 'react';
-import { useContext } from "react";
+import React, { createContext, ReactNode, useContext, useEffect, useReducer } from 'react';
 import axiosInstance from '../utils/axiosInstance';
 
 // Define TypeScript interfaces for the line item and props
@@ -38,8 +37,10 @@ function lineItemsReducer(lineItems: LineItemInterface[], action: Action) {
         case "toggle_line_item_select": {
             return lineItems.map(lineItem => {
                 if (lineItem.id === action.lineItemId) {
-                    lineItem.isSelected = !lineItem.isSelected
-                    return lineItem;
+                    return {
+                        ...lineItem,
+                        isSelected: !lineItem.isSelected
+                    };
                 } else {
                     return lineItem;
                 }
