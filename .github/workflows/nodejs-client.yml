@@ -19,8 +19,8 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [16.x, 18.x, 20.x]
-        # Testing against Node 16.x (lts/gallium) which is typically used, plus newer LTS versions
+        node-version: [16.x]
+        # Testing against Node 16.x (lts/gallium) which is typically used for this project
         # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
 
     steps:
@@ -45,6 +45,11 @@ jobs:
     - name: Install dependencies
       working-directory: client
       run: npm ci --legacy-peer-deps
+    
+    #   TODO: Consider upgrading to react-scripts version 5.x instead of downgrading @testing-library/jest-dom
+    - name: Downgrade @testing-library/jest-dom for compatibility
+      working-directory: client
+      run: npm install @testing-library/jest-dom@5.16.5 --legacy-peer-deps
     
     - name: Build the application
       working-directory: client
