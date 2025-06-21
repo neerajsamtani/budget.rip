@@ -1,9 +1,9 @@
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Button, Nav, Navbar, Table } from "react-bootstrap";
-import { useLineItems } from "../contexts/LineItemsContext";
 import CreateCashTransactionModal from "../components/CreateCashTransactionModal";
 import CreateEventModal from "../components/CreateEventModal";
 import LineItem from "../components/LineItem";
+import { useLineItems } from "../contexts/LineItemsContext";
 
 export default function LineItemsToReviewPage() {
 
@@ -14,6 +14,21 @@ export default function LineItemsToReviewPage() {
     const padding = {
         padding: 5
     }
+
+    const handleKeyDown = useCallback((event) => {
+        if (event.key === 'Enter') {
+            setEventModalShow(true);
+        }
+    }, []);
+
+    useEffect(() => {
+        document.addEventListener('keydown', handleKeyDown);
+
+        // Cleanup the event listener on component unmount
+        return () => {
+            document.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [handleKeyDown]); // Re-run effect if handleKeyDown changes
 
     return (
         <div>
@@ -54,7 +69,7 @@ export default function LineItemsToReviewPage() {
                         <Button onClick={() => setCashModalShow(true)} variant="primary">Create Cash Transaction</Button>
                     </Nav.Item>
                     <Nav.Item style={padding}>
-                        <Button onClick={() => setEventModalShow(true)} variant="primary">Create Event</Button>
+                        <Button onClick={() => setEventModalShow(true)} variant="primary">Create Event (↵)</Button>
                     </Nav.Item>
                 </Navbar>
             </div>

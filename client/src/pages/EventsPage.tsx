@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from "react";
-import { Table, Form, Row, Col, InputGroup, Badge, FormControl } from "react-bootstrap";
 import { DateTime } from "luxon";
-import Event, { EventInterface } from "../components/Event";
+import React, { useEffect, useState } from "react";
+import { Col, Form, InputGroup, Row, Table } from "react-bootstrap";
 import CategoryFilter, { Category } from "../components/CategoryFilter";
+import Event, { EventInterface } from "../components/Event";
 import MonthFilter from "../components/MonthFilter";
-import YearFilter from "../components/YearFilter";
 import TagsFilter from "../components/TagsFilter";
+import YearFilter from "../components/YearFilter";
 import axiosInstance from "../utils/axiosInstance";
 
 export default function EventsPage() {
@@ -13,7 +13,7 @@ export default function EventsPage() {
     // Events for the selected month and year are fetched from the DB
     // Category filtering is done on the frontend
 
-    const now = DateTime.now()
+    const now = DateTime.utc()
 
     const [events, setEvents] = useState<EventInterface[]>([])
     const [category, setCategory] = useState("All")
@@ -25,10 +25,10 @@ export default function EventsPage() {
         var REACT_APP_API_ENDPOINT = String(process.env.REACT_APP_API_ENDPOINT);
         var start_time, end_time;
         if (month !== "All") {
-            start_time = DateTime.fromFormat(`${month} ${year}`, "LLLL yyyy")
+            start_time = DateTime.fromFormat(`${month} ${year}`, "LLLL yyyy", { zone: 'utc' })
             end_time = start_time.endOf("month")
         } else {
-            start_time = DateTime.fromFormat(`${year}`, "yyyy")
+            start_time = DateTime.fromFormat(`${year}`, "yyyy", { zone: 'utc' })
             end_time = start_time.endOf("year")
         }
         axiosInstance.get(`${REACT_APP_API_ENDPOINT}api/events`, {

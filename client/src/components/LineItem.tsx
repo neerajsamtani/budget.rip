@@ -1,5 +1,5 @@
 import React from "react";
-import { useLineItems, useLineItemsDispatch, LineItemInterface } from "../contexts/LineItemsContext";
+import { LineItemInterface, useLineItems, useLineItemsDispatch } from "../contexts/LineItemsContext";
 
 interface LineItemProps {
     lineItem: LineItemInterface;
@@ -12,6 +12,7 @@ export default function LineItem({ lineItem, showCheckBox }: LineItemProps) {
         year: 'numeric',
         month: 'short',
         day: 'numeric',
+        timeZone: 'UTC'
     });
 
     // Convert the UNIX timestamp to a readable date

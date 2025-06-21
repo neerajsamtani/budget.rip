@@ -31,6 +31,7 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
         year: "numeric",
         month: "short",
         day: "numeric",
+        timeZone: "UTC"
     });
     const formatDate = (unixTime: number) => dateFormatter.format(new Date(unixTime * 1000))
 

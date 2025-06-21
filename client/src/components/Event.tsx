@@ -1,8 +1,8 @@
 import React, { useState } from "react";
-import { Button, Badge } from "react-bootstrap";
+import { Badge, Button } from "react-bootstrap";
 import { LineItemInterface } from "../contexts/LineItemsContext";
-import EventDetailsModal from "./EventDetailsModal";
 import axiosInstance from "../utils/axiosInstance";
+import EventDetailsModal from "./EventDetailsModal";
 
 export interface EventInterface {
     _id: string;
@@ -19,6 +19,7 @@ export default function Event({ event }: { event: EventInterface }) {
         year: 'numeric',
         month: 'short',
         day: 'numeric',
+        timeZone: 'UTC'
     });
     const readableDate = longEnUSFormatter.format(event.date * 1000);
 
