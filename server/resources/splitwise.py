@@ -1,3 +1,4 @@
+import logging
 from typing import Any, Dict, List
 
 from flask import Blueprint, Response, jsonify
@@ -34,23 +35,30 @@ def refresh_splitwise_api() -> tuple[Response, int]:
 
 
 def refresh_splitwise() -> None:
-    print("Refreshing Splitwise Data")
+    logging.info("Refreshing Splitwise Data")
     expenses: List[Any] = splitwise_client.getExpenses(
         limit=LIMIT, dated_after=MOVING_DATE
     )
 
     # Collect all non-deleted expenses for bulk upsert
     all_expenses: List[Any] = []
+    deleted_count = 0
     for expense in expenses:
         # TODO: What if an expense is deleted? What if it's part of an event?
         # Should I send a notification?
         if expense.deleted_at is not None:
+            deleted_count += 1
             continue
         all_expenses.append(expense)
 
     # Bulk upsert all collected expenses at once
     if all_expenses:
         bulk_upsert(splitwise_raw_data_collection, all_expenses)
+        logging.info(
+            f"Refreshed {len(all_expenses)} Splitwise expenses (skipped {deleted_count} deleted)"
+        )
+    else:
+        logging.info("No new Splitwise expenses to refresh")
 
 
 def splitwise_to_line_items() -> None:
@@ -67,6 +75,7 @@ def splitwise_to_line_items() -> None:
 
     # Collect all line items for bulk upsert
     all_line_items: List[LineItem] = []
+    ignored_count = 0
 
     for expense in expenses:
         # Determine responsible party
@@ -78,6 +87,7 @@ def splitwise_to_line_items() -> None:
 
         # Skip if responsible party is in ignore list
         if responsible_party.strip() in PARTIES_TO_IGNORE:
+            ignored_count += 1
             continue
 
         posix_date: float = iso_8601_to_posix(expense["date"])
@@ -101,3 +111,8 @@ def splitwise_to_line_items() -> None:
     # Bulk upsert all collected line items at once
     if all_line_items:
         bulk_upsert(line_items_collection, all_line_items)
+        logging.info(
+            f"Converted {len(all_line_items)} Splitwise expenses to line items (ignored {ignored_count})"
+        )
+    else:
+        logging.info("No Splitwise expenses to convert to line items")

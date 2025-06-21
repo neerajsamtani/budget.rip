@@ -1,3 +1,4 @@
+import logging
 from typing import Any, Dict, List
 
 from flask import Blueprint, Response, jsonify, request
@@ -25,6 +26,9 @@ def create_cash_transaction_api() -> tuple[Response, int]:
     transaction["date"] = html_date_to_posix(transaction["date"])
     transaction["amount"] = int(transaction["amount"])
     insert(cash_raw_data_collection, transaction)
+    logging.info(
+        f"Cash transaction created: {transaction['description']} - ${transaction['amount']}"
+    )
     cash_to_line_items()
     return jsonify("Created Cash Transaction"), 201
 
@@ -58,3 +62,6 @@ def cash_to_line_items() -> None:
     # Bulk upsert all collected line items at once
     if all_line_items:
         bulk_upsert(line_items_collection, all_line_items)
+        logging.info(f"Converted {len(all_line_items)} cash transactions to line items")
+    else:
+        logging.info("No cash transactions to convert to line items")

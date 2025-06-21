@@ -1,3 +1,4 @@
+import logging
 from collections import defaultdict
 from datetime import datetime
 from typing import Any, Dict, List
@@ -50,6 +51,7 @@ def get_monthly_breakdown_api() -> tuple[Response, int]:
         )
         all_dates.append(formatted_date)
     if not all_dates:
+        logging.info("No categorized data found for monthly breakdown")
         return jsonify({}), 200
     # Find min and max date
     all_dates_dt = [datetime.strptime(d, "%m-%Y") for d in all_dates]
@@ -60,4 +62,13 @@ def get_monthly_breakdown_api() -> tuple[Response, int]:
         unseen_dates = set(full_range).difference(info_dates)
         info.extend([{"date": x, "amount": 0.0} for x in unseen_dates])
         info.sort(key=lambda x: datetime.strptime(x["date"], "%m-%Y").date())
+
+    total_categories = len(categories)
+    total_amount = sum(
+        sum(item["amount"] for item in category_data)
+        for category_data in categories.values()
+    )
+    logging.info(
+        f"Generated monthly breakdown: {total_categories} categories, total amount: ${total_amount:.2f}"
+    )
     return jsonify(categories), 200
