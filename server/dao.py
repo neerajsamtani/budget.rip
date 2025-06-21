@@ -28,7 +28,6 @@ def get_collection(cur_collection_str: str) -> Collection:
     # Use the configured database name, fallback to "flask_db" for backward compatibility
     db_name: str = current_app.config.get("MONGO_DB_NAME", "flask_db")
     client: Database = mongo.cx[db_name]
-    print(f"client: {client}")
     return client[cur_collection_str]
 
 
@@ -132,28 +131,30 @@ def bulk_upsert(cur_collection_str: str, items: List[Any]) -> None:
                 UpdateOne({"_id": item_dict["_id"]}, {"$set": item_dict}, upsert=True)
             )
         except Exception as e:
-            print(f"Error preparing item for bulk upsert: {e}")
-            print(f"Item type: {type(item)}")
-            print(f"Item: {item}")
+            logging.error(f"Error preparing item for bulk upsert: {e}")
+            logging.error(f"Item type: {type(item)}")
+            logging.error(f"Item: {item}")
             continue
 
     # Execute bulk operations
     if bulk_operations:
         try:
             result: Any = cur_collection.bulk_write(bulk_operations, ordered=False)
-            print(
+            logging.info(
                 f"Bulk upsert completed: {result.upserted_count} inserted, {result.modified_count} updated"
             )
         except Exception as e:
-            print(f"Error in bulk upsert: {e}")
+            logging.error(f"Error in bulk upsert: {e}")
             if isinstance(e, BulkWriteError):
-                print(f"BulkWriteError: {e.details}")
+                logging.error(f"BulkWriteError: {e.details}")
             # Fallback to individual upserts for better error isolation
             for item in items:
                 try:
                     upsert(cur_collection_str, item)
                 except Exception as individual_error:
-                    print(f"Error upserting individual item: {individual_error}")
+                    logging.error(
+                        f"Error upserting individual item: {individual_error}"
+                    )
 
 
 def get_categorized_data() -> List[Dict[str, Any]]:

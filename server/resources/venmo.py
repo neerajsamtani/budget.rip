@@ -1,3 +1,4 @@
+import logging
 from typing import Any, Dict, List
 
 from flask import Blueprint, Response, jsonify
@@ -32,9 +33,10 @@ def refresh_venmo_api() -> tuple[Response, int]:
 
 
 def refresh_venmo() -> None:
-    print("Refreshing Venmo Data")
+    logging.info("Refreshing Venmo Data")
     profile: User | None = get_venmo_client().my_profile()
     if profile is None:
+        logging.error("Failed to get Venmo profile")
         raise Exception("Failed to get Venmo profile")
     my_id: int = profile.id
     transactions: Any = get_venmo_client().user.get_user_transactions(str(my_id))  # type: ignore
@@ -61,6 +63,9 @@ def refresh_venmo() -> None:
     # Bulk upsert all collected transactions at once
     if all_transactions:
         bulk_upsert(venmo_raw_data_collection, all_transactions)
+        logging.info(f"Refreshed {len(all_transactions)} Venmo transactions")
+    else:
+        logging.info("No new Venmo transactions to refresh")
 
 
 def venmo_to_line_items() -> None:
@@ -127,3 +132,8 @@ def venmo_to_line_items() -> None:
     # Bulk upsert all collected line items at once
     if all_line_items:
         bulk_upsert(line_items_collection, all_line_items)
+        logging.info(
+            f"Converted {len(all_line_items)} Venmo transactions to line items"
+        )
+    else:
+        logging.info("No Venmo transactions to convert to line items")

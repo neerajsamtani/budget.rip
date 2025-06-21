@@ -1,5 +1,6 @@
 import datetime
 import json
+import logging
 from typing import Any, Dict, List, Optional
 
 import requests
@@ -47,7 +48,7 @@ def create_fc_session_api(
         try:
             customer: stripe.Customer = stripe.Customer.retrieve(STRIPE_CUSTOMER_ID)
         except stripe.InvalidRequestError:
-            print("Creating a new customer...")
+            logging.info("Creating a new customer...")
             customer: stripe.Customer = stripe.Customer.create(
                 email="neeraj@gmail.com", name="Neeraj"
             )
@@ -176,7 +177,7 @@ def subscribe_to_account_api(account_id: str) -> tuple[Response, int]:
 @stripe_blueprint.route("/api/refresh_account/<account_id>")
 def refresh_account_api(account_id: str) -> tuple[Response, int]:
     try:
-        print(f"Refreshing {account_id}")
+        logging.info(f"Refreshing {account_id}")
         account: stripe.financial_connections.Account = (
             stripe.financial_connections.Account.retrieve(account_id)
         )
@@ -190,7 +191,7 @@ def refresh_account_api(account_id: str) -> tuple[Response, int]:
 @jwt_required()
 def relink_account_api(account_id: str) -> tuple[Response, int]:
     try:
-        print(f"Relinking {account_id}")
+        logging.info(f"Relinking {account_id}")
 
         account: stripe.financial_connections.Account = (
             stripe.financial_connections.Account.retrieve(account_id)
@@ -215,7 +216,7 @@ def relink_account_api(account_id: str) -> tuple[Response, int]:
 
 @stripe_blueprint.route("/api/refresh_transactions/<account_id>")
 def refresh_transactions_api(account_id: str) -> tuple[Response, int]:
-    print(f"Getting Transactions for {account_id}")
+    logging.info(f"Getting Transactions for {account_id}")
     # TODO: This gets all transactions ever. We should only get those that we don't have
     try:
         # Use requests since we cannot list transactions with the Stripe Python client
@@ -233,7 +234,7 @@ def refresh_transactions_api(account_id: str) -> tuple[Response, int]:
 
         while has_more:
             # Print human readable time
-            print(
+            logging.info(
                 "Last request at: ",
                 datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             )
@@ -250,7 +251,7 @@ def refresh_transactions_api(account_id: str) -> tuple[Response, int]:
                 if transaction["status"] == "posted":
                     all_transactions.append(transaction)
                 elif transaction["status"] == "pending":
-                    print(
+                    logging.info(
                         f"Pending Transaction: {transaction['description']} | "
                         + f"{cents_to_dollars(flip_amount(transaction['amount']))}"
                     )
@@ -272,7 +273,7 @@ def refresh_transactions_api(account_id: str) -> tuple[Response, int]:
 
 
 def refresh_stripe() -> None:
-    print("Refreshing Stripe Data")
+    logging.info("Refreshing Stripe Data")
     bank_accounts: List[Dict[str, Any]] = get_all_data(bank_accounts_collection)
     for account in bank_accounts:
         refresh_account_api(account["id"])
