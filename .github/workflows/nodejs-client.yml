@@ -33,14 +33,23 @@ jobs:
         cache: 'npm'
         cache-dependency-path: client/package-lock.json
     
-    - name: Change to client directory
-      run: cd client
+    - name: Debug - Check working directory and files
+      run: |
+        pwd
+        ls -la
+        echo "Checking client directory:"
+        ls -la client/
+        echo "Checking package-lock.json:"
+        head -5 client/package-lock.json
     
     - name: Install dependencies
+      working-directory: client
       run: npm ci
     
     - name: Build the application
+      working-directory: client
       run: npm run build
     
     - name: Run tests
+      working-directory: client
       run: npm test 
