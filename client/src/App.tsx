@@ -1,26 +1,28 @@
 import { loadStripe } from "@stripe/stripe-js";
-import axiosInstance from "./utils/axiosInstance";
 import React, { useState } from "react";
 import { Button, Spinner } from "react-bootstrap";
 import Container from 'react-bootstrap/Container';
 import Nav from 'react-bootstrap/Nav';
 import Navbar from 'react-bootstrap/Navbar';
 import {
-  BrowserRouter as Router, Link, Route, Routes
+  Link, Route,
+  BrowserRouter as Router,
+  Routes
 } from "react-router-dom";
-import ConnectedAccountsPage from "./pages/ConnectedAccountsPage";
+import Notification from "./components/Notification";
 import { useLineItemsDispatch } from "./contexts/LineItemsContext";
+import ConnectedAccountsPage from "./pages/ConnectedAccountsPage";
 import EventsPage from "./pages/EventsPage";
 import GraphsPage from "./pages/GraphsPage";
 import LineItemsPage from "./pages/LineItemsPage";
-import LoginPage from "./pages/LoginPage";
 import LineItemsToReviewPage from "./pages/LineItemsToReviewPage";
-import Notification from "./components/Notification";
+import LoginPage from "./pages/LoginPage";
+import axiosInstance from "./utils/axiosInstance";
 
-// Make sure to call loadStripe outside of a component’s render to avoid
+// Make sure to call loadStripe outside of a component's render to avoid
 // recreating the Stripe object on every render.
 // This is a public sample test API key.
-// Don’t submit any personally identifiable information in requests made with this key.
+// Don't submit any personally identifiable information in requests made with this key.
 // Sign in to see your own test API key embedded in code samples.
 var STRIPE_PUBLIC_KEY = String(process.env.REACT_APP_STRIPE_PUBLIC_KEY);
 var REACT_APP_API_ENDPOINT = String(process.env.REACT_APP_API_ENDPOINT);
@@ -52,7 +54,10 @@ export default function App() {
           fetchedLineItems: response.data.data
         })
       })
-      .catch(error => console.log(error))
+      .catch(error => {
+        console.log(error);
+        setLoading(false);
+      })
   }
 
   const padding = {

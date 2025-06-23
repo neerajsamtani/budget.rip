@@ -21,7 +21,7 @@ const mockAxiosInstance = {
 };
 
 // Mock the axios instance module
-jest.mock('./axiosInstance', () => ({
+jest.mock('../utils/axiosInstance', () => ({
     __esModule: true,
     default: mockAxiosInstance,
 }));
