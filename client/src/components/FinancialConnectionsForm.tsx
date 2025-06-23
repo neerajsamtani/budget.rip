@@ -1,11 +1,11 @@
-import React, { useState } from "react";
 import {
   useStripe
 } from "@stripe/react-stripe-js";
-import axiosInstance from "../utils/axiosInstance";
+import { FinancialConnectionsSession } from "@stripe/stripe-js/types/api";
+import React, { useState } from "react";
 import { Button, Spinner } from 'react-bootstrap';
+import axiosInstance from "../utils/axiosInstance";
 import Notification from "./Notification";
-import { FinancialConnectionsSession } from "@stripe/stripe-js/types/api"
 
 export default function FinancialConnectionsForm({ fcsess_secret, setStripeAccounts }:
   { fcsess_secret: string, setStripeAccounts: (accounts: FinancialConnectionsSession.Account[]) => void }) {
@@ -82,6 +82,7 @@ export default function FinancialConnectionsForm({ fcsess_secret, setStripeAccou
               size="sm"
               role="status"
               aria-hidden="true"
+              data-testid="spinner"
             />
             :
             "Connect your bank"}
