@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Form, InputGroup } from 'react-bootstrap';
 import axiosInstance from "../utils/axiosInstance";
 
@@ -16,7 +16,7 @@ export default function PaymentMethodFilter({ paymentMethod, setPaymentMethod }:
     var REACT_APP_API_ENDPOINT = String(process.env.REACT_APP_API_ENDPOINT);
     axiosInstance.get(`${REACT_APP_API_ENDPOINT}api/payment_methods`)
       .then(response => {
-        setPaymentMethods(response.data)
+        setPaymentMethods(Array.isArray(response.data) ? response.data : []);
       })
       .catch(error => console.log(error));
   }, [])
