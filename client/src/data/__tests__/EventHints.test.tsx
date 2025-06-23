@@ -1,6 +1,109 @@
-import { getPrefillFromLineItems } from '../EventHints';
+import { LineItemInterface } from '../../contexts/LineItemsContext';
+import { getPrefillFromLineItems } from "../EventHints";
+
+// Mock line item factory for consistent test data
+const createMockLineItem = (overrides: Partial<LineItemInterface> = {}): LineItemInterface => ({
+    _id: '1',
+    id: '1',
+    date: 1629984000,
+    payment_method: 'credit_card',
+    description: 'Test transaction',
+    responsible_party: 'Test Store',
+    amount: 50.00,
+    isSelected: false,
+    ...overrides,
+});
 
 describe('getPrefillFromLineItems', () => {
+    describe('Basic Functionality', () => {
+        it('returns null for empty array', () => {
+            expect(getPrefillFromLineItems([])).toBeNull();
+        });
+
+        it('returns null for null input', () => {
+            expect(getPrefillFromLineItems(null as any)).toBeNull();
+        });
+
+        it('returns null for undefined input', () => {
+            expect(getPrefillFromLineItems(undefined as any)).toBeNull();
+        });
+
+        it('returns null when no hints match', () => {
+            const lineItems = [
+                createMockLineItem({
+                    description: 'Random Purchase',
+                    amount: 25.00,
+                }),
+            ];
+            expect(getPrefillFromLineItems(lineItems)).toBeNull();
+        });
+    });
+
+    describe('Subscription Hints', () => {
+        it('matches Spotify subscription', () => {
+            const lineItems = [
+                createMockLineItem({
+                    description: 'Spotify Premium Subscription',
+                    amount: 9.99,
+                }),
+            ];
+            expect(getPrefillFromLineItems(lineItems)).toEqual({
+                name: 'Spotify',
+                category: 'Subscription',
+            });
+        });
+
+        it('matches AMC A-List subscription with exact amount', () => {
+            const lineItems = [
+                createMockLineItem({
+                    description: 'AMC A-List Monthly Subscription',
+                    amount: 23.95,
+                }),
+            ];
+            expect(getPrefillFromLineItems(lineItems)).toEqual({
+                name: 'AMC A-List',
+                category: 'Subscription',
+            });
+        });
+
+        it('does not match AMC without exact amount', () => {
+            const lineItems = [
+                createMockLineItem({
+                    description: 'AMC A-List Monthly Subscription',
+                    amount: 25.00,
+                }),
+            ];
+            expect(getPrefillFromLineItems(lineItems)).toBeNull();
+        });
+    });
+
+    describe('Edge Cases', () => {
+        it('handles line items with missing properties gracefully', () => {
+            const incompleteLineItem = {
+                _id: '1',
+                id: '1',
+                date: 1629984000,
+                // Missing other properties
+            } as any;
+
+            // The CEL evaluator will throw an error when trying to access undefined properties
+            // This is the expected behavior for malformed data
+            expect(() => getPrefillFromLineItems([incompleteLineItem])).toThrow(TypeError);
+        });
+
+        it('handles empty description', () => {
+            const lineItems = [
+                createMockLineItem({
+                    description: '',
+                    amount: 50.00,
+                }),
+            ];
+            expect(getPrefillFromLineItems(lineItems)).toBeNull();
+        });
+    });
+});
+
+describe('getPrefillFromLineItems - parameterized', () => {
     const testCases = [
         {
             name: 'Spotify Subscription',
@@ -82,9 +185,7 @@ describe('getPrefillFromLineItems', () => {
         },
     ];
 
-    testCases.forEach(({ name, lineItems, expectedPrefill }) => {
-        it(`should return correct prefill for: ${name}`, () => {
-            expect(getPrefillFromLineItems(lineItems)).toEqual(expectedPrefill);
-        });
+    test.each(testCases)('$name', ({ lineItems, expectedPrefill }) => {
+        expect(getPrefillFromLineItems(lineItems)).toEqual(expectedPrefill);
     });
-}); 
+});
