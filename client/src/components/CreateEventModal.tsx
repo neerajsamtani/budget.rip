@@ -38,6 +38,8 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
       name.setEmpty()
       category.setEmpty()
     }
+    // If we add name or category here, it will cause an infinite render loop
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedLineItems, show])
 
   const name = useField<string>("text", "" as string)
@@ -193,8 +195,8 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
               />
             </Form.Group>
             <Form.Group className="mb-3">
-              <Form.Label>Override Date:</Form.Label>
-              <Form.Control type={date.type} value={date.value} onChange={date.onChange} />
+              <Form.Label htmlFor="override-date-input">Override Date:</Form.Label>
+              <Form.Control id="override-date-input" type={date.type} value={date.value} onChange={date.onChange} />
             </Form.Group>
             <Form.Group className="mb-3">
               <Form.Check checked={isDuplicateTransaction.value} onChange={() => isDuplicateTransaction.setCustomValue(!isDuplicateTransaction.value)}

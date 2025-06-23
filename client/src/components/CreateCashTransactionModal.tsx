@@ -1,9 +1,9 @@
-import React, { useState, Fragment } from 'react';
+import React, { Fragment, useState } from 'react';
 import Button from 'react-bootstrap/Button';
 import Modal from 'react-bootstrap/Modal';
+import { useField } from '../hooks/useField';
 import axiosInstance from '../utils/axiosInstance';
 import Notification from './Notification';
-import { useField } from '../hooks/useField';
 
 export default function CreateCashTransactionModal({ show, onHide }: { show: boolean, onHide: () => void }) {
   const [notification, setNotification] = useState(
@@ -66,19 +66,19 @@ export default function CreateCashTransactionModal({ show, onHide }: { show: boo
           <form>
             <div className="form-group">
               {/* TODO: DATE PICKER */}
-              <label>Date:</label>
+              <label htmlFor="event-date">Date:</label>
               <input className="form-control" id="event-date" value={date.value} onChange={date.onChange} type={date.type} />
             </div>
             <div className="form-group">
-              <label>Person:</label>
+              <label htmlFor="event-person">Person:</label>
               <input className="form-control" id="event-person" value={person.value} onChange={person.onChange} type={person.type} />
             </div>
             <div className="form-group">
-              <label>Description:</label>
+              <label htmlFor="event-description">Description:</label>
               <input className="form-control" id="event-description" value={description.value} onChange={description.onChange} type={description.type} />
             </div>
             <div className="form-group">
-              <label>Amount:</label>
+              <label htmlFor="event-amount">Amount:</label>
               <input className="form-control" id="event-amount" value={amount.value} onChange={amount.onChange} type={amount.type} />
             </div>
           </form>

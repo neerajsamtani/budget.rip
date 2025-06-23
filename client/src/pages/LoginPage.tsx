@@ -1,16 +1,31 @@
-import React, { Fragment } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { Fragment, useState } from 'react';
 import Button from 'react-bootstrap/Button';
 import Form from 'react-bootstrap/Form';
+import { useNavigate } from 'react-router-dom';
+import { FormField, useField } from '../hooks/useField';
 import axiosInstance from "../utils/axiosInstance";
-import { useField, FormField } from '../hooks/useField';
 
 export default function LoginPage() {
     const email = useField("text", "" as string)
     const password = useField("password", "" as string)
     const navigate = useNavigate()
+    const [error, setError] = useState<string | null>(null);
+
+    const validateEmail = (email: string) => {
+        // Simple email regex
+        return /^\S+@\S+\.\S+$/.test(email);
+    };
 
     const handleLogin = (email: FormField<string>, password: FormField<string>) => {
+        setError(null);
+        if (!email.value || !password.value) {
+            setError('Email and password are required.');
+            return;
+        }
+        if (!validateEmail(email.value)) {
+            setError('Please enter a valid email address.');
+            return;
+        }
         var REACT_APP_API_ENDPOINT = String(process.env.REACT_APP_API_ENDPOINT);
         var newUser = {
             "email": email.value,
@@ -20,9 +35,13 @@ export default function LoginPage() {
             .then(() => {
                 email.setEmpty()
                 password.setEmpty()
+                setError(null);
                 navigate('/')
             })
-            .catch(error => console.log(error));
+            .catch(error => {
+                setError(error.message || 'Login failed');
+                console.log(error);
+            });
     }
 
     const handleLogout = () => {
@@ -38,13 +57,14 @@ export default function LoginPage() {
         <Fragment>
             <Form>
                 <Form.Group className="mb-3">
-                    <Form.Label>Email:</Form.Label>
-                    <Form.Control value={email.value} onChange={email.onChange} type={email.type} />
+                    <Form.Label htmlFor="login-email-input">Email:</Form.Label>
+                    <Form.Control id="login-email-input" value={email.value} onChange={email.onChange} type={email.type} />
                 </Form.Group>
                 <Form.Group className="mb-3">
-                    <Form.Label>Password:</Form.Label>
-                    <Form.Control value={password.value} onChange={password.onChange} type={password.type} />
+                    <Form.Label htmlFor="login-password-input">Password:</Form.Label>
+                    <Form.Control id="login-password-input" value={password.value} onChange={password.onChange} type={password.type} />
                 </Form.Group>
+                {error && <div role="alert" style={{ color: 'red', marginBottom: 8 }}>{error}</div>}
                 <Button onClick={() => handleLogin(email, password)} variant="primary">Log In</Button>
                 <Button onClick={handleLogout} variant="primary">Log Out</Button>
             </Form>
