@@ -38,6 +38,8 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
       name.setEmpty()
       category.setEmpty()
     }
+    // If we add name or category here, it will cause an infinite render loop
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedLineItems, show])
 
   const name = useField<string>("text", "" as string)
