@@ -3,6 +3,8 @@ from typing import Any, Dict, List
 
 from flask import Blueprint, Response, jsonify
 from flask_jwt_extended import jwt_required
+from venmo_api.models.page import Page
+from venmo_api.models.transaction import Transaction
 from venmo_api.models.user import User
 
 from clients import get_venmo_client
@@ -39,11 +41,12 @@ def refresh_venmo() -> None:
         logging.error("Failed to get Venmo profile")
         raise Exception("Failed to get Venmo profile")
     my_id: int = profile.id
-    transactions: Any = get_venmo_client().user.get_user_transactions(str(my_id))  # type: ignore
+    # The type error is from the venmo_api library
+    transactions: Page[Transaction] = get_venmo_client().user.get_user_transactions(str(my_id))  # type: ignore
     transactions_after_moving_date: bool = True
 
     # Collect all transactions for bulk upsert
-    all_transactions: List[Any] = []
+    all_transactions: List[Transaction] = []
 
     while transactions and transactions_after_moving_date:
         for transaction in transactions:
@@ -56,9 +59,8 @@ def refresh_venmo() -> None:
             ):
                 continue
             all_transactions.append(transaction)
-        transactions = (
-            transactions.get_next_page()
-        )  # TODO: This might have one extra network call when we break out of the loop
+        # This might have one extra network call when we break out of the loop
+        transactions = transactions.get_next_page()  # type: ignore
 
     # Bulk upsert all collected transactions at once
     if all_transactions:
@@ -113,7 +115,7 @@ def venmo_to_line_items() -> None:
                 amount=transaction["amount"],
             )
         else:
-            # current user gets money
+            # current user got money
             if transaction["target"]["first_name"] == USER_FIRST_NAME:
                 other_name: str = transaction["actor"]["first_name"]
             else:

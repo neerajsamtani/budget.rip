@@ -88,10 +88,7 @@ def create_accounts_api() -> tuple[Response, int]:
     new_accounts: List[Dict[str, Any]] = request.get_json()
     if len(new_accounts) == 0:
         return jsonify("Failed to Create Accounts: No Accounts Submitted"), 400
-
-    # Bulk upsert all accounts at once
     bulk_upsert(bank_accounts_collection, new_accounts)
-
     return jsonify({"data": new_accounts}), 201
 
 
@@ -99,14 +96,9 @@ def create_accounts_api() -> tuple[Response, int]:
 @jwt_required()
 def get_accounts_api(session_id: str) -> tuple[Response, int]:
     try:
-        session: stripe.financial_connections.Session = (
-            stripe.financial_connections.Session.retrieve(session_id)
-        )
-        accounts: List[Dict[str, Any]] = session["accounts"]
-
-        # Bulk upsert all accounts at once
+        session = stripe.financial_connections.Session.retrieve(session_id)
+        accounts = session.accounts.data
         bulk_upsert(stripe_raw_account_data_collection, accounts)
-
         return jsonify({"accounts": accounts}), 200
     except Exception as e:
         return jsonify(error=str(e)), 500
@@ -178,9 +170,7 @@ def subscribe_to_account_api(account_id: str) -> tuple[Response, int]:
 def refresh_account_api(account_id: str) -> tuple[Response, int]:
     try:
         logging.info(f"Refreshing {account_id}")
-        account: stripe.financial_connections.Account = (
-            stripe.financial_connections.Account.retrieve(account_id)
-        )
+        account = stripe.financial_connections.Account.retrieve(account_id)
         upsert(bank_accounts_collection, account)
         return jsonify({"data": "success"}), 200
     except Exception as e:
@@ -193,9 +183,7 @@ def relink_account_api(account_id: str) -> tuple[Response, int]:
     try:
         logging.info(f"Relinking {account_id}")
 
-        account: stripe.financial_connections.Account = (
-            stripe.financial_connections.Account.retrieve(account_id)
-        )
+        account = stripe.financial_connections.Account.retrieve(account_id)
         headers: Dict[str, str] = {
             "Stripe-Version": "2022-08-01; financial_connections_transactions_beta=v1; financial_connections_relink_api_beta=v1",
         }
@@ -219,46 +207,38 @@ def refresh_transactions_api(account_id: str) -> tuple[Response, int]:
     logging.info(f"Getting Transactions for {account_id}")
     # TODO: This gets all transactions ever. We should only get those that we don't have
     try:
-        # Use requests since we cannot list transactions with the Stripe Python client
         has_more: bool = True
-        headers: Dict[str, str] = {
-            "Stripe-Version": "2022-08-01; financial_connections_transactions_beta=v1",
-        }
-        params: Dict[str, str] = {
-            "limit": "100",
-            "account": account_id,
-        }
+        starting_after = ""
 
         # Collect all transactions for bulk upsert
         all_transactions: List[Dict[str, Any]] = []
 
+        stripe.api_key = STRIPE_API_KEY
+        stripe.api_version = "2022-08-01; financial_connections_transactions_beta=v1"
         while has_more:
             # Print human readable time
             logging.info(
                 "Last request at: ",
                 datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             )
-            response: requests.Response = requests.get(
-                "https://api.stripe.com/v1/financial_connections/transactions",
-                params=params,
-                headers=headers,
-                auth=(STRIPE_API_KEY, ""),
+            transactions_list_object = stripe.financial_connections.Transaction.list(
+                account=account_id,
+                limit=100,
+                starting_after=starting_after,
             )
-            response_data: Dict[str, Any] = json.loads(response.text)
-            data: List[Dict[str, Any]] = response_data["data"]
+            transactions = transactions_list_object.data
 
-            for transaction in data:
-                if transaction["status"] == "posted":
+            for transaction in transactions:
+                if transaction.status == "posted":
                     all_transactions.append(transaction)
-                elif transaction["status"] == "pending":
+                elif transaction.status == "pending":
                     logging.info(
-                        f"Pending Transaction: {transaction['description']} | "
-                        + f"{cents_to_dollars(flip_amount(transaction['amount']))}"
+                        f"Pending Transaction: {transaction.description} | "
+                        + f"{cents_to_dollars(flip_amount(transaction.amount))}"
                     )
 
-            has_more = response_data["has_more"]
-            last_transaction: Dict[str, Any] = data[-1]
-            params["starting_after"] = last_transaction["id"]
+            has_more = transactions_list_object.has_more
+            starting_after = transactions[-1].id if transactions else ""
 
         # Bulk upsert all collected transactions at once
         if all_transactions:

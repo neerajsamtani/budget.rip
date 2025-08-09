@@ -401,26 +401,24 @@ class TestStripeAPI:
         mocker.patch("resources.stripe.STRIPE_CUSTOMER_ID", "test_customer_id")
 
         with flask_app.app_context():
-            mock_get = mocker.patch("resources.stripe.requests.get")
-            mock_bulk_upsert = mocker.patch("resources.stripe.bulk_upsert")
+            # Mock Stripe SDK call instead of raw requests
+            mock_list = mocker.patch(
+                "resources.stripe.stripe.financial_connections.Transaction.list"
+            )
 
-            # Mock transaction response
-            mock_response = mocker.Mock()
-            mock_response.json.return_value = {
-                "data": [
-                    {
-                        "id": "fct_test123",
-                        "account": "fca_test123",
-                        "amount": -5000,
-                        "description": "Test transaction",
-                        "status": "posted",
-                        "transacted_at": 1673778600,
-                    }
-                ],
-                "has_more": False,
-            }
-            mock_response.text = '{"data": [{"id": "fct_test123", "account": "fca_test123", "amount": -5000, "description": "Test transaction", "status": "posted", "transacted_at": 1673778600}], "has_more": false}'
-            mock_get.return_value = mock_response
+            # Create a mocked list object with the expected attributes
+            mocked_transaction = mocker.MagicMock()
+            mocked_transaction.id = "fct_test123"
+            mocked_transaction.account = "fca_test123"
+            mocked_transaction.amount = -5000
+            mocked_transaction.description = "Test transaction"
+            mocked_transaction.status = "posted"
+            mocked_transaction.transacted_at = 1673778600
+
+            mocked_list_object = mocker.Mock()
+            mocked_list_object.data = [mocked_transaction]
+            mocked_list_object.has_more = False
+            mock_list.return_value = mocked_list_object
 
             response = flask_app.test_client().get(
                 "/api/refresh_transactions/fca_test123"
