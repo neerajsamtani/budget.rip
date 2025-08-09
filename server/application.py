@@ -108,12 +108,12 @@ def index_api() -> tuple[Response, int]:
 
 @application.route("/api/refresh/scheduled")
 def schedule_refresh_api() -> tuple[Response, int]:
-    print("Initiating scheduled refresh at " + str(datetime.now()))
+    logging.info("Initiating scheduled refresh at " + str(datetime.now()))
     try:
         refresh_all()
         create_consistent_line_items()
     except Exception as e:
-        print("Error refreshing all: " + str(e))
+        logging.error("Error refreshing all: " + str(e))
         return jsonify({"error": str(e)}), 500
     return jsonify({"message": "success"}), 200
 
@@ -194,14 +194,14 @@ def add_event_ids_to_line_items() -> None:
 
 
 def refresh_all() -> None:
-    print("Refreshing All Data")
+    logging.info("Refreshing All Data")
     refresh_splitwise()
     refresh_venmo()
     refresh_stripe()
 
 
 def create_consistent_line_items() -> None:
-    print("Creating Consistent Line Items")
+    logging.info("Creating Consistent Line Items")
     splitwise_to_line_items()
     venmo_to_line_items()
     stripe_to_line_items()
