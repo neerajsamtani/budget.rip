@@ -22,6 +22,16 @@ def cents_to_dollars(amount: float) -> float:
 
 
 def to_dict(obj: Any) -> Dict[str, Any]:
+    # Prefer Pydantic serialization when available
+    try:
+        from pydantic import BaseModel  # type: ignore
+
+        if isinstance(obj, BaseModel):
+            return obj.model_dump()  # type: ignore[attr-defined]
+    except Exception:
+        # If pydantic is not installed or any other error occurs, fall back below
+        pass
+
     return json.loads(json.dumps(obj, default=lambda o: o.__dict__))
 
 
@@ -33,7 +43,18 @@ def to_dict_robust(obj: Any) -> Dict[str, Any]:
     try:
         if isinstance(obj, dict):
             return obj
-        elif hasattr(obj, "__dict__"):
+
+        # Handle Pydantic models first when available
+        try:
+            from pydantic import BaseModel  # type: ignore
+
+            if isinstance(obj, BaseModel):
+                return obj.model_dump()  # type: ignore[attr-defined]
+        except Exception:
+            # Ignore if pydantic is not available
+            pass
+
+        if hasattr(obj, "__dict__"):
             # For objects with __dict__ attribute
             return json.loads(json.dumps(obj, default=lambda o: o.__dict__))
         elif hasattr(obj, "__slots__"):

@@ -13,7 +13,7 @@ from dao import (
     splitwise_raw_data_collection,
 )
 from helpers import flip_amount, iso_8601_to_posix
-from resources.line_item import LineItem
+from models import LineItem
 
 splitwise_blueprint = Blueprint("splitwise", __name__)
 
@@ -98,12 +98,12 @@ def splitwise_to_line_items() -> None:
                 continue
 
             line_item = LineItem(
-                f'line_item_{expense["_id"]}',
-                posix_date,
-                responsible_party,
-                payment_method,
-                expense["description"],
-                flip_amount(user["net_balance"]),
+                id=f'line_item_{expense["_id"]}',
+                date=posix_date,
+                responsible_party=responsible_party,
+                payment_method=payment_method,
+                description=expense["description"],
+                amount=flip_amount(user["net_balance"]),
             )
             all_line_items.append(line_item)
             break  # Found the user, no need to continue loop

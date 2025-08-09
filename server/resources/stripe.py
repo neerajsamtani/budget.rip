@@ -19,7 +19,7 @@ from dao import (
     upsert,
 )
 from helpers import cents_to_dollars, flip_amount
-from resources.line_item import LineItem
+from models import LineItem
 
 stripe_blueprint = Blueprint("stripe", __name__)
 
@@ -318,12 +318,12 @@ def stripe_to_line_items() -> None:
             payment_method = "Stripe"
 
         line_item = LineItem(
-            f'line_item_{transaction["_id"]}',
-            transaction["transacted_at"],
-            transaction["description"],
-            payment_method,
-            transaction["description"],
-            flip_amount(transaction["amount"]) / 100,
+            id=f'line_item_{transaction["_id"]}',
+            date=transaction["transacted_at"],
+            responsible_party=transaction["description"],
+            payment_method=payment_method,
+            description=transaction["description"],
+            amount=flip_amount(transaction["amount"]) / 100,
         )
 
         line_items_batch.append(line_item)

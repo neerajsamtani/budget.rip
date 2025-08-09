@@ -14,7 +14,7 @@ from dao import (
     venmo_raw_data_collection,
 )
 from helpers import flip_amount
-from resources.line_item import LineItem
+from models import LineItem
 
 venmo_blueprint = Blueprint("venmo", __name__)
 
@@ -92,12 +92,12 @@ def venmo_to_line_items() -> None:
         ):
             # current user paid money
             line_item = LineItem(
-                f'line_item_{transaction["_id"]}',
-                posix_date,
-                transaction["target"]["first_name"],
-                payment_method,
-                transaction["note"],
-                transaction["amount"],
+                id=f'line_item_{transaction["_id"]}',
+                date=posix_date,
+                responsible_party=transaction["target"]["first_name"],
+                payment_method=payment_method,
+                description=transaction["note"],
+                amount=transaction["amount"],
             )
         elif (
             transaction["target"]["first_name"] == USER_FIRST_NAME
@@ -105,12 +105,12 @@ def venmo_to_line_items() -> None:
         ):
             # current user paid money
             line_item = LineItem(
-                f'line_item_{transaction["_id"]}',
-                posix_date,
-                transaction["actor"]["first_name"],
-                payment_method,
-                transaction["note"],
-                transaction["amount"],
+                id=f'line_item_{transaction["_id"]}',
+                date=posix_date,
+                responsible_party=transaction["actor"]["first_name"],
+                payment_method=payment_method,
+                description=transaction["note"],
+                amount=transaction["amount"],
             )
         else:
             # current user gets money
@@ -119,12 +119,12 @@ def venmo_to_line_items() -> None:
             else:
                 other_name: str = transaction["target"]["first_name"]
             line_item = LineItem(
-                f'line_item_{transaction["_id"]}',
-                posix_date,
-                other_name,
-                payment_method,
-                transaction["note"],
-                flip_amount(transaction["amount"]),
+                id=f'line_item_{transaction["_id"]}',
+                date=posix_date,
+                responsible_party=other_name,
+                payment_method=payment_method,
+                description=transaction["note"],
+                amount=flip_amount(transaction["amount"]),
             )
 
         all_line_items.append(line_item)

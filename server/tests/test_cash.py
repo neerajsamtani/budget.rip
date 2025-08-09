@@ -7,8 +7,8 @@ from dao import (
     upsert_with_id,
 )
 from helpers import html_date_to_posix
+from models import LineItem
 from resources.cash import cash_to_line_items
-from resources.line_item import LineItem
 
 
 @pytest.fixture
@@ -25,12 +25,12 @@ def mock_cash_raw_data():
 @pytest.fixture
 def expected_line_item():
     return LineItem(
-        "line_item_1",
-        1234567890,
-        "John Doe",
-        "Cash",
-        "Test transaction",
-        100,
+        id="line_item_1",
+        date=1234567890,
+        responsible_party="John Doe",
+        payment_method="Cash",
+        description="Test transaction",
+        amount=100,
     )
 
 

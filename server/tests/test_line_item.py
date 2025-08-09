@@ -1,7 +1,8 @@
 import pytest
 
 from dao import line_items_collection, upsert_with_id
-from resources.line_item import LineItem, all_line_items
+from models import LineItem
+from resources.line_item import all_line_items
 
 
 @pytest.fixture
@@ -32,12 +33,12 @@ def mock_line_item_with_event():
 @pytest.fixture
 def line_item_instance():
     return LineItem(
-        "line_item_1",
-        1234567890,
-        "John Doe",
-        "Cash",
-        "Test transaction",
-        100,
+        id="line_item_1",
+        date=1234567890,
+        responsible_party="John Doe",
+        payment_method="Cash",
+        description="Test transaction",
+        amount=100,
     )
 
 
@@ -53,7 +54,7 @@ class TestLineItemClass:
 
     def test_line_item_serialize(self, line_item_instance):
         """Test LineItem serialize method"""
-        serialized = line_item_instance.serialize()
+        serialized = line_item_instance.model_dump()
         expected = {
             "id": "line_item_1",
             "date": 1234567890,
@@ -66,7 +67,7 @@ class TestLineItemClass:
 
     def test_line_item_to_json(self, line_item_instance):
         """Test LineItem to_json method"""
-        json_str = line_item_instance.to_json()
+        json_str = line_item_instance.model_dump_json()
         # Parse back to dict to verify structure
         import json
 
