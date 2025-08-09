@@ -3,6 +3,7 @@ from typing import Any, Dict, List
 
 from flask import Blueprint, Response, jsonify
 from flask_jwt_extended import jwt_required
+from splitwise.expense import Expense
 
 from clients import splitwise_client
 from constants import LIMIT, MOVING_DATE, PARTIES_TO_IGNORE, USER_FIRST_NAME
@@ -13,7 +14,7 @@ from dao import (
     splitwise_raw_data_collection,
 )
 from helpers import flip_amount, iso_8601_to_posix
-from resources.line_item import LineItem
+from models import LineItem
 
 splitwise_blueprint = Blueprint("splitwise", __name__)
 
@@ -36,26 +37,18 @@ def refresh_splitwise_api() -> tuple[Response, int]:
 
 def refresh_splitwise() -> None:
     logging.info("Refreshing Splitwise Data")
-    expenses: List[Any] = splitwise_client.getExpenses(
+    expenses: List[Expense] = splitwise_client.getExpenses(
         limit=LIMIT, dated_after=MOVING_DATE
     )
-
-    # Collect all non-deleted expenses for bulk upsert
-    all_expenses: List[Any] = []
-    deleted_count = 0
-    for expense in expenses:
-        # TODO: What if an expense is deleted? What if it's part of an event?
-        # Should I send a notification?
-        if expense.deleted_at is not None:
-            deleted_count += 1
-            continue
-        all_expenses.append(expense)
+    # TODO: How should I notify the user if an expense is deleted? What if it's part of an event?
+    all_expenses = [e for e in expenses if e.deleted_at is None]
+    deleted_count = len(expenses) - len(all_expenses)
 
     # Bulk upsert all collected expenses at once
     if all_expenses:
         bulk_upsert(splitwise_raw_data_collection, all_expenses)
         logging.info(
-            f"Refreshed {len(all_expenses)} Splitwise expenses (skipped {deleted_count} deleted)"
+            f"Refreshed {len(all_expenses)} Splitwise expenses (skipped {deleted_count} deleted expenses)"
         )
     else:
         logging.info("No new Splitwise expenses to refresh")
@@ -98,12 +91,12 @@ def splitwise_to_line_items() -> None:
                 continue
 
             line_item = LineItem(
-                f'line_item_{expense["_id"]}',
-                posix_date,
-                responsible_party,
-                payment_method,
-                expense["description"],
-                flip_amount(user["net_balance"]),
+                id=f'line_item_{expense["_id"]}',
+                date=posix_date,
+                responsible_party=responsible_party,
+                payment_method=payment_method,
+                description=expense["description"],
+                amount=flip_amount(user["net_balance"]),
             )
             all_line_items.append(line_item)
             break  # Found the user, no need to continue loop

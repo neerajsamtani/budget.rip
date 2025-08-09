@@ -15,7 +15,8 @@ from dao import (
     remove_event_from_line_item,
     upsert_with_id,
 )
-from helpers import html_date_to_posix
+from helpers import html_date_to_posix, to_dict
+from models import Event
 
 events_blueprint = Blueprint("events", __name__)
 
@@ -62,42 +63,52 @@ def post_event_api() -> tuple[Response, int]:
     """
     Create An Event
     """
-    new_event: Dict[str, Any] = request.get_json()
-    if len(new_event["line_items"]) == 0:
+    body: Dict[str, Any] = request.get_json()
+    if len(body["line_items"]) == 0:
         logging.warning("Event creation attempt with no line items")
         return jsonify("Failed to Create Event: No Line Items Submitted"), 400
 
     filters: Dict[str, Any] = {}
-    filters["_id"] = {"$in": new_event["line_items"]}
+    filters["_id"] = {"$in": body["line_items"]}
     line_items: List[Dict[str, Any]] = get_all_data(line_items_collection, filters)
     earliest_line_item: Dict[str, Any] = min(
         line_items, key=lambda line_item: line_item["date"]
     )
 
-    new_event["id"] = f"event{earliest_line_item['id'][9:]}"
-    if new_event["date"]:
-        new_event["date"] = html_date_to_posix(new_event["date"])
+    new_event_id: str = f"event{earliest_line_item['id'][9:]}"
+    if body["date"]:
+        event_date = html_date_to_posix(body["date"])
     else:
-        new_event["date"] = earliest_line_item["date"]
+        event_date = earliest_line_item["date"]
 
-    if new_event["is_duplicate_transaction"]:
-        new_event["amount"] = line_items[0]["amount"]
+    if body.get("is_duplicate_transaction"):
+        event_amount = line_items[0]["amount"]
     else:
-        new_event["amount"] = sum(line_item["amount"] for line_item in line_items)
+        event_amount = sum(line_item["amount"] for line_item in line_items)
 
     # Ensure tags is always a list
-    new_event["tags"] = new_event.get("tags", [])
+    event_tags: List[str] = body.get("tags", [])
 
-    upsert_with_id(events_collection, new_event, new_event["id"])
+    event_model = Event(
+        id=new_event_id,
+        date=event_date,
+        description=body["description"],
+        amount=event_amount,
+        line_items=body["line_items"],
+        tags=event_tags,
+        is_duplicate_transaction=body.get("is_duplicate_transaction"),
+    )
+
+    upsert_with_id(events_collection, to_dict(event_model), event_model.id)
 
     # Update all line items with event_id and bulk upsert
     for line_item in line_items:
-        line_item["event_id"] = new_event["id"]
+        line_item["event_id"] = event_model.id
 
     bulk_upsert(line_items_collection, line_items)
 
     logging.info(
-        f"Created event: {new_event['id']} with {len(line_items)} line items (amount: ${new_event['amount']:.2f})"
+        f"Created event: {event_model.id} with {len(line_items)} line items (amount: ${event_model.amount:.2f})"
     )
     return jsonify("Created Event"), 201
 
