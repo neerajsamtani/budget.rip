@@ -348,7 +348,7 @@ class TestStripeAPI:
             # Mock session creation
             mock_session_response = mocker.Mock()
             mock_session_response.json = {"client_secret": "fcsess_test123_secret"}
-            mock_create_session.return_value = mock_session_response
+            mock_create_session.return_value = (mock_session_response, 200)
 
             response = test_client.get(
                 "/api/relink_account/fca_test123",

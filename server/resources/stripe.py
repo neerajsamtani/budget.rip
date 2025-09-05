@@ -195,8 +195,8 @@ def relink_account_api(account_id: str) -> tuple[Response, int]:
         if response.json()["status_details"]["inactive"]["action"] != "relink_required":
             return jsonify({"relink_required": False}), 200
 
-        response = create_fc_session_api(account["authorization"])
-        return jsonify(response.json), 200
+        create_fc_session_response = create_fc_session_api(account["authorization"])
+        return jsonify(create_fc_session_response[0].json), 200
 
     except Exception as e:
         return jsonify(error=str(e)), 500
