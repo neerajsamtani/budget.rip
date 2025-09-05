@@ -196,7 +196,7 @@ def relink_account_api(account_id: str) -> tuple[Response, int]:
             return jsonify({"relink_required": False}), 200
 
         response = create_fc_session_api(account["authorization"])
-        return jsonify(response.json), 200
+        return jsonify(response[0].json), 200
 
     except Exception as e:
         return jsonify(error=str(e)), 500
