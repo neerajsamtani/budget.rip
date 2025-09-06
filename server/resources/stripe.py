@@ -221,11 +221,18 @@ def refresh_transactions_api(account_id: str) -> tuple[Response, int]:
                 "Last request at: ",
                 datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             )
+
+            transactions_list_params = {
+                "account": account_id,
+                "limit": 100,
+            }
+            if starting_after:
+                transactions_list_params["starting_after"] = starting_after
+
             transactions_list_object = stripe.financial_connections.Transaction.list(
-                account=account_id,
-                limit=100,
-                starting_after=starting_after,
+                **transactions_list_params
             )
+
             transactions = transactions_list_object.data
 
             for transaction in transactions:
