@@ -19,7 +19,7 @@ from dao import (
     upsert,
 )
 from helpers import cents_to_dollars, flip_amount
-from models import LineItem
+from resources.line_item import LineItem
 
 stripe_blueprint = Blueprint("stripe", __name__)
 
@@ -88,7 +88,10 @@ def create_accounts_api() -> tuple[Response, int]:
     new_accounts: List[Dict[str, Any]] = request.get_json()
     if len(new_accounts) == 0:
         return jsonify("Failed to Create Accounts: No Accounts Submitted"), 400
+
+    # Bulk upsert all accounts at once
     bulk_upsert(bank_accounts_collection, new_accounts)
+
     return jsonify({"data": new_accounts}), 201
 
 
@@ -96,9 +99,14 @@ def create_accounts_api() -> tuple[Response, int]:
 @jwt_required()
 def get_accounts_api(session_id: str) -> tuple[Response, int]:
     try:
-        session = stripe.financial_connections.Session.retrieve(session_id)
-        accounts = session.accounts.data
+        session: stripe.financial_connections.Session = (
+            stripe.financial_connections.Session.retrieve(session_id)
+        )
+        accounts: List[Dict[str, Any]] = session["accounts"]
+
+        # Bulk upsert all accounts at once
         bulk_upsert(stripe_raw_account_data_collection, accounts)
+
         return jsonify({"accounts": accounts}), 200
     except Exception as e:
         return jsonify(error=str(e)), 500
@@ -170,7 +178,9 @@ def subscribe_to_account_api(account_id: str) -> tuple[Response, int]:
 def refresh_account_api(account_id: str) -> tuple[Response, int]:
     try:
         logging.info(f"Refreshing {account_id}")
-        account = stripe.financial_connections.Account.retrieve(account_id)
+        account: stripe.financial_connections.Account = (
+            stripe.financial_connections.Account.retrieve(account_id)
+        )
         upsert(bank_accounts_collection, account)
         return jsonify({"data": "success"}), 200
     except Exception as e:
@@ -183,7 +193,9 @@ def relink_account_api(account_id: str) -> tuple[Response, int]:
     try:
         logging.info(f"Relinking {account_id}")
 
-        account = stripe.financial_connections.Account.retrieve(account_id)
+        account: stripe.financial_connections.Account = (
+            stripe.financial_connections.Account.retrieve(account_id)
+        )
         headers: Dict[str, str] = {
             "Stripe-Version": "2022-08-01; financial_connections_transactions_beta=v1; financial_connections_relink_api_beta=v1",
         }
@@ -212,9 +224,9 @@ def refresh_transactions_api(account_id: str) -> tuple[Response, int]:
 
         # Collect all transactions for bulk upsert
         all_transactions: List[Dict[str, Any]] = []
-
         stripe.api_key = STRIPE_API_KEY
         stripe.api_version = "2022-08-01; financial_connections_transactions_beta=v1"
+
         while has_more:
             # Print human readable time
             logging.info(
@@ -305,12 +317,12 @@ def stripe_to_line_items() -> None:
             payment_method = "Stripe"
 
         line_item = LineItem(
-            id=f'line_item_{transaction["_id"]}',
-            date=transaction["transacted_at"],
-            responsible_party=transaction["description"],
-            payment_method=payment_method,
-            description=transaction["description"],
-            amount=flip_amount(transaction["amount"]) / 100,
+            f'line_item_{transaction["_id"]}',
+            transaction["transacted_at"],
+            transaction["description"],
+            payment_method,
+            transaction["description"],
+            flip_amount(transaction["amount"]) / 100,
         )
 
         line_items_batch.append(line_item)
