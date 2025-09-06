@@ -3,8 +3,6 @@ from typing import Any, Dict, List
 
 from flask import Blueprint, Response, jsonify
 from flask_jwt_extended import jwt_required
-from venmo_api.models.page import Page
-from venmo_api.models.transaction import Transaction
 from venmo_api.models.user import User
 
 from clients import get_venmo_client
@@ -16,7 +14,7 @@ from dao import (
     venmo_raw_data_collection,
 )
 from helpers import flip_amount
-from models import LineItem
+from resources.line_item import LineItem
 
 venmo_blueprint = Blueprint("venmo", __name__)
 
@@ -41,12 +39,11 @@ def refresh_venmo() -> None:
         logging.error("Failed to get Venmo profile")
         raise Exception("Failed to get Venmo profile")
     my_id: int = profile.id
-    # The type error is from the venmo_api library
-    transactions: Page[Transaction] = get_venmo_client().user.get_user_transactions(str(my_id))  # type: ignore
+    transactions: Any = get_venmo_client().user.get_user_transactions(str(my_id))  # type: ignore
     transactions_after_moving_date: bool = True
 
     # Collect all transactions for bulk upsert
-    all_transactions: List[Transaction] = []
+    all_transactions: List[Any] = []
 
     while transactions and transactions_after_moving_date:
         for transaction in transactions:
@@ -59,8 +56,9 @@ def refresh_venmo() -> None:
             ):
                 continue
             all_transactions.append(transaction)
-        # This might have one extra network call when we break out of the loop
-        transactions = transactions.get_next_page()  # type: ignore
+        transactions = (
+            transactions.get_next_page()
+        )  # TODO: This might have one extra network call when we break out of the loop
 
     # Bulk upsert all collected transactions at once
     if all_transactions:
@@ -94,12 +92,12 @@ def venmo_to_line_items() -> None:
         ):
             # current user paid money
             line_item = LineItem(
-                id=f'line_item_{transaction["_id"]}',
-                date=posix_date,
-                responsible_party=transaction["target"]["first_name"],
-                payment_method=payment_method,
-                description=transaction["note"],
-                amount=transaction["amount"],
+                f'line_item_{transaction["_id"]}',
+                posix_date,
+                transaction["target"]["first_name"],
+                payment_method,
+                transaction["note"],
+                transaction["amount"],
             )
         elif (
             transaction["target"]["first_name"] == USER_FIRST_NAME
@@ -107,26 +105,26 @@ def venmo_to_line_items() -> None:
         ):
             # current user paid money
             line_item = LineItem(
-                id=f'line_item_{transaction["_id"]}',
-                date=posix_date,
-                responsible_party=transaction["actor"]["first_name"],
-                payment_method=payment_method,
-                description=transaction["note"],
-                amount=transaction["amount"],
+                f'line_item_{transaction["_id"]}',
+                posix_date,
+                transaction["actor"]["first_name"],
+                payment_method,
+                transaction["note"],
+                transaction["amount"],
             )
         else:
-            # current user got money
+            # current user gets money
             if transaction["target"]["first_name"] == USER_FIRST_NAME:
                 other_name: str = transaction["actor"]["first_name"]
             else:
                 other_name: str = transaction["target"]["first_name"]
             line_item = LineItem(
-                id=f'line_item_{transaction["_id"]}',
-                date=posix_date,
-                responsible_party=other_name,
-                payment_method=payment_method,
-                description=transaction["note"],
-                amount=flip_amount(transaction["amount"]),
+                f'line_item_{transaction["_id"]}',
+                posix_date,
+                other_name,
+                payment_method,
+                transaction["note"],
+                flip_amount(transaction["amount"]),
             )
 
         all_line_items.append(line_item)

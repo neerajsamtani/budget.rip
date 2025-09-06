@@ -3,7 +3,7 @@ from datetime import datetime
 import pytest
 
 import helpers
-from models import LineItem
+from resources.line_item import LineItem
 
 
 @pytest.mark.parametrize(
@@ -115,29 +115,14 @@ def test_iso_8601_to_posix(iso_date, expected_output):
 def test_sort_by_date_descending():
     line_items = [
         LineItem(
-            id="1",
-            date=datetime(2022, 1, 1).timestamp(),
-            responsible_party="John",
-            payment_method="Venmo",
-            description="item 1",
-            amount=100.0,
-        ).model_dump(),
+            "1", datetime(2022, 1, 1).timestamp(), "John", "Venmo", "item 1", 100.0
+        ).__dict__,
         LineItem(
-            id="2",
-            date=datetime(2022, 2, 1).timestamp(),
-            responsible_party="Mary",
-            payment_method="Splitwise",
-            description="item 2",
-            amount=50.0,
-        ).model_dump(),
+            "2", datetime(2022, 2, 1).timestamp(), "Mary", "Splitwise", "item 2", 50.0
+        ).__dict__,
         LineItem(
-            id="3",
-            date=datetime(2021, 12, 31).timestamp(),
-            responsible_party="Jane",
-            payment_method="Cash",
-            description="item 3",
-            amount=75.0,
-        ).model_dump(),
+            "3", datetime(2021, 12, 31).timestamp(), "Jane", "Cash", "item 3", 75.0
+        ).__dict__,
     ]
 
     sorted_items = helpers.sort_by_date_descending(line_items)

@@ -12,7 +12,7 @@ from dao import (
     line_items_collection,
 )
 from helpers import html_date_to_posix
-from models import CashTransaction, LineItem
+from resources.line_item import LineItem
 
 cash_blueprint = Blueprint("cash", __name__)
 
@@ -22,16 +22,12 @@ cash_blueprint = Blueprint("cash", __name__)
 @cash_blueprint.route("/api/cash_transaction", methods=["POST"])
 @jwt_required()
 def create_cash_transaction_api() -> tuple[Response, int]:
-    body: Dict[str, Any] = request.get_json()
-    transaction_model = CashTransaction(
-        date=html_date_to_posix(body["date"]),
-        person=body["person"],
-        description=body["description"],
-        amount=int(body["amount"]),
-    )
-    insert(cash_raw_data_collection, transaction_model)
+    transaction: Dict[str, Any] = request.get_json()
+    transaction["date"] = html_date_to_posix(transaction["date"])
+    transaction["amount"] = int(transaction["amount"])
+    insert(cash_raw_data_collection, transaction)
     logging.info(
-        f"Cash transaction created: {transaction_model.description} - ${transaction_model.amount}"
+        f"Cash transaction created: {transaction['description']} - ${transaction['amount']}"
     )
     cash_to_line_items()
     return jsonify("Created Cash Transaction"), 201
@@ -54,12 +50,12 @@ def cash_to_line_items() -> None:
 
     for transaction in cash_raw_data:
         line_item = LineItem(
-            id=f'line_item_{transaction["_id"]}',
-            date=transaction["date"],
-            responsible_party=transaction["person"],
-            payment_method=payment_method,
-            description=transaction["description"],
-            amount=transaction["amount"],
+            f'line_item_{transaction["_id"]}',
+            transaction["date"],
+            transaction["person"],
+            payment_method,
+            transaction["description"],
+            transaction["amount"],
         )
         all_line_items.append(line_item)
 

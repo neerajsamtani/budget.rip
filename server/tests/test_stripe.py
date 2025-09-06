@@ -401,7 +401,7 @@ class TestStripeAPI:
         mocker.patch("resources.stripe.STRIPE_CUSTOMER_ID", "test_customer_id")
 
         with flask_app.app_context():
-            # Mock Stripe SDK call instead of raw requests
+            # Mock Stripe SDK call
             mock_list = mocker.patch(
                 "resources.stripe.stripe.financial_connections.Transaction.list"
             )
