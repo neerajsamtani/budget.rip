@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Badge, Button } from "react-bootstrap";
 import { LineItemInterface } from "../contexts/LineItemsContext";
 import axiosInstance from "../utils/axiosInstance";
+import { DateFormatter } from "../utils/formatters";
 import EventDetailsModal from "./EventDetailsModal";
 
 export interface EventInterface {
@@ -15,13 +16,7 @@ export interface EventInterface {
 }
 
 export default function Event({ event }: { event: EventInterface }) {
-    const longEnUSFormatter = new Intl.DateTimeFormat('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        timeZone: 'UTC'
-    });
-    const readableDate = longEnUSFormatter.format(event.date * 1000);
+    const readableDate = DateFormatter.format(event.date * 1000);
 
     const [eventDetailsModalShow, setEventDetailsModalShow] = useState(false);
     const [lineItemsForEvent, setLineItemsForEvent] = useState<LineItemInterface[]>([])

@@ -6,6 +6,7 @@ import { Button, Table } from "react-bootstrap";
 import FinancialConnectionsForm from "../components/FinancialConnectionsForm";
 import Notification from "../components/Notification";
 import axiosInstance from "../utils/axiosInstance";
+import { CurrencyFormatter, DateFormatter } from "../utils/formatters";
 
 export default function ConnectedAccountsPage({ stripePromise }: { stripePromise: Promise<Stripe | null> }) {
 
@@ -21,19 +22,7 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
         }
     )
 
-    const currencyFormatter = new Intl.NumberFormat("en-US", {
-        style: "currency",
-        currency: "USD",
-    });
-    const formatBalance = (balance: number) => currencyFormatter.format(balance)
-
-    const dateFormatter = new Intl.DateTimeFormat("en-US", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-        timeZone: "UTC"
-    });
-    const formatDate = (unixTime: number) => dateFormatter.format(new Date(unixTime * 1000))
+    const formatDate = (unixTime: number) => DateFormatter.format(new Date(unixTime * 1000))
 
     let netWorth = 0;
     // Only active accounts are included in the net worth calculation
@@ -130,7 +119,7 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
                         {status === 'inactive' ?
                             <td><Button onClick={() => { relinkAccount(_id) }} variant="secondary">Reactivate</Button></td>
                             : <td>Active</td>}
-                        <td>{accountsAndBalances[_id] && formatBalance(accountsAndBalances[_id]["balance"])}</td>
+                        <td>{accountsAndBalances[_id] && CurrencyFormatter.format(accountsAndBalances[_id]["balance"])}</td>
                         <td>{accountsAndBalances[_id] && formatDate(accountsAndBalances[_id]["as_of"])}</td>
                     </tr>
                 );
@@ -219,7 +208,7 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
                     </tbody>
                 </Table>
                 <br />
-                <h4>Net Worth: {formatBalance(netWorth)}</h4>
+                <h4>Net Worth: {CurrencyFormatter.format(netWorth)}</h4>
                 <br />
                 <h4>Inactive Accounts</h4>
                 <Table striped bordered hover>
