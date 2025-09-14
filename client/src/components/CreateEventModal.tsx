@@ -9,6 +9,7 @@ import { getPrefillFromLineItems } from '.././data/EventHints';
 import { useLineItems, useLineItemsDispatch } from "../contexts/LineItemsContext";
 import { FormField, useField } from '../hooks/useField';
 import axiosInstance from '../utils/axiosInstance';
+import { CurrencyFormatter } from '../utils/formatters';
 import defaultNameCleanup from '../utils/stringHelpers';
 import Notification from './Notification';
 
@@ -206,7 +207,7 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
         </Modal.Body>
         <Modal.Footer>
           <Stack className='me-auto' direction="horizontal" gap={3} style={{ width: '100%' }}>
-            <Badge className="p-2" bg="secondary">Total: ${total}</Badge>
+            <Badge className="p-2" bg="secondary">Total: {CurrencyFormatter.format(total)}</Badge>
             <Button className="p-2 ms-auto" onClick={closeModal} variant="secondary">Cancel</Button>
             <Button className="p-2" onClick={() => createEvent(name, category)} variant="primary" disabled={disableSubmit}>Submit</Button>
           </Stack>

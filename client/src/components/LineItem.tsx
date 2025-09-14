@@ -1,5 +1,6 @@
 import React from "react";
 import { LineItemInterface, useLineItems, useLineItemsDispatch } from "../contexts/LineItemsContext";
+import { DateFormatter } from "../utils/formatters";
 
 interface LineItemProps {
     lineItem: LineItemInterface;
@@ -7,16 +8,8 @@ interface LineItemProps {
 }
 
 export default function LineItem({ lineItem, showCheckBox }: LineItemProps) {
-    // Date formatter
-    const longEnUSFormatter = new Intl.DateTimeFormat('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        timeZone: 'UTC'
-    });
-
     // Convert the UNIX timestamp to a readable date
-    const readableDate = longEnUSFormatter.format(lineItem.date * 1000);
+    const readableDate = DateFormatter.format(lineItem.date * 1000);
 
     // Get line items and dispatch from context
     const lineItems = useLineItems();
