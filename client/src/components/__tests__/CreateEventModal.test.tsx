@@ -137,7 +137,7 @@ describe('CreateEventModal', () => {
         it('shows total amount from selected line items', () => {
             render(<CreateEventModal show={true} onHide={mockOnHide} />);
 
-            expect(screen.getByText('Total: $150')).toBeInTheDocument();
+            expect(screen.getByText('Total: $150.00')).toBeInTheDocument();
         });
     });
 
@@ -181,14 +181,14 @@ describe('CreateEventModal', () => {
         it('updates total when duplicate transaction is checked', async () => {
             render(<CreateEventModal show={true} onHide={mockOnHide} />);
 
-            // Initial total should be $150 (50 + 100)
-            expect(screen.getByText('Total: $150')).toBeInTheDocument();
+            // Initial total should be $150.00 (50 + 100)
+            expect(screen.getByText('Total: $150.00')).toBeInTheDocument();
 
             const checkbox = screen.getByRole('checkbox');
             await userEvent.click(checkbox);
 
             // Total should be $75 (half of 150)
-            expect(screen.getByText('Total: $75')).toBeInTheDocument();
+            expect(screen.getByText('Total: $75.00')).toBeInTheDocument();
         });
     });
 
