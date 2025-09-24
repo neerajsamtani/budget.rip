@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import axiosInstance from "../utils/axiosInstance";
 import Plot from 'react-plotly.js';
+import axiosInstance from "../utils/axiosInstance";
 
 interface Expense {
   amount: number;
@@ -16,8 +16,8 @@ export default function GraphsPage() {
   const [categorizedData, setCategorizedData] = useState<CategoryExpense>({})
 
   useEffect(() => {
-    var REACT_APP_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
-    axiosInstance.get(`${REACT_APP_API_ENDPOINT}api/monthly_breakdown`, { params: {} })
+    var VITE_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
+    axiosInstance.get(`${VITE_API_ENDPOINT}api/monthly_breakdown`, { params: {} })
       .then(response => {
         setCategorizedData(response.data)
       })

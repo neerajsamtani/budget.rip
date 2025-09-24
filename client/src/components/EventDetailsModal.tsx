@@ -1,12 +1,12 @@
-import axiosInstance from '../utils/axiosInstance';
 import React, { Fragment, useState } from 'react';
-import { Table, Badge } from "react-bootstrap";
+import { Badge, Table } from "react-bootstrap";
 import Button from 'react-bootstrap/Button';
 import Modal from 'react-bootstrap/Modal';
+import { LineItemInterface } from '../contexts/LineItemsContext';
+import axiosInstance from '../utils/axiosInstance';
+import { EventInterface } from './Event';
 import LineItem from './LineItem';
 import Notification from './Notification';
-import { LineItemInterface } from '../contexts/LineItemsContext';
-import { EventInterface } from './Event';
 
 export default function EventDetailsModal({ show, event, lineItemsForEvent, onHide }:
   { show: boolean, event: EventInterface, lineItemsForEvent: LineItemInterface[], onHide: () => void }) {
@@ -20,8 +20,8 @@ export default function EventDetailsModal({ show, event, lineItemsForEvent, onHi
   )
 
   const deleteEvent = () => {
-    var REACT_APP_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
-    axiosInstance.delete(`${REACT_APP_API_ENDPOINT}api/events/${event._id}`)
+    var VITE_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
+    axiosInstance.delete(`${VITE_API_ENDPOINT}api/events/${event._id}`)
       .then(response => {
         console.log(response.data);
         setNotification({

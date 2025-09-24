@@ -62,8 +62,8 @@ export function LineItemsProvider({ children }: { children: ReactNode }) {
     const [lineItems, lineItemsDispatch] = useReducer(lineItemsReducer, initialLineItems);
 
     useEffect(() => {
-        var REACT_APP_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
-        axiosInstance.get(`${REACT_APP_API_ENDPOINT}api/line_items`, {
+        var VITE_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
+        axiosInstance.get(`${VITE_API_ENDPOINT}api/line_items`, {
             params: {
                 "only_line_items_to_review": true,
             }

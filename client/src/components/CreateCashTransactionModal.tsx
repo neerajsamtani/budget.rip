@@ -20,7 +20,7 @@ export default function CreateCashTransactionModal({ show, onHide }: { show: boo
   const amount = useField<number>("number", 0 as number)
 
   const createCashTransaction = () => {
-    var REACT_APP_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
+    var VITE_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
     var newCashTransaction = {
       "date": date.value,
       "person": person.value,
@@ -28,7 +28,7 @@ export default function CreateCashTransactionModal({ show, onHide }: { show: boo
       "amount": amount.value
     }
     console.log(newCashTransaction);
-    axiosInstance.post(`${REACT_APP_API_ENDPOINT}api/cash_transaction`, newCashTransaction)
+    axiosInstance.post(`${VITE_API_ENDPOINT}api/cash_transaction`, newCashTransaction)
       .then(response => {
         console.log(response.data);
       })

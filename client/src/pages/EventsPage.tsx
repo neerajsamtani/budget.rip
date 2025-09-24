@@ -22,7 +22,7 @@ export default function EventsPage() {
     const [tagFilter, setTagFilter] = useState<string>('');
 
     useEffect(() => {
-        var REACT_APP_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
+        var VITE_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
         var start_time, end_time;
         if (month !== "All") {
             start_time = DateTime.fromFormat(`${month} ${year}`, "LLLL yyyy", { zone: 'utc' })
@@ -31,7 +31,7 @@ export default function EventsPage() {
             start_time = DateTime.fromFormat(`${year}`, "yyyy", { zone: 'utc' })
             end_time = start_time.endOf("year")
         }
-        axiosInstance.get(`${REACT_APP_API_ENDPOINT}api/events`, {
+        axiosInstance.get(`${VITE_API_ENDPOINT}api/events`, {
             params: {
                 "start_time": start_time.toUnixInteger(),
                 "end_time": end_time.toUnixInteger()
