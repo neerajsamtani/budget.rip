@@ -19,7 +19,7 @@
     "isolatedModules": true,
     "noEmit": true,
     "noEmitOnError": false,
-    "types": ["vite/client", "jest"]
+    "types": ["vite/client", "jest", "node"]
   },
   "include": [
     "src"
