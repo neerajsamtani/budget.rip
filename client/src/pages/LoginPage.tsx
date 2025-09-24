@@ -26,7 +26,7 @@ export default function LoginPage() {
             setError('Please enter a valid email address.');
             return;
         }
-        var REACT_APP_API_ENDPOINT = String(process.env.REACT_APP_API_ENDPOINT);
+        var REACT_APP_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
         var newUser = {
             "email": email.value,
             "password": password.value
@@ -45,7 +45,7 @@ export default function LoginPage() {
     }
 
     const handleLogout = () => {
-        var REACT_APP_API_ENDPOINT = String(process.env.REACT_APP_API_ENDPOINT);
+        var REACT_APP_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
         axiosInstance.post(`${REACT_APP_API_ENDPOINT}api/auth/logout`)
             .then(response => {
                 console.log(response);

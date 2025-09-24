@@ -20,7 +20,7 @@ export default function EventDetailsModal({ show, event, lineItemsForEvent, onHi
   )
 
   const deleteEvent = () => {
-    var REACT_APP_API_ENDPOINT = String(process.env.REACT_APP_API_ENDPOINT);
+    var REACT_APP_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
     axiosInstance.delete(`${REACT_APP_API_ENDPOINT}api/events/${event._id}`)
       .then(response => {
         console.log(response.data);

@@ -22,7 +22,7 @@ export default function EventsPage() {
     const [tagFilter, setTagFilter] = useState<string>('');
 
     useEffect(() => {
-        var REACT_APP_API_ENDPOINT = String(process.env.REACT_APP_API_ENDPOINT);
+        var REACT_APP_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
         var start_time, end_time;
         if (month !== "All") {
             start_time = DateTime.fromFormat(`${month} ${year}`, "LLLL yyyy", { zone: 'utc' })

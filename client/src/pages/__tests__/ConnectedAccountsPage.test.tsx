@@ -42,7 +42,7 @@ const mockAccountsAndBalances = {
 describe('ConnectedAccountsPage', () => {
     beforeEach(() => {
         jest.clearAllMocks();
-        process.env.REACT_APP_API_ENDPOINT = 'http://localhost:5000/';
+        process.env.VITE_API_ENDPOINT = 'http://localhost:5000/';
         mockAxiosInstance.get.mockImplementation((url: string) => {
             if (url.includes('connected_accounts')) return Promise.resolve({ data: mockConnectedAccounts });
             if (url.includes('accounts_and_balances')) return Promise.resolve({ data: mockAccountsAndBalances });

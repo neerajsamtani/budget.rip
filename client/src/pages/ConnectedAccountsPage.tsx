@@ -32,10 +32,10 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
         }
     })
 
-    var REACT_APP_API_ENDPOINT = String(process.env.REACT_APP_API_ENDPOINT);
+    var REACT_APP_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
 
     useEffect(() => {
-        var REACT_APP_API_ENDPOINT = String(process.env.REACT_APP_API_ENDPOINT);
+        var REACT_APP_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
         axiosInstance.get(`${REACT_APP_API_ENDPOINT}api/connected_accounts`)
             .then(response => {
                 setConnectedAccounts(response.data)

@@ -13,7 +13,7 @@ export default function PaymentMethodFilter({ paymentMethod, setPaymentMethod }:
   const [paymentMethods, setPaymentMethods] = useState([])
 
   useEffect(() => {
-    var REACT_APP_API_ENDPOINT = String(process.env.REACT_APP_API_ENDPOINT);
+    var REACT_APP_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
     axiosInstance.get(`${REACT_APP_API_ENDPOINT}api/payment_methods`)
       .then(response => {
         setPaymentMethods(Array.isArray(response.data) ? response.data : []);

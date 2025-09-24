@@ -16,7 +16,7 @@ export default function GraphsPage() {
   const [categorizedData, setCategorizedData] = useState<CategoryExpense>({})
 
   useEffect(() => {
-    var REACT_APP_API_ENDPOINT = String(process.env.REACT_APP_API_ENDPOINT);
+    var REACT_APP_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
     axiosInstance.get(`${REACT_APP_API_ENDPOINT}api/monthly_breakdown`, { params: {} })
       .then(response => {
         setCategorizedData(response.data)

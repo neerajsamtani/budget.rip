@@ -20,7 +20,7 @@ export default function CreateCashTransactionModal({ show, onHide }: { show: boo
   const amount = useField<number>("number", 0 as number)
 
   const createCashTransaction = () => {
-    var REACT_APP_API_ENDPOINT = String(process.env.REACT_APP_API_ENDPOINT);
+    var REACT_APP_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
     var newCashTransaction = {
       "date": date.value,
       "person": person.value,

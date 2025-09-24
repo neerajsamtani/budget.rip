@@ -13,7 +13,7 @@ module.exports = {
 
     // A map from regular expressions to paths to transformers
     transform: {
-        '^.+\\.(ts|tsx)$': 'ts-jest',
+        '^.+\\.(ts|tsx)$': '<rootDir>/jest-transformer.js',
         '^.+\\.(js|jsx)$': 'babel-jest',
     },
 
@@ -48,7 +48,7 @@ module.exports = {
     setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts'],
 
     // Module name mapping for absolute imports
-    moduleNameMapping: {
+    moduleNameMapper: {
         '^@/(.*)$': '<rootDir>/src/$1'
     },
 
@@ -69,11 +69,8 @@ module.exports = {
 
     // Transform ignore patterns
     transformIgnorePatterns: [
-        'node_modules/(?!(axios)/)'
+        'node_modules/(?!(axios|msw)/)'
     ],
-
-    // Extensions to treat as ES modules
-    extensionsToTreatAsEsm: ['.ts', '.tsx'],
 
     // Global setup to suppress deprecation warnings
     globalSetup: '<rootDir>/src/test-setup.js'

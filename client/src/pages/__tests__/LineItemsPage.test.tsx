@@ -71,7 +71,7 @@ describe('LineItemsPage', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         // Set up default environment variable
-        process.env.REACT_APP_API_ENDPOINT = 'http://localhost:5000/';
+        process.env.VITE_API_ENDPOINT = 'http://localhost:5000/';
         // Default successful API response
         mockAxiosInstance.get.mockResolvedValue({
             data: { data: mockLineItems }
@@ -223,7 +223,7 @@ describe('LineItemsPage', () => {
         });
 
         it('uses correct API endpoint from environment variable', async () => {
-            process.env.REACT_APP_API_ENDPOINT = 'https://api.example.com/';
+            process.env.VITE_API_ENDPOINT = 'https://api.example.com/';
 
             render(<LineItemsPage />);
 
@@ -538,7 +538,7 @@ describe('LineItemsPage', () => {
 
         it('handles environment variable changes', async () => {
             // Change environment variable
-            process.env.REACT_APP_API_ENDPOINT = 'https://new-api.example.com/';
+            process.env.VITE_API_ENDPOINT = 'https://new-api.example.com/';
 
             render(<LineItemsPage />);
 

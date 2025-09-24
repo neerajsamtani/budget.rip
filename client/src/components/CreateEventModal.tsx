@@ -96,7 +96,7 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
   };
 
   const createEvent = (name: FormField<string>, category: FormField<string>) => {
-    var REACT_APP_API_ENDPOINT = String(process.env.REACT_APP_API_ENDPOINT);
+    var REACT_APP_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
     var newEvent = {
       "name": name.value,
       "category": category.value,
