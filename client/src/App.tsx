@@ -18,6 +18,7 @@ import GraphsPage from "./pages/GraphsPage";
 import LineItemsPage from "./pages/LineItemsPage";
 import LineItemsToReviewPage from "./pages/LineItemsToReviewPage";
 import LoginPage from "./pages/LoginPage";
+import ShadcnTestPage from "./pages/ShadcnTestPage";
 import axiosInstance from "./utils/axiosInstance";
 
 // Make sure to call loadStripe outside of a component's render to avoid
@@ -84,6 +85,7 @@ export default function App() {
                 <Link style={padding} to="/line_items">Line Items</Link>
                 <Link style={padding} to="/connected_accounts">Connected Accounts</Link>
                 <Link style={padding} to="/graphs">Graphs</Link>
+                <Link style={padding} to="/test">Test Shadcn</Link>
                 <Link style={padding} to="/login">Login</Link>
               </Nav>
               <Nav>
@@ -113,6 +115,7 @@ export default function App() {
           <Route path="/line_items" element={<LineItemsPage />} />
           <Route path="/connected_accounts" element={<ConnectedAccountsPage stripePromise={stripePromise} />} />
           <Route path="/graphs" element={<GraphsPage />} />
+          <Route path="/test" element={<ShadcnTestPage />} />
           <Route path="/login" element={<LoginPage />} />
         </Routes>
       </Router>
