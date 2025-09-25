@@ -26,14 +26,6 @@ export default defineConfig({
     }
   },
   server: {
-    host: 'dev.localhost',
-    proxy: {
-      '/api': {
-        target: 'http://localhost:4242',
-        changeOrigin: true,
-        secure: false,
-        cookieDomainRewrite: '.dev.localhost'
-      }
-    }
+    host: 'dev.localhost'
   }
 })
