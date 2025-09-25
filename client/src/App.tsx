@@ -1,3 +1,4 @@
+import { Button as ShadcnButton } from "@/components/ui/button";
 import { loadStripe } from "@stripe/stripe-js";
 import React, { useState } from "react";
 import { Button, Spinner } from "react-bootstrap";
@@ -24,8 +25,8 @@ import axiosInstance from "./utils/axiosInstance";
 // This is a public sample test API key.
 // Don't submit any personally identifiable information in requests made with this key.
 // Sign in to see your own test API key embedded in code samples.
-var STRIPE_PUBLIC_KEY = String(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
-var VITE_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
+const STRIPE_PUBLIC_KEY = String(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
+const VITE_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
 const stripePromise = loadStripe(STRIPE_PUBLIC_KEY);
 
 export default function App() {
@@ -100,6 +101,7 @@ export default function App() {
                       <>Refresh Data</>
                   }
                 </Button>
+                <ShadcnButton>Refresh Data</ShadcnButton>
               </Nav>
             </Navbar.Collapse>
           </Container>
