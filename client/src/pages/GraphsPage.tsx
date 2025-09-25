@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from "react";
-import Plot from 'react-plotly.js';
+import React, { useEffect, useState, lazy, Suspense } from "react";
 import axiosInstance from "../utils/axiosInstance";
+
+const Plot = lazy(() => import('react-plotly.js'));
 
 interface Expense {
   amount: number;
@@ -44,9 +45,11 @@ export default function GraphsPage() {
 
 
   return (
-    <Plot
-      data={data}
-      layout={layout}
-    />
+    <Suspense fallback={<div>Loading chart...</div>}>
+      <Plot
+        data={data}
+        layout={layout}
+      />
+    </Suspense>
   );
 }

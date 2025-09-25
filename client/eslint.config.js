@@ -69,16 +69,18 @@ module.exports = [
     }
   },
   {
-    files: ['**/*.test.{ts,tsx,js,jsx}'],
+    files: ['**/*.test.{ts,tsx,js,jsx}', '**/setupTests.ts', '**/test-setup.js', '**/utils/test-utils.tsx'],
     languageOptions: {
       globals: {
         ...globals.jest,
-        ...globals.browser
+        ...globals.browser,
+        ...globals.node
       }
     },
     rules: {
       'no-console': 'off',
-      '@typescript-eslint/no-explicit-any': 'off'
+      '@typescript-eslint/no-explicit-any': 'off',
+      'react-refresh/only-export-components': 'off'
     }
   }
 ]
