@@ -96,7 +96,7 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
   };
 
   const createEvent = (name: FormField<string>, category: FormField<string>) => {
-    var REACT_APP_API_ENDPOINT = String(process.env.REACT_APP_API_ENDPOINT);
+    var VITE_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
     var newEvent = {
       "name": name.value,
       "category": category.value,
@@ -106,7 +106,7 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
       "tags": tags.map(tag => tag.text)
     }
     console.log(newEvent);
-    axiosInstance.post(`${REACT_APP_API_ENDPOINT}api/events`, newEvent)
+    axiosInstance.post(`${VITE_API_ENDPOINT}api/events`, newEvent)
       .then(response => {
         console.log(response.data);
       })

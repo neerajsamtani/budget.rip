@@ -1,9 +1,9 @@
-import axiosInstance from "../utils/axiosInstance";
 import React, { useEffect, useState } from "react";
 import { Table } from "react-bootstrap";
-import { LineItemInterface } from "../contexts/LineItemsContext";
 import LineItem from "../components/LineItem";
 import PaymentMethodFilter from "../components/PaymentMethodFilter";
+import { LineItemInterface } from "../contexts/LineItemsContext";
+import axiosInstance from "../utils/axiosInstance";
 
 export default function LineItemsPage() {
 
@@ -11,8 +11,8 @@ export default function LineItemsPage() {
     const [paymentMethod, setPaymentMethod] = useState("All")
 
     useEffect(() => {
-        var REACT_APP_API_ENDPOINT = String(process.env.REACT_APP_API_ENDPOINT);
-        axiosInstance.get(`${REACT_APP_API_ENDPOINT}api/line_items`, {
+        var VITE_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
+        axiosInstance.get(`${VITE_API_ENDPOINT}api/line_items`, {
             params: {
                 "payment_method": paymentMethod,
             }

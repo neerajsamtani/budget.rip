@@ -19,9 +19,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [16.x]
-        # Testing against Node 16.x (lts/gallium) which is typically used for this project
-        # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
+        node-version: [24.8.0]
 
     steps:
     - uses: actions/checkout@v4

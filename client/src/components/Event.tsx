@@ -22,8 +22,8 @@ export default function Event({ event }: { event: EventInterface }) {
     const [lineItemsForEvent, setLineItemsForEvent] = useState<LineItemInterface[]>([])
 
     const showEventDetails = () => {
-        var REACT_APP_API_ENDPOINT = String(process.env.REACT_APP_API_ENDPOINT);
-        axiosInstance.get(`${REACT_APP_API_ENDPOINT}api/events/${event._id}/line_items_for_event`)
+        var VITE_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
+        axiosInstance.get(`${VITE_API_ENDPOINT}api/events/${event._id}/line_items_for_event`)
             .then(response => {
                 setLineItemsForEvent(response.data.data)
             })

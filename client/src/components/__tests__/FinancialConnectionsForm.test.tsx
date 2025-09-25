@@ -254,8 +254,8 @@ describe('FinancialConnectionsForm', () => {
         });
 
         it('stores accounts via API call', async () => {
-            const originalEnv = process.env.REACT_APP_API_ENDPOINT;
-            process.env.REACT_APP_API_ENDPOINT = 'http://localhost:3000/';
+            const originalEnv = process.env.VITE_API_ENDPOINT;
+            process.env.VITE_API_ENDPOINT = 'http://localhost:3000/';
 
             render(
                 <FinancialConnectionsForm
@@ -274,7 +274,7 @@ describe('FinancialConnectionsForm', () => {
                 );
             });
 
-            process.env.REACT_APP_API_ENDPOINT = originalEnv;
+            process.env.VITE_API_ENDPOINT = originalEnv;
         });
 
         it('logs API response data', async () => {
@@ -522,9 +522,9 @@ describe('FinancialConnectionsForm', () => {
     });
 
     describe('Environment Configuration', () => {
-        it('uses REACT_APP_API_ENDPOINT environment variable', async () => {
-            const originalEnv = process.env.REACT_APP_API_ENDPOINT;
-            process.env.REACT_APP_API_ENDPOINT = 'https://api.example.com/';
+        it('uses VITE_API_ENDPOINT environment variable', async () => {
+            const originalEnv = process.env.VITE_API_ENDPOINT;
+            process.env.VITE_API_ENDPOINT = 'https://api.example.com/';
 
             render(
                 <FinancialConnectionsForm
@@ -544,7 +544,7 @@ describe('FinancialConnectionsForm', () => {
             });
 
             // Restore original environment
-            process.env.REACT_APP_API_ENDPOINT = originalEnv;
+            process.env.VITE_API_ENDPOINT = originalEnv;
         });
     });
 }); 

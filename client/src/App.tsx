@@ -24,8 +24,8 @@ import axiosInstance from "./utils/axiosInstance";
 // This is a public sample test API key.
 // Don't submit any personally identifiable information in requests made with this key.
 // Sign in to see your own test API key embedded in code samples.
-var STRIPE_PUBLIC_KEY = String(process.env.REACT_APP_STRIPE_PUBLIC_KEY);
-var REACT_APP_API_ENDPOINT = String(process.env.REACT_APP_API_ENDPOINT);
+var STRIPE_PUBLIC_KEY = String(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
+var VITE_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
 const stripePromise = loadStripe(STRIPE_PUBLIC_KEY);
 
 export default function App() {
@@ -42,7 +42,7 @@ export default function App() {
 
   const handleRefreshData = () => {
     setLoading(true);
-    axiosInstance.get(`${REACT_APP_API_ENDPOINT}api/refresh/all`)
+    axiosInstance.get(`${VITE_API_ENDPOINT}api/refresh/all`)
       .then(response => {
         setNotification({
           ...notification,

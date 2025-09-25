@@ -32,16 +32,16 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
         }
     })
 
-    var REACT_APP_API_ENDPOINT = String(process.env.REACT_APP_API_ENDPOINT);
+    var VITE_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
 
     useEffect(() => {
-        var REACT_APP_API_ENDPOINT = String(process.env.REACT_APP_API_ENDPOINT);
-        axiosInstance.get(`${REACT_APP_API_ENDPOINT}api/connected_accounts`)
+        var VITE_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
+        axiosInstance.get(`${VITE_API_ENDPOINT}api/connected_accounts`)
             .then(response => {
                 setConnectedAccounts(response.data)
             })
             .catch(error => console.log(error));
-        axiosInstance.get(`${REACT_APP_API_ENDPOINT}api/accounts_and_balances`)
+        axiosInstance.get(`${VITE_API_ENDPOINT}api/accounts_and_balances`)
             .then(response => {
                 setAccountsAndBalances(response.data)
             })
@@ -49,7 +49,7 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
     }, [])
 
     const createSession = () => {
-        axiosInstance.post(`${REACT_APP_API_ENDPOINT}api/create-fc-session`)
+        axiosInstance.post(`${VITE_API_ENDPOINT}api/create-fc-session`)
             .then(response => setClientSecret(response.data.clientSecret))
             .catch(error => console.log(error));
     }
@@ -57,7 +57,7 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
     const subscribeToAccounts = () => {
         if (stripeAccounts) {
             for (var account of stripeAccounts) {
-                axiosInstance.get(`${REACT_APP_API_ENDPOINT}api/subscribe_to_account/${account.id}`)
+                axiosInstance.get(`${VITE_API_ENDPOINT}api/subscribe_to_account/${account.id}`)
                     .then(response => console.log(response.data))
             }
         }
@@ -71,7 +71,7 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
     }
 
     const relinkAccount = (accountId) => {
-        axiosInstance.get(`${REACT_APP_API_ENDPOINT}api/relink_account/${accountId}`)
+        axiosInstance.get(`${VITE_API_ENDPOINT}api/relink_account/${accountId}`)
             .then(response => setClientSecret(response.data.clientSecret))
             .catch(error => console.log(error));
     }

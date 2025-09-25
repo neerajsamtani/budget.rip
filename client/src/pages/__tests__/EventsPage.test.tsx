@@ -141,7 +141,7 @@ describe('EventsPage', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         // Set up default environment variable
-        process.env.REACT_APP_API_ENDPOINT = 'http://localhost:5000/';
+        process.env.VITE_API_ENDPOINT = 'http://localhost:5000/';
         // Default successful API response
         mockAxiosInstance.get.mockResolvedValue({
             data: { data: mockEvents }
@@ -203,7 +203,7 @@ describe('EventsPage', () => {
         });
 
         it('uses correct API endpoint from environment variable', async () => {
-            process.env.REACT_APP_API_ENDPOINT = 'https://api.example.com/';
+            process.env.VITE_API_ENDPOINT = 'https://api.example.com/';
 
             render(<EventsPage />);
 
@@ -548,7 +548,7 @@ describe('EventsPage', () => {
         });
 
         it('handles missing environment variable', async () => {
-            delete process.env.REACT_APP_API_ENDPOINT;
+            delete process.env.VITE_API_ENDPOINT;
 
             render(<EventsPage />);
 

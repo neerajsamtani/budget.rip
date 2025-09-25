@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, lazy, Suspense } from "react";
 import axiosInstance from "../utils/axiosInstance";
-import Plot from 'react-plotly.js';
+
+const Plot = lazy(() => import('react-plotly.js'));
 
 interface Expense {
   amount: number;
@@ -16,8 +17,8 @@ export default function GraphsPage() {
   const [categorizedData, setCategorizedData] = useState<CategoryExpense>({})
 
   useEffect(() => {
-    var REACT_APP_API_ENDPOINT = String(process.env.REACT_APP_API_ENDPOINT);
-    axiosInstance.get(`${REACT_APP_API_ENDPOINT}api/monthly_breakdown`, { params: {} })
+    var VITE_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
+    axiosInstance.get(`${VITE_API_ENDPOINT}api/monthly_breakdown`, { params: {} })
       .then(response => {
         setCategorizedData(response.data)
       })
@@ -44,9 +45,11 @@ export default function GraphsPage() {
 
 
   return (
-    <Plot
-      data={data}
-      layout={layout}
-    />
+    <Suspense fallback={<div>Loading chart...</div>}>
+      <Plot
+        data={data}
+        layout={layout}
+      />
+    </Suspense>
   );
 }

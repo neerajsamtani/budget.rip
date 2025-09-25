@@ -79,8 +79,8 @@ const mockDispatch = jest.fn();
 describe('App', () => {
     beforeEach(() => {
         jest.clearAllMocks();
-        process.env.REACT_APP_API_ENDPOINT = 'http://localhost:5000/';
-        process.env.REACT_APP_STRIPE_PUBLIC_KEY = 'test_stripe_key';
+        process.env.VITE_API_ENDPOINT = 'http://localhost:5000/';
+        process.env.VITE_STRIPE_PUBLIC_KEY = 'test_stripe_key';
         mockUseLineItemsDispatch.mockReturnValue(mockDispatch);
         mockUseLineItems.mockReturnValue([]);
 
@@ -263,14 +263,14 @@ describe('App', () => {
             render(<App />);
 
             // The API endpoint should be used in the axios calls
-            expect(process.env.REACT_APP_API_ENDPOINT).toBe('http://localhost:5000/');
+            expect(process.env.VITE_API_ENDPOINT).toBe('http://localhost:5000/');
         });
 
         it('uses correct Stripe public key from environment', () => {
             render(<App />);
 
             // The Stripe key should be available
-            expect(process.env.REACT_APP_STRIPE_PUBLIC_KEY).toBe('test_stripe_key');
+            expect(process.env.VITE_STRIPE_PUBLIC_KEY).toBe('test_stripe_key');
         });
     });
 

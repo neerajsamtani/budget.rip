@@ -389,9 +389,9 @@ describe('CreateCashTransactionModal', () => {
     });
 
     describe('Environment Configuration', () => {
-        it('uses REACT_APP_API_ENDPOINT environment variable', async () => {
-            const originalEnv = process.env.REACT_APP_API_ENDPOINT;
-            process.env.REACT_APP_API_ENDPOINT = 'http://localhost:3000/';
+        it('uses VITE_API_ENDPOINT environment variable', async () => {
+            const originalEnv = process.env.VITE_API_ENDPOINT;
+            process.env.VITE_API_ENDPOINT = 'http://localhost:3000/';
 
             render(<CreateCashTransactionModal show={true} onHide={mockOnHide} />);
 
@@ -418,7 +418,7 @@ describe('CreateCashTransactionModal', () => {
             });
 
             // Restore original environment
-            process.env.REACT_APP_API_ENDPOINT = originalEnv;
+            process.env.VITE_API_ENDPOINT = originalEnv;
         });
     });
 }); 

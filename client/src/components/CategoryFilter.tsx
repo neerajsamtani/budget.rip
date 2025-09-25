@@ -1,6 +1,7 @@
 import React from 'react';
 import { Form, InputGroup } from 'react-bootstrap';
 
+// Keep this in sync with the server/constants.py
 // Define a constant array for categories
 const CATEGORIES = [
   'All',

@@ -22,8 +22,8 @@ export default function FinancialConnectionsForm({ fcsess_secret, setStripeAccou
   const [isLoading, setIsLoading] = useState(false);
 
   const storeAccounts = (accounts: FinancialConnectionsSession.Account[]) => {
-    var REACT_APP_API_ENDPOINT = String(process.env.REACT_APP_API_ENDPOINT);
-    axiosInstance.post(`${REACT_APP_API_ENDPOINT}api/create_accounts`, accounts)
+    var VITE_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
+    axiosInstance.post(`${VITE_API_ENDPOINT}api/create_accounts`, accounts)
       .then(response => console.log(response.data))
       .catch(error => console.log(error));
   }
