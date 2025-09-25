@@ -14,6 +14,16 @@ export default defineConfig({
     }) as any
   ],
   publicDir: 'public',
+  define: {
+    global: 'globalThis',
+  },
+  resolve: {
+    alias: {
+      buffer: 'buffer',
+      stream: 'stream-browserify',
+      assert: 'assert',
+    }
+  },
   build: {
     outDir: 'dist',
     rollupOptions: {
