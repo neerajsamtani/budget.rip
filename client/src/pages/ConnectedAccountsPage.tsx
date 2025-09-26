@@ -4,8 +4,8 @@ import { Elements } from "@stripe/react-stripe-js";
 import { FinancialConnectionsSession } from "@stripe/stripe-js/types/api";
 import { Stripe } from "@stripe/stripe-js/types/stripe-js";
 import React, { Fragment, useEffect, useState } from "react";
+import { toast } from "sonner";
 import FinancialConnectionsForm from "../components/FinancialConnectionsForm";
-import Notification from "../components/Notification";
 import axiosInstance from "../utils/axiosInstance";
 import { CurrencyFormatter, DateFormatter } from "../utils/formatters";
 
@@ -15,13 +15,6 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
     const [accountsAndBalances, setAccountsAndBalances] = useState({})
     const [clientSecret, setClientSecret] = useState("");
     const [stripeAccounts, setStripeAccounts] = useState<FinancialConnectionsSession.Account[]>([])
-    const [notification, setNotification] = useState(
-        {
-            heading: "Notification",
-            message: "",
-            showNotification: false,
-        }
-    )
 
     const formatDate = (unixTime: number) => DateFormatter.format(new Date(unixTime * 1000))
 
@@ -64,11 +57,10 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
         }
         setClientSecret("")
         setStripeAccounts([])
-        setNotification({
-            ...notification,
-            message: "Subscribing to the accounts provided. Please refresh the page.",
-            showNotification: true
-        })
+        toast.info("Notification", {
+            description: "Subscribing to the accounts provided. Please refresh the page.",
+            duration: 3500,
+        });
     }
 
     const relinkAccount = (accountId) => {
@@ -144,7 +136,6 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
         <>
             <div>
                 <h1>Connected Accounts</h1>
-                <Notification notification={notification} setNotification={setNotification} />
                 <div className="Form">
                     {clientSecret ?
                         stripeAccounts.length > 0 ?

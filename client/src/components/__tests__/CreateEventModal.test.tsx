@@ -13,14 +13,16 @@ jest.mock('../../utils/stringHelpers', () => ({
     default: jest.fn((str) => str), // just return the string as-is
 }));
 
-// Mock the Notification component before imports
-jest.mock('../Notification', () => {
-    return function MockNotification({ notification, setNotification }: any) {
-        return notification.showNotification ? (
-            <div data-testid="notification">
-                {notification.heading}: {notification.message}
-            </div>
-        ) : null;
+// Mock Sonner toast with all methods
+jest.mock('sonner', () => {
+    const mockToast = jest.fn();
+    return {
+        toast: Object.assign(mockToast, {
+            success: jest.fn(),
+            error: jest.fn(),
+            info: jest.fn(),
+            warning: jest.fn(),
+        }),
     };
 });
 
@@ -424,7 +426,7 @@ describe('CreateEventModal', () => {
             });
         });
 
-        it('shows notification after successful event creation', async () => {
+        it('shows toast after successful event creation', async () => {
             render(<CreateEventModal show={true} onHide={mockOnHide} />);
 
             // Fill out form
@@ -440,8 +442,11 @@ describe('CreateEventModal', () => {
             await userEvent.click(submitButton);
 
             await waitFor(() => {
-                expect(screen.getByTestId('notification')).toBeInTheDocument();
-                expect(screen.getByText('Notification: Created Event')).toBeInTheDocument();
+                const { toast } = require('sonner');
+                expect(toast.success).toHaveBeenCalledWith('Notification', {
+                    description: 'Created Event',
+                    duration: 3500,
+                });
             });
         });
 

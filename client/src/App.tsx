@@ -1,14 +1,15 @@
+import { Button } from "@/components/ui/button";
+import { Navbar, NavbarBrand } from "@/components/ui/navbar";
+import { Toaster } from "@/components/ui/sonner";
+import { Spinner } from "@/components/ui/spinner";
 import { loadStripe } from "@stripe/stripe-js";
 import React, { useState } from "react";
-import { Button } from "@/components/ui/button"
-import { Spinner } from "@/components/ui/spinner"
-import { Navbar, NavbarBrand } from "@/components/ui/navbar"
 import {
   Link, Route,
   BrowserRouter as Router,
   Routes
 } from "react-router-dom";
-import Notification from "./components/Notification";
+import { toast } from "sonner";
 import { useLineItemsDispatch } from "./contexts/LineItemsContext";
 import ConnectedAccountsPage from "./pages/ConnectedAccountsPage";
 import EventsPage from "./pages/EventsPage";
@@ -32,30 +33,26 @@ export default function App() {
 
   const lineItemsDispatch = useLineItemsDispatch();
   const [loading, setLoading] = useState(false);
-  const [notification, setNotification] = useState(
-    {
-      heading: "Notification",
-      message: "Refreshed data",
-      showNotification: false,
-    }
-  )
 
   const handleRefreshData = () => {
     setLoading(true);
     axiosInstance.get(`${VITE_API_ENDPOINT}api/refresh/all`)
       .then(response => {
-        setNotification({
-          ...notification,
-          showNotification: true
-        })
+        toast.success("Notification", {
+          description: "Refreshed data",
+          duration: 3500,
+        });
         setLoading(false);
         lineItemsDispatch({
           type: "populate_line_items",
           fetchedLineItems: response.data.data
         })
       })
-      .catch(error => {
-        console.log(error);
+      .catch(() => {
+        toast.error("Notification", {
+          description: "Error refreshing data",
+          duration: 3500,
+        });
         setLoading(false);
       })
   }
@@ -63,7 +60,7 @@ export default function App() {
 
   return (
     <React.StrictMode>
-      <Notification notification={notification} setNotification={setNotification} />
+      <Toaster position="top-right" richColors />
       <Router>
         <Navbar className="bg-slate-900 text-white">
           <div className="container mx-auto flex justify-between items-center px-4">

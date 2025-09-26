@@ -1,18 +1,18 @@
-import React, { Fragment, useEffect, useState } from 'react';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import React, { Fragment, useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { getPrefillFromLineItems } from '.././data/EventHints';
 import { useLineItems, useLineItemsDispatch } from "../contexts/LineItemsContext";
 import { FormField, useField } from '../hooks/useField';
 import axiosInstance from '../utils/axiosInstance';
 import { CurrencyFormatter } from '../utils/formatters';
 import defaultNameCleanup from '../utils/stringHelpers';
-import Notification from './Notification';
 
 interface Tag {
   id: string;
@@ -55,20 +55,13 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
 
   const total = React.useMemo(() => {
     return selectedLineItems.reduce((prev, cur) => {
-      if (!!isDuplicateTransaction.value) {
+      if (isDuplicateTransaction.value) {
         return prev + cur.amount / 2;
       }
       return prev + cur.amount;
     }, 0);
   }, [selectedLineItems, isDuplicateTransaction]);
 
-  const [notification, setNotification] = useState(
-    {
-      heading: "Notification",
-      message: "Created Event",
-      showNotification: false,
-    }
-  )
 
   const closeModal = () => {
     name.setEmpty()
@@ -97,8 +90,8 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
   };
 
   const createEvent = (name: FormField<string>, category: FormField<string>) => {
-    var VITE_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
-    var newEvent = {
+    const VITE_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
+    const newEvent = {
       "name": name.value,
       "category": category.value,
       "date": date.value,
@@ -117,10 +110,10 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
           type: 'remove_line_items',
           lineItemIds: selectedLineItemIds
         })
-        setNotification({
-          ...notification,
-          showNotification: true
-        })
+        toast.success("Notification", {
+          description: "Created Event",
+          duration: 3500,
+        });
         // TODO: Uncheck all checkboxes
       })
       .catch(error => console.log(error));
@@ -128,7 +121,6 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
 
   return (
     <Fragment>
-      <Notification notification={notification} setNotification={setNotification} />
       <Dialog open={show} onOpenChange={closeModal}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>

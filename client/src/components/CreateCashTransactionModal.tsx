@@ -1,20 +1,13 @@
-import React, { Fragment, useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import React, { Fragment } from 'react';
+import { toast } from 'sonner';
 import { useField } from '../hooks/useField';
 import axiosInstance from '../utils/axiosInstance';
-import Notification from './Notification';
 
 export default function CreateCashTransactionModal({ show, onHide }: { show: boolean, onHide: () => void }) {
-  const [notification, setNotification] = useState(
-    {
-      heading: "Notification",
-      message: "Created Cash Transaction",
-      showNotification: false,
-    }
-  )
 
   const date = useField<string>("date", "" as string)
   const person = useField<string>("text", "" as string)
@@ -22,27 +15,23 @@ export default function CreateCashTransactionModal({ show, onHide }: { show: boo
   const amount = useField<number>("number", 0 as number)
 
   const createCashTransaction = () => {
-    var VITE_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
-    var newCashTransaction = {
+    const VITE_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
+    const newCashTransaction = {
       "date": date.value,
       "person": person.value,
       "description": description.value,
       "amount": amount.value
     }
-    console.log(newCashTransaction);
     axiosInstance.post(`${VITE_API_ENDPOINT}api/cash_transaction`, newCashTransaction)
-      .then(response => {
-        console.log(response.data);
-      })
       .then(() => {
         date.setEmpty()
         person.setEmpty()
         description.setEmpty()
         amount.setEmpty()
-        setNotification({
-          ...notification,
-          showNotification: true
-        })
+        toast.success("Notification", {
+          description: "Created Cash Transaction",
+          duration: 3500,
+        });
         // TODO: Uncheck all checkboxes
         onHide();
       })
@@ -51,7 +40,6 @@ export default function CreateCashTransactionModal({ show, onHide }: { show: boo
 
   return (
     <Fragment>
-      <Notification notification={notification} setNotification={setNotification} />
       <Dialog open={show} onOpenChange={onHide}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
