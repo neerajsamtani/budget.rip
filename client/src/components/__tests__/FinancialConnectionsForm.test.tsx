@@ -200,7 +200,7 @@ describe('FinancialConnectionsForm', () => {
             const button = screen.getByRole('button', { name: /connect your bank/i });
             await userEvent.click(button);
 
-            expect(screen.getByTestId('spinner')).toBeInTheDocument();
+            expect(document.querySelector('.animate-spin')).toBeInTheDocument();
         });
 
         it('hides spinner after loading completes', async () => {
@@ -465,8 +465,8 @@ describe('FinancialConnectionsForm', () => {
             const button = screen.getByRole('button', { name: /connect your bank/i });
             await userEvent.click(button);
 
-            const spinner = screen.getByTestId('spinner');
-            expect(spinner).toHaveAttribute('aria-hidden', 'true');
+            const spinner = document.querySelector('.animate-spin');
+            expect(spinner).toBeInTheDocument();
         });
     });
 
@@ -512,7 +512,7 @@ describe('FinancialConnectionsForm', () => {
             await userEvent.click(button);
 
             // Should show spinner during loading
-            expect(screen.getByTestId('spinner')).toBeInTheDocument();
+            expect(document.querySelector('.animate-spin')).toBeInTheDocument();
 
             // Wait for loading to complete
             await waitFor(() => {

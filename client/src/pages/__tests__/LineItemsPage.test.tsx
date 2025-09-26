@@ -287,12 +287,12 @@ describe('LineItemsPage', () => {
     });
 
     describe('Table Structure', () => {
-        it('renders table with correct Bootstrap classes', async () => {
+        it('renders table with correct shadcn classes', async () => {
             render(<LineItemsPage />);
 
             await waitFor(() => {
                 const table = screen.getByRole('table');
-                expect(table).toHaveClass('table', 'table-striped', 'table-bordered', 'table-hover');
+                expect(table).toHaveClass('w-full', 'caption-bottom', 'text-sm');
             });
         });
 

@@ -1,11 +1,11 @@
-const js = require('@eslint/js')
-const globals = require('globals')
-const reactHooks = require('eslint-plugin-react-hooks')
-const reactRefresh = require('eslint-plugin-react-refresh')
-const tseslint = require('@typescript-eslint/eslint-plugin')
-const tsParser = require('@typescript-eslint/parser')
+import js from '@eslint/js'
+import tseslint from '@typescript-eslint/eslint-plugin'
+import tsParser from '@typescript-eslint/parser'
+import reactHooks from 'eslint-plugin-react-hooks'
+import reactRefresh from 'eslint-plugin-react-refresh'
+import globals from 'globals'
 
-module.exports = [
+export default [
   {
     ignores: ['dist', 'build', 'coverage', 'node_modules', 'jest-transformer.js']
   },

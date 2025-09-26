@@ -350,15 +350,23 @@ describe('LineItemsToReviewPage', () => {
         it('renders navbar with fixed-bottom class', () => {
             render(<LineItemsToReviewPage />);
 
-            const navbar = screen.getByRole('navigation');
-            expect(navbar.closest('.fixed-bottom')).toBeInTheDocument();
+            // Check for the fixed bottom container with buttons
+            const bottomContainer = document.querySelector('.fixed.bottom-0');
+            expect(bottomContainer).toBeInTheDocument();
+
+            // Verify buttons are present in the fixed bottom area
+            const cashButton = screen.getByRole('button', { name: /create cash transaction/i });
+            const eventButton = screen.getByRole('button', { name: /create event/i });
+            expect(cashButton).toBeInTheDocument();
+            expect(eventButton).toBeInTheDocument();
         });
 
-        it('renders table with correct Bootstrap classes', () => {
+        it('renders table with correct shadcn classes', () => {
             render(<LineItemsToReviewPage />);
 
             const table = screen.getByRole('table');
-            expect(table).toHaveClass('table', 'table-striped', 'table-bordered', 'table-hover');
+            expect(table).toHaveClass('w-full', 'caption-bottom', 'text-sm');
+            expect(table).toHaveAttribute('data-slot', 'table');
         });
 
         it('renders buttons with correct variants', () => {
@@ -367,8 +375,10 @@ describe('LineItemsToReviewPage', () => {
             const cashButton = screen.getByRole('button', { name: /create cash transaction/i });
             const eventButton = screen.getByRole('button', { name: /create event/i });
 
-            expect(cashButton).toHaveClass('btn', 'btn-primary');
-            expect(eventButton).toHaveClass('btn', 'btn-primary');
+            expect(cashButton).toHaveClass('bg-primary', 'text-primary-foreground');
+            expect(eventButton).toHaveClass('bg-primary', 'text-primary-foreground');
+            expect(cashButton).toHaveAttribute('data-slot', 'button');
+            expect(eventButton).toHaveAttribute('data-slot', 'button');
         });
     });
 

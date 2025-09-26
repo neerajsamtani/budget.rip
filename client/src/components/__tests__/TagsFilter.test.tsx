@@ -25,9 +25,9 @@ describe('TagsFilter', () => {
         });
         it('renders with proper form structure', () => {
             const { container } = setup();
-            expect(container.querySelector('.input-group')).toBeInTheDocument();
-            expect(container.querySelector('.input-group-text')).toBeInTheDocument();
-            expect(container.querySelector('.form-control')).toBeInTheDocument();
+            // Check for shadcn components: label and input
+            expect(screen.getByText('Tags')).toBeInTheDocument();
+            expect(screen.getByRole('textbox')).toBeInTheDocument();
         });
         it('displays current tag filter value', () => {
             setup('groceries');
@@ -98,16 +98,18 @@ describe('TagsFilter', () => {
     describe('Form Structure', () => {
         it('has proper input group structure', () => {
             const { container } = setup();
-            expect(container.querySelector('.input-group')).toBeInTheDocument();
-            expect(container.querySelector('.input-group-text')).toBeInTheDocument();
+            // Check for shadcn components: label and input are present
+            expect(screen.getByText('Tags')).toBeInTheDocument();
+            expect(screen.getByRole('textbox')).toBeInTheDocument();
         });
         it('has proper form control structure', () => {
             const { container } = setup();
-            expect(container.querySelector('.form-control')).toBeInTheDocument();
+            // Check for input element exists
+            expect(screen.getByRole('textbox')).toBeInTheDocument();
         });
         it('has proper input type', () => {
             const { container } = setup();
-            const input = container.querySelector('.form-control');
+            const input = screen.getByRole('textbox');
             expect(input).toHaveAttribute('type', 'text');
         });
     });

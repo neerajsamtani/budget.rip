@@ -1,5 +1,6 @@
 import React from 'react';
-import { Form, InputGroup } from 'react-bootstrap';
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 // Define a constant array for years
 const YEARS = [
@@ -19,25 +20,22 @@ interface YearFilterProps {
 
 export default function YearFilter({ year, setYear }: YearFilterProps) {
 
-  // Use React.ChangeEvent<HTMLSelectElement> for the event type
-  const handleYearChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    setYear(event.target.value as Year);
-  }
 
   return (
-    <>
-      <InputGroup>
-        <InputGroup.Text>Year</InputGroup.Text>
-        <Form.Group controlId="exampleForm.SelectCustom">
-          <Form.Select value={year} onChange={handleYearChange}>
-            {YEARS.map(y => (
-              <option key={y} value={y}>
-                {y}
-              </option>
-            ))}
-          </Form.Select>
-        </Form.Group>
-      </InputGroup>
-    </>
+    <div className="space-y-2">
+      <Label>Year</Label>
+      <Select value={year} onValueChange={setYear}>
+        <SelectTrigger>
+          <SelectValue placeholder="Select year" />
+        </SelectTrigger>
+        <SelectContent>
+          {YEARS.map(y => (
+            <SelectItem key={y} value={y}>
+              {y}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
   );
 }

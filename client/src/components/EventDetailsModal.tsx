@@ -1,7 +1,8 @@
 import React, { Fragment, useState } from 'react';
-import { Badge, Table } from "react-bootstrap";
-import Button from 'react-bootstrap/Button';
-import Modal from 'react-bootstrap/Modal';
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { LineItemInterface } from '../contexts/LineItemsContext';
 import axiosInstance from '../utils/axiosInstance';
 import { EventInterface } from './Event';
@@ -36,53 +37,49 @@ export default function EventDetailsModal({ show, event, lineItemsForEvent, onHi
   return (
     <Fragment>
       <Notification notification={notification} setNotification={setNotification} />
-      <Modal
-        show={show}
-        onHide={onHide}
-        size="lg"
-        aria-labelledby="contained-modal-title-vcenter"
-        centered
-      >
-        <Modal.Header closeButton>
-          <Modal.Title id="contained-modal-title-vcenter">
-            {event.name} | {event.category}
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Table striped bordered hover>
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Payment Method</th>
-                <th>Description</th>
-                <th>Name</th>
-                <th>Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              {lineItemsForEvent.map(lineItem =>
-                <LineItem key={lineItem._id} lineItem={lineItem} />
-              )}
-            </tbody>
-          </Table>
-          {event.tags && event.tags.length > 0 && (
-            <div className="mb-3">
-              <strong>Tags: </strong>
-              <div className="d-flex flex-wrap gap-2">
-                {event.tags.map((tag, index) => (
-                  <Badge key={index} bg="primary" className="p-2">
-                    {tag}
-                  </Badge>
-                ))}
+      <Dialog open={show} onOpenChange={onHide}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>
+              {event.name} | {event.category}
+            </DialogTitle>
+          </DialogHeader>
+          <div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Payment Method</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Amount</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {lineItemsForEvent.map(lineItem =>
+                  <LineItem key={lineItem._id} lineItem={lineItem} />
+                )}
+              </TableBody>
+            </Table>
+            {event.tags && event.tags.length > 0 && (
+              <div className="mb-3">
+                <strong>Tags: </strong>
+                <div className="flex flex-wrap gap-2">
+                  {event.tags.map((tag, index) => (
+                    <Badge key={index} variant="default">
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
-        </Modal.Body>
-        <Modal.Footer>
-          <Button onClick={onHide} variant="secondary">Cancel</Button>
-          <Button onClick={deleteEvent} variant="danger">Delete</Button>
-        </Modal.Footer>
-      </Modal>
+            )}
+          </div>
+          <DialogFooter>
+            <Button onClick={onHide} variant="secondary">Cancel</Button>
+            <Button onClick={deleteEvent} variant="destructive">Delete</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Fragment>
   );
 }

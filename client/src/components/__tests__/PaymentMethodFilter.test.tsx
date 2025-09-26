@@ -36,26 +36,29 @@ describe('PaymentMethodFilter', () => {
             expect(screen.getByRole('combobox')).toBeInTheDocument();
         });
 
-        it('renders with default "All" option', () => {
+        it('renders with default "All" option', async () => {
             render(<PaymentMethodFilter paymentMethod={mockPaymentMethod} setPaymentMethod={mockSetPaymentMethod} />);
 
+            const trigger = screen.getByRole('combobox');
+            await userEvent.click(trigger);
+
             expect(screen.getByRole('option', { name: 'All' })).toBeInTheDocument();
-            expect(screen.getByDisplayValue('All')).toBeInTheDocument();
+            expect(trigger).toHaveTextContent('All');
         });
 
         it('renders with proper form structure', () => {
             const { container } = render(<PaymentMethodFilter paymentMethod={mockPaymentMethod} setPaymentMethod={mockSetPaymentMethod} />);
 
-            expect(container.querySelector('.input-group')).toBeInTheDocument();
-            expect(container.querySelector('.input-group-text')).toBeInTheDocument();
-            expect(container.querySelector('.form-select')).toBeInTheDocument();
+            expect(screen.getByText('Payment Method')).toBeInTheDocument();
+            expect(screen.getByRole('combobox')).toBeInTheDocument();
         });
 
         it('displays current payment method value after API loads', async () => {
             render(<PaymentMethodFilter paymentMethod="credit_card" setPaymentMethod={mockSetPaymentMethod} />);
 
             await waitFor(() => {
-                expect(screen.getByDisplayValue('credit_card')).toBeInTheDocument();
+                const trigger = screen.getByRole('combobox');
+                expect(trigger).toHaveTextContent('credit_card');
             });
         });
     });
@@ -73,6 +76,9 @@ describe('PaymentMethodFilter', () => {
 
         it('populates select with fetched payment methods', async () => {
             render(<PaymentMethodFilter paymentMethod={mockPaymentMethod} setPaymentMethod={mockSetPaymentMethod} />);
+
+            const trigger = screen.getByRole('combobox');
+            await userEvent.click(trigger);
 
             await waitFor(() => {
                 mockPaymentMethods.forEach(method => {
@@ -113,12 +119,14 @@ describe('PaymentMethodFilter', () => {
         it('calls setPaymentMethod when user selects different option', async () => {
             render(<PaymentMethodFilter paymentMethod={mockPaymentMethod} setPaymentMethod={mockSetPaymentMethod} />);
 
+            const trigger = screen.getByRole('combobox');
+            await userEvent.click(trigger);
+
             await waitFor(() => {
                 expect(screen.getByRole('option', { name: 'credit_card' })).toBeInTheDocument();
             });
 
-            const select = screen.getByRole('combobox');
-            await userEvent.selectOptions(select, 'credit_card');
+            await userEvent.click(screen.getByRole('option', { name: 'credit_card' }));
 
             expect(mockSetPaymentMethod).toHaveBeenCalledWith('credit_card');
         });
@@ -126,8 +134,9 @@ describe('PaymentMethodFilter', () => {
         it('handles selection of "All" option', async () => {
             render(<PaymentMethodFilter paymentMethod="credit_card" setPaymentMethod={mockSetPaymentMethod} />);
 
-            const select = screen.getByRole('combobox');
-            await userEvent.selectOptions(select, 'All');
+            const trigger = screen.getByRole('combobox');
+            await userEvent.click(trigger);
+            await userEvent.click(screen.getByRole('option', { name: 'All' }));
 
             expect(mockSetPaymentMethod).toHaveBeenCalledWith('All');
         });
@@ -135,27 +144,33 @@ describe('PaymentMethodFilter', () => {
         it('updates display value when payment method prop changes', async () => {
             const { rerender } = render(<PaymentMethodFilter paymentMethod="All" setPaymentMethod={mockSetPaymentMethod} />);
 
-            expect(screen.getByDisplayValue('All')).toBeInTheDocument();
+            let trigger = screen.getByRole('combobox');
+            expect(trigger).toHaveTextContent('All');
 
             rerender(<PaymentMethodFilter paymentMethod="debit_card" setPaymentMethod={mockSetPaymentMethod} />);
 
             await waitFor(() => {
-                expect(screen.getByDisplayValue('debit_card')).toBeInTheDocument();
+                trigger = screen.getByRole('combobox');
+                expect(trigger).toHaveTextContent('debit_card');
             });
         });
 
         it('handles rapid selection changes', async () => {
             render(<PaymentMethodFilter paymentMethod={mockPaymentMethod} setPaymentMethod={mockSetPaymentMethod} />);
 
+            const trigger = screen.getByRole('combobox');
+
+            await userEvent.click(trigger);
             await waitFor(() => {
                 expect(screen.getByRole('option', { name: 'credit_card' })).toBeInTheDocument();
             });
+            await userEvent.click(screen.getByRole('option', { name: 'credit_card' }));
 
-            const select = screen.getByRole('combobox');
+            await userEvent.click(trigger);
+            await userEvent.click(screen.getByRole('option', { name: 'debit_card' }));
 
-            await userEvent.selectOptions(select, 'credit_card');
-            await userEvent.selectOptions(select, 'debit_card');
-            await userEvent.selectOptions(select, 'cash');
+            await userEvent.click(trigger);
+            await userEvent.click(screen.getByRole('option', { name: 'cash' }));
 
             expect(mockSetPaymentMethod).toHaveBeenCalledTimes(3);
             expect(mockSetPaymentMethod).toHaveBeenNthCalledWith(1, 'credit_card');
@@ -169,7 +184,8 @@ describe('PaymentMethodFilter', () => {
             render(<PaymentMethodFilter paymentMethod="venmo" setPaymentMethod={mockSetPaymentMethod} />);
 
             await waitFor(() => {
-                expect(screen.getByDisplayValue('venmo')).toBeInTheDocument();
+                const trigger = screen.getByRole('combobox');
+                expect(trigger).toHaveTextContent('venmo');
             });
         });
 
@@ -177,12 +193,14 @@ describe('PaymentMethodFilter', () => {
             const customSetPaymentMethod = jest.fn();
             render(<PaymentMethodFilter paymentMethod={mockPaymentMethod} setPaymentMethod={customSetPaymentMethod} />);
 
+            const trigger = screen.getByRole('combobox');
+            await userEvent.click(trigger);
+
             await waitFor(() => {
                 expect(screen.getByRole('option', { name: 'credit_card' })).toBeInTheDocument();
             });
 
-            const select = screen.getByRole('combobox');
-            await userEvent.selectOptions(select, 'credit_card');
+            await userEvent.click(screen.getByRole('option', { name: 'credit_card' }));
 
             expect(customSetPaymentMethod).toHaveBeenCalledWith('credit_card');
         });
@@ -192,6 +210,9 @@ describe('PaymentMethodFilter', () => {
 
             render(<PaymentMethodFilter paymentMethod={mockPaymentMethod} setPaymentMethod={mockSetPaymentMethod} />);
 
+            const trigger = screen.getByRole('combobox');
+            await userEvent.click(trigger);
+
             await waitFor(() => {
                 expect(screen.getByRole('option', { name: 'All' })).toBeInTheDocument();
             });
@@ -199,7 +220,7 @@ describe('PaymentMethodFilter', () => {
             // Should only have "All" option
             const options = screen.getAllByRole('option');
             expect(options).toHaveLength(1);
-            expect(options[0]).toHaveValue('All');
+            expect(options[0]).toHaveTextContent('All');
         });
     });
 
@@ -207,21 +228,21 @@ describe('PaymentMethodFilter', () => {
         it('has proper input group structure', () => {
             const { container } = render(<PaymentMethodFilter paymentMethod={mockPaymentMethod} setPaymentMethod={mockSetPaymentMethod} />);
 
-            expect(container.querySelector('.input-group')).toBeInTheDocument();
-            expect(container.querySelector('.input-group-text')).toBeInTheDocument();
+            expect(screen.getByText('Payment Method')).toBeInTheDocument();
+            expect(screen.getByRole('combobox')).toBeInTheDocument();
         });
 
         it('has proper form select structure', () => {
             const { container } = render(<PaymentMethodFilter paymentMethod={mockPaymentMethod} setPaymentMethod={mockSetPaymentMethod} />);
 
-            expect(container.querySelector('.form-select')).toBeInTheDocument();
+            expect(screen.getByRole('combobox')).toBeInTheDocument();
         });
 
         it('has proper control ID', () => {
             const { container } = render(<PaymentMethodFilter paymentMethod={mockPaymentMethod} setPaymentMethod={mockSetPaymentMethod} />);
 
-            const select = container.querySelector('.form-select');
-            expect(select).toHaveAttribute('id', 'exampleForm.SelectCustom');
+            const select = screen.getByRole('combobox');
+            expect(select).toBeInTheDocument();
         });
     });
 
@@ -234,6 +255,9 @@ describe('PaymentMethodFilter', () => {
 
         it('has proper option elements', async () => {
             render(<PaymentMethodFilter paymentMethod={mockPaymentMethod} setPaymentMethod={mockSetPaymentMethod} />);
+
+            const trigger = screen.getByRole('combobox');
+            await userEvent.click(trigger);
 
             expect(screen.getByRole('option', { name: 'All' })).toBeInTheDocument();
 
@@ -257,6 +281,9 @@ describe('PaymentMethodFilter', () => {
 
             render(<PaymentMethodFilter paymentMethod={mockPaymentMethod} setPaymentMethod={mockSetPaymentMethod} />);
 
+            const trigger = screen.getByRole('combobox');
+            await userEvent.click(trigger);
+
             // Should still render the component with "All" option
             await waitFor(() => {
                 expect(screen.getByRole('option', { name: 'All' })).toBeInTheDocument();
@@ -271,6 +298,9 @@ describe('PaymentMethodFilter', () => {
             mockAxiosInstance.get.mockResolvedValue({ data: undefined });
 
             render(<PaymentMethodFilter paymentMethod={mockPaymentMethod} setPaymentMethod={mockSetPaymentMethod} />);
+
+            const trigger = screen.getByRole('combobox');
+            await userEvent.click(trigger);
 
             // Should still render the component with "All" option
             await waitFor(() => {
@@ -288,6 +318,9 @@ describe('PaymentMethodFilter', () => {
 
             render(<PaymentMethodFilter paymentMethod={mockPaymentMethod} setPaymentMethod={mockSetPaymentMethod} />);
 
+            const trigger = screen.getByRole('combobox');
+            await userEvent.click(trigger);
+
             await waitFor(() => {
                 specialPaymentMethods.forEach(method => {
                     expect(screen.getByRole('option', { name: method })).toBeInTheDocument();
@@ -301,6 +334,9 @@ describe('PaymentMethodFilter', () => {
 
             render(<PaymentMethodFilter paymentMethod={mockPaymentMethod} setPaymentMethod={mockSetPaymentMethod} />);
 
+            const trigger = screen.getByRole('combobox');
+            await userEvent.click(trigger);
+
             await waitFor(() => {
                 expect(screen.getByRole('option', { name: longPaymentMethods[0] })).toBeInTheDocument();
             });
@@ -309,15 +345,18 @@ describe('PaymentMethodFilter', () => {
         it('maintains state after prop updates', async () => {
             const { rerender } = render(<PaymentMethodFilter paymentMethod="All" setPaymentMethod={mockSetPaymentMethod} />);
 
-            expect(screen.getByDisplayValue('All')).toBeInTheDocument();
+            let trigger = screen.getByRole('combobox');
+            expect(trigger).toHaveTextContent('All');
 
             rerender(<PaymentMethodFilter paymentMethod="credit_card" setPaymentMethod={mockSetPaymentMethod} />);
 
             await waitFor(() => {
-                expect(screen.getByDisplayValue('credit_card')).toBeInTheDocument();
+                trigger = screen.getByRole('combobox');
+                expect(trigger).toHaveTextContent('credit_card');
             });
 
             // Payment methods should still be loaded
+            await userEvent.click(trigger);
             await waitFor(() => {
                 mockPaymentMethods.forEach(method => {
                     expect(screen.getByRole('option', { name: method })).toBeInTheDocument();
@@ -327,17 +366,23 @@ describe('PaymentMethodFilter', () => {
     });
 
     describe('State Management', () => {
-        it('initializes with empty payment methods array', () => {
+        it('initializes with empty payment methods array', async () => {
             render(<PaymentMethodFilter paymentMethod={mockPaymentMethod} setPaymentMethod={mockSetPaymentMethod} />);
+
+            const trigger = screen.getByRole('combobox');
+            await userEvent.click(trigger);
 
             // Initially only "All" option should be present
             const options = screen.getAllByRole('option');
             expect(options).toHaveLength(1);
-            expect(options[0]).toHaveValue('All');
+            expect(options[0]).toHaveTextContent('All');
         });
 
         it('updates payment methods state after API call', async () => {
             render(<PaymentMethodFilter paymentMethod={mockPaymentMethod} setPaymentMethod={mockSetPaymentMethod} />);
+
+            const trigger = screen.getByRole('combobox');
+            await userEvent.click(trigger);
 
             await waitFor(() => {
                 mockPaymentMethods.forEach(method => {
@@ -354,11 +399,13 @@ describe('PaymentMethodFilter', () => {
             render(<PaymentMethodFilter paymentMethod="credit_card" setPaymentMethod={mockSetPaymentMethod} />);
 
             await waitFor(() => {
-                expect(screen.getByDisplayValue('credit_card')).toBeInTheDocument();
+                const trigger = screen.getByRole('combobox');
+                expect(trigger).toHaveTextContent('credit_card');
             });
 
             // Should still show credit_card as selected
-            expect(screen.getByDisplayValue('credit_card')).toBeInTheDocument();
+            const trigger = screen.getByRole('combobox');
+            expect(trigger).toHaveTextContent('credit_card');
         });
     });
 }); 

@@ -1,6 +1,6 @@
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DateTime } from "luxon";
 import React, { useEffect, useState } from "react";
-import { Col, Form, InputGroup, Row, Table } from "react-bootstrap";
 import CategoryFilter, { Category } from "../components/CategoryFilter";
 import Event, { EventInterface } from "../components/Event";
 import MonthFilter from "../components/MonthFilter";
@@ -22,8 +22,8 @@ export default function EventsPage() {
     const [tagFilter, setTagFilter] = useState<string>('');
 
     useEffect(() => {
-        var VITE_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
-        var start_time, end_time;
+        const VITE_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
+        let start_time, end_time;
         if (month !== "All") {
             start_time = DateTime.fromFormat(`${month} ${year}`, "LLLL yyyy", { zone: 'utc' })
             end_time = start_time.endOf("month")
@@ -74,65 +74,53 @@ export default function EventsPage() {
     return (
         <div>
             <h1>Events</h1>
-            <Form className="mb-4">
-                <Row className="mb-3">
-                    <Col md={3}>
-                        <CategoryFilter category={category as Category} setCategory={setCategory} />
-                    </Col>
-                    <Col md={3}>
-                        <MonthFilter month={month} setMonth={setMonth} />
-                    </Col>
-                    <Col md={3}>
-                        <YearFilter year={year} setYear={setYear} />
-                    </Col>
-                    <Col md={3}>
-                        <TagsFilter tagFilter={tagFilter} setTagFilter={setTagFilter} />
-                    </Col>
-                </Row>
-                <Row>
-                    <Col md={6}>
-                        <InputGroup>
-                            <InputGroup.Text>Net Income</InputGroup.Text>
-                            <InputGroup.Text>${calculateNetIncome(events)}</InputGroup.Text>
-                        </InputGroup>
-                    </Col>
-                    <Col md={6}>
-                        <InputGroup>
-                            <InputGroup.Text>Spending w/o Rent</InputGroup.Text>
-                            <InputGroup.Text>${calculateSpending(events)}</InputGroup.Text>
-                        </InputGroup>
-                    </Col>
-                </Row>
-            </Form>
+            <div className="mb-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                    <CategoryFilter category={category as Category} setCategory={setCategory} />
+                    <MonthFilter month={month} setMonth={setMonth} />
+                    <YearFilter year={year} setYear={setYear} />
+                    <TagsFilter tagFilter={tagFilter} setTagFilter={setTagFilter} />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="flex items-center space-x-2 p-2 border rounded">
+                        <span className="font-medium">Net Income:</span>
+                        <span>${calculateNetIncome(events)}</span>
+                    </div>
+                    <div className="flex items-center space-x-2 p-2 border rounded">
+                        <span className="font-medium">Spending w/o Rent:</span>
+                        <span>${calculateSpending(events)}</span>
+                    </div>
+                </div>
+            </div>
 
-            <Table striped bordered hover>
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Name</th>
-                        <th>Category</th>
-                        <th>Amount</th>
-                        <th>Tags</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Category</TableHead>
+                        <TableHead>Amount</TableHead>
+                        <TableHead>Tags</TableHead>
+                        <TableHead>Actions</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
                     {events.length > 0 ?
                         events
                             .filter(event => matchCategory(event) && matchTags(event))
                             .map(event => (
-                                <tr key={event._id}>
+                                <TableRow key={event._id}>
                                     <Event event={event} />
-                                </tr>
+                                </TableRow>
                             ))
                         :
-                        <tr>
-                            <td colSpan={6} className="text-center">
+                        <TableRow>
+                            <TableCell colSpan={6} className="text-center">
                                 No events found
-                            </td>
-                        </tr>
+                            </TableCell>
+                        </TableRow>
                     }
-                </tbody>
+                </TableBody>
             </Table>
         </div>
     )

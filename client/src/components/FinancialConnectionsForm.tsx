@@ -3,7 +3,8 @@ import {
 } from "@stripe/react-stripe-js";
 import { FinancialConnectionsSession } from "@stripe/stripe-js/types/api";
 import React, { useState } from "react";
-import { Button, Spinner } from 'react-bootstrap';
+import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import axiosInstance from "../utils/axiosInstance";
 import Notification from "./Notification";
 
@@ -73,16 +74,11 @@ export default function FinancialConnectionsForm({ fcsess_secret, setStripeAccou
   return (
     <>
       <Notification notification={notification} setNotification={setNotification} />
-      <Button onClick={handleSubmit} disabled={isLoading || !stripe} id="submit" variant="primary">
+      <Button onClick={handleSubmit} disabled={isLoading || !stripe} id="submit">
         <span id="button-text">
           {isLoading ?
             <Spinner
-              as="span"
-              animation="border"
               size="sm"
-              role="status"
-              aria-hidden="true"
-              data-testid="spinner"
             />
             :
             "Connect your bank"}

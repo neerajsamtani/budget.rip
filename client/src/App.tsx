@@ -1,9 +1,8 @@
 import { loadStripe } from "@stripe/stripe-js";
 import React, { useState } from "react";
-import { Button, Spinner } from "react-bootstrap";
-import Container from 'react-bootstrap/Container';
-import Nav from 'react-bootstrap/Nav';
-import Navbar from 'react-bootstrap/Navbar';
+import { Button } from "@/components/ui/button"
+import { Spinner } from "@/components/ui/spinner"
+import { Navbar, NavbarBrand } from "@/components/ui/navbar"
 import {
   Link, Route,
   BrowserRouter as Router,
@@ -17,6 +16,7 @@ import GraphsPage from "./pages/GraphsPage";
 import LineItemsPage from "./pages/LineItemsPage";
 import LineItemsToReviewPage from "./pages/LineItemsToReviewPage";
 import LoginPage from "./pages/LoginPage";
+import ShadcnTestPage from "./pages/ShadcnTestPage";
 import axiosInstance from "./utils/axiosInstance";
 
 // Make sure to call loadStripe outside of a component's render to avoid
@@ -24,8 +24,8 @@ import axiosInstance from "./utils/axiosInstance";
 // This is a public sample test API key.
 // Don't submit any personally identifiable information in requests made with this key.
 // Sign in to see your own test API key embedded in code samples.
-var STRIPE_PUBLIC_KEY = String(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
-var VITE_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
+const STRIPE_PUBLIC_KEY = String(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
+const VITE_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
 const stripePromise = loadStripe(STRIPE_PUBLIC_KEY);
 
 export default function App() {
@@ -60,49 +60,36 @@ export default function App() {
       })
   }
 
-  const padding = {
-    paddingLeft: 20,
-    paddingTop: 5,
-    paddingBottom: 5,
-    color: "white",
-    textDecoration: "none"
-  }
 
   return (
     <React.StrictMode>
       <Notification notification={notification} setNotification={setNotification} />
       <Router>
-        <Navbar bg="dark" variant="dark" expand="sm">
-          <Container>
-            <Navbar.Brand>Budgit</Navbar.Brand>
-            <Navbar.Toggle aria-controls="basic-navbar-nav" />
-            <Navbar.Collapse id="basic-navbar-nav">
-              <Nav className="me-auto">
-                <Link style={padding} to="/">Review</Link>
-                <Link style={padding} to="/events">Events</Link>
-                <Link style={padding} to="/line_items">Line Items</Link>
-                <Link style={padding} to="/connected_accounts">Connected Accounts</Link>
-                <Link style={padding} to="/graphs">Graphs</Link>
-                <Link style={padding} to="/login">Login</Link>
-              </Nav>
-              <Nav>
-                <Button onClick={handleRefreshData}>
-                  {
-                    loading ?
-                      <Spinner
-                        as="span"
-                        animation="border"
-                        size="sm"
-                        role="status"
-                        aria-hidden="true"
-                      />
-                      :
-                      <>Refresh Data</>
-                  }
-                </Button>
-              </Nav>
-            </Navbar.Collapse>
-          </Container>
+        <Navbar className="bg-slate-900 text-white">
+          <div className="container mx-auto flex justify-between items-center px-4">
+            <NavbarBrand className="text-white">Budgit</NavbarBrand>
+            <div className="flex items-center space-x-4">
+              <div className="flex space-x-4">
+                <Link className="text-white hover:text-gray-300 px-3 py-2 no-underline" to="/">Review</Link>
+                <Link className="text-white hover:text-gray-300 px-3 py-2 no-underline" to="/events">Events</Link>
+                <Link className="text-white hover:text-gray-300 px-3 py-2 no-underline" to="/line_items">Line Items</Link>
+                <Link className="text-white hover:text-gray-300 px-3 py-2 no-underline" to="/connected_accounts">Connected Accounts</Link>
+                <Link className="text-white hover:text-gray-300 px-3 py-2 no-underline" to="/graphs">Graphs</Link>
+                <Link className="text-white hover:text-gray-300 px-3 py-2 no-underline" to="/test">Test Shadcn</Link>
+                <Link className="text-white hover:text-gray-300 px-3 py-2 no-underline" to="/login">Login</Link>
+              </div>
+              <Button onClick={handleRefreshData} variant="secondary">
+                {
+                  loading ?
+                    <Spinner
+                      size="sm"
+                    />
+                    :
+                    <>Refresh Data</>
+                }
+              </Button>
+            </div>
+          </div>
         </Navbar>
 
         <Routes>
@@ -111,6 +98,7 @@ export default function App() {
           <Route path="/line_items" element={<LineItemsPage />} />
           <Route path="/connected_accounts" element={<ConnectedAccountsPage stripePromise={stripePromise} />} />
           <Route path="/graphs" element={<GraphsPage />} />
+          <Route path="/test" element={<ShadcnTestPage />} />
           <Route path="/login" element={<LoginPage />} />
         </Routes>
       </Router>

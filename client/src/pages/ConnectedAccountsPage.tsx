@@ -1,8 +1,9 @@
+import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Elements } from "@stripe/react-stripe-js";
 import { FinancialConnectionsSession } from "@stripe/stripe-js/types/api";
 import { Stripe } from "@stripe/stripe-js/types/stripe-js";
 import React, { Fragment, useEffect, useState } from "react";
-import { Button, Table } from "react-bootstrap";
 import FinancialConnectionsForm from "../components/FinancialConnectionsForm";
 import Notification from "../components/Notification";
 import axiosInstance from "../utils/axiosInstance";
@@ -32,10 +33,10 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
         }
     })
 
-    var VITE_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
+    const VITE_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
 
     useEffect(() => {
-        var VITE_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
+        const VITE_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
         axiosInstance.get(`${VITE_API_ENDPOINT}api/connected_accounts`)
             .then(response => {
                 setConnectedAccounts(response.data)
@@ -56,7 +57,7 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
 
     const subscribeToAccounts = () => {
         if (stripeAccounts) {
-            for (var account of stripeAccounts) {
+            for (const account of stripeAccounts) {
                 axiosInstance.get(`${VITE_API_ENDPOINT}api/subscribe_to_account/${account.id}`)
                     .then(response => console.log(response.data))
             }
@@ -88,24 +89,24 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
         // Handle Venmo data (array)
         if (connectedAccount.venmo) {
             return connectedAccount.venmo.map((venmoUser, index) => (
-                <tr key={`venmo-${venmoUser}-${index}`}>
-                    <td>Venmo - {venmoUser}</td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                </tr>
+                <TableRow key={`venmo-${venmoUser}-${index}`}>
+                    <TableCell>Venmo - {venmoUser}</TableCell>
+                    <TableCell></TableCell>
+                    <TableCell></TableCell>
+                    <TableCell></TableCell>
+                </TableRow>
             ));
         }
 
         // Handle Splitwise data (array)
         if (connectedAccount.splitwise) {
             return connectedAccount.splitwise.map((splitwiseUser, index) => (
-                <tr key={`splitwise-${splitwiseUser}-${index}`}>
-                    <td>Splitwise - {splitwiseUser}</td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                </tr>
+                <TableRow key={`splitwise-${splitwiseUser}-${index}`}>
+                    <TableCell>Splitwise - {splitwiseUser}</TableCell>
+                    <TableCell></TableCell>
+                    <TableCell></TableCell>
+                    <TableCell></TableCell>
+                </TableRow>
             ));
         }
 
@@ -114,14 +115,14 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
             return connectedAccount.stripe.map((stripeAccount) => {
                 const { institution_name, display_name, last4, _id, status } = stripeAccount;
                 return (
-                    <tr key={`stripe-${_id}`}>
-                        <td>{institution_name} {display_name} {last4}</td>
+                    <TableRow key={`stripe-${_id}`}>
+                        <TableCell>{institution_name} {display_name} {last4}</TableCell>
                         {status === 'inactive' ?
-                            <td><Button onClick={() => { relinkAccount(_id) }} variant="secondary">Reactivate</Button></td>
-                            : <td>Active</td>}
-                        <td>{accountsAndBalances[_id] && CurrencyFormatter.format(accountsAndBalances[_id]["balance"])}</td>
-                        <td>{accountsAndBalances[_id] && formatDate(accountsAndBalances[_id]["as_of"])}</td>
-                    </tr>
+                            <TableCell><Button onClick={() => { relinkAccount(_id) }} variant="secondary">Reactivate</Button></TableCell>
+                            : <TableCell>Active</TableCell>}
+                        <TableCell>{accountsAndBalances[_id] && CurrencyFormatter.format(accountsAndBalances[_id]["balance"])}</TableCell>
+                        <TableCell>{accountsAndBalances[_id] && formatDate(accountsAndBalances[_id]["as_of"])}</TableCell>
+                    </TableRow>
                 );
             });
         }
@@ -131,11 +132,11 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
 
     const renderStripeAccount = (stripeAccount) => {
         return (
-            <tr key={stripeAccount.id}>
-                <td>{stripeAccount.institution_name} {stripeAccount.subcategory} ({stripeAccount.id})</td>
-                <td><Button onClick={() => { relinkAccount(stripeAccount.id) }} variant="secondary">Reactivate</Button></td>
-                <td>{accountsAndBalances[stripeAccount.id] && formatDate(accountsAndBalances[stripeAccount.id]["as_of"])}</td>
-            </tr>
+            <TableRow key={stripeAccount.id}>
+                <TableCell>{stripeAccount.institution_name} {stripeAccount.subcategory} ({stripeAccount.id})</TableCell>
+                <TableCell><Button onClick={() => { relinkAccount(stripeAccount.id) }} variant="secondary">Reactivate</Button></TableCell>
+                <TableCell>{accountsAndBalances[stripeAccount.id] && formatDate(accountsAndBalances[stripeAccount.id]["as_of"])}</TableCell>
+            </TableRow>
         )
     }
 
@@ -148,24 +149,24 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
                     {clientSecret ?
                         stripeAccounts.length > 0 ?
                             <Fragment>
-                                <Table striped bordered hover>
-                                    <thead>
-                                        <tr>
-                                            <th>Bank Accounts Received:</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Bank Accounts Received:</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
                                         {
                                             stripeAccounts
                                                 .map(account => (
-                                                    <tr key={account.id}>
-                                                        <td>
+                                                    <TableRow key={account.id}>
+                                                        <TableCell>
                                                             {account.institution_name} {account.subcategory} ({account.id})
-                                                        </td>
-                                                    </tr>
+                                                        </TableCell>
+                                                    </TableRow>
                                                 ))
                                         }
-                                    </tbody>
+                                    </TableBody>
                                 </Table>
                                 <Button onClick={subscribeToAccounts}>
                                     Subscribe to these accounts
@@ -187,48 +188,50 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
             </div>
             <br />
             <div>
-                <Table striped bordered hover>
-                    <thead>
-                        <tr>
-                            <th>Connected Accounts</th>
-                            <th>Status</th>
-                            <th>Balance</th>
-                            <th>Last Updated</th>
-                        </tr>
-                    </thead>
-                    <tbody>
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Connected Accounts</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Balance</TableHead>
+                            <TableHead>Last Updated</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
                         {connectedAccounts.length > 0 ?
                             connectedAccounts.flatMap(renderConnectedAccount)
                             :
-                            // @ts-expect-error TODO: Need to look into this type error
-                            <tr align="center"><td colSpan="4">
-                                No connected accounts found
-                            </td></tr>
+                            <TableRow>
+                                <TableCell colSpan={4} className="text-center">
+                                    No connected accounts found
+                                </TableCell>
+                            </TableRow>
                         }
-                    </tbody>
+                    </TableBody>
                 </Table>
                 <br />
                 <h4>Net Worth: {CurrencyFormatter.format(netWorth)}</h4>
                 <br />
                 <h4>Inactive Accounts</h4>
-                <Table striped bordered hover>
-                    <thead>
-                        <tr>
-                            <th>Connected Accounts</th>
-                            <th>Reactivate</th>
-                            <th>Last Updated</th>
-                        </tr>
-                    </thead>
-                    <tbody>
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Connected Accounts</TableHead>
+                            <TableHead>Reactivate</TableHead>
+                            <TableHead>Last Updated</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
                         {connectedAccounts.length > 0 ?
                             connectedAccounts.find(account => account.stripe)?.stripe.filter(account => account.status === "inactive").flatMap(renderStripeAccount)
                             :
-                            // @ts-expect-error TODO: Need to look into this type error
-                            <tr align="center"><td colSpan="4">
-                                No inactive connected accounts found
-                            </td></tr>
+                            <TableRow>
+                                <TableCell colSpan={3} className="text-center">
+                                    No inactive connected accounts found
+                                </TableCell>
+                            </TableRow>
                         }
-                    </tbody>
+                    </TableBody>
                 </Table>
             </div>
         </>
