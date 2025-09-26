@@ -1,34 +1,26 @@
-import React, { Fragment, useState } from 'react';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import React, { Fragment } from 'react';
+import { toast } from 'sonner';
 import { LineItemInterface } from '../contexts/LineItemsContext';
 import axiosInstance from '../utils/axiosInstance';
 import { EventInterface } from './Event';
 import LineItem from './LineItem';
-import Notification from './Notification';
 
 export default function EventDetailsModal({ show, event, lineItemsForEvent, onHide }:
   { show: boolean, event: EventInterface, lineItemsForEvent: LineItemInterface[], onHide: () => void }) {
 
-  const [notification, setNotification] = useState(
-    {
-      heading: "Notification",
-      message: "Deleted Event",
-      showNotification: false,
-    }
-  )
 
   const deleteEvent = () => {
-    var VITE_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
+    const VITE_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
     axiosInstance.delete(`${VITE_API_ENDPOINT}api/events/${event._id}`)
-      .then(response => {
-        console.log(response.data);
-        setNotification({
-          ...notification,
-          showNotification: true
-        })
+      .then(() => {
+        toast("Notification", {
+          description: "Deleted Event",
+          duration: 3500,
+        });
         onHide();
       })
       .catch(error => console.log(error));
@@ -36,7 +28,6 @@ export default function EventDetailsModal({ show, event, lineItemsForEvent, onHi
 
   return (
     <Fragment>
-      <Notification notification={notification} setNotification={setNotification} />
       <Dialog open={show} onOpenChange={onHide}>
         <DialogContent className="max-w-4xl">
           <DialogHeader>

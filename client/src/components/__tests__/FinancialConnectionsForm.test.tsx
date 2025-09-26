@@ -5,14 +5,16 @@ import React from 'react';
 import { mockAxiosInstance, render, screen, waitFor } from '../../utils/test-utils';
 import FinancialConnectionsForm from '../FinancialConnectionsForm';
 
-// Mock the Notification component before imports
-jest.mock('../Notification', () => {
-    return function MockNotification({ notification, setNotification }: any) {
-        return notification.showNotification ? (
-            <div data-testid="notification">
-                {notification.heading}: {notification.message}
-            </div>
-        ) : null;
+// Mock Sonner toast with all methods
+jest.mock('sonner', () => {
+    const mockToast = jest.fn();
+    return {
+        toast: Object.assign(mockToast, {
+            success: jest.fn(),
+            error: jest.fn(),
+            info: jest.fn(),
+            warning: jest.fn(),
+        }),
     };
 });
 
@@ -301,7 +303,7 @@ describe('FinancialConnectionsForm', () => {
     });
 
     describe('Error Handling', () => {
-        it('shows error notification when stripe returns error', async () => {
+        it('shows error toast when stripe returns error', async () => {
             const mockError = {
                 error: {
                     message: 'Connection failed'
@@ -320,12 +322,15 @@ describe('FinancialConnectionsForm', () => {
             await userEvent.click(button);
 
             await waitFor(() => {
-                expect(screen.getByTestId('notification')).toBeInTheDocument();
-                expect(screen.getByText('Error: Connection failed Please refresh the page and try again.')).toBeInTheDocument();
+                const { toast } = require('sonner');
+                expect(toast).toHaveBeenCalledWith('Error', {
+                    description: 'Connection failed Please refresh the page and try again.',
+                    duration: 3500,
+                });
             });
         });
 
-        it('shows notification when no accounts are linked', async () => {
+        it('shows toast when no accounts are linked', async () => {
             mockCollectFinancialConnectionsAccounts.mockResolvedValue({
                 financialConnectionsSession: {
                     accounts: []
@@ -343,8 +348,11 @@ describe('FinancialConnectionsForm', () => {
             await userEvent.click(button);
 
             await waitFor(() => {
-                expect(screen.getByTestId('notification')).toBeInTheDocument();
-                expect(screen.getByText('Error: No new accounts were linked')).toBeInTheDocument();
+                const { toast } = require('sonner');
+                expect(toast.error).toHaveBeenCalledWith('Error', {
+                    description: 'No new accounts were linked',
+                    duration: 3500,
+                });
             });
         });
 

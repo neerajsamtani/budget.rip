@@ -1,29 +1,23 @@
+import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import {
   useStripe
 } from "@stripe/react-stripe-js";
 import { FinancialConnectionsSession } from "@stripe/stripe-js/types/api";
 import React, { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Spinner } from "@/components/ui/spinner";
+import { toast } from "sonner";
 import axiosInstance from "../utils/axiosInstance";
-import Notification from "./Notification";
 
 export default function FinancialConnectionsForm({ fcsess_secret, setStripeAccounts }:
+  // eslint-disable-next-line no-unused-vars
   { fcsess_secret: string, setStripeAccounts: (accounts: FinancialConnectionsSession.Account[]) => void }) {
   const stripe = useStripe();
 
-  const [notification, setNotification] = useState(
-    {
-      heading: "Error",
-      message: "",
-      showNotification: false,
-    }
-  )
 
   const [isLoading, setIsLoading] = useState(false);
 
   const storeAccounts = (accounts: FinancialConnectionsSession.Account[]) => {
-    var VITE_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
+    const VITE_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
     axiosInstance.post(`${VITE_API_ENDPOINT}api/create_accounts`, accounts)
       .then(response => console.log(response.data))
       .catch(error => console.log(error));
@@ -51,19 +45,17 @@ export default function FinancialConnectionsForm({ fcsess_secret, setStripeAccou
     // be redirected to an intermediate site first to authorize the payment, then
     // redirected to the `return_url`.
     if (financialConnectionsSessionResult.error) {
-      setNotification({
-        ...notification,
-        message: `${financialConnectionsSessionResult.error.message} Please refresh the page and try again.`,
-        showNotification: true
-      })
+      toast("Error", {
+        description: `${financialConnectionsSessionResult.error.message} Please refresh the page and try again.`,
+        duration: 3500,
+      });
     } else if (financialConnectionsSessionResult.financialConnectionsSession.accounts.length === 0) {
-      setNotification({
-        ...notification,
-        message: "No new accounts were linked",
-        showNotification: true
-      })
+      toast.error("Error", {
+        description: "No new accounts were linked",
+        duration: 3500,
+      });
     } else {
-      var returnedAccounts = financialConnectionsSessionResult.financialConnectionsSession.accounts
+      const returnedAccounts = financialConnectionsSessionResult.financialConnectionsSession.accounts
       setStripeAccounts(returnedAccounts)
       storeAccounts(returnedAccounts)
     }
@@ -73,7 +65,6 @@ export default function FinancialConnectionsForm({ fcsess_secret, setStripeAccou
 
   return (
     <>
-      <Notification notification={notification} setNotification={setNotification} />
       <Button onClick={handleSubmit} disabled={isLoading || !stripe} id="submit">
         <span id="button-text">
           {isLoading ?

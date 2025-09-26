@@ -1,5 +1,6 @@
-import React from 'react';
 import { Button } from "@/components/ui/button";
+import React from 'react';
+import { toast } from "sonner";
 
 export default function ShadcnTestPage() {
   return (
@@ -107,6 +108,54 @@ export default function ShadcnTestPage() {
           </Button>
           <Button variant="outline" disabled>
             🔄 Processing...
+          </Button>
+        </div>
+      </section>
+
+      {/* Toast Notifications */}
+      <section>
+        <h2 className="text-2xl font-semibold mb-4">Toast Notifications (Sonner)</h2>
+        <div className="flex flex-wrap gap-4">
+          <Button
+            onClick={() => toast.success("Success", {
+              description: "This is a success message!",
+              duration: 3500,
+            })}
+          >
+            🎉 Success Toast
+          </Button>
+          <Button
+            variant="destructive"
+            onClick={() => toast.error("Error", {
+              description: "Something went wrong! This is an error message.",
+              duration: 5000,
+            })}
+          >
+            ❌ Error Toast
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => toast.info("Info", {
+              description: "This is an informational message with some details.",
+              duration: 4000,
+            })}
+          >
+            ℹ️ Info Toast
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() => toast("Simple Message")}
+          >
+            💬 Simple Toast
+          </Button>
+          <Button
+            variant="ghost"
+            onClick={() => toast.warning("Warning", {
+              description: "This is a warning message. Please be careful!",
+              duration: 4500,
+            })}
+          >
+            ⚠️ Warning Toast
           </Button>
         </div>
       </section>

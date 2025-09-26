@@ -4,14 +4,16 @@ import React from 'react';
 import { mockAxiosInstance, render, screen, waitFor } from '../../utils/test-utils';
 import CreateCashTransactionModal from '../CreateCashTransactionModal';
 
-// Mock the Notification component before imports
-jest.mock('../Notification', () => {
-    return function MockNotification({ notification, setNotification }: any) {
-        return notification.showNotification ? (
-            <div data-testid="notification">
-                {notification.heading}: {notification.message}
-            </div>
-        ) : null;
+// Mock Sonner toast with all methods
+jest.mock('sonner', () => {
+    const mockToast = jest.fn();
+    return {
+        toast: Object.assign(mockToast, {
+            success: jest.fn(),
+            error: jest.fn(),
+            info: jest.fn(),
+            warning: jest.fn(),
+        }),
     };
 });
 
@@ -173,7 +175,7 @@ describe('CreateCashTransactionModal', () => {
             });
         });
 
-        it('shows notification after successful transaction creation', async () => {
+        it('shows toast notification after successful transaction creation', async () => {
             render(<CreateCashTransactionModal show={true} onHide={mockOnHide} />);
 
             // Fill out form
@@ -192,8 +194,11 @@ describe('CreateCashTransactionModal', () => {
             await userEvent.click(submitButton);
 
             await waitFor(() => {
-                expect(screen.getByTestId('notification')).toBeInTheDocument();
-                expect(screen.getByText('Notification: Created Cash Transaction')).toBeInTheDocument();
+                const { toast } = require('sonner');
+                expect(toast.success).toHaveBeenCalledWith('Notification', {
+                    description: 'Created Cash Transaction',
+                    duration: 3500,
+                });
             });
         });
 
@@ -248,37 +253,6 @@ describe('CreateCashTransactionModal', () => {
             consoleSpy.mockRestore();
         });
 
-        it('logs the transaction data before API call', async () => {
-            const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-
-            render(<CreateCashTransactionModal show={true} onHide={mockOnHide} />);
-
-            // Fill out form
-            const dateInput = screen.getByLabelText('Date:');
-            const personInput = screen.getByLabelText('Person:');
-            const descriptionInput = screen.getByLabelText('Description:');
-            const amountInput = screen.getByLabelText('Amount:');
-
-            fireEvent.change(dateInput, { target: { value: '2024-01-15' } });
-            fireEvent.change(personInput, { target: { value: 'John Doe' } });
-            fireEvent.change(descriptionInput, { target: { value: 'Lunch payment' } });
-            fireEvent.change(amountInput, { target: { value: '25.50' } });
-
-            // Submit form
-            const submitButton = screen.getByRole('button', { name: /submit/i });
-            await userEvent.click(submitButton);
-
-            await waitFor(() => {
-                expect(consoleSpy).toHaveBeenCalledWith({
-                    date: '2024-01-15',
-                    person: 'John Doe',
-                    description: 'Lunch payment',
-                    amount: '25.50'
-                });
-            });
-
-            consoleSpy.mockRestore();
-        });
     });
 
     describe('Modal Closing', () => {

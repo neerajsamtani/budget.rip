@@ -1,6 +1,6 @@
-import React from 'react';
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import React from 'react';
 
 // Define a constant array for months
 const MONTHS = [
@@ -24,6 +24,7 @@ type Month = typeof MONTHS[number];
 
 interface MonthFilterProps {
   month: Month;
+  // eslint-disable-next-line no-unused-vars
   setMonth: (month: Month) => void;
 }
 

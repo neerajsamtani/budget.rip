@@ -1,11 +1,12 @@
-import React, { useEffect, useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import React, { useEffect, useState } from "react";
 import axiosInstance from "../utils/axiosInstance";
 
 type PaymentMethod = string
 interface PaymentMethodFilterProps {
   paymentMethod: PaymentMethod,
+  // eslint-disable-next-line no-unused-vars
   setPaymentMethod: (paymentMethod: PaymentMethod) => void
 }
 
@@ -14,7 +15,7 @@ export default function PaymentMethodFilter({ paymentMethod, setPaymentMethod }:
   const [paymentMethods, setPaymentMethods] = useState([])
 
   useEffect(() => {
-    var VITE_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
+    const VITE_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
     axiosInstance.get(`${VITE_API_ENDPOINT}api/payment_methods`)
       .then(response => {
         setPaymentMethods(Array.isArray(response.data) ? response.data : []);

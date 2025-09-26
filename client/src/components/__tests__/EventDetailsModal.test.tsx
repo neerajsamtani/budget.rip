@@ -5,14 +5,16 @@ import { mockAxiosInstance, render, screen, waitFor } from '../../utils/test-uti
 import { EventInterface } from '../Event';
 import EventDetailsModal from '../EventDetailsModal';
 
-// Mock the Notification component before imports
-jest.mock('../Notification', () => {
-    return function MockNotification({ notification, setNotification }: any) {
-        return notification.showNotification ? (
-            <div data-testid="notification">
-                {notification.heading}: {notification.message}
-            </div>
-        ) : null;
+// Mock Sonner toast with all methods
+jest.mock('sonner', () => {
+    const mockToast = jest.fn();
+    return {
+        toast: Object.assign(mockToast, {
+            success: jest.fn(),
+            error: jest.fn(),
+            info: jest.fn(),
+            warning: jest.fn(),
+        }),
     };
 });
 
@@ -274,7 +276,7 @@ describe('EventDetailsModal', () => {
             });
         });
 
-        it('shows notification after successful deletion', async () => {
+        it('shows toast after successful deletion', async () => {
             render(
                 <EventDetailsModal
                     show={true}
@@ -288,8 +290,11 @@ describe('EventDetailsModal', () => {
             await userEvent.click(deleteButton);
 
             await waitFor(() => {
-                expect(screen.getByTestId('notification')).toBeInTheDocument();
-                expect(screen.getByText('Notification: Deleted Event')).toBeInTheDocument();
+                const { toast } = require('sonner');
+                expect(toast).toHaveBeenCalledWith('Notification', {
+                    description: 'Deleted Event',
+                    duration: 3500,
+                });
             });
         });
 
@@ -311,29 +316,6 @@ describe('EventDetailsModal', () => {
             });
         });
 
-        it('logs response data after successful deletion', async () => {
-            const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
-            const mockResponse = { data: { success: true, message: 'Event deleted' } };
-            mockAxiosInstance.delete.mockResolvedValue(mockResponse);
-
-            render(
-                <EventDetailsModal
-                    show={true}
-                    event={mockEvent}
-                    lineItemsForEvent={mockLineItems}
-                    onHide={mockOnHide}
-                />
-            );
-
-            const deleteButton = screen.getByRole('button', { name: /delete/i });
-            await userEvent.click(deleteButton);
-
-            await waitFor(() => {
-                expect(consoleSpy).toHaveBeenCalledWith(mockResponse.data);
-            });
-
-            consoleSpy.mockRestore();
-        });
 
         it('handles API error gracefully', async () => {
             const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
@@ -545,7 +527,7 @@ describe('EventDetailsModal', () => {
             expect(screen.queryByTestId('notification')).not.toBeInTheDocument();
         });
 
-        it('updates notification state after successful deletion', async () => {
+        it('calls toast after successful deletion', async () => {
             render(
                 <EventDetailsModal
                     show={true}
@@ -559,7 +541,11 @@ describe('EventDetailsModal', () => {
             await userEvent.click(deleteButton);
 
             await waitFor(() => {
-                expect(screen.getByTestId('notification')).toBeInTheDocument();
+                const { toast } = require('sonner');
+                expect(toast).toHaveBeenCalledWith('Notification', {
+                    description: 'Deleted Event',
+                    duration: 3500,
+                });
             });
         });
     });

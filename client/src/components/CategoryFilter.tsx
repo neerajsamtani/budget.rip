@@ -1,6 +1,6 @@
-import React from 'react';
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import React from 'react';
 
 // Keep this in sync with the server/constants.py
 // Define a constant array for categories
@@ -26,6 +26,7 @@ const CATEGORIES = [
 // Infer the Category type from the CATEGORIES array
 export type Category = typeof CATEGORIES[number];
 
+// eslint-disable-next-line no-unused-vars
 export default function CategoryFilter({ category, setCategory }: { category: Category, setCategory: (category: Category) => void }) {
 
 

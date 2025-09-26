@@ -1,10 +1,13 @@
 "use client"
 
-import { useTheme } from "next-themes"
-import { Toaster as Sonner, ToasterProps } from "sonner"
+import React from "react";
+import { Toaster as Sonner, ToasterProps } from "sonner";
+
+// Mock useTheme for non-Next.js apps or provide a simple theme fallback
+const useTheme = () => ({ theme: "light" });
 
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "system" } = useTheme()
+  const { theme = "light" } = useTheme()
 
   return (
     <Sonner
@@ -22,4 +25,5 @@ const Toaster = ({ ...props }: ToasterProps) => {
   )
 }
 
-export { Toaster }
+export { Toaster };
+

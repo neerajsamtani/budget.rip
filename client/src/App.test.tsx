@@ -1,4 +1,3 @@
-/* eslint-disable import/first */
 // Mock axios instance before any imports
 jest.mock('./utils/axiosInstance', () => {
     return {
@@ -46,14 +45,17 @@ jest.mock('react-plotly.js', () => {
     };
 });
 
-// Mock the Notification component
-jest.mock('./components/Notification', () => {
-    return function MockNotification({ notification, setNotification }: any) {
-        return notification.showNotification ? (
-            <div data-testid="notification">
-                {notification.heading}: {notification.message}
-            </div>
-        ) : null;
+// Mock Sonner toast
+jest.mock('sonner', () => {
+    const mockToast = jest.fn();
+    return {
+        toast: Object.assign(mockToast, {
+            success: jest.fn(),
+            error: jest.fn(),
+            info: jest.fn(),
+            warning: jest.fn(),
+        }),
+        Toaster: () => <div data-testid="toaster" />,
     };
 });
 
@@ -190,8 +192,9 @@ describe('App', () => {
             });
         });
 
-        it('shows notification after successful refresh', async () => {
+        it('shows toast notification after successful refresh', async () => {
             const mockAxiosInstance = require('./utils/axiosInstance').default;
+            const { toast } = require('sonner');
             mockAxiosInstance.get.mockResolvedValueOnce({ data: { data: [] } });
 
             render(<App />);
@@ -200,7 +203,10 @@ describe('App', () => {
             fireEvent.click(refreshButton);
 
             await waitFor(() => {
-                expect(screen.getByTestId('notification')).toBeInTheDocument();
+                expect(toast.success).toHaveBeenCalledWith('Notification', {
+                    description: 'Refreshed data',
+                    duration: 3500,
+                });
             });
         });
 
@@ -223,7 +229,6 @@ describe('App', () => {
         });
 
         it('handles API error gracefully', async () => {
-            const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
             const mockAxiosInstance = require('./utils/axiosInstance').default;
             mockAxiosInstance.get.mockRejectedValueOnce(new Error('API Error'));
 
@@ -232,11 +237,10 @@ describe('App', () => {
             const refreshButton = screen.getByRole('button', { name: /refresh data/i });
             fireEvent.click(refreshButton);
 
+            // Should handle the error without crashing
             await waitFor(() => {
-                expect(consoleSpy).toHaveBeenCalledWith(expect.any(Error));
+                expect(document.querySelector('.animate-spin')).not.toBeInTheDocument();
             });
-
-            consoleSpy.mockRestore();
         });
 
         it('hides loading spinner after API error', async () => {
@@ -335,8 +339,9 @@ describe('App', () => {
             });
         });
 
-        it('updates notification state correctly', async () => {
+        it('calls toast correctly', async () => {
             const mockAxiosInstance = require('./utils/axiosInstance').default;
+            const { toast } = require('sonner');
             mockAxiosInstance.get.mockResolvedValueOnce({ data: { data: [] } });
 
             render(<App />);
@@ -344,17 +349,21 @@ describe('App', () => {
             const refreshButton = screen.getByRole('button', { name: /refresh data/i });
             fireEvent.click(refreshButton);
 
-            // Should show notification after successful refresh
+            // Should call toast after successful refresh
             await waitFor(() => {
-                expect(screen.getByTestId('notification')).toBeInTheDocument();
+                expect(toast.success).toHaveBeenCalledWith('Notification', {
+                    description: 'Refreshed data',
+                    duration: 3500,
+                });
             });
         });
     });
 
     describe('Error Handling', () => {
-        it('logs errors to console', async () => {
-            const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+
+        it('calls error toast on error', async () => {
             const mockAxiosInstance = require('./utils/axiosInstance').default;
+            const { toast } = require('sonner');
             mockAxiosInstance.get.mockRejectedValueOnce(new Error('API Error'));
 
             render(<App />);
@@ -362,25 +371,12 @@ describe('App', () => {
             const refreshButton = screen.getByRole('button', { name: /refresh data/i });
             fireEvent.click(refreshButton);
 
+            // Should call error toast on error
             await waitFor(() => {
-                expect(consoleSpy).toHaveBeenCalledWith(expect.any(Error));
-            });
-
-            consoleSpy.mockRestore();
-        });
-
-        it('does not show notification on error', async () => {
-            const mockAxiosInstance = require('./utils/axiosInstance').default;
-            mockAxiosInstance.get.mockRejectedValueOnce(new Error('API Error'));
-
-            render(<App />);
-
-            const refreshButton = screen.getByRole('button', { name: /refresh data/i });
-            fireEvent.click(refreshButton);
-
-            // Should not show notification on error
-            await waitFor(() => {
-                expect(screen.queryByTestId('notification')).not.toBeInTheDocument();
+                expect(toast.error).toHaveBeenCalledWith('Notification', {
+                    description: 'Error refreshing data',
+                    duration: 3500,
+                });
             });
         });
     });

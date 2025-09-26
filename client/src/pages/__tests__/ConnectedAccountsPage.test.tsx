@@ -3,9 +3,10 @@ import { fireEvent, mockAxiosInstance, render, screen, waitFor } from '../../uti
 import ConnectedAccountsPage from '../ConnectedAccountsPage';
 
 // Mock Notification and FinancialConnectionsForm
-jest.mock('../../components/Notification', () => ({ notification, setNotification }: any) => (
-    notification.showNotification ? <div data-testid="notification">{notification.message}</div> : null
-));
+jest.mock('sonner', () => ({
+    toast: jest.fn(),
+}));
+
 jest.mock('../../components/FinancialConnectionsForm', () => ({ fcsess_secret, setStripeAccounts }: any) => (
     <div data-testid="fc-form">FinancialConnectionsForm</div>
 ));
