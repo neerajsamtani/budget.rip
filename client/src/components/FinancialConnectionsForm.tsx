@@ -20,7 +20,10 @@ export default function FinancialConnectionsForm({ fcsess_secret, setStripeAccou
     const VITE_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
     axiosInstance.post(`${VITE_API_ENDPOINT}api/create_accounts`, accounts)
       .then(response => console.log(response.data))
-      .catch(error => console.log(error));
+      .catch(error => toast.error("Error", {
+        description: error.message,
+        duration: 3500,
+      }));
   }
 
   const handleSubmit = async (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -33,11 +36,7 @@ export default function FinancialConnectionsForm({ fcsess_secret, setStripeAccou
     }
 
     setIsLoading(true);
-
-    // console.log("The client secret is", fcsess_secret)
     const financialConnectionsSessionResult = await stripe.collectFinancialConnectionsAccounts({ clientSecret: fcsess_secret });
-
-    console.log(financialConnectionsSessionResult);
 
     // This point will only be reached if there is an immediate error when
     // confirming the payment. Otherwise, your customer will be redirected to
@@ -45,7 +44,7 @@ export default function FinancialConnectionsForm({ fcsess_secret, setStripeAccou
     // be redirected to an intermediate site first to authorize the payment, then
     // redirected to the `return_url`.
     if (financialConnectionsSessionResult.error) {
-      toast("Error", {
+      toast.error("Error", {
         description: `${financialConnectionsSessionResult.error.message} Please refresh the page and try again.`,
         duration: 3500,
       });

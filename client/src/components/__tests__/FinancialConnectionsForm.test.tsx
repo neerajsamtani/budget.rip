@@ -323,7 +323,7 @@ describe('FinancialConnectionsForm', () => {
 
             await waitFor(() => {
                 const { toast } = require('sonner');
-                expect(toast).toHaveBeenCalledWith('Error', {
+                expect(toast.error).toHaveBeenCalledWith('Error', {
                     description: 'Connection failed Please refresh the page and try again.',
                     duration: 3500,
                 });
@@ -357,7 +357,6 @@ describe('FinancialConnectionsForm', () => {
         });
 
         it('handles API error gracefully', async () => {
-            const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
             mockAxiosInstance.post.mockRejectedValue(new Error('API Error'));
 
             render(
@@ -371,10 +370,12 @@ describe('FinancialConnectionsForm', () => {
             await userEvent.click(button);
 
             await waitFor(() => {
-                expect(consoleSpy).toHaveBeenCalledWith(expect.any(Error));
+                const { toast } = require('sonner');
+                expect(toast.error).toHaveBeenCalledWith('Error', {
+                    description: 'API Error',
+                    duration: 3500,
+                });
             });
-
-            consoleSpy.mockRestore();
         });
 
         it('does not call setStripeAccounts when there is an error', async () => {
