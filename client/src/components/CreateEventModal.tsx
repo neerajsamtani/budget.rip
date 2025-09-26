@@ -1,10 +1,11 @@
 import React, { Fragment, useEffect, useState } from 'react';
-import { Badge as BootstrapBadge } from 'react-bootstrap';
-import Badge from 'react-bootstrap/Badge';
-import Button from 'react-bootstrap/Button';
-import Form from 'react-bootstrap/Form';
-import Modal from 'react-bootstrap/Modal';
-import Stack from 'react-bootstrap/Stack';
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getPrefillFromLineItems } from '.././data/EventHints';
 import { useLineItems, useLineItemsDispatch } from "../contexts/LineItemsContext";
 import { FormField, useField } from '../hooks/useField';
@@ -128,91 +129,96 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
   return (
     <Fragment>
       <Notification notification={notification} setNotification={setNotification} />
-      <Modal
-        show={show}
-        onHide={closeModal}
-        size="lg"
-        aria-labelledby="contained-modal-title-vcenter"
-        centered
-      >
-        <Modal.Header closeButton>
-          <Modal.Title id="contained-modal-title-vcenter">
-            New Event Details
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Form>
-            <Form.Group className="mb-3">
-              <Form.Label>Name:</Form.Label>
-              <Form.Control type={name.type} value={name.value} onChange={name.onChange} />
-            </Form.Group>
+      <Dialog open={show} onOpenChange={closeModal}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              New Event Details
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Name:</Label>
+              <Input type={name.type} value={name.value} onChange={name.onChange} />
+            </div>
             {/* TODO: Can I use a CategoryFilter here? */}
-            <Form.Group className="mb-3">
-              <Form.Label>Category:</Form.Label>
-              <Form.Select value={category.value} onChange={category.onChange}>
-                <option value="All">All</option>
-                <option value="Alcohol">Alcohol</option>
-                <option value="Dining">Dining</option>
-                <option value="Entertainment">Entertainment</option>
-                <option value="Forma">Forma</option>
-                <option value="Groceries">Groceries</option>
-                <option value="Hobbies">Hobbies</option>
-                <option value="Income">Income</option>
-                <option value="Investment">Investment</option>
-                <option value="Medical">Medical</option>
-                <option value="Rent">Rent</option>
-                <option value="Shopping">Shopping</option>
-                <option value="Subscription">Subscription</option>
-                <option value="Transfer">Transfer</option>
-                <option value="Transit">Transit</option>
-                <option value="Travel">Travel</option>
-              </Form.Select>
-            </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Label>Tags:</Form.Label>
-              <div className="d-flex flex-wrap gap-2 mb-2">
+            <div className="space-y-2">
+              <Label>Category:</Label>
+              <Select value={category.value} onValueChange={(value) => category.setCustomValue(value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="All">All</SelectItem>
+                  <SelectItem value="Alcohol">Alcohol</SelectItem>
+                  <SelectItem value="Dining">Dining</SelectItem>
+                  <SelectItem value="Entertainment">Entertainment</SelectItem>
+                  <SelectItem value="Forma">Forma</SelectItem>
+                  <SelectItem value="Groceries">Groceries</SelectItem>
+                  <SelectItem value="Hobbies">Hobbies</SelectItem>
+                  <SelectItem value="Income">Income</SelectItem>
+                  <SelectItem value="Investment">Investment</SelectItem>
+                  <SelectItem value="Medical">Medical</SelectItem>
+                  <SelectItem value="Rent">Rent</SelectItem>
+                  <SelectItem value="Shopping">Shopping</SelectItem>
+                  <SelectItem value="Subscription">Subscription</SelectItem>
+                  <SelectItem value="Transfer">Transfer</SelectItem>
+                  <SelectItem value="Transit">Transit</SelectItem>
+                  <SelectItem value="Travel">Travel</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Tags:</Label>
+              <div className="flex flex-wrap gap-2 mb-2">
                 {tags.map(tag => (
-                  <BootstrapBadge
+                  <Badge
                     key={tag.id}
-                    bg="primary"
-                    className="d-flex align-items-center p-2"
+                    variant="default"
+                    className="flex items-center gap-1"
                   >
                     {tag.text}
                     <span
                       onClick={() => removeTag(tag.id)}
-                      style={{ marginLeft: '5px', cursor: 'pointer' }}
+                      className="ml-1 cursor-pointer hover:text-red-500"
                     >
                       ×
                     </span>
-                  </BootstrapBadge>
+                  </Badge>
                 ))}
               </div>
-              <Form.Control
+              <Input
                 type="text"
                 value={tagInput}
                 onChange={(e) => setTagInput(e.target.value)}
                 onKeyDown={handleTagInputKeyDown}
                 placeholder="Type a tag and press Enter"
               />
-            </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Label htmlFor="override-date-input">Override Date:</Form.Label>
-              <Form.Control id="override-date-input" type={date.type} value={date.value} onChange={date.onChange} />
-            </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Check checked={isDuplicateTransaction.value} onChange={() => isDuplicateTransaction.setCustomValue(!isDuplicateTransaction.value)}
-                type="checkbox" label="Duplicate Transaction" />
-            </Form.Group>
-          </Form>
-        </Modal.Body>
-        <Modal.Footer>
-          <Stack className='me-auto' direction="horizontal" gap={3} style={{ width: '100%' }}>
-            <Badge className="p-2" bg="secondary">Total: {CurrencyFormatter.format(total)}</Badge>
-            <Button className="p-2 ms-auto" onClick={closeModal} variant="secondary">Cancel</Button>
-            <Button className="p-2" onClick={() => createEvent(name, category)} variant="primary" disabled={disableSubmit}>Submit</Button>
-          </Stack>
-        </Modal.Footer>
-      </Modal>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="override-date-input">Override Date:</Label>
+              <Input id="override-date-input" type={date.type} value={date.value} onChange={date.onChange} />
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="duplicate-transaction"
+                checked={isDuplicateTransaction.value}
+                onCheckedChange={() => isDuplicateTransaction.setCustomValue(!isDuplicateTransaction.value)}
+              />
+              <Label htmlFor="duplicate-transaction">Duplicate Transaction</Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <div className="flex items-center justify-between w-full">
+              <Badge variant="secondary">Total: {CurrencyFormatter.format(total)}</Badge>
+              <div className="flex space-x-2">
+                <Button onClick={closeModal} variant="secondary">Cancel</Button>
+                <Button onClick={() => createEvent(name, category)} disabled={disableSubmit}>Submit</Button>
+              </div>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Fragment >
   );
 }

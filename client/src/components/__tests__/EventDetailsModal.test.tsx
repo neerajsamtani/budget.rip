@@ -486,7 +486,7 @@ describe('EventDetailsModal', () => {
             expect(tagBadges).toHaveLength(2);
 
             tagBadges.forEach(badge => {
-                expect(badge).toHaveClass('badge', 'bg-primary');
+                expect(badge).toHaveClass('bg-primary', 'text-primary-foreground');
             });
         });
 

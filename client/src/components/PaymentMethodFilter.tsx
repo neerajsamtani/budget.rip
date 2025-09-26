@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { Form, InputGroup } from 'react-bootstrap';
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import axiosInstance from "../utils/axiosInstance";
 
 type PaymentMethod = string
@@ -21,23 +22,21 @@ export default function PaymentMethodFilter({ paymentMethod, setPaymentMethod }:
       .catch(error => console.log(error));
   }, [])
 
-  const handlePaymentMethodChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    setPaymentMethod(event.target.value);
-  }
 
   return (
-    <>
-      <InputGroup>
-        <InputGroup.Text>Payment Method</InputGroup.Text>
-        <Form.Group controlId="exampleForm.SelectCustom">
-          <Form.Select value={paymentMethod} onChange={handlePaymentMethodChange}>
-            <option value="All">All</option>
-            {paymentMethods.map(payment_method => {
-              return (<option value={payment_method} key={payment_method}> {payment_method}</option>)
-            })}
-          </Form.Select>
-        </Form.Group>
-      </InputGroup>
-    </>
+    <div className="space-y-2">
+      <Label>Payment Method</Label>
+      <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+        <SelectTrigger>
+          <SelectValue placeholder="Select payment method" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="All">All</SelectItem>
+          {paymentMethods.map(payment_method => {
+            return (<SelectItem value={payment_method} key={payment_method}>{payment_method}</SelectItem>)
+          })}
+        </SelectContent>
+      </Select>
+    </div>
   );
 }

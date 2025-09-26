@@ -1,5 +1,6 @@
 import React from 'react';
-import { Form, InputGroup } from 'react-bootstrap';
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 interface TagsFilterProps {
     tagFilter: string;
@@ -12,14 +13,14 @@ export default function TagsFilter({ tagFilter, setTagFilter }: TagsFilterProps)
     }
 
     return (
-        <InputGroup>
-            <InputGroup.Text>Tags</InputGroup.Text>
-            <Form.Control
+        <div className="space-y-2">
+            <Label>Tags</Label>
+            <Input
                 type="text"
                 placeholder="Enter tag..."
                 value={tagFilter}
                 onChange={handleTagChange}
             />
-        </InputGroup>
+        </div>
     );
 }

@@ -1,6 +1,8 @@
 import React, { Fragment, useState } from 'react';
-import Button from 'react-bootstrap/Button';
-import Modal from 'react-bootstrap/Modal';
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useField } from '../hooks/useField';
 import axiosInstance from '../utils/axiosInstance';
 import Notification from './Notification';
@@ -50,44 +52,38 @@ export default function CreateCashTransactionModal({ show, onHide }: { show: boo
   return (
     <Fragment>
       <Notification notification={notification} setNotification={setNotification} />
-      <Modal
-        show={show}
-        onHide={onHide}
-        size="lg"
-        aria-labelledby="contained-modal-title-vcenter"
-        centered
-      >
-        <Modal.Header closeButton>
-          <Modal.Title id="contained-modal-title-vcenter">
-            New Cash Transaction
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <form>
-            <div className="form-group">
+      <Dialog open={show} onOpenChange={onHide}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>
+              New Cash Transaction
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
               {/* TODO: DATE PICKER */}
-              <label htmlFor="event-date">Date:</label>
-              <input className="form-control" id="event-date" value={date.value} onChange={date.onChange} type={date.type} />
+              <Label htmlFor="event-date">Date:</Label>
+              <Input id="event-date" value={date.value} onChange={date.onChange} type={date.type} />
             </div>
-            <div className="form-group">
-              <label htmlFor="event-person">Person:</label>
-              <input className="form-control" id="event-person" value={person.value} onChange={person.onChange} type={person.type} />
+            <div className="space-y-2">
+              <Label htmlFor="event-person">Person:</Label>
+              <Input id="event-person" value={person.value} onChange={person.onChange} type={person.type} />
             </div>
-            <div className="form-group">
-              <label htmlFor="event-description">Description:</label>
-              <input className="form-control" id="event-description" value={description.value} onChange={description.onChange} type={description.type} />
+            <div className="space-y-2">
+              <Label htmlFor="event-description">Description:</Label>
+              <Input id="event-description" value={description.value} onChange={description.onChange} type={description.type} />
             </div>
-            <div className="form-group">
-              <label htmlFor="event-amount">Amount:</label>
-              <input className="form-control" id="event-amount" value={amount.value} onChange={amount.onChange} type={amount.type} />
+            <div className="space-y-2">
+              <Label htmlFor="event-amount">Amount:</Label>
+              <Input id="event-amount" value={amount.value} onChange={amount.onChange} type={amount.type} />
             </div>
-          </form>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button onClick={onHide} variant="secondary">Cancel</Button>
-          <Button onClick={createCashTransaction} variant="primary">Submit</Button>
-        </Modal.Footer>
-      </Modal>
+          </div>
+          <DialogFooter>
+            <Button onClick={onHide} variant="secondary">Cancel</Button>
+            <Button onClick={createCashTransaction}>Submit</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Fragment>
   );
 }

@@ -1,5 +1,6 @@
 import React from 'react';
-import { Form, InputGroup } from 'react-bootstrap';
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 // Keep this in sync with the server/constants.py
 // Define a constant array for categories
@@ -27,24 +28,22 @@ export type Category = typeof CATEGORIES[number];
 
 export default function CategoryFilter({ category, setCategory }: { category: Category, setCategory: (category: Category) => void }) {
 
-  const handleCategoryChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    setCategory(event.target.value as Category);
-  }
 
   return (
-    <>
-      <InputGroup>
-        <InputGroup.Text>Category</InputGroup.Text>
-        <Form.Group controlId="exampleForm.SelectCustom">
-          <Form.Select value={category} onChange={handleCategoryChange}>
-            {CATEGORIES.map(cat => (
-              <option key={cat} value={cat}>
-                {cat}
-              </option>
-            ))}
-          </Form.Select>
-        </Form.Group>
-      </InputGroup>
-    </>
+    <div className="space-y-2">
+      <Label>Category</Label>
+      <Select value={category} onValueChange={setCategory}>
+        <SelectTrigger>
+          <SelectValue placeholder="Select category" />
+        </SelectTrigger>
+        <SelectContent>
+          {CATEGORIES.map(cat => (
+            <SelectItem key={cat} value={cat}>
+              {cat}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
   );
 }

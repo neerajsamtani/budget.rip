@@ -1,6 +1,6 @@
 import tsJest from 'ts-jest';
 
-const transformer = tsJest.createTransformer({
+const transformer = tsJest.default.createTransformer({
   compilerOptions: {
     module: 'commonjs'
   }

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { Badge, Button } from "react-bootstrap";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { LineItemInterface } from "../contexts/LineItemsContext";
 import axiosInstance from "../utils/axiosInstance";
 import { DateFormatter } from "../utils/formatters";
@@ -41,12 +42,11 @@ export default function Event({ event }: { event: EventInterface }) {
             <td>${event.amount.toFixed(2)}</td>
             <td>
                 {event.tags && event.tags.length > 0 ? (
-                    <div className="d-flex flex-wrap gap-1">
+                    <div className="flex flex-wrap gap-1">
                         {event.tags.map((tag, index) => (
                             <Badge
                                 key={index}
-                                bg="primary"
-                                className="p-2"
+                                variant="default"
                             >
                                 {tag}
                             </Badge>

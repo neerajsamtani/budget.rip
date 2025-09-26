@@ -1,10 +1,8 @@
-import { Button as ShadcnButton } from "@/components/ui/button";
 import { loadStripe } from "@stripe/stripe-js";
 import React, { useState } from "react";
-import { Button, Spinner } from "react-bootstrap";
-import Container from 'react-bootstrap/Container';
-import Nav from 'react-bootstrap/Nav';
-import Navbar from 'react-bootstrap/Navbar';
+import { Button } from "@/components/ui/button"
+import { Spinner } from "@/components/ui/spinner"
+import { Navbar, NavbarBrand } from "@/components/ui/navbar"
 import {
   Link, Route,
   BrowserRouter as Router,
@@ -62,51 +60,36 @@ export default function App() {
       })
   }
 
-  const padding = {
-    paddingLeft: 20,
-    paddingTop: 5,
-    paddingBottom: 5,
-    color: "white",
-    textDecoration: "none"
-  }
 
   return (
     <React.StrictMode>
       <Notification notification={notification} setNotification={setNotification} />
       <Router>
-        <Navbar bg="dark" variant="dark" expand="sm">
-          <Container>
-            <Navbar.Brand>Budgit</Navbar.Brand>
-            <Navbar.Toggle aria-controls="basic-navbar-nav" />
-            <Navbar.Collapse id="basic-navbar-nav">
-              <Nav className="me-auto">
-                <Link style={padding} to="/">Review</Link>
-                <Link style={padding} to="/events">Events</Link>
-                <Link style={padding} to="/line_items">Line Items</Link>
-                <Link style={padding} to="/connected_accounts">Connected Accounts</Link>
-                <Link style={padding} to="/graphs">Graphs</Link>
-                <Link style={padding} to="/test">Test Shadcn</Link>
-                <Link style={padding} to="/login">Login</Link>
-              </Nav>
-              <Nav>
-                <Button onClick={handleRefreshData}>
-                  {
-                    loading ?
-                      <Spinner
-                        as="span"
-                        animation="border"
-                        size="sm"
-                        role="status"
-                        aria-hidden="true"
-                      />
-                      :
-                      <>Refresh Data</>
-                  }
-                </Button>
-                <ShadcnButton>Refresh Data</ShadcnButton>
-              </Nav>
-            </Navbar.Collapse>
-          </Container>
+        <Navbar className="bg-slate-900 text-white">
+          <div className="container mx-auto flex justify-between items-center px-4">
+            <NavbarBrand className="text-white">Budgit</NavbarBrand>
+            <div className="flex items-center space-x-4">
+              <div className="flex space-x-4">
+                <Link className="text-white hover:text-gray-300 px-3 py-2 no-underline" to="/">Review</Link>
+                <Link className="text-white hover:text-gray-300 px-3 py-2 no-underline" to="/events">Events</Link>
+                <Link className="text-white hover:text-gray-300 px-3 py-2 no-underline" to="/line_items">Line Items</Link>
+                <Link className="text-white hover:text-gray-300 px-3 py-2 no-underline" to="/connected_accounts">Connected Accounts</Link>
+                <Link className="text-white hover:text-gray-300 px-3 py-2 no-underline" to="/graphs">Graphs</Link>
+                <Link className="text-white hover:text-gray-300 px-3 py-2 no-underline" to="/test">Test Shadcn</Link>
+                <Link className="text-white hover:text-gray-300 px-3 py-2 no-underline" to="/login">Login</Link>
+              </div>
+              <Button onClick={handleRefreshData} variant="secondary">
+                {
+                  loading ?
+                    <Spinner
+                      size="sm"
+                    />
+                    :
+                    <>Refresh Data</>
+                }
+              </Button>
+            </div>
+          </div>
         </Navbar>
 
         <Routes>

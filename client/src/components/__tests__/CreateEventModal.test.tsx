@@ -113,8 +113,11 @@ describe('CreateEventModal', () => {
             expect(screen.getByText('Duplicate Transaction')).toBeInTheDocument();
         });
 
-        it('renders all category options', () => {
+        it('renders all category options', async () => {
             render(<CreateEventModal show={true} onHide={mockOnHide} />);
+
+            const trigger = screen.getByRole('combobox');
+            await userEvent.click(trigger);
 
             const options = [
                 'All', 'Alcohol', 'Dining', 'Entertainment', 'Forma', 'Groceries',
@@ -122,8 +125,10 @@ describe('CreateEventModal', () => {
                 'Subscription', 'Transfer', 'Transit', 'Travel'
             ];
 
-            options.forEach(option => {
-                expect(screen.getByRole('option', { name: option })).toBeInTheDocument();
+            await waitFor(() => {
+                options.forEach(option => {
+                    expect(screen.getByRole('option', { name: option })).toBeInTheDocument();
+                });
             });
         });
 
@@ -155,9 +160,10 @@ describe('CreateEventModal', () => {
             render(<CreateEventModal show={true} onHide={mockOnHide} />);
 
             const categorySelect = screen.getByRole('combobox');
-            await userEvent.selectOptions(categorySelect, 'Dining');
+            await userEvent.click(categorySelect);
+            await userEvent.click(screen.getByRole('option', { name: 'Dining' }));
 
-            expect(categorySelect).toHaveValue('Dining');
+            expect(categorySelect).toHaveTextContent('Dining');
         });
 
         it('allows setting date', async () => {
@@ -272,7 +278,8 @@ describe('CreateEventModal', () => {
             fireEvent.change(nameInput, { target: { value: 'Test Event' } });
 
             const categorySelect = screen.getByRole('combobox');
-            await userEvent.selectOptions(categorySelect, 'Dining');
+            await userEvent.click(categorySelect);
+            await userEvent.click(screen.getByRole('option', { name: 'Dining' }));
 
             const submitButton = screen.getByRole('button', { name: /submit/i });
             expect(submitButton).not.toBeDisabled();
@@ -293,7 +300,8 @@ describe('CreateEventModal', () => {
             rerender(<CreateEventModal show={true} onHide={mockOnHide} />);
 
             expect(screen.getByDisplayValue('Suggested Name')).toBeInTheDocument();
-            expect(screen.getByDisplayValue('Dining')).toBeInTheDocument();
+            const categorySelect = screen.getByRole('combobox');
+            expect(categorySelect).toHaveTextContent('Dining');
         });
 
         it('uses cleaned description when no prefill suggestion', async () => {
@@ -319,7 +327,8 @@ describe('CreateEventModal', () => {
             rerender(<CreateEventModal show={true} onHide={mockOnHide} />);
 
             expect(screen.getAllByDisplayValue('')[0]).toBeInTheDocument(); // Name input
-            expect(screen.getAllByDisplayValue('All')[0]).toBeInTheDocument(); // Category select
+            const categorySelect = screen.getByRole('combobox');
+            expect(categorySelect).toHaveTextContent('Select category'); // Category select placeholder
         });
     });
 
@@ -333,7 +342,8 @@ describe('CreateEventModal', () => {
             fireEvent.change(nameInput, { target: { value: 'Test Event' } });
 
             const categorySelect = screen.getByRole('combobox');
-            await userEvent.selectOptions(categorySelect, 'Dining');
+            await userEvent.click(categorySelect);
+            await userEvent.click(screen.getByRole('option', { name: 'Dining' }));
 
             const dateInput = screen.getByLabelText('Override Date:');
             fireEvent.change(dateInput, { target: { value: '2024-01-15' } });
@@ -370,7 +380,8 @@ describe('CreateEventModal', () => {
             fireEvent.change(nameInput, { target: { value: 'Test Event' } });
 
             const categorySelect = screen.getByRole('combobox');
-            await userEvent.selectOptions(categorySelect, 'Dining');
+            await userEvent.click(categorySelect);
+            await userEvent.click(screen.getByRole('option', { name: 'Dining' }));
 
             // Check duplicate transaction
             const checkbox = screen.getByRole('checkbox');
@@ -398,7 +409,8 @@ describe('CreateEventModal', () => {
             fireEvent.change(nameInput, { target: { value: 'Test Event' } });
 
             const categorySelect = screen.getByRole('combobox');
-            await userEvent.selectOptions(categorySelect, 'Dining');
+            await userEvent.click(categorySelect);
+            await userEvent.click(screen.getByRole('option', { name: 'Dining' }));
 
             // Submit form
             const submitButton = screen.getByRole('button', { name: /submit/i });
@@ -420,7 +432,8 @@ describe('CreateEventModal', () => {
             fireEvent.change(nameInput, { target: { value: 'Test Event' } });
 
             const categorySelect = screen.getByRole('combobox');
-            await userEvent.selectOptions(categorySelect, 'Dining');
+            await userEvent.click(categorySelect);
+            await userEvent.click(screen.getByRole('option', { name: 'Dining' }));
 
             // Submit form
             const submitButton = screen.getByRole('button', { name: /submit/i });
@@ -443,7 +456,8 @@ describe('CreateEventModal', () => {
             fireEvent.change(nameInput, { target: { value: 'Test Event' } });
 
             const categorySelect = screen.getByRole('combobox');
-            await userEvent.selectOptions(categorySelect, 'Dining');
+            await userEvent.click(categorySelect);
+            await userEvent.click(screen.getByRole('option', { name: 'Dining' }));
 
             // Submit form
             const submitButton = screen.getByRole('button', { name: /submit/i });
@@ -484,7 +498,8 @@ describe('CreateEventModal', () => {
             fireEvent.change(nameInput, { target: { value: 'Test Event' } });
 
             const categorySelect = screen.getByRole('combobox');
-            await userEvent.selectOptions(categorySelect, 'Dining');
+            await userEvent.click(categorySelect);
+            await userEvent.click(screen.getByRole('option', { name: 'Dining' }));
 
             const dateInput = screen.getByLabelText('Override Date:');
             fireEvent.change(dateInput, { target: { value: '2024-01-15' } });
@@ -503,7 +518,8 @@ describe('CreateEventModal', () => {
             rerender(<CreateEventModal show={true} onHide={mockOnHide} />);
 
             expect(screen.getAllByDisplayValue('')[0]).toBeInTheDocument(); // Name input
-            expect(screen.getAllByDisplayValue('All')[0]).toBeInTheDocument(); // Category select
+            const categorySelectReset = screen.getByRole('combobox');
+            expect(categorySelectReset).toHaveTextContent('All'); // Category select default value
             expect(screen.queryByText('important')).not.toBeInTheDocument();
         });
     });
@@ -565,7 +581,8 @@ describe('CreateEventModal', () => {
             fireEvent.change(dateInput, { target: { value: '2024-01-15' } });
 
             const categorySelect = screen.getByRole('combobox');
-            await userEvent.selectOptions(categorySelect, 'Dining');
+            await userEvent.click(categorySelect);
+            await userEvent.click(screen.getByRole('option', { name: 'Dining' }));
 
             await act(async () => {
                 await userEvent.click(submitButton);

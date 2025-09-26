@@ -179,8 +179,8 @@ describe('EventsPage', () => {
             render(<EventsPage />);
 
             await waitFor(() => {
-                expect(screen.getByText('Net Income')).toBeInTheDocument();
-                expect(screen.getByText('Spending w/o Rent')).toBeInTheDocument();
+                expect(screen.getByText(/Net Income:/)).toBeInTheDocument();
+                expect(screen.getByText(/Spending w\/o Rent:/)).toBeInTheDocument();
             });
         });
     });
@@ -615,11 +615,13 @@ describe('EventsPage', () => {
             });
         });
 
-        it('has proper form labels', () => {
+        it('has proper form labels', async () => {
             render(<EventsPage />);
 
-            expect(screen.getByText('Net Income')).toBeInTheDocument();
-            expect(screen.getByText('Spending w/o Rent')).toBeInTheDocument();
+            await waitFor(() => {
+                expect(screen.getByText(/Net Income:/)).toBeInTheDocument();
+                expect(screen.getByText(/Spending w\/o Rent:/)).toBeInTheDocument();
+            });
         });
     });
 

@@ -154,7 +154,7 @@ describe('App', () => {
             fireEvent.click(refreshButton);
 
             // Should show spinner - use querySelector since it has aria-hidden="true"
-            expect(document.querySelector('.spinner-border')).toBeInTheDocument();
+            expect(document.querySelector('.animate-spin')).toBeInTheDocument();
         });
 
         it('calls API and updates line items on successful refresh', async () => {
@@ -214,11 +214,11 @@ describe('App', () => {
             fireEvent.click(refreshButton);
 
             // Should show spinner initially
-            expect(document.querySelector('.spinner-border')).toBeInTheDocument();
+            expect(document.querySelector('.animate-spin')).toBeInTheDocument();
 
             // Should hide spinner after successful refresh
             await waitFor(() => {
-                expect(document.querySelector('.spinner-border')).not.toBeInTheDocument();
+                expect(document.querySelector('.animate-spin')).not.toBeInTheDocument();
             });
         });
 
@@ -249,11 +249,11 @@ describe('App', () => {
             fireEvent.click(refreshButton);
 
             // Should show spinner initially
-            expect(document.querySelector('.spinner-border')).toBeInTheDocument();
+            expect(document.querySelector('.animate-spin')).toBeInTheDocument();
 
             // Should hide spinner after error
             await waitFor(() => {
-                expect(document.querySelector('.spinner-border')).not.toBeInTheDocument();
+                expect(document.querySelector('.animate-spin')).not.toBeInTheDocument();
             });
         });
     });
@@ -303,7 +303,7 @@ describe('App', () => {
             fireEvent.click(refreshButton);
 
             // Look for spinner by class using querySelector since it has aria-hidden="true"
-            const spinner = document.querySelector('.spinner-border');
+            const spinner = document.querySelector('.animate-spin');
             expect(spinner).toBeInTheDocument();
         });
     });
@@ -313,7 +313,7 @@ describe('App', () => {
             render(<App />);
 
             // Should start with no loading state
-            expect(document.querySelector('.spinner-border')).not.toBeInTheDocument();
+            expect(document.querySelector('.animate-spin')).not.toBeInTheDocument();
             expect(screen.getByRole('button', { name: /refresh data/i })).toBeInTheDocument();
         });
 
@@ -323,15 +323,15 @@ describe('App', () => {
             const refreshButton = screen.getByRole('button', { name: /refresh data/i });
 
             // Initially no spinner
-            expect(document.querySelector('.spinner-border')).not.toBeInTheDocument();
+            expect(document.querySelector('.animate-spin')).not.toBeInTheDocument();
 
             // Click to start loading
             fireEvent.click(refreshButton);
-            expect(document.querySelector('.spinner-border')).toBeInTheDocument();
+            expect(document.querySelector('.animate-spin')).toBeInTheDocument();
 
             // Wait for loading to complete
             await waitFor(() => {
-                expect(document.querySelector('.spinner-border')).not.toBeInTheDocument();
+                expect(document.querySelector('.animate-spin')).not.toBeInTheDocument();
             });
         });
 

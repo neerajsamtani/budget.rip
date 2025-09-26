@@ -1,5 +1,6 @@
+import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import React, { useCallback, useEffect, useState } from "react";
-import { Button, Nav, Navbar, Table } from "react-bootstrap";
 import CreateCashTransactionModal from "../components/CreateCashTransactionModal";
 import CreateEventModal from "../components/CreateEventModal";
 import LineItem from "../components/LineItem";
@@ -11,9 +12,6 @@ export default function LineItemsToReviewPage() {
     const [cashModalShow, setCashModalShow] = useState(false);
     const lineItems = useLineItems();
 
-    const padding = {
-        padding: 5
-    }
 
     const handleKeyDown = useCallback((event) => {
         if (event.key === 'Enter') {
@@ -34,25 +32,25 @@ export default function LineItemsToReviewPage() {
         <div>
             <h1>Line Items To Review</h1>
             {lineItems &&
-                <Table striped bordered hover>
-                    <thead>
-                        <tr>
-                            <th>Select</th>
-                            <th>Date</th>
-                            <th>Payment Method</th>
-                            <th>Description</th>
-                            <th>Name</th>
-                            <th>Amount</th>
-                        </tr>
-                    </thead>
-                    <tbody>
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Select</TableHead>
+                            <TableHead>Date</TableHead>
+                            <TableHead>Payment Method</TableHead>
+                            <TableHead>Description</TableHead>
+                            <TableHead>Name</TableHead>
+                            <TableHead>Amount</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
                         {lineItems.length > 0 && lineItems.map(lineItem =>
                             <LineItem key={lineItem._id}
                                 lineItem={lineItem}
                                 showCheckBox={true}
                             />
                         )}
-                    </tbody>
+                    </TableBody>
                 </Table>
             }
             <CreateCashTransactionModal
@@ -63,15 +61,11 @@ export default function LineItemsToReviewPage() {
                 show={eventModalShow}
                 onHide={() => setEventModalShow(false)}
             />
-            <div className="fixed-bottom">
-                <Navbar color="dark" className="justify-content-end">
-                    <Nav.Item style={padding}>
-                        <Button onClick={() => setCashModalShow(true)} variant="primary">Create Cash Transaction</Button>
-                    </Nav.Item>
-                    <Nav.Item style={padding}>
-                        <Button onClick={() => setEventModalShow(true)} variant="primary">Create Event (↵)</Button>
-                    </Nav.Item>
-                </Navbar>
+            <div className="fixed bottom-0 left-0 right-0 bg-slate-900 p-4">
+                <div className="flex justify-end space-x-4">
+                    <Button onClick={() => setCashModalShow(true)}>Create Cash Transaction</Button>
+                    <Button onClick={() => setEventModalShow(true)}>Create Event (↵)</Button>
+                </div>
             </div>
         </div>
     )

@@ -2,6 +2,24 @@ import { render, RenderOptions } from '@testing-library/react';
 import React, { ReactElement } from 'react';
 import { BrowserRouter } from 'react-router-dom';
 
+// Polyfill for hasPointerCapture - needed for Radix UI components in tests
+if (!Element.prototype.hasPointerCapture) {
+    Element.prototype.hasPointerCapture = () => false;
+}
+
+if (!Element.prototype.setPointerCapture) {
+    Element.prototype.setPointerCapture = () => {};
+}
+
+if (!Element.prototype.releasePointerCapture) {
+    Element.prototype.releasePointerCapture = () => {};
+}
+
+// Polyfill for scrollIntoView - needed for Radix UI Select component in tests
+if (!Element.prototype.scrollIntoView) {
+    Element.prototype.scrollIntoView = () => {};
+}
+
 // Mock axios instance for API calls - create mock without importing axios
 const mockAxiosInstance = {
     get: jest.fn(),
