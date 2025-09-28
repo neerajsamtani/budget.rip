@@ -26,12 +26,12 @@ export default function PaymentMethodFilter({ paymentMethod, setPaymentMethod }:
 
   return (
     <div className="space-y-2">
-      <Label>Payment Method</Label>
+      <Label className="text-sm font-medium text-[#374151]">Payment Method</Label>
       <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-        <SelectTrigger>
+        <SelectTrigger className="w-full">
           <SelectValue placeholder="Select payment method" />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className="bg-white border border-[#E0E0E0]">
           <SelectItem value="All">All</SelectItem>
           {paymentMethods.map(payment_method => {
             return (<SelectItem value={payment_method} key={payment_method}>{payment_method}</SelectItem>)

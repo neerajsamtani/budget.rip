@@ -8,9 +8,14 @@ function Input({ className, type, ...props }: React.ComponentProps<"input">) {
       type={type}
       data-slot="input"
       className={cn(
-        "file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input h-9 w-full min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
-        "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
-        "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
+        // Nordic input specifications
+        "w-full rounded-md border border-[#E0E0E0] bg-white px-4 py-3 text-sm text-[#374151] placeholder:text-[#6B7280]",
+        "font-['Source_Sans_Pro'] min-w-0",
+        "focus:border-[#5B82C4] focus:ring-2 focus:ring-[#E8F0FE] focus:outline-none",
+        "disabled:bg-[#F5F5F5] disabled:text-[#6B7280] disabled:cursor-not-allowed",
+        "transition-colors duration-150",
+        "file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-[#374151]",
+        "selection:bg-[#5B82C4] selection:text-white",
         className
       )}
       {...props}

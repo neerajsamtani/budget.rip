@@ -1,6 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { H1, Body } from "../components/ui/typography";
+import { PageContainer, PageHeader } from "../components/ui/layout";
 import React, { Fragment, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FormField, useField } from '../hooks/useField';
@@ -55,22 +57,66 @@ export default function LoginPage() {
     }
 
     return (
-        <Fragment>
-            <div className="space-y-4 max-w-md mx-auto p-6">
-                <div className="space-y-2">
-                    <Label htmlFor="login-email-input">Email:</Label>
-                    <Input id="login-email-input" value={email.value} onChange={email.onChange} type={email.type} />
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="login-password-input">Password:</Label>
-                    <Input id="login-password-input" value={password.value} onChange={password.onChange} type={password.type} />
-                </div>
-                {error && <div role="alert" className="text-red-500 text-sm">{error}</div>}
-                <div className="flex space-x-2">
-                    <Button onClick={() => handleLogin(email, password)}>Log In</Button>
-                    <Button onClick={handleLogout} variant="secondary">Log Out</Button>
+        <PageContainer>
+            <PageHeader>
+                <H1>Login</H1>
+                <Body className="text-[#6B7280]">
+                    Sign in to access your budgeting dashboard
+                </Body>
+            </PageHeader>
+
+            <div className="w-full !max-w-[28rem] mx-auto">
+                <div className="bg-white rounded-xl border border-[#E0E0E0] p-8 shadow-sm">
+                    <div className="space-y-6">
+                        <div className="space-y-3">
+                            <Label htmlFor="login-email-input" className="text-sm font-medium text-[#374151]">
+                                Email
+                            </Label>
+                            <Input
+                                id="login-email-input"
+                                value={email.value}
+                                onChange={email.onChange}
+                                type={email.type}
+                                className="w-full !min-w-[250px]"
+                                placeholder="Enter your email address"
+                            />
+                        </div>
+                        <div className="space-y-3">
+                            <Label htmlFor="login-password-input" className="text-sm font-medium text-[#374151]">
+                                Password
+                            </Label>
+                            <Input
+                                id="login-password-input"
+                                value={password.value}
+                                onChange={password.onChange}
+                                type={password.type}
+                                className="w-full !min-w-[250px]"
+                                placeholder="Enter your password"
+                            />
+                        </div>
+                        {error && (
+                            <div role="alert" className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                                {error}
+                            </div>
+                        )}
+                        <div className="flex space-x-3 pt-2">
+                            <Button
+                                onClick={() => handleLogin(email, password)}
+                                className="flex-1"
+                            >
+                                Log In
+                            </Button>
+                            <Button
+                                onClick={handleLogout}
+                                variant="secondary"
+                                className="flex-1"
+                            >
+                                Log Out
+                            </Button>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </Fragment>
+        </PageContainer>
     )
 }

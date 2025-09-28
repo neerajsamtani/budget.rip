@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { H3, Body } from "../components/ui/typography";
 import React, { Fragment, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { getPrefillFromLineItems } from '.././data/EventHints';
@@ -122,25 +123,37 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
   return (
     <Fragment>
       <Dialog open={show} onOpenChange={closeModal}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>
-              New Event Details
-            </DialogTitle>
+        <DialogContent className="w-full !max-w-[42rem]">
+          <DialogHeader className="pb-4 border-b border-[#F5F5F5] -mx-6 px-6">
+            <H3 className="text-[#374151]">New Event Details</H3>
+            <Body className="text-[#6B7280] mt-2">
+              Create a financial event from your selected transactions
+            </Body>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Name:</Label>
-              <Input type={name.type} value={name.value} onChange={name.onChange} />
+          <div className="space-y-6 -mx-6 px-6">
+            <div className="space-y-3">
+              <Label htmlFor="event-name" className="text-sm font-medium text-[#374151]">
+                Event Name
+              </Label>
+              <Input
+                id="event-name"
+                type={name.type}
+                value={name.value}
+                onChange={name.onChange}
+                className="w-full !min-w-[350px]"
+                placeholder="Enter a descriptive name for this event"
+              />
             </div>
-            {/* TODO: Can I use a CategoryFilter here? */}
-            <div className="space-y-2">
-              <Label>Category:</Label>
+
+            <div className="space-y-3">
+              <Label htmlFor="event-category" className="text-sm font-medium text-[#374151]">
+                Category
+              </Label>
               <Select value={category.value} onValueChange={(value) => category.setCustomValue(value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select category" />
+                <SelectTrigger className="w-full !min-w-[350px]">
+                  <SelectValue placeholder="Select a category" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-white border border-[#E0E0E0]">
                   <SelectItem value="All">All</SelectItem>
                   <SelectItem value="Alcohol">Alcohol</SelectItem>
                   <SelectItem value="Dining">Dining</SelectItem>
@@ -160,52 +173,91 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label>Tags:</Label>
-              <div className="flex flex-wrap gap-2 mb-2">
-                {tags.map(tag => (
-                  <Badge
-                    key={tag.id}
-                    variant="default"
-                    className="flex items-center gap-1"
-                  >
-                    {tag.text}
-                    <span
-                      onClick={() => removeTag(tag.id)}
-                      className="ml-1 cursor-pointer hover:text-red-500"
-                    >
-                      ×
-                    </span>
-                  </Badge>
-                ))}
+
+            <div className="space-y-3">
+              <Label htmlFor="event-tags" className="text-sm font-medium text-[#374151]">
+                Tags
+              </Label>
+              <div className="space-y-3">
+                {tags.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {tags.map(tag => (
+                      <Badge
+                        key={tag.id}
+                        className="bg-[#5B82C4] text-white hover:bg-[#3D5A96] flex items-center gap-1 px-3 py-1"
+                      >
+                        {tag.text}
+                        <span
+                          onClick={() => removeTag(tag.id)}
+                          className="ml-1 cursor-pointer hover:text-red-300 font-bold"
+                        >
+                          ×
+                        </span>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+                <Input
+                  id="event-tags"
+                  type="text"
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value)}
+                  onKeyDown={handleTagInputKeyDown}
+                  placeholder="Type a tag and press Enter to add"
+                  className="w-full !min-w-[350px]"
+                />
               </div>
+            </div>
+
+            <div className="space-y-3">
+              <Label htmlFor="override-date-input" className="text-sm font-medium text-[#374151]">
+                Override Date (optional)
+              </Label>
               <Input
-                type="text"
-                value={tagInput}
-                onChange={(e) => setTagInput(e.target.value)}
-                onKeyDown={handleTagInputKeyDown}
-                placeholder="Type a tag and press Enter"
+                id="override-date-input"
+                type={date.type}
+                value={date.value}
+                onChange={date.onChange}
+                className="w-full !min-w-[350px]"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="override-date-input">Override Date:</Label>
-              <Input id="override-date-input" type={date.type} value={date.value} onChange={date.onChange} />
-            </div>
-            <div className="flex items-center space-x-2">
+
+            <div className="flex items-center space-x-3 p-4 bg-[#F5F5F5] rounded-lg">
               <Checkbox
                 id="duplicate-transaction"
                 checked={isDuplicateTransaction.value}
                 onCheckedChange={() => isDuplicateTransaction.setCustomValue(!isDuplicateTransaction.value)}
+                className="border-[#5B82C4] data-[state=checked]:bg-[#5B82C4]"
               />
-              <Label htmlFor="duplicate-transaction">Duplicate Transaction</Label>
+              <div className="space-y-1">
+                <Label htmlFor="duplicate-transaction" className="text-sm font-medium text-[#374151] cursor-pointer">
+                  Split Transaction
+                </Label>
+                <Body className="text-[#6B7280] text-xs">
+                  Check this if the transaction amount should be split (e.g., shared with someone)
+                </Body>
+              </div>
             </div>
           </div>
-          <DialogFooter>
+
+          <DialogFooter className="pt-4 border-t border-[#F5F5F5] -mx-6 px-6">
             <div className="flex items-center justify-between w-full">
-              <Badge variant="secondary">Total: {CurrencyFormatter.format(total)}</Badge>
-              <div className="flex space-x-2">
-                <Button onClick={closeModal} variant="secondary">Cancel</Button>
-                <Button onClick={() => createEvent(name, category)} disabled={disableSubmit}>Submit</Button>
+              <div className="bg-[#F5F5F5] px-4 py-2 rounded-lg">
+                <Body className="text-sm font-medium text-[#374151]">
+                  Total: <span className="text-[#5B82C4] font-semibold">{CurrencyFormatter.format(total)}</span>
+                </Body>
+              </div>
+              <div className="flex space-x-3">
+                <Button onClick={closeModal} variant="secondary" className="min-w-[100px]">
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => createEvent(name, category)}
+                  disabled={disableSubmit}
+                  className="min-w-[100px]"
+                >
+                  Create Event
+                </Button>
               </div>
             </div>
           </DialogFooter>

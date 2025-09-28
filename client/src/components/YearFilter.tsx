@@ -7,7 +7,8 @@ const YEARS = [
   '2022',
   '2023',
   '2024',
-  '2025'
+  '2025',
+  '2026'
 ] as const;
 
 // Infer the Year type from the YEARS array
@@ -23,12 +24,12 @@ export default function YearFilter({ year, setYear }: YearFilterProps) {
 
   return (
     <div className="space-y-2">
-      <Label>Year</Label>
+      <Label className="text-sm font-medium text-[#374151]">Year</Label>
       <Select value={year} onValueChange={setYear}>
-        <SelectTrigger>
+        <SelectTrigger className="w-full">
           <SelectValue placeholder="Select year" />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className="bg-white border border-[#E0E0E0]">
           {YEARS.map(y => (
             <SelectItem key={y} value={y}>
               {y}

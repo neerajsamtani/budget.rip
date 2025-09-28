@@ -14,12 +14,13 @@ export default function TagsFilter({ tagFilter, setTagFilter }: TagsFilterProps)
 
     return (
         <div className="space-y-2">
-            <Label>Tags</Label>
+            <Label className="text-sm font-medium text-[#374151]">Tags</Label>
             <Input
                 type="text"
-                placeholder="Enter tag..."
+                placeholder="Search by tag..."
                 value={tagFilter}
                 onChange={handleTagChange}
+                className="w-full"
             />
         </div>
     );
