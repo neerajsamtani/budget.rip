@@ -3,6 +3,19 @@ import React from 'react';
 import { mockAxiosInstance, render, screen, waitFor } from '../../utils/test-utils';
 import LineItemsPage from '../LineItemsPage';
 
+// Mock sonner toast
+jest.mock('sonner', () => {
+    const mockToast = jest.fn();
+    return {
+        toast: Object.assign(mockToast, {
+            success: jest.fn(),
+            error: jest.fn(),
+            warning: jest.fn(),
+            info: jest.fn(),
+        }),
+    };
+});
+
 // Mock the components
 jest.mock('../../components/LineItem', () => {
     return function MockLineItem({ lineItem }: any) {
@@ -102,7 +115,7 @@ describe('LineItemsPage', () => {
                 expect(screen.getByText('Date')).toBeInTheDocument();
                 expect(screen.getByText('Payment Method')).toBeInTheDocument();
                 expect(screen.getByText('Description')).toBeInTheDocument();
-                expect(screen.getByText('Name')).toBeInTheDocument();
+                expect(screen.getByText('Party')).toBeInTheDocument();
                 expect(screen.getByText('Amount')).toBeInTheDocument();
             });
         });
@@ -210,16 +223,17 @@ describe('LineItemsPage', () => {
         });
 
         it('handles API errors gracefully', async () => {
-            const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+            const { toast } = require('sonner');
             mockAxiosInstance.get.mockRejectedValue(new Error('API Error'));
 
             render(<LineItemsPage />);
 
             await waitFor(() => {
-                expect(consoleSpy).toHaveBeenCalledWith(expect.any(Error));
+                expect(toast.error).toHaveBeenCalledWith("Error", {
+                    description: "API Error",
+                    duration: 3500,
+                });
             });
-
-            consoleSpy.mockRestore();
         });
 
         it('uses correct API endpoint from environment variable', async () => {

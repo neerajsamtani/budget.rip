@@ -14,7 +14,7 @@ export default function TagsFilter({ tagFilter, setTagFilter }: TagsFilterProps)
 
     return (
         <div className="space-y-2">
-            <Label className="text-sm font-medium text-[#374151]">Tags</Label>
+            <Label className="text-sm font-medium text-foreground">Tags</Label>
             <Input
                 type="text"
                 placeholder="Search by tag..."

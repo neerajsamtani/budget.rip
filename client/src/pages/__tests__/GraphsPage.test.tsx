@@ -2,6 +2,19 @@ import React from 'react';
 import { mockAxiosInstance, render, screen, waitFor } from '../../utils/test-utils';
 import GraphsPage from '../GraphsPage';
 
+// Mock sonner toast
+jest.mock('sonner', () => {
+    const mockToast = jest.fn();
+    return {
+        toast: Object.assign(mockToast, {
+            success: jest.fn(),
+            error: jest.fn(),
+            warning: jest.fn(),
+            info: jest.fn(),
+        }),
+    };
+});
+
 // Mock the Plot component from react-plotly.js
 jest.mock('react-plotly.js', () => {
     return function MockPlot({ data, layout }: any) {
@@ -110,16 +123,17 @@ describe('GraphsPage', () => {
         });
 
         it('handles API errors gracefully', async () => {
-            const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+            const { toast } = require('sonner');
             mockAxiosInstance.get.mockRejectedValue(new Error('API Error'));
 
             render(<GraphsPage />);
 
             await waitFor(() => {
-                expect(consoleSpy).toHaveBeenCalledWith(expect.any(Error));
+                expect(toast.error).toHaveBeenCalledWith("Error", {
+                    description: "API Error",
+                    duration: 3500,
+                });
             });
-
-            consoleSpy.mockRestore();
         });
 
         it('handles empty API response', async () => {
@@ -409,16 +423,17 @@ describe('GraphsPage', () => {
         });
 
         it('handles network timeout gracefully', async () => {
-            const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+            const { toast } = require('sonner');
             mockAxiosInstance.get.mockRejectedValue(new Error('Network timeout'));
 
             render(<GraphsPage />);
 
             await waitFor(() => {
-                expect(consoleSpy).toHaveBeenCalledWith(expect.any(Error));
+                expect(toast.error).toHaveBeenCalledWith("Error", {
+                    description: "Network timeout",
+                    duration: 3500,
+                });
             });
-
-            consoleSpy.mockRestore();
         });
     });
 

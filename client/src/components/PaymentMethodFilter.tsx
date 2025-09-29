@@ -1,6 +1,7 @@
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import React, { useEffect, useState } from "react";
+import { toast } from "sonner";
 import axiosInstance from "../utils/axiosInstance";
 
 type PaymentMethod = string
@@ -20,18 +21,21 @@ export default function PaymentMethodFilter({ paymentMethod, setPaymentMethod }:
       .then(response => {
         setPaymentMethods(Array.isArray(response.data) ? response.data : []);
       })
-      .catch(error => console.log(error));
+      .catch(error => toast.error("Error", {
+        description: error.message,
+        duration: 3500,
+      }));
   }, [])
 
 
   return (
     <div className="space-y-2">
-      <Label className="text-sm font-medium text-[#374151]">Payment Method</Label>
+      <Label className="text-sm font-medium text-foreground">Payment Method</Label>
       <Select value={paymentMethod} onValueChange={setPaymentMethod}>
         <SelectTrigger className="w-full">
           <SelectValue placeholder="Select payment method" />
         </SelectTrigger>
-        <SelectContent className="bg-white border border-[#E0E0E0]">
+        <SelectContent className="bg-white border">
           <SelectItem value="All">All</SelectItem>
           {paymentMethods.map(payment_method => {
             return (<SelectItem value={payment_method} key={payment_method}>{payment_method}</SelectItem>)

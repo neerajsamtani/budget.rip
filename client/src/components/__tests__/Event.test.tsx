@@ -4,6 +4,19 @@ import React from 'react';
 import { mockAxiosInstance, render, screen, waitFor } from '../../utils/test-utils';
 import Event, { EventInterface } from '../Event';
 
+// Mock sonner toast
+jest.mock('sonner', () => {
+    const mockToast = jest.fn();
+    return {
+        toast: Object.assign(mockToast, {
+            success: jest.fn(),
+            error: jest.fn(),
+            warning: jest.fn(),
+            info: jest.fn(),
+        }),
+    };
+});
+
 // Mock EventDetailsModal component
 jest.mock('../EventDetailsModal', () => {
     return function MockEventDetailsModal({ show, onHide }: { show: boolean; onHide: () => void }) {
@@ -138,7 +151,7 @@ describe('Event', () => {
         });
 
         it('handles API error gracefully', async () => {
-            const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+            const { toast } = require('sonner');
             mockAxiosInstance.get.mockRejectedValue(new Error('API Error'));
 
             await act(async () => {
@@ -153,10 +166,11 @@ describe('Event', () => {
             });
 
             await waitFor(() => {
-                expect(consoleSpy).toHaveBeenCalledWith(expect.any(Error));
+                expect(toast.error).toHaveBeenCalledWith("Error", {
+                    description: "API Error",
+                    duration: 3500,
+                });
             });
-
-            consoleSpy.mockRestore();
         });
     });
 

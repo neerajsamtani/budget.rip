@@ -1,9 +1,10 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { PageContainer, PageHeader } from "../components/ui/layout";
-import { H1, Body } from "../components/ui/typography";
 import React, { useEffect, useState } from "react";
+import { toast } from "sonner";
 import LineItem from "../components/LineItem";
 import PaymentMethodFilter from "../components/PaymentMethodFilter";
+import { PageContainer, PageHeader } from "../components/ui/layout";
+import { Body, H1 } from "../components/ui/typography";
 import { LineItemInterface } from "../contexts/LineItemsContext";
 import axiosInstance from "../utils/axiosInstance";
 
@@ -22,14 +23,17 @@ export default function LineItemsPage() {
             .then(response => {
                 setLineItems(response.data.data)
             })
-            .catch(error => console.log(error));
+            .catch(error => toast.error("Error", {
+                description: error.message,
+                duration: 3500,
+            }));
     }, [paymentMethod])
 
     return (
         <PageContainer>
             <PageHeader>
                 <H1>Line Items</H1>
-                <Body className="text-[#6B7280]">
+                <Body className="text-muted-foreground">
                     Browse all your transaction line items with filtering options
                 </Body>
             </PageHeader>
@@ -56,7 +60,7 @@ export default function LineItemsPage() {
                             ))
                         ) : (
                             <TableRow>
-                                <TableCell colSpan={5} className="text-center text-[#6B7280]">
+                                <TableCell colSpan={5} className="text-center text-muted-foreground">
                                     No Line Items found
                                 </TableCell>
                             </TableRow>

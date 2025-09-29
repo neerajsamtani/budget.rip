@@ -13,7 +13,6 @@ export default function ShadcnTestPage() {
         <div className="flex flex-wrap gap-4">
           <Button variant="default">Default</Button>
           <Button variant="destructive">Destructive</Button>
-          <Button variant="outline">Outline</Button>
           <Button variant="secondary">Secondary</Button>
           <Button variant="ghost">Ghost</Button>
           <Button variant="link">Link</Button>
@@ -37,7 +36,7 @@ export default function ShadcnTestPage() {
         <div className="flex flex-wrap gap-4">
           <Button disabled>Default Disabled</Button>
           <Button variant="destructive" disabled>Destructive Disabled</Button>
-          <Button variant="outline" disabled>Outline Disabled</Button>
+          <Button variant="ghost" disabled>Outline Disabled</Button>
           <Button variant="secondary" disabled>Secondary Disabled</Button>
         </div>
       </section>
@@ -56,7 +55,7 @@ export default function ShadcnTestPage() {
             Delete Something
           </Button>
           <Button
-            variant="outline"
+            variant="ghost"
             onClick={() => alert('Outline button clicked!')}
           >
             Outline Action
@@ -74,7 +73,7 @@ export default function ShadcnTestPage() {
           <Button variant="destructive">
             🗑️ Delete
           </Button>
-          <Button variant="outline">
+          <Button variant="ghost">
             📝 Edit
           </Button>
           <Button variant="secondary">
@@ -87,13 +86,13 @@ export default function ShadcnTestPage() {
       <section>
         <h2 className="text-2xl font-semibold mb-4">Button Groups</h2>
         <div className="flex gap-1">
-          <Button variant="outline" className="rounded-r-none">
+          <Button variant="ghost" className="rounded-r-none">
             First
           </Button>
-          <Button variant="outline" className="rounded-none border-l-0">
+          <Button variant="ghost" className="rounded-none border-l-0">
             Middle
           </Button>
-          <Button variant="outline" className="rounded-l-none border-l-0">
+          <Button variant="ghost" className="rounded-l-none border-l-0">
             Last
           </Button>
         </div>
@@ -106,7 +105,7 @@ export default function ShadcnTestPage() {
           <Button disabled>
             ⏳ Loading...
           </Button>
-          <Button variant="outline" disabled>
+          <Button variant="ghost" disabled>
             🔄 Processing...
           </Button>
         </div>
@@ -134,7 +133,7 @@ export default function ShadcnTestPage() {
             ❌ Error Toast
           </Button>
           <Button
-            variant="outline"
+            variant="ghost"
             onClick={() => toast.info("Info", {
               description: "This is an informational message with some details.",
               duration: 4000,

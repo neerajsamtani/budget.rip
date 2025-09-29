@@ -1,8 +1,9 @@
 import React, { lazy, Suspense, useEffect, useState } from "react";
-import axiosInstance from "../utils/axiosInstance";
-import { chartColorSequence } from '../lib/chart-colors';
+import { toast } from "sonner";
 import { PageContainer, PageHeader } from "../components/ui/layout";
-import { H1, Body } from "../components/ui/typography";
+import { Body, H1 } from "../components/ui/typography";
+import { chartColorSequence } from '../lib/chart-colors';
+import axiosInstance from "../utils/axiosInstance";
 
 const Plot = lazy(() => import('react-plotly.js'));
 
@@ -25,7 +26,10 @@ export default function GraphsPage() {
       .then(response => {
         setCategorizedData(response.data)
       })
-      .catch(error => console.log(error));
+      .catch(error => toast.error("Error", {
+        description: error.message,
+        duration: 3500,
+      }));
   }, [])
 
   const data = Object.keys(categorizedData).map((category, index) => {
@@ -71,16 +75,16 @@ export default function GraphsPage() {
     <PageContainer>
       <PageHeader>
         <H1>Graphs</H1>
-        <Body className="text-[#6B7280]">
+        <Body className="text-muted-foreground">
           Visual analysis of your spending patterns and financial trends
         </Body>
       </PageHeader>
 
       <div className="space-y-6">
-        <div className="bg-white rounded-xl border border-[#E0E0E0] p-6 shadow-sm">
+        <div className="bg-white rounded-xl border p-6 shadow-sm">
           <Suspense fallback={
             <div className="flex items-center justify-center h-96">
-              <Body className="text-[#6B7280]">Loading chart...</Body>
+              <Body className="text-muted-foreground">Loading chart...</Body>
             </div>
           }>
             <Plot

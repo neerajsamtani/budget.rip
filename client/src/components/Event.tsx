@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TableCell } from "@/components/ui/table";
+import { toast } from 'sonner';
 import { StatusBadge } from "../components/ui/status-badge";
 import { LineItemInterface } from "../contexts/LineItemsContext";
 import axiosInstance from "../utils/axiosInstance";
@@ -33,19 +34,22 @@ export default function Event({ event }: { event: EventInterface }) {
             .then(() => {
                 setEventDetailsModalShow(true)
             })
-            .catch(error => console.log(error));
+            .catch(error => toast.error("Error", {
+                description: error.message,
+                duration: 3500,
+            }));
     }
 
     return (
         <>
-            <TableCell className="font-mono text-sm text-[#374151]">
+            <TableCell className="font-mono text-sm text-foreground">
                 {readableDate}
             </TableCell>
-            <TableCell className="font-medium text-[#374151]">
+            <TableCell className="font-medium text-foreground">
                 {event.name}
             </TableCell>
             <TableCell>
-                <Badge className="bg-[#F5F5F5] text-[#374151] border border-[#E0E0E0] hover:bg-[#E0E0E0]">
+                <Badge className="bg-muted text-foreground border hover:bg-muted">
                     {event.category}
                 </Badge>
             </TableCell>
@@ -62,14 +66,14 @@ export default function Event({ event }: { event: EventInterface }) {
                         {event.tags.map((tag, index) => (
                             <Badge
                                 key={index}
-                                className="bg-[#5B82C4] text-white text-xs px-2 py-1"
+                                className="bg-primary text-white text-xs px-2 py-1"
                             >
                                 {tag}
                             </Badge>
                         ))}
                     </div>
                 ) : (
-                    <span className="text-[#9CA3AF] text-sm">No tags</span>
+                    <span className="text-muted-foreground text-sm">No tags</span>
                 )}
             </TableCell>
             <TableCell>

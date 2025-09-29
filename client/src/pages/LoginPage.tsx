@@ -1,10 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { H1, Body } from "../components/ui/typography";
-import { PageContainer, PageHeader } from "../components/ui/layout";
-import React, { Fragment, useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from "sonner";
+import { PageContainer, PageHeader } from "../components/ui/layout";
+import { Body, H1 } from "../components/ui/typography";
 import { FormField, useField } from '../hooks/useField';
 import axiosInstance from "../utils/axiosInstance";
 
@@ -43,33 +44,42 @@ export default function LoginPage() {
             })
             .catch(error => {
                 setError(error.message || 'Login failed');
-                console.log(error);
+                toast.error("Error", {
+                    description: error.message,
+                    duration: 3500,
+                });
             });
     }
 
     const handleLogout = () => {
         const VITE_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
         axiosInstance.post(`${VITE_API_ENDPOINT}api/auth/logout`)
-            .then(response => {
-                console.log(response);
+            .then(() => {
+                toast.info("Notification", {
+                    description: "Logged out",
+                    duration: 3500,
+                });
             })
-            .catch(error => console.log(error));
+            .catch(error => toast.error("Error", {
+                description: error.message,
+                duration: 3500,
+            }));
     }
 
     return (
         <PageContainer>
             <PageHeader>
                 <H1>Login</H1>
-                <Body className="text-[#6B7280]">
+                <Body className="text-muted-foreground">
                     Sign in to access your budgeting dashboard
                 </Body>
             </PageHeader>
 
             <div className="w-full !max-w-[28rem] mx-auto">
-                <div className="bg-white rounded-xl border border-[#E0E0E0] p-8 shadow-sm">
+                <div className="bg-white rounded-xl border p-8 shadow-sm">
                     <div className="space-y-6">
                         <div className="space-y-3">
-                            <Label htmlFor="login-email-input" className="text-sm font-medium text-[#374151]">
+                            <Label htmlFor="login-email-input" className="text-sm font-medium text-foreground">
                                 Email
                             </Label>
                             <Input
@@ -82,7 +92,7 @@ export default function LoginPage() {
                             />
                         </div>
                         <div className="space-y-3">
-                            <Label htmlFor="login-password-input" className="text-sm font-medium text-[#374151]">
+                            <Label htmlFor="login-password-input" className="text-sm font-medium text-foreground">
                                 Password
                             </Label>
                             <Input

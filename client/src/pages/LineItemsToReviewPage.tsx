@@ -34,7 +34,7 @@ export default function LineItemsToReviewPage() {
         <PageContainer>
             <PageHeader>
                 <H1>Review Line Items</H1>
-                <Body className="text-[#6B7280]">
+                <Body className="text-muted-foreground">
                     Review and categorize your recent transactions
                 </Body>
             </PageHeader>
@@ -74,7 +74,7 @@ export default function LineItemsToReviewPage() {
                 onHide={() => setEventModalShow(false)}
             />
 
-            <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-[#E0E0E0] p-6 shadow-lg">
+            <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-6 shadow-lg">
                 <div className="container mx-auto max-w-7xl">
                     <div className="flex justify-end space-x-4">
                         <Button onClick={() => setCashModalShow(true)} variant="secondary">

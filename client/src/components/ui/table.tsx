@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils"
 
 function Table({ className, ...props }: React.ComponentProps<"table">) {
   return (
-    <div className="w-full overflow-auto rounded-xl bg-white shadow-sm border border-[#E0E0E0]">
+    <div className="w-full overflow-auto rounded-xl bg-white shadow-sm border">
       <table
         data-slot="table"
         className={cn("w-full caption-bottom text-sm", className)}
@@ -18,7 +18,7 @@ function TableHeader({ className, ...props }: React.ComponentProps<"thead">) {
   return (
     <thead
       data-slot="table-header"
-      className={cn("bg-[#F5F5F5] border-b border-[#E0E0E0]", className)}
+      className={cn("bg-muted border-b", className)}
       {...props}
     />
   )
@@ -38,7 +38,7 @@ function TableFooter({ className, ...props }: React.ComponentProps<"tfoot">) {
   return (
     <tfoot
       data-slot="table-footer"
-      className={cn("bg-[#F5F5F5] border-t border-[#E0E0E0] font-medium", className)}
+      className={cn("bg-muted border-t font-medium", className)}
       {...props}
     />
   )
@@ -49,7 +49,7 @@ function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
     <tr
       data-slot="table-row"
       className={cn(
-        "border-b border-[#E0E0E0] transition-colors hover:bg-[#FAFAFA] data-[state=selected]:bg-[#E8F0FE]",
+        "border-b transition-colors hover:bg-gray-50 data-[state=selected]:bg-primary-light",
         className
       )}
       {...props}
@@ -62,7 +62,7 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
     <th
       data-slot="table-head"
       className={cn(
-        "h-12 px-6 text-left align-middle font-medium text-[#374151] font-['Source_Sans_Pro'] text-sm",
+        "h-12 px-6 text-left align-middle font-medium text-foreground font-body text-sm",
         className
       )}
       {...props}
@@ -75,7 +75,7 @@ function TableCell({ className, ...props }: React.ComponentProps<"td">) {
     <td
       data-slot="table-cell"
       className={cn(
-        "p-6 align-middle text-[#374151] font-['Source_Sans_Pro'] text-sm",
+        "p-6 align-middle text-foreground font-body text-sm",
         className
       )}
       {...props}
@@ -90,7 +90,7 @@ function TableCaption({
   return (
     <caption
       data-slot="table-caption"
-      className={cn("mt-4 text-sm text-[#6B7280] font-['Source_Sans_Pro']", className)}
+      className={cn("mt-4 text-sm text-muted-foreground font-body", className)}
       {...props}
     />
   )

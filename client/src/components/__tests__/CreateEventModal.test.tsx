@@ -108,11 +108,11 @@ describe('CreateEventModal', () => {
         it('renders all form fields', () => {
             render(<CreateEventModal show={true} onHide={mockOnHide} />);
 
-            expect(screen.getByText('Name:')).toBeInTheDocument();
-            expect(screen.getByText('Category:')).toBeInTheDocument();
-            expect(screen.getByText('Tags:')).toBeInTheDocument();
-            expect(screen.getByText('Override Date:')).toBeInTheDocument();
-            expect(screen.getByText('Duplicate Transaction')).toBeInTheDocument();
+            expect(screen.getByText('Event Name')).toBeInTheDocument();
+            expect(screen.getByText('Category')).toBeInTheDocument();
+            expect(screen.getByText('Tags')).toBeInTheDocument();
+            expect(screen.getByText('Override Date (optional)')).toBeInTheDocument();
+            expect(screen.getByText('Split Transaction')).toBeInTheDocument();
         });
 
         it('renders all category options', async () => {
@@ -138,13 +138,14 @@ describe('CreateEventModal', () => {
             render(<CreateEventModal show={true} onHide={mockOnHide} />);
 
             expect(screen.getByRole('button', { name: /cancel/i })).toBeInTheDocument();
-            expect(screen.getByRole('button', { name: /submit/i })).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: /create event/i })).toBeInTheDocument();
         });
 
         it('shows total amount from selected line items', () => {
             render(<CreateEventModal show={true} onHide={mockOnHide} />);
 
-            expect(screen.getByText('Total: $150.00')).toBeInTheDocument();
+            expect(screen.getByText('Total:')).toBeInTheDocument();
+            expect(screen.getByText('$150.00')).toBeInTheDocument();
         });
     });
 
@@ -171,7 +172,7 @@ describe('CreateEventModal', () => {
         it('allows setting date', async () => {
             render(<CreateEventModal show={true} onHide={mockOnHide} />);
 
-            const dateInput = screen.getByLabelText('Override Date:');
+            const dateInput = screen.getByLabelText('Override Date (optional)');
             fireEvent.change(dateInput, { target: { value: '2024-01-15' } });
 
             expect(dateInput).toHaveValue('2024-01-15');
@@ -190,13 +191,15 @@ describe('CreateEventModal', () => {
             render(<CreateEventModal show={true} onHide={mockOnHide} />);
 
             // Initial total should be $150.00 (50 + 100)
-            expect(screen.getByText('Total: $150.00')).toBeInTheDocument();
+            expect(screen.getByText('Total:')).toBeInTheDocument();
+            expect(screen.getByText('$150.00')).toBeInTheDocument();
 
             const checkbox = screen.getByRole('checkbox');
             await userEvent.click(checkbox);
 
             // Total should be $75 (half of 150)
-            expect(screen.getByText('Total: $75.00')).toBeInTheDocument();
+            expect(screen.getByText('Total:')).toBeInTheDocument();
+            expect(screen.getByText('$75.00')).toBeInTheDocument();
         });
     });
 
@@ -205,7 +208,7 @@ describe('CreateEventModal', () => {
             mockDefaultNameCleanup.mockImplementation((str) => str);
             render(<CreateEventModal show={true} onHide={mockOnHide} />);
 
-            const tagInput = screen.getByPlaceholderText('Type a tag and press Enter');
+            const tagInput = screen.getByPlaceholderText('Type a tag and press Enter to add');
             fireEvent.change(tagInput, { target: { value: 'important' } });
             fireEvent.keyDown(tagInput, { key: 'Enter' });
 
@@ -220,7 +223,7 @@ describe('CreateEventModal', () => {
 
             // Count tags before
             const tagBadgesBefore = container.querySelectorAll('.badge.bg-primary');
-            const tagInput = screen.getByPlaceholderText('Type a tag and press Enter');
+            const tagInput = screen.getByPlaceholderText('Type a tag and press Enter to add');
             fireEvent.keyDown(tagInput, { key: 'Enter' });
             // Count tags after
             const tagBadgesAfter = container.querySelectorAll('.badge.bg-primary');
@@ -231,7 +234,7 @@ describe('CreateEventModal', () => {
             mockDefaultNameCleanup.mockImplementation((str) => str);
             render(<CreateEventModal show={true} onHide={mockOnHide} />);
 
-            const tagInput = screen.getByPlaceholderText('Type a tag and press Enter');
+            const tagInput = screen.getByPlaceholderText('Type a tag and press Enter to add');
             fireEvent.change(tagInput, { target: { value: 'important' } });
             fireEvent.keyDown(tagInput, { key: 'Enter' });
 
@@ -247,7 +250,7 @@ describe('CreateEventModal', () => {
             mockDefaultNameCleanup.mockImplementation((str) => str);
             render(<CreateEventModal show={true} onHide={mockOnHide} />);
 
-            const tagInput = screen.getByPlaceholderText('Type a tag and press Enter');
+            const tagInput = screen.getByPlaceholderText('Type a tag and press Enter to add');
             fireEvent.change(tagInput, { target: { value: '  important tag  ' } });
             fireEvent.keyDown(tagInput, { key: 'Enter' });
 
@@ -259,7 +262,7 @@ describe('CreateEventModal', () => {
         it('disables submit button when name is empty', () => {
             render(<CreateEventModal show={true} onHide={mockOnHide} />);
 
-            const submitButton = screen.getByRole('button', { name: /submit/i });
+            const submitButton = screen.getByRole('button', { name: /create event/i });
             expect(submitButton).toBeDisabled();
         });
 
@@ -269,7 +272,7 @@ describe('CreateEventModal', () => {
             const nameInput = screen.getAllByDisplayValue('')[0]; // First input is name
             fireEvent.change(nameInput, { target: { value: 'Test Event' } });
 
-            const submitButton = screen.getByRole('button', { name: /submit/i });
+            const submitButton = screen.getByRole('button', { name: /create event/i });
             expect(submitButton).toBeDisabled();
         });
 
@@ -283,7 +286,7 @@ describe('CreateEventModal', () => {
             await userEvent.click(categorySelect);
             await userEvent.click(screen.getByRole('option', { name: 'Dining' }));
 
-            const submitButton = screen.getByRole('button', { name: /submit/i });
+            const submitButton = screen.getByRole('button', { name: /create event/i });
             expect(submitButton).not.toBeDisabled();
         });
     });
@@ -330,7 +333,7 @@ describe('CreateEventModal', () => {
 
             expect(screen.getAllByDisplayValue('')[0]).toBeInTheDocument(); // Name input
             const categorySelect = screen.getByRole('combobox');
-            expect(categorySelect).toHaveTextContent('Select category'); // Category select placeholder
+            expect(categorySelect).toHaveTextContent('Select a category'); // Category select placeholder
         });
     });
 
@@ -347,16 +350,16 @@ describe('CreateEventModal', () => {
             await userEvent.click(categorySelect);
             await userEvent.click(screen.getByRole('option', { name: 'Dining' }));
 
-            const dateInput = screen.getByLabelText('Override Date:');
+            const dateInput = screen.getByLabelText('Override Date (optional)');
             fireEvent.change(dateInput, { target: { value: '2024-01-15' } });
 
             // Add a tag
-            const tagInput = screen.getByPlaceholderText('Type a tag and press Enter');
+            const tagInput = screen.getByPlaceholderText('Type a tag and press Enter to add');
             fireEvent.change(tagInput, { target: { value: 'important' } });
             fireEvent.keyDown(tagInput, { key: 'Enter' });
 
             // Submit form
-            const submitButton = screen.getByRole('button', { name: /submit/i });
+            const submitButton = screen.getByRole('button', { name: /create event/i });
             await userEvent.click(submitButton);
 
             await waitFor(() => {
@@ -390,7 +393,7 @@ describe('CreateEventModal', () => {
             await userEvent.click(checkbox);
 
             // Submit form
-            const submitButton = screen.getByRole('button', { name: /submit/i });
+            const submitButton = screen.getByRole('button', { name: /create event/i });
             await userEvent.click(submitButton);
 
             await waitFor(() => {
@@ -415,7 +418,7 @@ describe('CreateEventModal', () => {
             await userEvent.click(screen.getByRole('option', { name: 'Dining' }));
 
             // Submit form
-            const submitButton = screen.getByRole('button', { name: /submit/i });
+            const submitButton = screen.getByRole('button', { name: /create event/i });
             await userEvent.click(submitButton);
 
             await waitFor(() => {
@@ -438,20 +441,20 @@ describe('CreateEventModal', () => {
             await userEvent.click(screen.getByRole('option', { name: 'Dining' }));
 
             // Submit form
-            const submitButton = screen.getByRole('button', { name: /submit/i });
+            const submitButton = screen.getByRole('button', { name: /create event/i });
             await userEvent.click(submitButton);
 
             await waitFor(() => {
                 const { toast } = require('sonner');
-                expect(toast.success).toHaveBeenCalledWith('Notification', {
-                    description: 'Created Event',
+                expect(toast.success).toHaveBeenCalledWith('Created Event', {
+                    description: { success: true },
                     duration: 3500,
                 });
             });
         });
 
         it('handles API error gracefully', async () => {
-            const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+            const { toast } = require('sonner');
             mockAxiosInstance.post.mockRejectedValue(new Error('API Error'));
 
             render(<CreateEventModal show={true} onHide={mockOnHide} />);
@@ -465,14 +468,15 @@ describe('CreateEventModal', () => {
             await userEvent.click(screen.getByRole('option', { name: 'Dining' }));
 
             // Submit form
-            const submitButton = screen.getByRole('button', { name: /submit/i });
+            const submitButton = screen.getByRole('button', { name: /create event/i });
             await userEvent.click(submitButton);
 
             await waitFor(() => {
-                expect(consoleSpy).toHaveBeenCalledWith(expect.any(Error));
+                expect(toast.error).toHaveBeenCalledWith("Error", {
+                    description: "API Error",
+                    duration: 3500,
+                });
             });
-
-            consoleSpy.mockRestore();
         });
     });
 
@@ -506,11 +510,11 @@ describe('CreateEventModal', () => {
             await userEvent.click(categorySelect);
             await userEvent.click(screen.getByRole('option', { name: 'Dining' }));
 
-            const dateInput = screen.getByLabelText('Override Date:');
+            const dateInput = screen.getByLabelText('Override Date (optional)');
             fireEvent.change(dateInput, { target: { value: '2024-01-15' } });
 
             // Add a tag
-            const tagInput = screen.getByPlaceholderText('Type a tag and press Enter');
+            const tagInput = screen.getByPlaceholderText('Type a tag and press Enter to add');
             fireEvent.change(tagInput, { target: { value: 'important' } });
             fireEvent.keyDown(tagInput, { key: 'Enter' });
 
@@ -540,18 +544,18 @@ describe('CreateEventModal', () => {
         it('has proper form labels', () => {
             render(<CreateEventModal show={true} onHide={mockOnHide} />);
 
-            expect(screen.getByText('Name:')).toBeInTheDocument();
-            expect(screen.getByText('Category:')).toBeInTheDocument();
-            expect(screen.getByText('Tags:')).toBeInTheDocument();
-            expect(screen.getByText('Override Date:')).toBeInTheDocument();
-            expect(screen.getByText('Duplicate Transaction')).toBeInTheDocument();
+            expect(screen.getByText('Event Name')).toBeInTheDocument();
+            expect(screen.getByText('Category')).toBeInTheDocument();
+            expect(screen.getByText('Tags')).toBeInTheDocument();
+            expect(screen.getByText('Override Date (optional)')).toBeInTheDocument();
+            expect(screen.getByText('Split Transaction')).toBeInTheDocument();
         });
 
         it('has proper button labels', () => {
             render(<CreateEventModal show={true} onHide={mockOnHide} />);
 
             expect(screen.getByRole('button', { name: /cancel/i })).toBeInTheDocument();
-            expect(screen.getByRole('button', { name: /submit/i })).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: /create event/i })).toBeInTheDocument();
         });
     });
 
@@ -562,7 +566,7 @@ describe('CreateEventModal', () => {
             });
 
             const nameInput = screen.getAllByDisplayValue('')[0]; // First input is name
-            const dateInput = screen.getByLabelText('Override Date:');
+            const dateInput = screen.getByLabelText('Override Date (optional)');
 
             fireEvent.change(nameInput, { target: { value: 'new@example.com' } });
             fireEvent.change(dateInput, { target: { value: '2024-01-15' } });
@@ -579,8 +583,8 @@ describe('CreateEventModal', () => {
             });
 
             const nameInput = screen.getAllByDisplayValue('')[0]; // First input is name
-            const dateInput = screen.getByLabelText('Override Date:');
-            const submitButton = screen.getByRole('button', { name: /submit/i });
+            const dateInput = screen.getByLabelText('Override Date (optional)');
+            const submitButton = screen.getByRole('button', { name: /create event/i });
 
             fireEvent.change(nameInput, { target: { value: 'Test Event' } });
             fireEvent.change(dateInput, { target: { value: '2024-01-15' } });

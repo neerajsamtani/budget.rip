@@ -33,12 +33,12 @@ export default function MonthFilter({ month, setMonth }: MonthFilterProps) {
 
   return (
     <div className="space-y-2">
-      <Label className="text-sm font-medium text-[#374151]">Month</Label>
+      <Label className="text-sm font-medium text-foreground">Month</Label>
       <Select value={month} onValueChange={setMonth}>
         <SelectTrigger className="w-full">
           <SelectValue placeholder="Select month" />
         </SelectTrigger>
-        <SelectContent className="bg-white border border-[#E0E0E0]">
+        <SelectContent className="bg-white border">
           {MONTHS.map(m => (
             <SelectItem key={m} value={m}>
               {m}

@@ -1,14 +1,14 @@
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { PageContainer, PageHeader } from "../components/ui/layout";
-import { H1, H4, Body } from "../components/ui/typography";
-import { StatusBadge } from "../components/ui/status-badge";
 import { Elements } from "@stripe/react-stripe-js";
 import { FinancialConnectionsSession } from "@stripe/stripe-js/types/api";
 import { Stripe } from "@stripe/stripe-js/types/stripe-js";
-import React, { Fragment, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 import FinancialConnectionsForm from "../components/FinancialConnectionsForm";
+import { PageContainer, PageHeader } from "../components/ui/layout";
+import { StatusBadge } from "../components/ui/status-badge";
+import { Body, H1, H4 } from "../components/ui/typography";
 import axiosInstance from "../utils/axiosInstance";
 import { CurrencyFormatter, DateFormatter } from "../utils/formatters";
 
@@ -37,25 +37,41 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
             .then(response => {
                 setConnectedAccounts(response.data)
             })
-            .catch(error => console.log(error));
+            .catch(error => toast.error("Error", {
+                description: error.message,
+                duration: 3500,
+            }));
         axiosInstance.get(`${VITE_API_ENDPOINT}api/accounts_and_balances`)
             .then(response => {
                 setAccountsAndBalances(response.data)
             })
-            .catch(error => console.log(error));
+            .catch(error => toast.error("Error", {
+                description: error.message,
+                duration: 3500,
+            }));
     }, [])
 
     const createSession = () => {
         axiosInstance.post(`${VITE_API_ENDPOINT}api/create-fc-session`)
             .then(response => setClientSecret(response.data.clientSecret))
-            .catch(error => console.log(error));
+            .catch(error => toast.error("Error", {
+                description: error.message,
+                duration: 3500,
+            }));
     }
 
     const subscribeToAccounts = () => {
         if (stripeAccounts) {
             for (const account of stripeAccounts) {
                 axiosInstance.get(`${VITE_API_ENDPOINT}api/subscribe_to_account/${account.id}`)
-                    .then(response => console.log(response.data))
+                    .then(() => toast.info("Notification", {
+                        description: `Subscribed to the account ${account.id}`,
+                        duration: 3500,
+                    }))
+                    .catch(error => toast.error("Error", {
+                        description: error.message,
+                        duration: 3500,
+                    }));
             }
         }
         setClientSecret("")
@@ -69,7 +85,10 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
     const relinkAccount = (accountId) => {
         axiosInstance.get(`${VITE_API_ENDPOINT}api/relink_account/${accountId}`)
             .then(response => setClientSecret(response.data.clientSecret))
-            .catch(error => console.log(error));
+            .catch(error => toast.error("Error", {
+                description: error.message,
+                duration: 3500,
+            }));
     }
 
     const appearance = {
@@ -145,7 +164,7 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
         <PageContainer>
             <PageHeader>
                 <H1>Connected Accounts</H1>
-                <Body className="text-[#6B7280]">
+                <Body className="text-muted-foreground">
                     Manage your linked financial accounts and view balances
                 </Body>
             </PageHeader>
@@ -202,7 +221,7 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
                                 connectedAccounts.flatMap(renderConnectedAccount)
                             ) : (
                                 <TableRow>
-                                    <TableCell colSpan={4} className="text-center text-[#6B7280]">
+                                    <TableCell colSpan={4} className="text-center text-muted-foreground">
                                         No connected accounts found
                                     </TableCell>
                                 </TableRow>
@@ -210,7 +229,7 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
                         </TableBody>
                     </Table>
 
-                    <div className="bg-[#F5F5F5] rounded-lg p-6">
+                    <div className="bg-muted rounded-lg p-6">
                         <H4>Net Worth: <StatusBadge status={netWorth >= 0 ? 'success' : 'error'}>{CurrencyFormatter.format(netWorth)}</StatusBadge></H4>
                     </div>
 
@@ -229,7 +248,7 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
                                     connectedAccounts.find(account => account.stripe)?.stripe.filter(account => account.status === "inactive").flatMap(renderStripeAccount)
                                 ) : (
                                     <TableRow>
-                                        <TableCell colSpan={3} className="text-center text-[#6B7280]">
+                                        <TableCell colSpan={3} className="text-center text-muted-foreground">
                                             No inactive connected accounts found
                                         </TableCell>
                                     </TableRow>

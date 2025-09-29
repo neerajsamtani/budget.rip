@@ -32,12 +32,12 @@ export default function CategoryFilter({ category, setCategory }: { category: Ca
 
   return (
     <div className="space-y-2">
-      <Label className="text-sm font-medium text-[#374151]">Category</Label>
+      <Label className="text-sm font-medium text-foreground">Category</Label>
       <Select value={category} onValueChange={setCategory}>
         <SelectTrigger className="w-full">
           <SelectValue placeholder="Select category" />
         </SelectTrigger>
-        <SelectContent className="bg-white border border-[#E0E0E0]">
+        <SelectContent className="bg-white border">
           {CATEGORIES.map(cat => (
             <SelectItem key={cat} value={cat}>
               {cat}

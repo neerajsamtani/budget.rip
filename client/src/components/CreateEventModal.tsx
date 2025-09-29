@@ -1,14 +1,14 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogFooter, DialogHeader } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { H3, Body } from "../components/ui/typography";
 import React, { Fragment, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { getPrefillFromLineItems } from '.././data/EventHints';
+import { Body, H3 } from "../components/ui/typography";
 import { useLineItems, useLineItemsDispatch } from "../contexts/LineItemsContext";
 import { FormField, useField } from '../hooks/useField';
 import axiosInstance from '../utils/axiosInstance';
@@ -100,39 +100,38 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
       "is_duplicate_transaction": isDuplicateTransaction.value,
       "tags": tags.map(tag => tag.text)
     }
-    console.log(newEvent);
     axiosInstance.post(`${VITE_API_ENDPOINT}api/events`, newEvent)
       .then(response => {
-        console.log(response.data);
-      })
-      .then(() => {
         closeModal()
         lineItemsDispatch({
           type: 'remove_line_items',
           lineItemIds: selectedLineItemIds
         })
-        toast.success("Notification", {
-          description: "Created Event",
+        toast.success("Created Event", {
+          description: response.data,
           duration: 3500,
         });
         // TODO: Uncheck all checkboxes
       })
-      .catch(error => console.log(error));
+      .catch(error => toast.error("Error", {
+        description: error.message,
+        duration: 3500,
+      }));
   }
 
   return (
     <Fragment>
       <Dialog open={show} onOpenChange={closeModal}>
         <DialogContent className="w-full !max-w-[42rem]">
-          <DialogHeader className="pb-4 border-b border-[#F5F5F5] -mx-6 px-6">
-            <H3 className="text-[#374151]">New Event Details</H3>
-            <Body className="text-[#6B7280] mt-2">
+          <DialogHeader className="pb-4 border-b border-muted -mx-6 px-6">
+            <H3 className="text-foreground">New Event Details</H3>
+            <Body className="text-muted-foreground mt-2">
               Create a financial event from your selected transactions
             </Body>
           </DialogHeader>
           <div className="space-y-6 -mx-6 px-6">
             <div className="space-y-3">
-              <Label htmlFor="event-name" className="text-sm font-medium text-[#374151]">
+              <Label htmlFor="event-name" className="text-sm font-medium text-foreground">
                 Event Name
               </Label>
               <Input
@@ -146,14 +145,14 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
             </div>
 
             <div className="space-y-3">
-              <Label htmlFor="event-category" className="text-sm font-medium text-[#374151]">
+              <Label htmlFor="event-category" className="text-sm font-medium text-foreground">
                 Category
               </Label>
               <Select value={category.value} onValueChange={(value) => category.setCustomValue(value)}>
                 <SelectTrigger className="w-full !min-w-[350px]">
                   <SelectValue placeholder="Select a category" />
                 </SelectTrigger>
-                <SelectContent className="bg-white border border-[#E0E0E0]">
+                <SelectContent className="bg-white border">
                   <SelectItem value="All">All</SelectItem>
                   <SelectItem value="Alcohol">Alcohol</SelectItem>
                   <SelectItem value="Dining">Dining</SelectItem>
@@ -175,7 +174,7 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
             </div>
 
             <div className="space-y-3">
-              <Label htmlFor="event-tags" className="text-sm font-medium text-[#374151]">
+              <Label htmlFor="event-tags" className="text-sm font-medium text-foreground">
                 Tags
               </Label>
               <div className="space-y-3">
@@ -184,8 +183,7 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
                     {tags.map(tag => (
                       <Badge
                         key={tag.id}
-                        className="bg-[#5B82C4] text-white hover:bg-[#3D5A96] flex items-center gap-1 px-3 py-1"
-                      >
+                        className="bg-primary text-white hover:bg-primary-dark flex items-center gap-1 px-3 py-1">
                         {tag.text}
                         <span
                           onClick={() => removeTag(tag.id)}
@@ -210,7 +208,7 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
             </div>
 
             <div className="space-y-3">
-              <Label htmlFor="override-date-input" className="text-sm font-medium text-[#374151]">
+              <Label htmlFor="override-date-input" className="text-sm font-medium text-foreground">
                 Override Date (optional)
               </Label>
               <Input
@@ -222,29 +220,29 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
               />
             </div>
 
-            <div className="flex items-center space-x-3 p-4 bg-[#F5F5F5] rounded-lg">
+            <div className="flex items-center space-x-3 p-4 bg-muted rounded-lg">
               <Checkbox
                 id="duplicate-transaction"
                 checked={isDuplicateTransaction.value}
                 onCheckedChange={() => isDuplicateTransaction.setCustomValue(!isDuplicateTransaction.value)}
-                className="border-[#5B82C4] data-[state=checked]:bg-[#5B82C4]"
+                className="border-primary data-[state=checked]:bg-primary"
               />
               <div className="space-y-1">
-                <Label htmlFor="duplicate-transaction" className="text-sm font-medium text-[#374151] cursor-pointer">
+                <Label htmlFor="duplicate-transaction" className="text-sm font-medium text-foreground cursor-pointer">
                   Split Transaction
                 </Label>
-                <Body className="text-[#6B7280] text-xs">
+                <Body className="text-muted-foreground text-xs">
                   Check this if the transaction amount should be split (e.g., shared with someone)
                 </Body>
               </div>
             </div>
           </div>
 
-          <DialogFooter className="pt-4 border-t border-[#F5F5F5] -mx-6 px-6">
+          <DialogFooter className="pt-4 border-t border-muted -mx-6 px-6">
             <div className="flex items-center justify-between w-full">
-              <div className="bg-[#F5F5F5] px-4 py-2 rounded-lg">
-                <Body className="text-sm font-medium text-[#374151]">
-                  Total: <span className="text-[#5B82C4] font-semibold">{CurrencyFormatter.format(total)}</span>
+              <div className="bg-muted px-4 py-2 rounded-lg">
+                <Body className="text-sm font-medium text-foreground">
+                  Total: <span className="text-primary font-semibold">{CurrencyFormatter.format(total)}</span>
                 </Body>
               </div>
               <div className="flex space-x-3">

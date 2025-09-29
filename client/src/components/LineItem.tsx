@@ -33,7 +33,7 @@ export default function LineItem({ lineItem, showCheckBox }: LineItemProps) {
                         type="checkbox"
                         checked={isChecked}
                         onChange={handleToggle}
-                        className="w-4 h-4 text-[#5B82C4] bg-white border-[#E0E0E0] rounded focus:ring-[#5B82C4] focus:ring-2 focus:ring-offset-2"
+                        className="w-4 h-4 text-primary bg-white border rounded focus:ring-primary focus:ring-2 focus:ring-offset-2"
                     />
                 </TableCell>
             )}
@@ -43,13 +43,15 @@ export default function LineItem({ lineItem, showCheckBox }: LineItemProps) {
             <TableCell>
                 {lineItem.payment_method}
             </TableCell>
-            <TableCell className="max-w-xs">
-                <span className="truncate block" title={lineItem.description}>
+            <TableCell className="w-2/5 min-w-0">
+                <span className="block" title={lineItem.description}>
                     {lineItem.description}
                 </span>
             </TableCell>
-            <TableCell>
-                {lineItem.responsible_party}
+            <TableCell className="w-1/5 min-w-0">
+                <span className="block" title={lineItem.responsible_party}>
+                    {lineItem.responsible_party}
+                </span>
             </TableCell>
             <TableCell className="text-right">
                 <StatusBadge status={amountStatus}>

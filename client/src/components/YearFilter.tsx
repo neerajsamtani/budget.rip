@@ -24,12 +24,12 @@ export default function YearFilter({ year, setYear }: YearFilterProps) {
 
   return (
     <div className="space-y-2">
-      <Label className="text-sm font-medium text-[#374151]">Year</Label>
+      <Label className="text-sm font-medium text-foreground">Year</Label>
       <Select value={year} onValueChange={setYear}>
         <SelectTrigger className="w-full">
           <SelectValue placeholder="Select year" />
         </SelectTrigger>
-        <SelectContent className="bg-white border border-[#E0E0E0]">
+        <SelectContent className="bg-white border">
           {YEARS.map(y => (
             <SelectItem key={y} value={y}>
               {y}

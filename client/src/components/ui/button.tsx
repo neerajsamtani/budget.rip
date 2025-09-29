@@ -1,28 +1,28 @@
-import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"
+import * as React from "react"
 
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium transition-all duration-150 disabled:pointer-events-none disabled:opacity-50 outline-none focus-visible:ring-2 focus-visible:ring-offset-2 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium transition-all duration-150 hover:cursor-pointer disabled:pointer-events-none disabled:opacity-50 outline-none focus-visible:ring-2 focus-visible:ring-offset-2 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
         // Primary Nordic Blue button
-        default: "bg-[#5B82C4] text-white hover:bg-[#3D5A96] focus-visible:ring-[#5B82C4]",
+        default: "bg-primary text-white hover:bg-primary-dark focus-visible:ring-primary",
 
         // Secondary Nordic button
-        secondary: "bg-transparent text-[#5B82C4] border border-[#5B82C4] hover:bg-[#E8F0FE] focus-visible:ring-[#5B82C4]",
+        secondary: "bg-transparent text-primary border border-primary hover:bg-primary-light focus-visible:ring-primary",
 
         // Ghost Nordic button
-        ghost: "bg-transparent text-[#374151] hover:bg-[#F5F5F5] focus-visible:ring-[#6B7280]",
+        ghost: "bg-transparent text-foreground hover:bg-muted focus-visible:ring-muted-foreground",
 
         // Destructive button
-        destructive: "bg-[#DC2626] text-white hover:bg-[#B91C1C] focus-visible:ring-[#DC2626]",
+        destructive: "bg-semantic-error text-white hover:bg-semantic-error focus-visible:ring-semantic-error",
 
         // Link button
-        link: "text-[#5B82C4] underline-offset-4 hover:underline focus-visible:ring-[#5B82C4]",
+        link: "text-primary underline-offset-4 hover:underline focus-visible:ring-primary",
       },
       size: {
         default: "h-12 px-5 py-3", // 12px vertical, 20px horizontal per Nordic specs

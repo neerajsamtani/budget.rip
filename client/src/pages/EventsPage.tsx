@@ -1,13 +1,14 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { PageContainer, PageHeader } from "../components/ui/layout";
-import { H1, Body } from "../components/ui/typography";
-import { StatusBadge } from "../components/ui/status-badge";
 import { DateTime } from "luxon";
 import React, { useEffect, useState } from "react";
+import { toast } from "sonner";
 import CategoryFilter, { Category } from "../components/CategoryFilter";
 import Event, { EventInterface } from "../components/Event";
 import MonthFilter from "../components/MonthFilter";
 import TagsFilter from "../components/TagsFilter";
+import { PageContainer, PageHeader } from "../components/ui/layout";
+import { StatusBadge } from "../components/ui/status-badge";
+import { Body, H1 } from "../components/ui/typography";
 import YearFilter from "../components/YearFilter";
 import axiosInstance from "../utils/axiosInstance";
 
@@ -43,7 +44,10 @@ export default function EventsPage() {
             .then(response => {
                 setEvents(response.data.data)
             })
-            .catch(error => console.log(error));
+            .catch(error => toast.error("Error", {
+                description: error.message,
+                duration: 3500,
+            }));
     }, [month, year])
 
     const matchCategory = (event: EventInterface) => category === "All" || category === event.category
@@ -81,7 +85,7 @@ export default function EventsPage() {
         <PageContainer>
             <PageHeader>
                 <H1>Events</H1>
-                <Body className="text-[#6B7280]">
+                <Body className="text-muted-foreground">
                     View and analyze your financial events and transactions
                 </Body>
             </PageHeader>
@@ -96,13 +100,13 @@ export default function EventsPage() {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="bg-[#F5F5F5] rounded-lg p-4 flex items-center justify-between">
+                        <div className="bg-muted rounded-lg p-4 flex items-center justify-between">
                             <Body className="font-medium">Net Income:</Body>
                             <StatusBadge status={parseFloat(netIncome) >= 0 ? 'success' : 'error'}>
                                 ${netIncome}
                             </StatusBadge>
                         </div>
-                        <div className="bg-[#F5F5F5] rounded-lg p-4 flex items-center justify-between">
+                        <div className="bg-muted rounded-lg p-4 flex items-center justify-between">
                             <Body className="font-medium">Spending w/o Rent:</Body>
                             <StatusBadge status={parseFloat(spending) <= 0 ? 'success' : 'warning'}>
                                 ${spending}
@@ -133,7 +137,7 @@ export default function EventsPage() {
                                 ))
                         ) : (
                             <TableRow>
-                                <TableCell colSpan={6} className="text-center text-[#6B7280]">
+                                <TableCell colSpan={6} className="text-center text-muted-foreground">
                                     No events found
                                 </TableCell>
                             </TableRow>

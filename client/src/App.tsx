@@ -62,51 +62,51 @@ export default function App() {
     <React.StrictMode>
       <Toaster position="top-right" richColors />
       <Router>
-        <Navbar className="bg-white shadow-sm border-b border-[#E0E0E0]">
+        <Navbar className="bg-white shadow-sm border-b">
           <div className="container mx-auto flex justify-between items-center px-6 h-16">
-            <NavbarBrand className="text-[#374151] font-[Inter] font-semibold text-lg">
+            <NavbarBrand className="text-foreground font-heading font-semibold text-lg">
               Budgit
             </NavbarBrand>
             <div className="flex items-center space-x-6">
               <div className="flex space-x-1">
                 <Link
-                  className="text-[#374151] hover:text-[#5B82C4] px-3 py-2 no-underline font-['Source_Sans_Pro'] font-medium transition-colors duration-150"
+                  className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150"
                   to="/"
                 >
                   Review
                 </Link>
                 <Link
-                  className="text-[#374151] hover:text-[#5B82C4] px-3 py-2 no-underline font-['Source_Sans_Pro'] font-medium transition-colors duration-150"
+                  className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150"
                   to="/events"
                 >
                   Events
                 </Link>
                 <Link
-                  className="text-[#374151] hover:text-[#5B82C4] px-3 py-2 no-underline font-['Source_Sans_Pro'] font-medium transition-colors duration-150"
+                  className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150"
                   to="/line_items"
                 >
                   Line Items
                 </Link>
                 <Link
-                  className="text-[#374151] hover:text-[#5B82C4] px-3 py-2 no-underline font-['Source_Sans_Pro'] font-medium transition-colors duration-150"
+                  className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150"
                   to="/connected_accounts"
                 >
                   Connected Accounts
                 </Link>
                 <Link
-                  className="text-[#374151] hover:text-[#5B82C4] px-3 py-2 no-underline font-['Source_Sans_Pro'] font-medium transition-colors duration-150"
+                  className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150"
                   to="/graphs"
                 >
                   Graphs
                 </Link>
                 <Link
-                  className="text-[#374151] hover:text-[#5B82C4] px-3 py-2 no-underline font-['Source_Sans_Pro'] font-medium transition-colors duration-150"
+                  className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150"
                   to="/test"
                 >
                   Test Shadcn
                 </Link>
                 <Link
-                  className="text-[#374151] hover:text-[#5B82C4] px-3 py-2 no-underline font-['Source_Sans_Pro'] font-medium transition-colors duration-150"
+                  className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150"
                   to="/login"
                 >
                   Login

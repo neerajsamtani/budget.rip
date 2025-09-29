@@ -2,6 +2,19 @@ import React from 'react';
 import { fireEvent, mockAxiosInstance, render, screen, waitFor } from '../../utils/test-utils';
 import EventsPage from '../EventsPage';
 
+// Mock sonner toast
+jest.mock('sonner', () => {
+    const mockToast = jest.fn();
+    return {
+        toast: Object.assign(mockToast, {
+            success: jest.fn(),
+            error: jest.fn(),
+            warning: jest.fn(),
+            info: jest.fn(),
+        }),
+    };
+});
+
 // Mock the filter components
 jest.mock('../../components/CategoryFilter', () => {
     return function MockCategoryFilter({ category, setCategory }: any) {
@@ -216,16 +229,17 @@ describe('EventsPage', () => {
         });
 
         it('handles API errors gracefully', async () => {
-            const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+            const { toast } = require('sonner');
             mockAxiosInstance.get.mockRejectedValue(new Error('API Error'));
 
             render(<EventsPage />);
 
             await waitFor(() => {
-                expect(consoleSpy).toHaveBeenCalledWith(expect.any(Error));
+                expect(toast.error).toHaveBeenCalledWith("Error", {
+                    description: "API Error",
+                    duration: 3500,
+                });
             });
-
-            consoleSpy.mockRestore();
         });
 
         it('refetches data when month changes', async () => {

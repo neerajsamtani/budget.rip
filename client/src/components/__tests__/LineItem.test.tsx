@@ -31,7 +31,7 @@ describe('LineItem', () => {
             expect(screen.getByText('Test transaction')).toBeInTheDocument();
             expect(screen.getByText('Test Store')).toBeInTheDocument();
             expect(screen.getByText('credit_card')).toBeInTheDocument();
-            expect(screen.getByText('50')).toBeInTheDocument();
+            expect(screen.getByText('$50.00')).toBeInTheDocument();
         });
 
         it('renders checkbox when showCheckBox is true', () => {
@@ -86,7 +86,7 @@ describe('LineItem', () => {
             expect(cells[2]).toHaveTextContent('credit_card');
             expect(cells[3]).toHaveTextContent('Test transaction');
             expect(cells[4]).toHaveTextContent('Test Store');
-            expect(cells[5]).toHaveTextContent('50');
+            expect(cells[5]).toHaveTextContent('$50.00');
         });
 
         it('renders without checkbox when showCheckBox is false', () => {
@@ -101,7 +101,7 @@ describe('LineItem', () => {
             expect(cells[1]).toHaveTextContent('credit_card');
             expect(cells[2]).toHaveTextContent('Test transaction');
             expect(cells[3]).toHaveTextContent('Test Store');
-            expect(cells[4]).toHaveTextContent('50');
+            expect(cells[4]).toHaveTextContent('$50.00');
         });
     });
 
@@ -278,7 +278,7 @@ describe('LineItem', () => {
             expect(screen.getByText('Cash transaction')).toBeInTheDocument();
             expect(screen.getByText('Local Store')).toBeInTheDocument();
             expect(screen.getByText('cash')).toBeInTheDocument();
-            expect(screen.getByText('25.5')).toBeInTheDocument();
+            expect(screen.getByText('$25.50')).toBeInTheDocument();
         });
 
         it('handles zero amount', () => {
@@ -289,7 +289,7 @@ describe('LineItem', () => {
                 <table><tbody><LineItem lineItem={zeroAmountLineItem} /></tbody></table>
             );
 
-            expect(screen.getByText('0')).toBeInTheDocument();
+            expect(screen.getByText('$0.00')).toBeInTheDocument();
         });
 
         it('handles large amounts', () => {
@@ -300,7 +300,7 @@ describe('LineItem', () => {
                 <table><tbody><LineItem lineItem={largeAmountLineItem} /></tbody></table>
             );
 
-            expect(screen.getByText('999999.99')).toBeInTheDocument();
+            expect(screen.getByText('$999999.99')).toBeInTheDocument();
         });
 
         it('handles empty strings in text fields', () => {
