@@ -60,7 +60,7 @@ export default function EventDetailsModal({ show, event, lineItemsForEvent, onHi
               </Table>
             </div>
             {event.tags && event.tags.length > 0 && (
-              <div className="space-y-3">
+              <div className="flex items-center gap-3">
                 <Body className="font-medium text-foreground">Tags:</Body>
                 <div className="flex flex-wrap gap-2">
                   {event.tags.map((tag, index) => (

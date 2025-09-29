@@ -1,4 +1,5 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { CurrencyFormatter } from "@/utils/formatters";
 import { DateTime } from "luxon";
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -58,10 +59,11 @@ export default function EventsPage() {
                 matchCategory(event) &&
                 matchTags(event) &&
                 event.category !== "Rent" &&
-                event.category !== "Income"
+                event.category !== "Income" &&
+                event.category !== "Investment"
             );
         const sum = filteredEvents.reduce((acc, event) => acc + event.amount, 0);
-        return sum.toFixed(2);
+        return sum;
     }
 
     const matchTags = (event: EventInterface) => {
@@ -72,13 +74,13 @@ export default function EventsPage() {
         );
     }
 
-    const calculateNetIncome = (events: EventInterface[]) => {
+    const calculateCashFlowWithFilters = (events: EventInterface[]) => {
         const filteredEvents = events.filter(event => matchCategory(event) && matchTags(event));
         const sum = filteredEvents.reduce((acc, event) => acc + event.amount, 0);
-        return sum.toFixed(2);
+        return sum;
     }
 
-    const netIncome = calculateNetIncome(events);
+    const cashFlowWithFilters = calculateCashFlowWithFilters(events);
     const spending = calculateSpending(events);
 
     return (
@@ -101,15 +103,17 @@ export default function EventsPage() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="bg-muted rounded-lg p-4 flex items-center justify-between">
-                            <Body className="font-medium">Net Income:</Body>
-                            <StatusBadge status={parseFloat(netIncome) >= 0 ? 'success' : 'error'}>
-                                ${netIncome}
+                            <Body className="font-medium">Cash Flow in {' '}
+                                {month && month !== 'All' ? month : ''} {year}
+                                {category !== 'All' ? ` (${category})` : ''}:</Body>
+                            <StatusBadge status={cashFlowWithFilters < 0 ? 'success' : 'warning'}>
+                                {CurrencyFormatter.format(Math.abs(cashFlowWithFilters))}
                             </StatusBadge>
                         </div>
                         <div className="bg-muted rounded-lg p-4 flex items-center justify-between">
-                            <Body className="font-medium">Spending w/o Rent:</Body>
-                            <StatusBadge status={parseFloat(spending) <= 0 ? 'success' : 'warning'}>
-                                ${spending}
+                            <Body className="font-medium">Spending:</Body>
+                            <StatusBadge status={spending <= 0 ? 'success' : 'warning'}>
+                                {CurrencyFormatter.format(Math.abs(spending))}
                             </StatusBadge>
                         </div>
                     </div>

@@ -1,6 +1,6 @@
-import React from 'react';
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import React from 'react';
 
 // Define a constant array for years
 const YEARS = [
@@ -16,6 +16,7 @@ type Year = typeof YEARS[number];
 
 interface YearFilterProps {
   year: Year;
+  // eslint-disable-next-line no-unused-vars
   setYear: (year: Year) => void;
 }
 
@@ -25,7 +26,7 @@ export default function YearFilter({ year, setYear }: YearFilterProps) {
   return (
     <div className="space-y-2">
       <Label className="text-sm font-medium text-foreground">Year</Label>
-      <Select value={year} onValueChange={setYear}>
+      <Select value={String(year)} onValueChange={setYear}>
         <SelectTrigger className="w-full">
           <SelectValue placeholder="Select year" />
         </SelectTrigger>

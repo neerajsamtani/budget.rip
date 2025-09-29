@@ -20,7 +20,7 @@ export default function TagsFilter({ tagFilter, setTagFilter }: TagsFilterProps)
                 placeholder="Search by tag..."
                 value={tagFilter}
                 onChange={handleTagChange}
-                className="w-full"
+                className="w-full h-9"
             />
         </div>
     );

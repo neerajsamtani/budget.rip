@@ -300,7 +300,7 @@ describe('LineItem', () => {
                 <table><tbody><LineItem lineItem={largeAmountLineItem} /></tbody></table>
             );
 
-            expect(screen.getByText('$999999.99')).toBeInTheDocument();
+            expect(screen.getByText('$999,999.99')).toBeInTheDocument();
         });
 
         it('handles empty strings in text fields', () => {

@@ -1,8 +1,8 @@
 import React from "react";
 import { LineItemInterface, useLineItems, useLineItemsDispatch } from "../contexts/LineItemsContext";
-import { DateFormatter } from "../utils/formatters";
-import { TableRow, TableCell } from "./ui/table";
+import { CurrencyFormatter, DateFormatter } from "../utils/formatters";
 import { StatusBadge } from "./ui/status-badge";
+import { TableCell, TableRow } from "./ui/table";
 
 interface LineItemProps {
     lineItem: LineItemInterface;
@@ -23,7 +23,7 @@ export default function LineItem({ lineItem, showCheckBox }: LineItemProps) {
     }
 
     // Determine amount status for color coding
-    const amountStatus = lineItem.amount > 0 ? 'success' : 'error';
+    const amountStatus = lineItem.amount < 0 ? 'success' : 'warning';
 
     return (
         <TableRow data-state={isChecked ? 'selected' : undefined}>
@@ -55,7 +55,7 @@ export default function LineItem({ lineItem, showCheckBox }: LineItemProps) {
             </TableCell>
             <TableCell className="text-right">
                 <StatusBadge status={amountStatus}>
-                    ${Math.abs(lineItem.amount).toFixed(2)}
+                    {CurrencyFormatter.format(Math.abs(lineItem.amount))}
                 </StatusBadge>
             </TableCell>
         </TableRow>
