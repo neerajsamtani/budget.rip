@@ -70,10 +70,20 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Semantic colors for Tailwind utility generation */
+  --color-semantic-success: var(--color-success);
+  --color-semantic-success-light: var(--color-success-light);
+  --color-semantic-warning: var(--color-warning);
+  --color-semantic-warning-light: var(--color-warning-light);
+  --color-semantic-error: var(--color-error);
+  --color-semantic-error-light: var(--color-error-light);
+  --color-semantic-neutral: var(--color-neutral);
+  --color-semantic-progress: var(--color-progress);
 }
 
 :root {
-  --radius: 0.625rem;
+  --radius: 0.5rem; /* 8px - Nordic Design System button border radius */
 
   /* Nordic Base Colors */
   --color-white: #FFFFFF;
