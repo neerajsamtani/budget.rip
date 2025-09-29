@@ -1,4 +1,4 @@
-export const nordicChartColors = {
+const nordicChartColors = {
   primary: '#5B82C4',    // Nordic Blue
   success: '#059669',    // Success Green
   progress: '#7C3AED',   // Progress Purple
