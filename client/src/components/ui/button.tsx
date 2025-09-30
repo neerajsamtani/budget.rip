@@ -19,7 +19,7 @@ const buttonVariants = cva(
         ghost: "bg-transparent text-foreground hover:bg-muted focus-visible:ring-muted-foreground",
 
         // Destructive button
-        destructive: "bg-semantic-error text-white hover:bg-semantic-error focus-visible:ring-semantic-error",
+        destructive: "bg-semantic-error text-white hover:bg-semantic-error-dark focus-visible:ring-semantic-error",
 
         // Link button
         link: "text-primary underline-offset-4 hover:underline focus-visible:ring-primary",

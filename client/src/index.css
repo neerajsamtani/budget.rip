@@ -29,6 +29,8 @@
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
+  --color-primary-dark: var(--color-deep-nordic-blue);
+  --color-primary-light: var(--color-light-nordic-blue);
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
@@ -50,6 +52,7 @@
   --color-semantic-success: var(--color-success);
   --color-semantic-warning: var(--color-warning);
   --color-semantic-error: var(--color-error);
+  --color-semantic-error-dark: var(--color-error-dark);
 }
 
 :root {
@@ -75,6 +78,7 @@
   --color-warning: #D97706;
   --color-warning-light: #FFFBEB;
   --color-error: #DC2626;
+  --color-error-dark: #B91C1C;
   --color-error-light: #FEF2F2;
   --color-neutral: #64748B;
   --color-progress: #7C3AED;

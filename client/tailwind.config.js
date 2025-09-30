@@ -27,6 +27,7 @@ export default {
           warning: 'var(--color-warning)',
           'warning-light': 'var(--color-warning-light)',
           error: 'var(--color-error)',
+          'error-dark': 'var(--color-error-dark)',
           'error-light': 'var(--color-error-light)',
           neutral: 'var(--color-neutral)',
           progress: 'var(--color-progress)',
