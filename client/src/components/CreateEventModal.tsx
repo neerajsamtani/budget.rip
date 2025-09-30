@@ -229,10 +229,10 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
               />
               <div className="space-y-1">
                 <Label htmlFor="duplicate-transaction" className="text-sm font-medium text-foreground cursor-pointer">
-                  Split Transaction
+                  Duplicate Transaction
                 </Label>
                 <Body className="text-muted-foreground text-xs">
-                  Check this if the transaction amount should be split (e.g., shared with someone)
+                  Check this if the transaction amount is double what it should be
                 </Body>
               </div>
             </div>

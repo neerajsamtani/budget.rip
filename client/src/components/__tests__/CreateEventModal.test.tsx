@@ -112,7 +112,7 @@ describe('CreateEventModal', () => {
             expect(screen.getByText('Category')).toBeInTheDocument();
             expect(screen.getByText('Tags')).toBeInTheDocument();
             expect(screen.getByText('Override Date (optional)')).toBeInTheDocument();
-            expect(screen.getByText('Split Transaction')).toBeInTheDocument();
+            expect(screen.getByText('Duplicate Transaction')).toBeInTheDocument();
         });
 
         it('renders all category options', async () => {
@@ -548,7 +548,7 @@ describe('CreateEventModal', () => {
             expect(screen.getByText('Category')).toBeInTheDocument();
             expect(screen.getByText('Tags')).toBeInTheDocument();
             expect(screen.getByText('Override Date (optional)')).toBeInTheDocument();
-            expect(screen.getByText('Split Transaction')).toBeInTheDocument();
+            expect(screen.getByText('Duplicate Transaction')).toBeInTheDocument();
         });
 
         it('has proper button labels', () => {
