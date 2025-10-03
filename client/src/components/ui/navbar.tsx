@@ -1,6 +1,5 @@
-import React from "react"
 import { cn } from "@/lib/utils"
-import { NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMenuLink, NavigationMenuList, NavigationMenuTrigger } from "@/components/ui/navigation-menu"
+import React from "react"
 
 export const Navbar = ({ children, className, ...props }: React.HTMLAttributes<HTMLElement>) => (
   <nav className={cn("border-b bg-background", className)} {...props}>

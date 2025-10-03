@@ -35,7 +35,7 @@ describe('TagsFilter', () => {
         });
         it('shows placeholder text', () => {
             setup();
-            expect(screen.getByPlaceholderText('Enter tag...')).toBeInTheDocument();
+            expect(screen.getByPlaceholderText('Search by tag...')).toBeInTheDocument();
         });
     });
 
@@ -125,7 +125,7 @@ describe('TagsFilter', () => {
         });
         it('has proper placeholder text', () => {
             setup();
-            expect(screen.getByPlaceholderText('Enter tag...')).toBeInTheDocument();
+            expect(screen.getByPlaceholderText('Search by tag...')).toBeInTheDocument();
         });
         it('maintains focus during typing', async () => {
             render(<TagsFilterControlledWrapper initialValue="" />);

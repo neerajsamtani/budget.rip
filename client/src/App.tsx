@@ -62,28 +62,58 @@ export default function App() {
     <React.StrictMode>
       <Toaster position="top-right" richColors />
       <Router>
-        <Navbar className="bg-slate-900 text-white">
-          <div className="container mx-auto flex justify-between items-center px-4">
-            <NavbarBrand className="text-white">Budgit</NavbarBrand>
-            <div className="flex items-center space-x-4">
-              <div className="flex space-x-4">
-                <Link className="text-white hover:text-gray-300 px-3 py-2 no-underline" to="/">Review</Link>
-                <Link className="text-white hover:text-gray-300 px-3 py-2 no-underline" to="/events">Events</Link>
-                <Link className="text-white hover:text-gray-300 px-3 py-2 no-underline" to="/line_items">Line Items</Link>
-                <Link className="text-white hover:text-gray-300 px-3 py-2 no-underline" to="/connected_accounts">Connected Accounts</Link>
-                <Link className="text-white hover:text-gray-300 px-3 py-2 no-underline" to="/graphs">Graphs</Link>
-                <Link className="text-white hover:text-gray-300 px-3 py-2 no-underline" to="/test">Test Shadcn</Link>
-                <Link className="text-white hover:text-gray-300 px-3 py-2 no-underline" to="/login">Login</Link>
+        <Navbar className="bg-white shadow-sm border-b">
+          <div className="container mx-auto flex justify-between items-center px-6 h-16">
+            <NavbarBrand className="text-foreground font-heading font-semibold text-lg">
+              Budgit
+            </NavbarBrand>
+            <div className="flex items-center space-x-6">
+              <div className="flex space-x-1">
+                <Link
+                  className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150"
+                  to="/"
+                >
+                  Review
+                </Link>
+                <Link
+                  className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150"
+                  to="/events"
+                >
+                  Events
+                </Link>
+                <Link
+                  className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150"
+                  to="/line_items"
+                >
+                  Line Items
+                </Link>
+                <Link
+                  className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150"
+                  to="/connected_accounts"
+                >
+                  Connected Accounts
+                </Link>
+                <Link
+                  className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150"
+                  to="/graphs"
+                >
+                  Graphs
+                </Link>
+                <Link
+                  className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150"
+                  to="/test"
+                >
+                  Test Shadcn
+                </Link>
+                <Link
+                  className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150"
+                  to="/login"
+                >
+                  Login
+                </Link>
               </div>
-              <Button onClick={handleRefreshData} variant="secondary">
-                {
-                  loading ?
-                    <Spinner
-                      size="sm"
-                    />
-                    :
-                    <>Refresh Data</>
-                }
+              <Button onClick={handleRefreshData} variant="default">
+                {loading ? <Spinner size="sm" /> : "Refresh Data"}
               </Button>
             </div>
           </div>

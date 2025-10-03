@@ -3,9 +3,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Elements } from "@stripe/react-stripe-js";
 import { FinancialConnectionsSession } from "@stripe/stripe-js/types/api";
 import { Stripe } from "@stripe/stripe-js/types/stripe-js";
-import React, { Fragment, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 import FinancialConnectionsForm from "../components/FinancialConnectionsForm";
+import { PageContainer, PageHeader } from "../components/ui/layout";
+import { StatusBadge } from "../components/ui/status-badge";
+import { Body, H1, H4 } from "../components/ui/typography";
 import axiosInstance from "../utils/axiosInstance";
 import { CurrencyFormatter, DateFormatter } from "../utils/formatters";
 
@@ -34,25 +37,41 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
             .then(response => {
                 setConnectedAccounts(response.data)
             })
-            .catch(error => console.log(error));
+            .catch(error => toast.error("Error", {
+                description: error.message,
+                duration: 3500,
+            }));
         axiosInstance.get(`${VITE_API_ENDPOINT}api/accounts_and_balances`)
             .then(response => {
                 setAccountsAndBalances(response.data)
             })
-            .catch(error => console.log(error));
+            .catch(error => toast.error("Error", {
+                description: error.message,
+                duration: 3500,
+            }));
     }, [])
 
     const createSession = () => {
         axiosInstance.post(`${VITE_API_ENDPOINT}api/create-fc-session`)
             .then(response => setClientSecret(response.data.clientSecret))
-            .catch(error => console.log(error));
+            .catch(error => toast.error("Error", {
+                description: error.message,
+                duration: 3500,
+            }));
     }
 
     const subscribeToAccounts = () => {
         if (stripeAccounts) {
             for (const account of stripeAccounts) {
                 axiosInstance.get(`${VITE_API_ENDPOINT}api/subscribe_to_account/${account.id}`)
-                    .then(response => console.log(response.data))
+                    .then(() => toast.info("Notification", {
+                        description: `Subscribed to the account ${account.id}`,
+                        duration: 3500,
+                    }))
+                    .catch(error => toast.error("Error", {
+                        description: error.message,
+                        duration: 3500,
+                    }));
             }
         }
         setClientSecret("")
@@ -66,7 +85,10 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
     const relinkAccount = (accountId) => {
         axiosInstance.get(`${VITE_API_ENDPOINT}api/relink_account/${accountId}`)
             .then(response => setClientSecret(response.data.clientSecret))
-            .catch(error => console.log(error));
+            .catch(error => toast.error("Error", {
+                description: error.message,
+                duration: 3500,
+            }));
     }
 
     const appearance = {
@@ -112,7 +134,13 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
                         {status === 'inactive' ?
                             <TableCell><Button onClick={() => { relinkAccount(_id) }} variant="secondary">Reactivate</Button></TableCell>
                             : <TableCell>Active</TableCell>}
-                        <TableCell>{accountsAndBalances[_id] && CurrencyFormatter.format(accountsAndBalances[_id]["balance"])}</TableCell>
+                        <TableCell>
+                            {accountsAndBalances[_id] && (
+                                <StatusBadge status={accountsAndBalances[_id]["balance"] >= 0 ? 'success' : 'error'}>
+                                    {CurrencyFormatter.format(accountsAndBalances[_id]["balance"])}
+                                </StatusBadge>
+                            )}
+                        </TableCell>
                         <TableCell>{accountsAndBalances[_id] && formatDate(accountsAndBalances[_id]["as_of"])}</TableCell>
                     </TableRow>
                 );
@@ -133,13 +161,19 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
     }
 
     return (
-        <>
-            <div>
-                <h1>Connected Accounts</h1>
-                <div className="Form">
-                    {clientSecret ?
-                        stripeAccounts.length > 0 ?
-                            <Fragment>
+        <PageContainer>
+            <PageHeader>
+                <H1>Connected Accounts</H1>
+                <Body className="text-muted-foreground">
+                    Manage your linked financial accounts and view balances
+                </Body>
+            </PageHeader>
+
+            <div className="space-y-8">
+                <div className="space-y-4">
+                    {clientSecret ? (
+                        stripeAccounts.length > 0 ? (
+                            <div className="space-y-4">
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
@@ -147,84 +181,83 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {
-                                            stripeAccounts
-                                                .map(account => (
-                                                    <TableRow key={account.id}>
-                                                        <TableCell>
-                                                            {account.institution_name} {account.subcategory} ({account.id})
-                                                        </TableCell>
-                                                    </TableRow>
-                                                ))
-                                        }
+                                        {stripeAccounts.map(account => (
+                                            <TableRow key={account.id}>
+                                                <TableCell>
+                                                    {account.institution_name} {account.subcategory} ({account.id})
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
                                     </TableBody>
                                 </Table>
                                 <Button onClick={subscribeToAccounts}>
                                     Subscribe to these accounts
                                 </Button>
-                            </Fragment>
-                            :
+                            </div>
+                        ) : (
                             <Elements options={options} stripe={stripePromise}>
                                 <FinancialConnectionsForm fcsess_secret={clientSecret} setStripeAccounts={setStripeAccounts} />
                             </Elements>
-                        :
+                        )
+                    ) : (
                         <Button onClick={createSession}>
                             Connect A New Account
                         </Button>
-                    }
+                    )}
                 </div>
-                <div id="stripeAccounts">
 
+                <div className="space-y-6">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Connected Accounts</TableHead>
+                                <TableHead>Status</TableHead>
+                                <TableHead>Balance</TableHead>
+                                <TableHead>Last Updated</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {connectedAccounts.length > 0 ? (
+                                connectedAccounts.flatMap(renderConnectedAccount)
+                            ) : (
+                                <TableRow>
+                                    <TableCell colSpan={4} className="text-center text-muted-foreground">
+                                        No connected accounts found
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+
+                    <div className="bg-muted rounded-lg p-6">
+                        <H4>Net Worth: <StatusBadge status={netWorth >= 0 ? 'success' : 'error'}>{CurrencyFormatter.format(netWorth)}</StatusBadge></H4>
+                    </div>
+
+                    <div className="space-y-4">
+                        <H4>Inactive Accounts</H4>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Connected Accounts</TableHead>
+                                    <TableHead>Reactivate</TableHead>
+                                    <TableHead>Last Updated</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {connectedAccounts.length > 0 ? (
+                                    connectedAccounts.find(account => account.stripe)?.stripe.filter(account => account.status === "inactive").flatMap(renderStripeAccount)
+                                ) : (
+                                    <TableRow>
+                                        <TableCell colSpan={3} className="text-center text-muted-foreground">
+                                            No inactive connected accounts found
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
                 </div>
             </div>
-            <br />
-            <div>
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Connected Accounts</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Balance</TableHead>
-                            <TableHead>Last Updated</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {connectedAccounts.length > 0 ?
-                            connectedAccounts.flatMap(renderConnectedAccount)
-                            :
-                            <TableRow>
-                                <TableCell colSpan={4} className="text-center">
-                                    No connected accounts found
-                                </TableCell>
-                            </TableRow>
-                        }
-                    </TableBody>
-                </Table>
-                <br />
-                <h4>Net Worth: {CurrencyFormatter.format(netWorth)}</h4>
-                <br />
-                <h4>Inactive Accounts</h4>
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Connected Accounts</TableHead>
-                            <TableHead>Reactivate</TableHead>
-                            <TableHead>Last Updated</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {connectedAccounts.length > 0 ?
-                            connectedAccounts.find(account => account.stripe)?.stripe.filter(account => account.status === "inactive").flatMap(renderStripeAccount)
-                            :
-                            <TableRow>
-                                <TableCell colSpan={3} className="text-center">
-                                    No inactive connected accounts found
-                                </TableCell>
-                            </TableRow>
-                        }
-                    </TableBody>
-                </Table>
-            </div>
-        </>
+        </PageContainer>
     )
 }

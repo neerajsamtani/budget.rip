@@ -1,6 +1,8 @@
 import React from "react";
 import { LineItemInterface, useLineItems, useLineItemsDispatch } from "../contexts/LineItemsContext";
-import { DateFormatter } from "../utils/formatters";
+import { CurrencyFormatter, DateFormatter } from "../utils/formatters";
+import { StatusBadge } from "./ui/status-badge";
+import { TableCell, TableRow } from "./ui/table";
 
 interface LineItemProps {
     lineItem: LineItemInterface;
@@ -8,17 +10,11 @@ interface LineItemProps {
 }
 
 export default function LineItem({ lineItem, showCheckBox }: LineItemProps) {
-    // Convert the UNIX timestamp to a readable date
     const readableDate = DateFormatter.format(lineItem.date * 1000);
-
-    // Get line items and dispatch from context
     const lineItems = useLineItems();
     const lineItemsDispatch = useLineItemsDispatch();
-
-    // Check if the current line item is selected
     const isChecked = lineItems.some(li => li.isSelected && li.id === lineItem._id);
 
-    // Handle checkbox toggle
     const handleToggle = () => {
         lineItemsDispatch({
             type: "toggle_line_item_select",
@@ -26,14 +22,42 @@ export default function LineItem({ lineItem, showCheckBox }: LineItemProps) {
         });
     }
 
+    // Determine amount status for color coding
+    const amountStatus = lineItem.amount < 0 ? 'success' : 'warning';
+
     return (
-        <tr>
-            {!!showCheckBox && <td><input type="checkbox" checked={isChecked} onChange={handleToggle} /></td>}
-            <td>{readableDate}</td>
-            <td>{lineItem.payment_method}</td>
-            <td>{lineItem.description}</td>
-            <td>{lineItem.responsible_party}</td>
-            <td>{lineItem.amount}</td>
-        </tr>
+        <TableRow data-state={isChecked ? 'selected' : undefined}>
+            {showCheckBox && (
+                <TableCell className="w-12">
+                    <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={handleToggle}
+                        className="w-4 h-4 text-primary bg-white border rounded focus:ring-primary focus:ring-2 focus:ring-offset-2"
+                    />
+                </TableCell>
+            )}
+            <TableCell className="font-medium">
+                {readableDate}
+            </TableCell>
+            <TableCell>
+                {lineItem.payment_method}
+            </TableCell>
+            <TableCell className="w-2/5 min-w-0">
+                <span className="block" title={lineItem.description}>
+                    {lineItem.description}
+                </span>
+            </TableCell>
+            <TableCell className="w-1/5 min-w-0">
+                <span className="block" title={lineItem.responsible_party}>
+                    {lineItem.responsible_party}
+                </span>
+            </TableCell>
+            <TableCell className="text-right">
+                <StatusBadge status={amountStatus}>
+                    {CurrencyFormatter.format(Math.abs(lineItem.amount))}
+                </StatusBadge>
+            </TableCell>
+        </TableRow>
     );
 }

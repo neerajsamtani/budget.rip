@@ -11,6 +11,19 @@ jest.mock('../../utils/axiosInstance', () => ({
     },
 }));
 
+// Mock sonner toast
+jest.mock('sonner', () => {
+    const mockToast = jest.fn();
+    return {
+        toast: Object.assign(mockToast, {
+            success: jest.fn(),
+            error: jest.fn(),
+            warning: jest.fn(),
+            info: jest.fn(),
+        }),
+    };
+});
+
 describe('PaymentMethodFilter', () => {
     const mockSetPaymentMethod = jest.fn();
     const mockPaymentMethod = 'All';
@@ -88,16 +101,17 @@ describe('PaymentMethodFilter', () => {
         });
 
         it('handles API error gracefully', async () => {
-            const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+            const { toast } = require('sonner');
             mockAxiosInstance.get.mockRejectedValue(new Error('API Error'));
 
             render(<PaymentMethodFilter paymentMethod={mockPaymentMethod} setPaymentMethod={mockSetPaymentMethod} />);
 
             await waitFor(() => {
-                expect(consoleSpy).toHaveBeenCalledWith(expect.any(Error));
+                expect(toast.error).toHaveBeenCalledWith("Error", {
+                    description: "API Error",
+                    duration: 3500,
+                });
             });
-
-            consoleSpy.mockRestore();
         });
 
         it('only fetches payment methods once on mount', async () => {

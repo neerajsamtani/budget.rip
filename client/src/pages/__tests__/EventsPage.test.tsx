@@ -2,6 +2,19 @@ import React from 'react';
 import { fireEvent, mockAxiosInstance, render, screen, waitFor } from '../../utils/test-utils';
 import EventsPage from '../EventsPage';
 
+// Mock sonner toast
+jest.mock('sonner', () => {
+    const mockToast = jest.fn();
+    return {
+        toast: Object.assign(mockToast, {
+            success: jest.fn(),
+            error: jest.fn(),
+            warning: jest.fn(),
+            info: jest.fn(),
+        }),
+    };
+});
+
 // Mock the filter components
 jest.mock('../../components/CategoryFilter', () => {
     return function MockCategoryFilter({ category, setCategory }: any) {
@@ -179,8 +192,8 @@ describe('EventsPage', () => {
             render(<EventsPage />);
 
             await waitFor(() => {
-                expect(screen.getByText(/Net Income:/)).toBeInTheDocument();
-                expect(screen.getByText(/Spending w\/o Rent:/)).toBeInTheDocument();
+                expect(screen.getByText(/Cash Flow in/)).toBeInTheDocument();
+                expect(screen.getByText(/Spending:/)).toBeInTheDocument();
             });
         });
     });
@@ -216,16 +229,17 @@ describe('EventsPage', () => {
         });
 
         it('handles API errors gracefully', async () => {
-            const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+            const { toast } = require('sonner');
             mockAxiosInstance.get.mockRejectedValue(new Error('API Error'));
 
             render(<EventsPage />);
 
             await waitFor(() => {
-                expect(consoleSpy).toHaveBeenCalledWith(expect.any(Error));
+                expect(toast.error).toHaveBeenCalledWith("Error", {
+                    description: "API Error",
+                    duration: 3500,
+                });
             });
-
-            consoleSpy.mockRestore();
         });
 
         it('refetches data when month changes', async () => {
@@ -367,7 +381,7 @@ describe('EventsPage', () => {
             render(<EventsPage />);
 
             await waitFor(() => {
-                expect(screen.getByText('$7175.00')).toBeInTheDocument(); // All events
+                expect(screen.getByText('$7,175.00')).toBeInTheDocument(); // All events
             });
 
             // Filter by 'important' tag
@@ -382,12 +396,12 @@ describe('EventsPage', () => {
     });
 
     describe('Calculations', () => {
-        it('calculates net income correctly', async () => {
+        it('calculates cash flow correctly', async () => {
             render(<EventsPage />);
 
             await waitFor(() => {
-                // Net income should include all events: 50 + 100 + 5000 + 2000 + 25 = 7175
-                expect(screen.getByText('$7175.00')).toBeInTheDocument();
+                // Cash flow should include all events: 50 + 100 + 5000 + 2000 + 25 = 7175
+                expect(screen.getByText('$7,175.00')).toBeInTheDocument();
             });
         });
 
@@ -395,7 +409,7 @@ describe('EventsPage', () => {
             render(<EventsPage />);
 
             await waitFor(() => {
-                // Spending w/o rent should exclude Rent and Income: 50 + 100 + 25 = 175
+                // Spending should exclude Rent and Income: 50 + 100 + 25 = 175
                 expect(screen.getByText('$175.00')).toBeInTheDocument();
             });
         });
@@ -404,7 +418,7 @@ describe('EventsPage', () => {
             render(<EventsPage />);
 
             await waitFor(() => {
-                expect(screen.getByText('$7175.00')).toBeInTheDocument(); // All categories
+                expect(screen.getByText('$7,175.00')).toBeInTheDocument(); // All categories
             });
 
             // Change to Dining category only
@@ -619,8 +633,8 @@ describe('EventsPage', () => {
             render(<EventsPage />);
 
             await waitFor(() => {
-                expect(screen.getByText(/Net Income:/)).toBeInTheDocument();
-                expect(screen.getByText(/Spending w\/o Rent:/)).toBeInTheDocument();
+                expect(screen.getByText(/Cash Flow in/)).toBeInTheDocument();
+                expect(screen.getByText(/Spending:/)).toBeInTheDocument();
             });
         });
     });

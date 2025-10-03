@@ -1,4 +1,5 @@
 import React, { createContext, ReactNode, useContext, useEffect, useReducer } from 'react';
+import { toast } from 'sonner';
 import axiosInstance from '../utils/axiosInstance';
 
 // Define TypeScript interfaces for the line item and props
@@ -74,7 +75,10 @@ export function LineItemsProvider({ children }: { children: ReactNode }) {
                     fetchedLineItems: response.data.data
                 })
             })
-            .catch(error => console.log(error));
+            .catch(error => toast.error("Error", {
+                description: error.message,
+                duration: 3500,
+            }));
     }, [])
 
     return (

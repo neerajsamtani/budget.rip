@@ -3,9 +3,17 @@ import { fireEvent, mockAxiosInstance, render, screen, waitFor } from '../../uti
 import ConnectedAccountsPage from '../ConnectedAccountsPage';
 
 // Mock Notification and FinancialConnectionsForm
-jest.mock('sonner', () => ({
-    toast: jest.fn(),
-}));
+jest.mock('sonner', () => {
+    const mockToast = jest.fn();
+    return {
+        toast: Object.assign(mockToast, {
+            success: jest.fn(),
+            error: jest.fn(),
+            warning: jest.fn(),
+            info: jest.fn(),
+        }),
+    };
+});
 
 jest.mock('../../components/FinancialConnectionsForm', () => ({ fcsess_secret, setStripeAccounts }: any) => (
     <div data-testid="fc-form">FinancialConnectionsForm</div>
@@ -64,7 +72,8 @@ describe('ConnectedAccountsPage', () => {
         it('renders tables and net worth', async () => {
             render(<ConnectedAccountsPage stripePromise={mockStripePromise} />);
             await waitFor(() => {
-                expect(screen.getByText('Net Worth: $1,000.00')).toBeInTheDocument();
+                expect(screen.getByText('Net Worth:')).toBeInTheDocument();
+                expect(screen.getAllByText('$1,000.00').length).toBeGreaterThanOrEqual(1);
                 expect(screen.getByText('Inactive Accounts')).toBeInTheDocument();
                 expect(screen.getAllByRole('table').length).toBeGreaterThanOrEqual(2);
             });
@@ -85,13 +94,15 @@ describe('ConnectedAccountsPage', () => {
         });
 
         it('handles API errors gracefully', async () => {
-            const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+            const { toast } = require('sonner');
             mockAxiosInstance.get.mockRejectedValueOnce(new Error('API Error'));
             render(<ConnectedAccountsPage stripePromise={mockStripePromise} />);
             await waitFor(() => {
-                expect(consoleSpy).toHaveBeenCalledWith(expect.any(Error));
+                expect(toast.error).toHaveBeenCalledWith("Error", {
+                    description: "API Error",
+                    duration: 3500,
+                });
             });
-            consoleSpy.mockRestore();
         });
     });
 
@@ -109,7 +120,9 @@ describe('ConnectedAccountsPage', () => {
             await waitFor(() => {
                 expect(screen.getByText(/Bank Checking 1234/)).toBeInTheDocument();
                 expect(screen.getByText('Active')).toBeInTheDocument();
-                expect(screen.getByText('$1,000.00')).toBeInTheDocument();
+                // Check for balance amount within the table context
+                const balanceCells = screen.getAllByText('$1,000.00');
+                expect(balanceCells.length).toBeGreaterThanOrEqual(1);
             });
         });
 

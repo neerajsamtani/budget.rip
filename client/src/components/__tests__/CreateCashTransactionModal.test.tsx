@@ -42,26 +42,26 @@ describe('CreateCashTransactionModal', () => {
         it('renders all form fields', () => {
             render(<CreateCashTransactionModal show={true} onHide={mockOnHide} />);
 
-            expect(screen.getByText('Date:')).toBeInTheDocument();
-            expect(screen.getByText('Person:')).toBeInTheDocument();
-            expect(screen.getByText('Description:')).toBeInTheDocument();
-            expect(screen.getByText('Amount:')).toBeInTheDocument();
+            expect(screen.getByText('Date')).toBeInTheDocument();
+            expect(screen.getByText('Person')).toBeInTheDocument();
+            expect(screen.getByText('Description')).toBeInTheDocument();
+            expect(screen.getByText('Amount')).toBeInTheDocument();
         });
 
         it('renders action buttons', () => {
             render(<CreateCashTransactionModal show={true} onHide={mockOnHide} />);
 
             expect(screen.getByRole('button', { name: /cancel/i })).toBeInTheDocument();
-            expect(screen.getByRole('button', { name: /submit/i })).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: /create transaction/i })).toBeInTheDocument();
         });
 
         it('renders form inputs with correct types', () => {
             render(<CreateCashTransactionModal show={true} onHide={mockOnHide} />);
 
-            const dateInput = screen.getByLabelText('Date:');
-            const personInput = screen.getByLabelText('Person:');
-            const descriptionInput = screen.getByLabelText('Description:');
-            const amountInput = screen.getByLabelText('Amount:');
+            const dateInput = screen.getByLabelText('Date');
+            const personInput = screen.getByLabelText('Person');
+            const descriptionInput = screen.getByLabelText('Description');
+            const amountInput = screen.getByLabelText('Amount');
 
             expect(dateInput).toHaveAttribute('type', 'date');
             expect(personInput).toHaveAttribute('type', 'text');
@@ -74,7 +74,7 @@ describe('CreateCashTransactionModal', () => {
         it('allows typing in date field', async () => {
             render(<CreateCashTransactionModal show={true} onHide={mockOnHide} />);
 
-            const dateInput = screen.getByLabelText('Date:');
+            const dateInput = screen.getByLabelText('Date');
             fireEvent.change(dateInput, { target: { value: '2024-01-15' } });
 
             expect(dateInput).toHaveValue('2024-01-15');
@@ -83,7 +83,7 @@ describe('CreateCashTransactionModal', () => {
         it('allows typing in person field', async () => {
             render(<CreateCashTransactionModal show={true} onHide={mockOnHide} />);
 
-            const personInput = screen.getByLabelText('Person:');
+            const personInput = screen.getByLabelText('Person');
             fireEvent.change(personInput, { target: { value: 'John Doe' } });
 
             expect(personInput).toHaveValue('John Doe');
@@ -92,7 +92,7 @@ describe('CreateCashTransactionModal', () => {
         it('allows typing in description field', async () => {
             render(<CreateCashTransactionModal show={true} onHide={mockOnHide} />);
 
-            const descriptionInput = screen.getByLabelText('Description:');
+            const descriptionInput = screen.getByLabelText('Description');
             fireEvent.change(descriptionInput, { target: { value: 'Lunch payment' } });
 
             expect(descriptionInput).toHaveValue('Lunch payment');
@@ -101,7 +101,7 @@ describe('CreateCashTransactionModal', () => {
         it('allows typing in amount field', async () => {
             render(<CreateCashTransactionModal show={true} onHide={mockOnHide} />);
 
-            const amountInput = screen.getByLabelText('Amount:');
+            const amountInput = screen.getByLabelText('Amount');
             fireEvent.change(amountInput, { target: { value: '25.50' } });
 
             expect(amountInput).toHaveValue(25.5);
@@ -112,7 +112,7 @@ describe('CreateCashTransactionModal', () => {
         it('enables submit button by default', () => {
             render(<CreateCashTransactionModal show={true} onHide={mockOnHide} />);
 
-            const submitButton = screen.getByRole('button', { name: /submit/i });
+            const submitButton = screen.getByRole('button', { name: /create transaction/i });
             expect(submitButton).not.toBeDisabled();
         });
     });
@@ -122,10 +122,10 @@ describe('CreateCashTransactionModal', () => {
             render(<CreateCashTransactionModal show={true} onHide={mockOnHide} />);
 
             // Fill out form
-            const dateInput = screen.getByLabelText('Date:');
-            const personInput = screen.getByLabelText('Person:');
-            const descriptionInput = screen.getByLabelText('Description:');
-            const amountInput = screen.getByLabelText('Amount:');
+            const dateInput = screen.getByLabelText('Date');
+            const personInput = screen.getByLabelText('Person');
+            const descriptionInput = screen.getByLabelText('Description');
+            const amountInput = screen.getByLabelText('Amount');
 
             fireEvent.change(dateInput, { target: { value: '2024-01-15' } });
             fireEvent.change(personInput, { target: { value: 'John Doe' } });
@@ -133,7 +133,7 @@ describe('CreateCashTransactionModal', () => {
             fireEvent.change(amountInput, { target: { value: '25.50' } });
 
             // Submit form
-            const submitButton = screen.getByRole('button', { name: /submit/i });
+            const submitButton = screen.getByRole('button', { name: /create transaction/i });
             await userEvent.click(submitButton);
 
             await waitFor(() => {
@@ -153,10 +153,10 @@ describe('CreateCashTransactionModal', () => {
             render(<CreateCashTransactionModal show={true} onHide={mockOnHide} />);
 
             // Fill out form
-            const dateInput = screen.getByLabelText('Date:');
-            const personInput = screen.getByLabelText('Person:');
-            const descriptionInput = screen.getByLabelText('Description:');
-            const amountInput = screen.getByLabelText('Amount:');
+            const dateInput = screen.getByLabelText('Date');
+            const personInput = screen.getByLabelText('Person');
+            const descriptionInput = screen.getByLabelText('Description');
+            const amountInput = screen.getByLabelText('Amount');
 
             fireEvent.change(dateInput, { target: { value: '2024-01-15' } });
             fireEvent.change(personInput, { target: { value: 'John Doe' } });
@@ -164,7 +164,7 @@ describe('CreateCashTransactionModal', () => {
             fireEvent.change(amountInput, { target: { value: '25.50' } });
 
             // Submit form
-            const submitButton = screen.getByRole('button', { name: /submit/i });
+            const submitButton = screen.getByRole('button', { name: /create transaction/i });
             await userEvent.click(submitButton);
 
             await waitFor(() => {
@@ -179,10 +179,10 @@ describe('CreateCashTransactionModal', () => {
             render(<CreateCashTransactionModal show={true} onHide={mockOnHide} />);
 
             // Fill out form
-            const dateInput = screen.getByLabelText('Date:');
-            const personInput = screen.getByLabelText('Person:');
-            const descriptionInput = screen.getByLabelText('Description:');
-            const amountInput = screen.getByLabelText('Amount:');
+            const dateInput = screen.getByLabelText('Date');
+            const personInput = screen.getByLabelText('Person');
+            const descriptionInput = screen.getByLabelText('Description');
+            const amountInput = screen.getByLabelText('Amount');
 
             fireEvent.change(dateInput, { target: { value: '2024-01-15' } });
             fireEvent.change(personInput, { target: { value: 'John Doe' } });
@@ -190,7 +190,7 @@ describe('CreateCashTransactionModal', () => {
             fireEvent.change(amountInput, { target: { value: '25.50' } });
 
             // Submit form
-            const submitButton = screen.getByRole('button', { name: /submit/i });
+            const submitButton = screen.getByRole('button', { name: /create transaction/i });
             await userEvent.click(submitButton);
 
             await waitFor(() => {
@@ -206,10 +206,10 @@ describe('CreateCashTransactionModal', () => {
             render(<CreateCashTransactionModal show={true} onHide={mockOnHide} />);
 
             // Fill out form
-            const dateInput = screen.getByLabelText('Date:');
-            const personInput = screen.getByLabelText('Person:');
-            const descriptionInput = screen.getByLabelText('Description:');
-            const amountInput = screen.getByLabelText('Amount:');
+            const dateInput = screen.getByLabelText('Date');
+            const personInput = screen.getByLabelText('Person');
+            const descriptionInput = screen.getByLabelText('Description');
+            const amountInput = screen.getByLabelText('Amount');
 
             fireEvent.change(dateInput, { target: { value: '2024-01-15' } });
             fireEvent.change(personInput, { target: { value: 'John Doe' } });
@@ -217,7 +217,7 @@ describe('CreateCashTransactionModal', () => {
             fireEvent.change(amountInput, { target: { value: '25.50' } });
 
             // Submit form
-            const submitButton = screen.getByRole('button', { name: /submit/i });
+            const submitButton = screen.getByRole('button', { name: /create transaction/i });
             await userEvent.click(submitButton);
 
             await waitFor(() => {
@@ -226,16 +226,16 @@ describe('CreateCashTransactionModal', () => {
         });
 
         it('handles API error gracefully', async () => {
-            const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+            const { toast } = require('sonner');
             mockAxiosInstance.post.mockRejectedValue(new Error('API Error'));
 
             render(<CreateCashTransactionModal show={true} onHide={mockOnHide} />);
 
             // Fill out form
-            const dateInput = screen.getByLabelText('Date:');
-            const personInput = screen.getByLabelText('Person:');
-            const descriptionInput = screen.getByLabelText('Description:');
-            const amountInput = screen.getByLabelText('Amount:');
+            const dateInput = screen.getByLabelText('Date');
+            const personInput = screen.getByLabelText('Person');
+            const descriptionInput = screen.getByLabelText('Description');
+            const amountInput = screen.getByLabelText('Amount');
 
             fireEvent.change(dateInput, { target: { value: '2024-01-15' } });
             fireEvent.change(personInput, { target: { value: 'John Doe' } });
@@ -243,14 +243,15 @@ describe('CreateCashTransactionModal', () => {
             fireEvent.change(amountInput, { target: { value: '25.50' } });
 
             // Submit form
-            const submitButton = screen.getByRole('button', { name: /submit/i });
+            const submitButton = screen.getByRole('button', { name: /create transaction/i });
             await userEvent.click(submitButton);
 
             await waitFor(() => {
-                expect(consoleSpy).toHaveBeenCalledWith(expect.any(Error));
+                expect(toast.error).toHaveBeenCalledWith("Error", {
+                    description: "API Error",
+                    duration: 3500,
+                });
             });
-
-            consoleSpy.mockRestore();
         });
 
     });
@@ -286,26 +287,26 @@ describe('CreateCashTransactionModal', () => {
         it('has proper form labels', () => {
             render(<CreateCashTransactionModal show={true} onHide={mockOnHide} />);
 
-            expect(screen.getByText('Date:')).toBeInTheDocument();
-            expect(screen.getByText('Person:')).toBeInTheDocument();
-            expect(screen.getByText('Description:')).toBeInTheDocument();
-            expect(screen.getByText('Amount:')).toBeInTheDocument();
+            expect(screen.getByText('Date')).toBeInTheDocument();
+            expect(screen.getByText('Person')).toBeInTheDocument();
+            expect(screen.getByText('Description')).toBeInTheDocument();
+            expect(screen.getByText('Amount')).toBeInTheDocument();
         });
 
         it('has proper button labels', () => {
             render(<CreateCashTransactionModal show={true} onHide={mockOnHide} />);
 
             expect(screen.getByRole('button', { name: /cancel/i })).toBeInTheDocument();
-            expect(screen.getByRole('button', { name: /submit/i })).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: /create transaction/i })).toBeInTheDocument();
         });
 
         it('has form inputs with proper IDs', () => {
             render(<CreateCashTransactionModal show={true} onHide={mockOnHide} />);
 
-            expect(screen.getByLabelText('Date:')).toHaveAttribute('id', 'event-date');
-            expect(screen.getByLabelText('Person:')).toHaveAttribute('id', 'event-person');
-            expect(screen.getByLabelText('Description:')).toHaveAttribute('id', 'event-description');
-            expect(screen.getByLabelText('Amount:')).toHaveAttribute('id', 'event-amount');
+            expect(screen.getByLabelText('Date')).toHaveAttribute('id', 'event-date');
+            expect(screen.getByLabelText('Person')).toHaveAttribute('id', 'event-person');
+            expect(screen.getByLabelText('Description')).toHaveAttribute('id', 'event-description');
+            expect(screen.getByLabelText('Amount')).toHaveAttribute('id', 'event-amount');
         });
     });
 
@@ -315,10 +316,10 @@ describe('CreateCashTransactionModal', () => {
                 render(<CreateCashTransactionModal show={true} onHide={mockOnHide} />);
             });
 
-            const dateInput = screen.getByLabelText('Date:');
-            const personInput = screen.getByLabelText('Person:');
-            const descriptionInput = screen.getByLabelText('Description:');
-            const amountInput = screen.getByLabelText('Amount:');
+            const dateInput = screen.getByLabelText('Date');
+            const personInput = screen.getByLabelText('Person');
+            const descriptionInput = screen.getByLabelText('Description');
+            const amountInput = screen.getByLabelText('Amount');
 
             fireEvent.change(dateInput, { target: { value: '2024-01-15' } });
             fireEvent.change(personInput, { target: { value: 'John Doe' } });
@@ -338,11 +339,11 @@ describe('CreateCashTransactionModal', () => {
                 render(<CreateCashTransactionModal show={true} onHide={mockOnHide} />);
             });
 
-            const dateInput = screen.getByLabelText('Date:');
-            const personInput = screen.getByLabelText('Person:');
-            const descriptionInput = screen.getByLabelText('Description:');
-            const amountInput = screen.getByLabelText('Amount:');
-            const submitButton = screen.getByRole('button', { name: /submit/i });
+            const dateInput = screen.getByLabelText('Date');
+            const personInput = screen.getByLabelText('Person');
+            const descriptionInput = screen.getByLabelText('Description');
+            const amountInput = screen.getByLabelText('Amount');
+            const submitButton = screen.getByRole('button', { name: /create transaction/i });
 
             fireEvent.change(dateInput, { target: { value: '2024-01-15' } });
             fireEvent.change(personInput, { target: { value: 'John Doe' } });
@@ -370,10 +371,10 @@ describe('CreateCashTransactionModal', () => {
             render(<CreateCashTransactionModal show={true} onHide={mockOnHide} />);
 
             // Fill out form
-            const dateInput = screen.getByLabelText('Date:');
-            const personInput = screen.getByLabelText('Person:');
-            const descriptionInput = screen.getByLabelText('Description:');
-            const amountInput = screen.getByLabelText('Amount:');
+            const dateInput = screen.getByLabelText('Date');
+            const personInput = screen.getByLabelText('Person');
+            const descriptionInput = screen.getByLabelText('Description');
+            const amountInput = screen.getByLabelText('Amount');
 
             fireEvent.change(dateInput, { target: { value: '2024-01-15' } });
             fireEvent.change(personInput, { target: { value: 'John Doe' } });
@@ -381,7 +382,7 @@ describe('CreateCashTransactionModal', () => {
             fireEvent.change(amountInput, { target: { value: '25.50' } });
 
             // Submit form
-            const submitButton = screen.getByRole('button', { name: /submit/i });
+            const submitButton = screen.getByRole('button', { name: /create transaction/i });
             await userEvent.click(submitButton);
 
             await waitFor(() => {

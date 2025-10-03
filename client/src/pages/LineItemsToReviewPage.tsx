@@ -1,5 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { PageContainer, PageHeader } from "../components/ui/layout";
+import { H1, Body } from "../components/ui/typography";
 import React, { useCallback, useEffect, useState } from "react";
 import CreateCashTransactionModal from "../components/CreateCashTransactionModal";
 import CreateEventModal from "../components/CreateEventModal";
@@ -29,30 +31,40 @@ export default function LineItemsToReviewPage() {
     }, [handleKeyDown]); // Re-run effect if handleKeyDown changes
 
     return (
-        <div>
-            <h1>Line Items To Review</h1>
-            {lineItems &&
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Select</TableHead>
-                            <TableHead>Date</TableHead>
-                            <TableHead>Payment Method</TableHead>
-                            <TableHead>Description</TableHead>
-                            <TableHead>Name</TableHead>
-                            <TableHead>Amount</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {lineItems.length > 0 && lineItems.map(lineItem =>
-                            <LineItem key={lineItem._id}
-                                lineItem={lineItem}
-                                showCheckBox={true}
-                            />
-                        )}
-                    </TableBody>
-                </Table>
-            }
+        <PageContainer>
+            <PageHeader>
+                <H1>Review Line Items</H1>
+                <Body className="text-muted-foreground">
+                    Review and categorize your recent transactions
+                </Body>
+            </PageHeader>
+
+            {lineItems && (
+                <div className="space-y-6">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Select</TableHead>
+                                <TableHead>Date</TableHead>
+                                <TableHead>Payment Method</TableHead>
+                                <TableHead>Description</TableHead>
+                                <TableHead>Party</TableHead>
+                                <TableHead className="text-right">Amount</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {lineItems.length > 0 && lineItems.map(lineItem =>
+                                <LineItem
+                                    key={lineItem._id}
+                                    lineItem={lineItem}
+                                    showCheckBox={true}
+                                />
+                            )}
+                        </TableBody>
+                    </Table>
+                </div>
+            )}
+
             <CreateCashTransactionModal
                 show={cashModalShow}
                 onHide={() => setCashModalShow(false)}
@@ -61,12 +73,19 @@ export default function LineItemsToReviewPage() {
                 show={eventModalShow}
                 onHide={() => setEventModalShow(false)}
             />
-            <div className="fixed bottom-0 left-0 right-0 bg-slate-900 p-4">
-                <div className="flex justify-end space-x-4">
-                    <Button onClick={() => setCashModalShow(true)}>Create Cash Transaction</Button>
-                    <Button onClick={() => setEventModalShow(true)}>Create Event (↵)</Button>
+
+            <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-6 shadow-lg">
+                <div className="container mx-auto max-w-7xl">
+                    <div className="flex justify-end space-x-4">
+                        <Button onClick={() => setCashModalShow(true)} variant="secondary">
+                            Create Cash Transaction
+                        </Button>
+                        <Button onClick={() => setEventModalShow(true)}>
+                            Create Event (↵)
+                        </Button>
+                    </div>
                 </div>
             </div>
-        </div>
+        </PageContainer>
     )
 }

@@ -19,7 +19,10 @@ export default function FinancialConnectionsForm({ fcsess_secret, setStripeAccou
   const storeAccounts = (accounts: FinancialConnectionsSession.Account[]) => {
     const VITE_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
     axiosInstance.post(`${VITE_API_ENDPOINT}api/create_accounts`, accounts)
-      .then(response => console.log(response.data))
+      .then(response => toast.success("Accounts Created", {
+        description: response.data,
+        duration: 3500,
+      }))
       .catch(error => toast.error("Error", {
         description: error.message,
         duration: 3500,

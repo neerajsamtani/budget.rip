@@ -4,6 +4,19 @@ import React from 'react';
 import { mockAxiosInstance, render, screen, waitFor } from '../../utils/test-utils';
 import LoginPage from '../LoginPage';
 
+// Mock sonner toast
+jest.mock('sonner', () => {
+    const mockToast = jest.fn();
+    return {
+        toast: Object.assign(mockToast, {
+            success: jest.fn(),
+            error: jest.fn(),
+            warning: jest.fn(),
+            info: jest.fn(),
+        }),
+    };
+});
+
 // Mock react-router-dom
 const mockNavigate = jest.fn();
 jest.mock('react-router-dom', () => ({
@@ -23,8 +36,8 @@ describe('LoginPage', () => {
                 render(<LoginPage />);
             });
 
-            expect(screen.getByLabelText('Email:')).toBeInTheDocument();
-            expect(screen.getByLabelText('Password:')).toBeInTheDocument();
+            expect(screen.getByLabelText('Email')).toBeInTheDocument();
+            expect(screen.getByLabelText('Password')).toBeInTheDocument();
             expect(screen.getByRole('button', { name: /log in/i })).toBeInTheDocument();
             expect(screen.getByRole('button', { name: /log out/i })).toBeInTheDocument();
         });
@@ -34,8 +47,8 @@ describe('LoginPage', () => {
                 render(<LoginPage />);
             });
 
-            const emailField = screen.getByLabelText('Email:') as HTMLInputElement;
-            const passwordField = screen.getByLabelText('Password:') as HTMLInputElement;
+            const emailField = screen.getByLabelText('Email') as HTMLInputElement;
+            const passwordField = screen.getByLabelText('Password') as HTMLInputElement;
 
             expect(emailField.type).toBe('text');
             expect(passwordField.type).toBe('password');
@@ -46,8 +59,8 @@ describe('LoginPage', () => {
                 render(<LoginPage />);
             });
 
-            const emailField = screen.getByLabelText('Email:') as HTMLInputElement;
-            const passwordField = screen.getByLabelText('Password:') as HTMLInputElement;
+            const emailField = screen.getByLabelText('Email') as HTMLInputElement;
+            const passwordField = screen.getByLabelText('Password') as HTMLInputElement;
 
             expect(emailField.value).toBe('');
             expect(passwordField.value).toBe('');
@@ -60,7 +73,7 @@ describe('LoginPage', () => {
                 render(<LoginPage />);
             });
 
-            const emailField = screen.getByLabelText('Email:');
+            const emailField = screen.getByLabelText('Email');
             fireEvent.change(emailField, { target: { value: 'test@example.com' } });
 
             expect(emailField).toHaveValue('test@example.com');
@@ -71,7 +84,7 @@ describe('LoginPage', () => {
                 render(<LoginPage />);
             });
 
-            const passwordField = screen.getByLabelText('Password:');
+            const passwordField = screen.getByLabelText('Password');
             fireEvent.change(passwordField, { target: { value: 'password123' } });
 
             expect(passwordField).toHaveValue('password123');
@@ -82,8 +95,8 @@ describe('LoginPage', () => {
                 render(<LoginPage />);
             });
 
-            const emailField = screen.getByLabelText('Email:');
-            const passwordField = screen.getByLabelText('Password:');
+            const emailField = screen.getByLabelText('Email');
+            const passwordField = screen.getByLabelText('Password');
             const loginButton = screen.getByRole('button', { name: /log in/i });
 
             fireEvent.change(emailField, { target: { value: 'test@example.com' } });
@@ -125,8 +138,8 @@ describe('LoginPage', () => {
                 render(<LoginPage />);
             });
 
-            const emailField = screen.getByLabelText('Email:');
-            const passwordField = screen.getByLabelText('Password:');
+            const emailField = screen.getByLabelText('Email');
+            const passwordField = screen.getByLabelText('Password');
             const loginButton = screen.getByRole('button', { name: /log in/i });
 
             fireEvent.change(emailField, { target: { value: 'test@example.com' } });
@@ -145,8 +158,8 @@ describe('LoginPage', () => {
                 render(<LoginPage />);
             });
 
-            const emailField = screen.getByLabelText('Email:');
-            const passwordField = screen.getByLabelText('Password:');
+            const emailField = screen.getByLabelText('Email');
+            const passwordField = screen.getByLabelText('Password');
             const loginButton = screen.getByRole('button', { name: /log in/i });
 
             fireEvent.change(emailField, { target: { value: 'test@example.com' } });
@@ -164,15 +177,15 @@ describe('LoginPage', () => {
 
     describe('Error Handling', () => {
         it('handles login API error gracefully', async () => {
-            const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+            const { toast } = require('sonner');
             mockAxiosInstance.post.mockRejectedValue(new Error('Login failed'));
 
             await act(async () => {
                 render(<LoginPage />);
             });
 
-            const emailField = screen.getByLabelText('Email:');
-            const passwordField = screen.getByLabelText('Password:');
+            const emailField = screen.getByLabelText('Email');
+            const passwordField = screen.getByLabelText('Password');
             const loginButton = screen.getByRole('button', { name: /log in/i });
 
             fireEvent.change(emailField, { target: { value: 'test@example.com' } });
@@ -182,14 +195,15 @@ describe('LoginPage', () => {
             });
 
             await waitFor(() => {
-                expect(consoleSpy).toHaveBeenCalledWith(expect.any(Error));
+                expect(toast.error).toHaveBeenCalledWith("Error", {
+                    description: "Login failed",
+                    duration: 3500,
+                });
             });
-
-            consoleSpy.mockRestore();
         });
 
         it('handles logout API error gracefully', async () => {
-            const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+            const { toast } = require('sonner');
             mockAxiosInstance.post.mockRejectedValueOnce(new Error('Logout failed'));
 
             await act(async () => {
@@ -202,10 +216,11 @@ describe('LoginPage', () => {
             });
 
             await waitFor(() => {
-                expect(consoleSpy).toHaveBeenCalledWith(expect.any(Error));
+                expect(toast.error).toHaveBeenCalledWith("Error", {
+                    description: "Logout failed",
+                    duration: 3500,
+                });
             });
-
-            consoleSpy.mockRestore();
         });
 
         it('does not navigate on login error', async () => {
@@ -215,8 +230,8 @@ describe('LoginPage', () => {
                 render(<LoginPage />);
             });
 
-            const emailField = screen.getByLabelText('Email:');
-            const passwordField = screen.getByLabelText('Password:');
+            const emailField = screen.getByLabelText('Email');
+            const passwordField = screen.getByLabelText('Password');
             const loginButton = screen.getByRole('button', { name: /log in/i });
 
             fireEvent.change(emailField, { target: { value: 'test@example.com' } });
@@ -237,8 +252,8 @@ describe('LoginPage', () => {
                 render(<LoginPage />);
             });
 
-            expect(screen.getByLabelText('Email:')).toBeInTheDocument();
-            expect(screen.getByLabelText('Password:')).toBeInTheDocument();
+            expect(screen.getByLabelText('Email')).toBeInTheDocument();
+            expect(screen.getByLabelText('Password')).toBeInTheDocument();
         });
 
         it('has proper button labels', () => {
@@ -252,8 +267,8 @@ describe('LoginPage', () => {
             render(<LoginPage />);
 
             // Check that form elements are present
-            expect(screen.getByLabelText('Email:')).toBeInTheDocument();
-            expect(screen.getByLabelText('Password:')).toBeInTheDocument();
+            expect(screen.getByLabelText('Email')).toBeInTheDocument();
+            expect(screen.getByLabelText('Password')).toBeInTheDocument();
             expect(screen.getByRole('button', { name: /log in/i })).toBeInTheDocument();
             expect(screen.getByRole('button', { name: /log out/i })).toBeInTheDocument();
         });
@@ -263,8 +278,8 @@ describe('LoginPage', () => {
         it('handles special characters in email and password', async () => {
             render(<LoginPage />);
 
-            const emailField = screen.getByLabelText('Email:');
-            const passwordField = screen.getByLabelText('Password:');
+            const emailField = screen.getByLabelText('Email');
+            const passwordField = screen.getByLabelText('Password');
             const loginButton = screen.getByRole('button', { name: /log in/i });
 
             fireEvent.change(emailField, { target: { value: 'test+tag@example.com' } });

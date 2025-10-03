@@ -1,10 +1,15 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { CurrencyFormatter } from "@/utils/formatters";
 import { DateTime } from "luxon";
 import React, { useEffect, useState } from "react";
+import { toast } from "sonner";
 import CategoryFilter, { Category } from "../components/CategoryFilter";
 import Event, { EventInterface } from "../components/Event";
 import MonthFilter from "../components/MonthFilter";
 import TagsFilter from "../components/TagsFilter";
+import { PageContainer, PageHeader } from "../components/ui/layout";
+import { StatusBadge } from "../components/ui/status-badge";
+import { Body, H1 } from "../components/ui/typography";
 import YearFilter from "../components/YearFilter";
 import axiosInstance from "../utils/axiosInstance";
 
@@ -40,7 +45,10 @@ export default function EventsPage() {
             .then(response => {
                 setEvents(response.data.data)
             })
-            .catch(error => console.log(error));
+            .catch(error => toast.error("Error", {
+                description: error.message,
+                duration: 3500,
+            }));
     }, [month, year])
 
     const matchCategory = (event: EventInterface) => category === "All" || category === event.category
@@ -51,10 +59,11 @@ export default function EventsPage() {
                 matchCategory(event) &&
                 matchTags(event) &&
                 event.category !== "Rent" &&
-                event.category !== "Income"
+                event.category !== "Income" &&
+                event.category !== "Investment"
             );
         const sum = filteredEvents.reduce((acc, event) => acc + event.amount, 0);
-        return sum.toFixed(2);
+        return sum;
     }
 
     const matchTags = (event: EventInterface) => {
@@ -65,63 +74,81 @@ export default function EventsPage() {
         );
     }
 
-    const calculateNetIncome = (events: EventInterface[]) => {
+    const calculateCashFlowWithFilters = (events: EventInterface[]) => {
         const filteredEvents = events.filter(event => matchCategory(event) && matchTags(event));
         const sum = filteredEvents.reduce((acc, event) => acc + event.amount, 0);
-        return sum.toFixed(2);
+        return sum;
     }
 
-    return (
-        <div>
-            <h1>Events</h1>
-            <div className="mb-4">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-                    <CategoryFilter category={category as Category} setCategory={setCategory} />
-                    <MonthFilter month={month} setMonth={setMonth} />
-                    <YearFilter year={year} setYear={setYear} />
-                    <TagsFilter tagFilter={tagFilter} setTagFilter={setTagFilter} />
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="flex items-center space-x-2 p-2 border rounded">
-                        <span className="font-medium">Net Income:</span>
-                        <span>${calculateNetIncome(events)}</span>
-                    </div>
-                    <div className="flex items-center space-x-2 p-2 border rounded">
-                        <span className="font-medium">Spending w/o Rent:</span>
-                        <span>${calculateSpending(events)}</span>
-                    </div>
-                </div>
-            </div>
+    const cashFlowWithFilters = calculateCashFlowWithFilters(events);
+    const spending = calculateSpending(events);
 
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Category</TableHead>
-                        <TableHead>Amount</TableHead>
-                        <TableHead>Tags</TableHead>
-                        <TableHead>Actions</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {events.length > 0 ?
-                        events
-                            .filter(event => matchCategory(event) && matchTags(event))
-                            .map(event => (
-                                <TableRow key={event._id}>
-                                    <Event event={event} />
-                                </TableRow>
-                            ))
-                        :
+    return (
+        <PageContainer>
+            <PageHeader>
+                <H1>Events</H1>
+                <Body className="text-muted-foreground">
+                    View and analyze your financial events and transactions
+                </Body>
+            </PageHeader>
+
+            <div className="space-y-6">
+                <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <CategoryFilter category={category as Category} setCategory={setCategory} />
+                        <MonthFilter month={month} setMonth={setMonth} />
+                        <YearFilter year={year} setYear={setYear} />
+                        <TagsFilter tagFilter={tagFilter} setTagFilter={setTagFilter} />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="bg-muted rounded-lg p-4 flex items-center justify-between">
+                            <Body className="font-medium">Cash Flow in {' '}
+                                {month && month !== 'All' ? month : ''} {year}
+                                {category !== 'All' ? ` (${category})` : ''}:</Body>
+                            <StatusBadge status={cashFlowWithFilters < 0 ? 'success' : 'warning'}>
+                                {CurrencyFormatter.format(Math.abs(cashFlowWithFilters))}
+                            </StatusBadge>
+                        </div>
+                        <div className="bg-muted rounded-lg p-4 flex items-center justify-between">
+                            <Body className="font-medium">Spending:</Body>
+                            <StatusBadge status={spending <= 0 ? 'success' : 'warning'}>
+                                {CurrencyFormatter.format(Math.abs(spending))}
+                            </StatusBadge>
+                        </div>
+                    </div>
+                </div>
+
+                <Table>
+                    <TableHeader>
                         <TableRow>
-                            <TableCell colSpan={6} className="text-center">
-                                No events found
-                            </TableCell>
+                            <TableHead>Date</TableHead>
+                            <TableHead>Name</TableHead>
+                            <TableHead>Category</TableHead>
+                            <TableHead>Amount</TableHead>
+                            <TableHead>Tags</TableHead>
+                            <TableHead>Actions</TableHead>
                         </TableRow>
-                    }
-                </TableBody>
-            </Table>
-        </div>
+                    </TableHeader>
+                    <TableBody>
+                        {events.length > 0 ? (
+                            events
+                                .filter(event => matchCategory(event) && matchTags(event))
+                                .map(event => (
+                                    <TableRow key={event._id}>
+                                        <Event event={event} />
+                                    </TableRow>
+                                ))
+                        ) : (
+                            <TableRow>
+                                <TableCell colSpan={6} className="text-center text-muted-foreground">
+                                    No events found
+                                </TableCell>
+                            </TableRow>
+                        )}
+                    </TableBody>
+                </Table>
+            </div>
+        </PageContainer>
     )
 }

@@ -279,8 +279,8 @@ describe('FinancialConnectionsForm', () => {
             process.env.VITE_API_ENDPOINT = originalEnv;
         });
 
-        it('logs API response data', async () => {
-            const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+        it('shows success toast on API response', async () => {
+            const { toast } = require('sonner');
             const mockResponse = { data: { success: true, message: 'Accounts created' } };
             mockAxiosInstance.post.mockResolvedValue(mockResponse);
 
@@ -295,10 +295,11 @@ describe('FinancialConnectionsForm', () => {
             await userEvent.click(button);
 
             await waitFor(() => {
-                expect(consoleSpy).toHaveBeenCalledWith(mockResponse.data);
+                expect(toast.success).toHaveBeenCalledWith("Accounts Created", {
+                    description: mockResponse.data,
+                    duration: 3500,
+                });
             });
-
-            consoleSpy.mockRestore();
         });
     });
 

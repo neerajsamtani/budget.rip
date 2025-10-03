@@ -42,13 +42,14 @@ describe('YearFilter', () => {
 
             // Check that all option roles exist
             const options = screen.getAllByRole('option');
-            expect(options).toHaveLength(4);
+            expect(options).toHaveLength(5);
 
             // Check specific option text content
             expect(options[0]).toHaveTextContent('2022');
             expect(options[1]).toHaveTextContent('2023');
             expect(options[2]).toHaveTextContent('2024');
             expect(options[3]).toHaveTextContent('2025');
+            expect(options[4]).toHaveTextContent('2026');
         });
     });
 
@@ -146,11 +147,12 @@ describe('YearFilter', () => {
             await userEvent.click(trigger);
 
             const options = screen.getAllByRole('option');
-            expect(options).toHaveLength(4);
+            expect(options).toHaveLength(5);
             expect(options[0]).toHaveTextContent('2022');
             expect(options[1]).toHaveTextContent('2023');
             expect(options[2]).toHaveTextContent('2024');
             expect(options[3]).toHaveTextContent('2025');
+            expect(options[4]).toHaveTextContent('2026');
         });
 
         it('maintains focus during selection', async () => {
@@ -235,13 +237,13 @@ describe('YearFilter', () => {
     });
 
     describe('Year Options', () => {
-        it('renders exactly 4 year options', async () => {
+        it('renders exactly 5 year options', async () => {
             setup();
             const trigger = screen.getByRole('combobox');
             await userEvent.click(trigger);
 
             const options = screen.getAllByRole('option');
-            expect(options).toHaveLength(4);
+            expect(options).toHaveLength(5);
         });
 
         it('renders years in correct order', async () => {
@@ -254,6 +256,7 @@ describe('YearFilter', () => {
             expect(options[1]).toHaveTextContent('2023');
             expect(options[2]).toHaveTextContent('2024');
             expect(options[3]).toHaveTextContent('2025');
+            expect(options[4]).toHaveTextContent('2026');
         });
 
         it('has correct values for all options', async () => {
@@ -266,6 +269,7 @@ describe('YearFilter', () => {
             expect(options[1]).toHaveTextContent('2023');
             expect(options[2]).toHaveTextContent('2024');
             expect(options[3]).toHaveTextContent('2025');
+            expect(options[4]).toHaveTextContent('2026');
         });
     });
 
