@@ -1,5 +1,4 @@
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SelectFilter } from "@/components/ui/select-filter";
 import React from 'react';
 
 // Define a constant array for months
@@ -29,23 +28,13 @@ interface MonthFilterProps {
 }
 
 export default function MonthFilter({ month, setMonth }: MonthFilterProps) {
-
-
   return (
-    <div className="space-y-2">
-      <Label className="text-sm font-medium text-foreground">Month</Label>
-      <Select value={month} onValueChange={setMonth}>
-        <SelectTrigger className="w-full">
-          <SelectValue placeholder="Select month" />
-        </SelectTrigger>
-        <SelectContent className="bg-white border">
-          {MONTHS.map(m => (
-            <SelectItem key={m} value={m}>
-              {m}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
+    <SelectFilter
+      label="Month"
+      value={month}
+      onChange={setMonth}
+      options={MONTHS}
+      placeholder="Select month"
+    />
   );
 }

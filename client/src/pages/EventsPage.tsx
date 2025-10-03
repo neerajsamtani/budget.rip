@@ -23,7 +23,7 @@ export default function EventsPage() {
     const [events, setEvents] = useState<EventInterface[]>([])
     const [category, setCategory] = useState("All")
     const [month, setMonth] = useState(now.monthLong)
-    const [year, setYear] = useState(now.year)
+    const [year, setYear] = useState(String(now.year))
     const [tagFilter, setTagFilter] = useState<string>('');
 
     useEffect(() => {
