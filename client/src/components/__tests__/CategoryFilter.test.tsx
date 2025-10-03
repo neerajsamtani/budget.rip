@@ -1,7 +1,8 @@
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { render, screen } from '../../utils/test-utils';
-import CategoryFilter, { Category } from '../CategoryFilter';
+import CategoryFilter from '../CategoryFilter';
+import { Category } from '@/constants/categories';
 
 describe('CategoryFilter', () => {
     const mockSetCategory = jest.fn();

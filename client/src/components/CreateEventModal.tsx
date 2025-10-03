@@ -14,6 +14,7 @@ import { FormField, useField } from '../hooks/useField';
 import axiosInstance from '../utils/axiosInstance';
 import { CurrencyFormatter } from '../utils/formatters';
 import defaultNameCleanup from '../utils/stringHelpers';
+import { CATEGORIES } from '@/constants/categories';
 
 interface Tag {
   id: string;
@@ -153,22 +154,11 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
                   <SelectValue placeholder="Select a category" />
                 </SelectTrigger>
                 <SelectContent className="bg-white border">
-                  <SelectItem value="All">All</SelectItem>
-                  <SelectItem value="Alcohol">Alcohol</SelectItem>
-                  <SelectItem value="Dining">Dining</SelectItem>
-                  <SelectItem value="Entertainment">Entertainment</SelectItem>
-                  <SelectItem value="Forma">Forma</SelectItem>
-                  <SelectItem value="Groceries">Groceries</SelectItem>
-                  <SelectItem value="Hobbies">Hobbies</SelectItem>
-                  <SelectItem value="Income">Income</SelectItem>
-                  <SelectItem value="Investment">Investment</SelectItem>
-                  <SelectItem value="Medical">Medical</SelectItem>
-                  <SelectItem value="Rent">Rent</SelectItem>
-                  <SelectItem value="Shopping">Shopping</SelectItem>
-                  <SelectItem value="Subscription">Subscription</SelectItem>
-                  <SelectItem value="Transfer">Transfer</SelectItem>
-                  <SelectItem value="Transit">Transit</SelectItem>
-                  <SelectItem value="Travel">Travel</SelectItem>
+                  {CATEGORIES.map(cat => (
+                    <SelectItem key={cat} value={cat}>
+                      {cat}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
