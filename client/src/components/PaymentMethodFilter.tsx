@@ -1,8 +1,8 @@
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import React, { useEffect, useState } from "react";
-import { toast } from "sonner";
 import axiosInstance from "../utils/axiosInstance";
+import { showErrorToast } from "../utils/toast-helpers";
 
 type PaymentMethod = string
 interface PaymentMethodFilterProps {
@@ -16,15 +16,11 @@ export default function PaymentMethodFilter({ paymentMethod, setPaymentMethod }:
   const [paymentMethods, setPaymentMethods] = useState([])
 
   useEffect(() => {
-    const VITE_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
-    axiosInstance.get(`${VITE_API_ENDPOINT}api/payment_methods`)
+    axiosInstance.get(`api/payment_methods`)
       .then(response => {
         setPaymentMethods(Array.isArray(response.data) ? response.data : []);
       })
-      .catch(error => toast.error("Error", {
-        description: error.message,
-        duration: 3500,
-      }));
+      .catch(showErrorToast);
   }, [])
 
 

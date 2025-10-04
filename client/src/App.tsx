@@ -9,8 +9,8 @@ import {
   BrowserRouter as Router,
   Routes
 } from "react-router-dom";
-import { toast } from "sonner";
 import { useLineItemsDispatch } from "./contexts/LineItemsContext";
+import { showErrorToast, showSuccessToast } from "./utils/toast-helpers";
 import ConnectedAccountsPage from "./pages/ConnectedAccountsPage";
 import EventsPage from "./pages/EventsPage";
 import GraphsPage from "./pages/GraphsPage";
@@ -26,7 +26,6 @@ import axiosInstance from "./utils/axiosInstance";
 // Don't submit any personally identifiable information in requests made with this key.
 // Sign in to see your own test API key embedded in code samples.
 const STRIPE_PUBLIC_KEY = String(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
-const VITE_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
 const stripePromise = loadStripe(STRIPE_PUBLIC_KEY);
 
 export default function App() {
@@ -36,23 +35,17 @@ export default function App() {
 
   const handleRefreshData = () => {
     setLoading(true);
-    axiosInstance.get(`${VITE_API_ENDPOINT}api/refresh/all`)
+    axiosInstance.get(`api/refresh/all`)
       .then(response => {
-        toast.success("Notification", {
-          description: "Refreshed data",
-          duration: 3500,
-        });
+        showSuccessToast("Refreshed data", "Notification");
         setLoading(false);
         lineItemsDispatch({
           type: "populate_line_items",
           fetchedLineItems: response.data.data
         })
       })
-      .catch(() => {
-        toast.error("Notification", {
-          description: "Error refreshing data",
-          duration: 3500,
-        });
+      .catch((error) => {
+        showErrorToast(new Error("Error refreshing data"), "Notification");
         setLoading(false);
       })
   }

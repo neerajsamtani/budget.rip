@@ -387,7 +387,7 @@ describe('CreateCashTransactionModal', () => {
 
             await waitFor(() => {
                 expect(mockAxiosInstance.post).toHaveBeenCalledWith(
-                    'http://localhost:3000/api/cash_transaction',
+                    'api/cash_transaction',
                     expect.any(Object)
                 );
             });

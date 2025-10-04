@@ -222,7 +222,7 @@ describe('EventsPage', () => {
 
             await waitFor(() => {
                 expect(mockAxiosInstance.get).toHaveBeenCalledWith(
-                    'https://api.example.com/api/events',
+                    'api/events',
                     expect.any(Object)
                 );
             });
@@ -568,7 +568,7 @@ describe('EventsPage', () => {
 
             await waitFor(() => {
                 expect(mockAxiosInstance.get).toHaveBeenCalledWith(
-                    'undefinedapi/events',
+                    'api/events',
                     expect.any(Object)
                 );
             });

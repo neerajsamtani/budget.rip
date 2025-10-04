@@ -271,7 +271,7 @@ describe('FinancialConnectionsForm', () => {
 
             await waitFor(() => {
                 expect(mockAxiosInstance.post).toHaveBeenCalledWith(
-                    'http://localhost:3000/api/create_accounts',
+                    'api/create_accounts',
                     mockAccounts
                 );
             });
@@ -548,7 +548,7 @@ describe('FinancialConnectionsForm', () => {
 
             await waitFor(() => {
                 expect(mockAxiosInstance.post).toHaveBeenCalledWith(
-                    'https://api.example.com/api/create_accounts',
+                    'api/create_accounts',
                     mockAccounts
                 );
             });

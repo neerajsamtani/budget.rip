@@ -1,9 +1,9 @@
 import React, { lazy, Suspense, useEffect, useState } from "react";
-import { toast } from "sonner";
 import { PageContainer, PageHeader } from "../components/ui/layout";
 import { Body, H1 } from "../components/ui/typography";
 import { chartColorSequence } from '../lib/chart-colors';
 import axiosInstance from "../utils/axiosInstance";
+import { showErrorToast } from "../utils/toast-helpers";
 
 const Plot = lazy(() => import('react-plotly.js'));
 
@@ -21,15 +21,11 @@ export default function GraphsPage() {
   const [categorizedData, setCategorizedData] = useState<CategoryExpense>({})
 
   useEffect(() => {
-    const VITE_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
-    axiosInstance.get(`${VITE_API_ENDPOINT}api/monthly_breakdown`, { params: {} })
+    axiosInstance.get(`api/monthly_breakdown`, { params: {} })
       .then(response => {
         setCategorizedData(response.data)
       })
-      .catch(error => toast.error("Error", {
-        description: error.message,
-        duration: 3500,
-      }));
+      .catch(showErrorToast);
   }, [])
 
   const data = Object.keys(categorizedData).map((category, index) => {

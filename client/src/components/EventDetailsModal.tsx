@@ -3,31 +3,24 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader } from "@/components/ui/dialog";
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import React, { Fragment } from 'react';
-import { toast } from 'sonner';
 import { Body, H3 } from "../components/ui/typography";
 import { LineItemInterface } from '../contexts/LineItemsContext';
 import axiosInstance from '../utils/axiosInstance';
 import { EventInterface } from './Event';
 import LineItem from './LineItem';
+import { showErrorToast, showSuccessToast } from '../utils/toast-helpers';
 
 export default function EventDetailsModal({ show, event, lineItemsForEvent, onHide }:
   { show: boolean, event: EventInterface, lineItemsForEvent: LineItemInterface[], onHide: () => void }) {
 
 
   const deleteEvent = () => {
-    const VITE_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
-    axiosInstance.delete(`${VITE_API_ENDPOINT}api/events/${event._id}`)
+    axiosInstance.delete(`api/events/${event._id}`)
       .then(() => {
-        toast.success("Deleted Event", {
-          description: event.name,
-          duration: 3500,
-        });
+        showSuccessToast(event.name, "Deleted Event");
         onHide();
       })
-      .catch(error => toast.error("Error", {
-        description: error.message,
-        duration: 3500,
-      }));
+      .catch(showErrorToast);
   }
 
   return (

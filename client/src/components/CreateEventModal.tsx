@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import React, { Fragment, useEffect, useState } from 'react';
-import { toast } from 'sonner';
 import { getPrefillFromLineItems } from '.././data/EventHints';
 import { Body, H3 } from "../components/ui/typography";
 import { useLineItems, useLineItemsDispatch } from "../contexts/LineItemsContext";
@@ -15,6 +14,7 @@ import axiosInstance from '../utils/axiosInstance';
 import { CurrencyFormatter } from '../utils/formatters';
 import defaultNameCleanup from '../utils/stringHelpers';
 import { CATEGORIES } from '@/constants/categories';
+import { showErrorToast, showSuccessToast } from '../utils/toast-helpers';
 
 interface Tag {
   id: string;
@@ -92,7 +92,6 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
   };
 
   const createEvent = (name: FormField<string>, category: FormField<string>) => {
-    const VITE_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
     const newEvent = {
       "name": name.value,
       "category": category.value,
@@ -101,23 +100,17 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
       "is_duplicate_transaction": isDuplicateTransaction.value,
       "tags": tags.map(tag => tag.text)
     }
-    axiosInstance.post(`${VITE_API_ENDPOINT}api/events`, newEvent)
+    axiosInstance.post(`api/events`, newEvent)
       .then(response => {
         closeModal()
         lineItemsDispatch({
           type: 'remove_line_items',
           lineItemIds: selectedLineItemIds
         })
-        toast.success("Created Event", {
-          description: response.data,
-          duration: 3500,
-        });
+        showSuccessToast(response.data, "Created Event");
         // TODO: Uncheck all checkboxes
       })
-      .catch(error => toast.error("Error", {
-        description: error.message,
-        duration: 3500,
-      }));
+      .catch(showErrorToast);
   }
 
   return (
