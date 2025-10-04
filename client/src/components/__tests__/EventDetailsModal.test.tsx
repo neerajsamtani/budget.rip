@@ -388,7 +388,7 @@ describe('EventDetailsModal', () => {
 
             await waitFor(() => {
                 expect(mockAxiosInstance.delete).toHaveBeenCalledWith(
-                    'http://localhost:3000/api/events/event-1'
+                    'api/events/event-1'
                 );
             });
 

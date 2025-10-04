@@ -2,12 +2,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TableCell } from "@/components/ui/table";
 import React, { useState } from "react";
-import { toast } from 'sonner';
 import { StatusBadge } from "../components/ui/status-badge";
 import { LineItemInterface } from "../contexts/LineItemsContext";
 import axiosInstance from "../utils/axiosInstance";
 import { CurrencyFormatter, DateFormatter } from "../utils/formatters";
 import EventDetailsModal from "./EventDetailsModal";
+import { showErrorToast } from "../utils/toast-helpers";
 
 export interface EventInterface {
     _id: string;
@@ -26,18 +26,14 @@ export default function Event({ event }: { event: EventInterface }) {
     const [lineItemsForEvent, setLineItemsForEvent] = useState<LineItemInterface[]>([])
 
     const showEventDetails = () => {
-        const VITE_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
-        axiosInstance.get(`${VITE_API_ENDPOINT}api/events/${event._id}/line_items_for_event`)
+        axiosInstance.get(`api/events/${event._id}/line_items_for_event`)
             .then(response => {
                 setLineItemsForEvent(response.data.data)
             })
             .then(() => {
                 setEventDetailsModalShow(true)
             })
-            .catch(error => toast.error("Error", {
-                description: error.message,
-                duration: 3500,
-            }));
+            .catch(showErrorToast);
     }
 
     return (

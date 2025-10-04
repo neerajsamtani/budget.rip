@@ -172,7 +172,7 @@ describe('LineItemsPage', () => {
 
             await waitFor(() => {
                 expect(mockAxiosInstance.get).toHaveBeenCalledWith(
-                    'http://localhost:5000/api/line_items',
+                    'api/line_items',
                     {
                         params: {
                             payment_method: 'All'
@@ -187,7 +187,7 @@ describe('LineItemsPage', () => {
 
             await waitFor(() => {
                 expect(mockAxiosInstance.get).toHaveBeenCalledWith(
-                    'http://localhost:5000/api/line_items',
+                    'api/line_items',
                     {
                         params: {
                             payment_method: 'All'
@@ -212,7 +212,7 @@ describe('LineItemsPage', () => {
             // Wait for refetch
             await waitFor(() => {
                 expect(mockAxiosInstance.get).toHaveBeenCalledWith(
-                    'http://localhost:5000/api/line_items',
+                    'api/line_items',
                     {
                         params: {
                             payment_method: 'credit_card'
@@ -243,7 +243,7 @@ describe('LineItemsPage', () => {
 
             await waitFor(() => {
                 expect(mockAxiosInstance.get).toHaveBeenCalledWith(
-                    'https://api.example.com/api/line_items',
+                    'api/line_items',
                     expect.any(Object)
                 );
             });
@@ -275,7 +275,7 @@ describe('LineItemsPage', () => {
             // Verify API call was made with new filter
             await waitFor(() => {
                 expect(mockAxiosInstance.get).toHaveBeenCalledWith(
-                    'http://localhost:5000/api/line_items',
+                    'api/line_items',
                     {
                         params: {
                             payment_method: 'debit_card'
@@ -558,7 +558,7 @@ describe('LineItemsPage', () => {
 
             await waitFor(() => {
                 expect(mockAxiosInstance.get).toHaveBeenCalledWith(
-                    'https://new-api.example.com/api/line_items',
+                    'api/line_items',
                     expect.any(Object)
                 );
             });

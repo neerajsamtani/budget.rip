@@ -2,8 +2,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { CurrencyFormatter } from "@/utils/formatters";
 import { DateTime } from "luxon";
 import React, { useEffect, useState } from "react";
-import { toast } from "sonner";
-import CategoryFilter, { Category } from "../components/CategoryFilter";
+import CategoryFilter from "../components/CategoryFilter";
+import { Category } from "@/constants/categories";
 import Event, { EventInterface } from "../components/Event";
 import MonthFilter from "../components/MonthFilter";
 import TagsFilter from "../components/TagsFilter";
@@ -12,6 +12,7 @@ import { StatusBadge } from "../components/ui/status-badge";
 import { Body, H1 } from "../components/ui/typography";
 import YearFilter from "../components/YearFilter";
 import axiosInstance from "../utils/axiosInstance";
+import { showErrorToast } from "../utils/toast-helpers";
 
 export default function EventsPage() {
 
@@ -23,11 +24,10 @@ export default function EventsPage() {
     const [events, setEvents] = useState<EventInterface[]>([])
     const [category, setCategory] = useState("All")
     const [month, setMonth] = useState(now.monthLong)
-    const [year, setYear] = useState(now.year)
+    const [year, setYear] = useState(String(now.year))
     const [tagFilter, setTagFilter] = useState<string>('');
 
     useEffect(() => {
-        const VITE_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
         let start_time, end_time;
         if (month !== "All") {
             start_time = DateTime.fromFormat(`${month} ${year}`, "LLLL yyyy", { zone: 'utc' })
@@ -36,7 +36,7 @@ export default function EventsPage() {
             start_time = DateTime.fromFormat(`${year}`, "yyyy", { zone: 'utc' })
             end_time = start_time.endOf("year")
         }
-        axiosInstance.get(`${VITE_API_ENDPOINT}api/events`, {
+        axiosInstance.get('api/events', {
             params: {
                 "start_time": start_time.toUnixInteger(),
                 "end_time": end_time.toUnixInteger()
@@ -45,10 +45,7 @@ export default function EventsPage() {
             .then(response => {
                 setEvents(response.data.data)
             })
-            .catch(error => toast.error("Error", {
-                description: error.message,
-                duration: 3500,
-            }));
+            .catch(showErrorToast);
     }, [month, year])
 
     const matchCategory = (event: EventInterface) => category === "All" || category === event.category

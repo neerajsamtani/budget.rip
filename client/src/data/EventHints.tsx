@@ -1,4 +1,4 @@
-import { Category } from "../components/CategoryFilter";
+import { Category } from "@/constants/categories";
 import { LineItemInterface } from "../contexts/LineItemsContext";
 
 // TODO: Remove "any" types

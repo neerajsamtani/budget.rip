@@ -11,6 +11,7 @@ import { StatusBadge } from "../components/ui/status-badge";
 import { Body, H1, H4 } from "../components/ui/typography";
 import axiosInstance from "../utils/axiosInstance";
 import { CurrencyFormatter, DateFormatter } from "../utils/formatters";
+import { showErrorToast } from "../utils/toast-helpers";
 
 export default function ConnectedAccountsPage({ stripePromise }: { stripePromise: Promise<Stripe | null> }) {
 
@@ -29,49 +30,35 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
         }
     })
 
-    const VITE_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
 
     useEffect(() => {
-        const VITE_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
-        axiosInstance.get(`${VITE_API_ENDPOINT}api/connected_accounts`)
+        axiosInstance.get(`api/connected_accounts`)
             .then(response => {
                 setConnectedAccounts(response.data)
             })
-            .catch(error => toast.error("Error", {
-                description: error.message,
-                duration: 3500,
-            }));
-        axiosInstance.get(`${VITE_API_ENDPOINT}api/accounts_and_balances`)
+            .catch(showErrorToast);
+        axiosInstance.get(`api/accounts_and_balances`)
             .then(response => {
                 setAccountsAndBalances(response.data)
             })
-            .catch(error => toast.error("Error", {
-                description: error.message,
-                duration: 3500,
-            }));
+            .catch(showErrorToast);
     }, [])
 
     const createSession = () => {
-        axiosInstance.post(`${VITE_API_ENDPOINT}api/create-fc-session`)
+        axiosInstance.post(`api/create-fc-session`)
             .then(response => setClientSecret(response.data.clientSecret))
-            .catch(error => toast.error("Error", {
-                description: error.message,
-                duration: 3500,
-            }));
+            .catch(showErrorToast);
     }
 
     const subscribeToAccounts = () => {
         if (stripeAccounts) {
             for (const account of stripeAccounts) {
-                axiosInstance.get(`${VITE_API_ENDPOINT}api/subscribe_to_account/${account.id}`)
+                axiosInstance.get(`api/subscribe_to_account/${account.id}`)
                     .then(() => toast.info("Notification", {
                         description: `Subscribed to the account ${account.id}`,
                         duration: 3500,
                     }))
-                    .catch(error => toast.error("Error", {
-                        description: error.message,
-                        duration: 3500,
-                    }));
+                    .catch(showErrorToast);
             }
         }
         setClientSecret("")
@@ -83,12 +70,9 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
     }
 
     const relinkAccount = (accountId) => {
-        axiosInstance.get(`${VITE_API_ENDPOINT}api/relink_account/${accountId}`)
+        axiosInstance.get(`api/relink_account/${accountId}`)
             .then(response => setClientSecret(response.data.clientSecret))
-            .catch(error => toast.error("Error", {
-                description: error.message,
-                duration: 3500,
-            }));
+            .catch(showErrorToast);
     }
 
     const appearance = {

@@ -103,7 +103,7 @@ describe('GraphsPage', () => {
 
             await waitFor(() => {
                 expect(mockAxiosInstance.get).toHaveBeenCalledWith(
-                    'http://localhost:5000/api/monthly_breakdown',
+                    'api/monthly_breakdown',
                     { params: {} }
                 );
             });
@@ -116,7 +116,7 @@ describe('GraphsPage', () => {
 
             await waitFor(() => {
                 expect(mockAxiosInstance.get).toHaveBeenCalledWith(
-                    'https://api.example.com/api/monthly_breakdown',
+                    'api/monthly_breakdown',
                     { params: {} }
                 );
             });
@@ -535,7 +535,7 @@ describe('GraphsPage', () => {
 
             await waitFor(() => {
                 expect(mockAxiosInstance.get).toHaveBeenCalledWith(
-                    'https://new-api.example.com/api/monthly_breakdown',
+                    'api/monthly_breakdown',
                     { params: {} }
                 );
             });
@@ -549,7 +549,7 @@ describe('GraphsPage', () => {
 
             await waitFor(() => {
                 expect(mockAxiosInstance.get).toHaveBeenCalledWith(
-                    'undefinedapi/monthly_breakdown',
+                    'api/monthly_breakdown',
                     { params: {} }
                 );
             });

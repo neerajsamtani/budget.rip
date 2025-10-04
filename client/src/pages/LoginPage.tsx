@@ -8,6 +8,7 @@ import { PageContainer, PageHeader } from "../components/ui/layout";
 import { Body, H1 } from "../components/ui/typography";
 import { FormField, useField } from '../hooks/useField';
 import axiosInstance from "../utils/axiosInstance";
+import { showErrorToast } from "../utils/toast-helpers";
 
 export default function LoginPage() {
     const email = useField("text", "" as string)
@@ -30,12 +31,11 @@ export default function LoginPage() {
             setError('Please enter a valid email address.');
             return;
         }
-        const VITE_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
         const newUser = {
             "email": email.value,
             "password": password.value
         }
-        axiosInstance.post(`${VITE_API_ENDPOINT}api/auth/login`, newUser)
+        axiosInstance.post(`api/auth/login`, newUser)
             .then(() => {
                 email.setEmpty()
                 password.setEmpty()
@@ -44,26 +44,19 @@ export default function LoginPage() {
             })
             .catch(error => {
                 setError(error.message || 'Login failed');
-                toast.error("Error", {
-                    description: error.message,
-                    duration: 3500,
-                });
+                showErrorToast(error);
             });
     }
 
     const handleLogout = () => {
-        const VITE_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
-        axiosInstance.post(`${VITE_API_ENDPOINT}api/auth/logout`)
+        axiosInstance.post(`api/auth/logout`)
             .then(() => {
                 toast.info("Notification", {
                     description: "Logged out",
                     duration: 3500,
                 });
             })
-            .catch(error => toast.error("Error", {
-                description: error.message,
-                duration: 3500,
-            }));
+            .catch(showErrorToast);
     }
 
     return (

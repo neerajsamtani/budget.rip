@@ -3,10 +3,11 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader } from "@/components/
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import React, { Fragment } from 'react';
-import { toast } from 'sonner';
 import { Body, H3 } from "../components/ui/typography";
 import { useField } from '../hooks/useField';
 import axiosInstance from '../utils/axiosInstance';
+import { showErrorToast, showSuccessToast } from '../utils/toast-helpers';
+import { MODAL_WIDTHS } from '@/constants/ui';
 
 export default function CreateCashTransactionModal({ show, onHide }: { show: boolean, onHide: () => void }) {
 
@@ -16,36 +17,29 @@ export default function CreateCashTransactionModal({ show, onHide }: { show: boo
   const amount = useField<number>("number", 0 as number)
 
   const createCashTransaction = () => {
-    const VITE_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
     const newCashTransaction = {
       "date": date.value,
       "person": person.value,
       "description": description.value,
       "amount": amount.value
     }
-    axiosInstance.post(`${VITE_API_ENDPOINT}api/cash_transaction`, newCashTransaction)
+    axiosInstance.post(`api/cash_transaction`, newCashTransaction)
       .then(() => {
         date.setEmpty()
         person.setEmpty()
         description.setEmpty()
         amount.setEmpty()
-        toast.success("Notification", {
-          description: "Created Cash Transaction",
-          duration: 3500,
-        });
+        showSuccessToast("Created Cash Transaction", "Notification");
         // TODO: Uncheck all checkboxes
         onHide();
       })
-      .catch(error => toast.error("Error", {
-        description: error.message,
-        duration: 3500,
-      }));
+      .catch(showErrorToast);
   }
 
   return (
     <Fragment>
       <Dialog open={show} onOpenChange={onHide}>
-        <DialogContent className="w-full !max-w-[32rem]">
+        <DialogContent className={`w-full !max-w-[${MODAL_WIDTHS.SMALL}]`}>
           <DialogHeader className="pb-4 border-b border-muted -mx-6 px-6">
             <H3 className="text-foreground">New Cash Transaction</H3>
             <Body className="text-muted-foreground mt-2">

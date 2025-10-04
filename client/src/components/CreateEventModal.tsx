@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import React, { Fragment, useEffect, useState } from 'react';
-import { toast } from 'sonner';
 import { getPrefillFromLineItems } from '.././data/EventHints';
 import { Body, H3 } from "../components/ui/typography";
 import { useLineItems, useLineItemsDispatch } from "../contexts/LineItemsContext";
@@ -14,6 +13,9 @@ import { FormField, useField } from '../hooks/useField';
 import axiosInstance from '../utils/axiosInstance';
 import { CurrencyFormatter } from '../utils/formatters';
 import defaultNameCleanup from '../utils/stringHelpers';
+import { CATEGORIES } from '@/constants/categories';
+import { showErrorToast, showSuccessToast } from '../utils/toast-helpers';
+import { MODAL_WIDTHS } from '@/constants/ui';
 
 interface Tag {
   id: string;
@@ -91,7 +93,6 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
   };
 
   const createEvent = (name: FormField<string>, category: FormField<string>) => {
-    const VITE_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
     const newEvent = {
       "name": name.value,
       "category": category.value,
@@ -100,29 +101,23 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
       "is_duplicate_transaction": isDuplicateTransaction.value,
       "tags": tags.map(tag => tag.text)
     }
-    axiosInstance.post(`${VITE_API_ENDPOINT}api/events`, newEvent)
+    axiosInstance.post(`api/events`, newEvent)
       .then(response => {
         closeModal()
         lineItemsDispatch({
           type: 'remove_line_items',
           lineItemIds: selectedLineItemIds
         })
-        toast.success("Created Event", {
-          description: response.data,
-          duration: 3500,
-        });
+        showSuccessToast(response.data, "Created Event");
         // TODO: Uncheck all checkboxes
       })
-      .catch(error => toast.error("Error", {
-        description: error.message,
-        duration: 3500,
-      }));
+      .catch(showErrorToast);
   }
 
   return (
     <Fragment>
       <Dialog open={show} onOpenChange={closeModal}>
-        <DialogContent className="w-full !max-w-[42rem]">
+        <DialogContent className={`w-full !max-w-[${MODAL_WIDTHS.MEDIUM}]`}>
           <DialogHeader className="pb-4 border-b border-muted -mx-6 px-6">
             <H3 className="text-foreground">New Event Details</H3>
             <Body className="text-muted-foreground mt-2">
@@ -153,22 +148,11 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
                   <SelectValue placeholder="Select a category" />
                 </SelectTrigger>
                 <SelectContent className="bg-white border">
-                  <SelectItem value="All">All</SelectItem>
-                  <SelectItem value="Alcohol">Alcohol</SelectItem>
-                  <SelectItem value="Dining">Dining</SelectItem>
-                  <SelectItem value="Entertainment">Entertainment</SelectItem>
-                  <SelectItem value="Forma">Forma</SelectItem>
-                  <SelectItem value="Groceries">Groceries</SelectItem>
-                  <SelectItem value="Hobbies">Hobbies</SelectItem>
-                  <SelectItem value="Income">Income</SelectItem>
-                  <SelectItem value="Investment">Investment</SelectItem>
-                  <SelectItem value="Medical">Medical</SelectItem>
-                  <SelectItem value="Rent">Rent</SelectItem>
-                  <SelectItem value="Shopping">Shopping</SelectItem>
-                  <SelectItem value="Subscription">Subscription</SelectItem>
-                  <SelectItem value="Transfer">Transfer</SelectItem>
-                  <SelectItem value="Transit">Transit</SelectItem>
-                  <SelectItem value="Travel">Travel</SelectItem>
+                  {CATEGORIES.map(cat => (
+                    <SelectItem key={cat} value={cat}>
+                      {cat}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

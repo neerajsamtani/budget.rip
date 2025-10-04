@@ -1,6 +1,6 @@
 import React, { createContext, ReactNode, useContext, useEffect, useReducer } from 'react';
-import { toast } from 'sonner';
 import axiosInstance from '../utils/axiosInstance';
+import { showErrorToast } from '../utils/toast-helpers';
 
 // Define TypeScript interfaces for the line item and props
 export interface LineItemInterface {
@@ -64,7 +64,7 @@ export function LineItemsProvider({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         var VITE_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
-        axiosInstance.get(`${VITE_API_ENDPOINT}api/line_items`, {
+        axiosInstance.get(`api/line_items`, {
             params: {
                 "only_line_items_to_review": true,
             }
@@ -75,10 +75,7 @@ export function LineItemsProvider({ children }: { children: ReactNode }) {
                     fetchedLineItems: response.data.data
                 })
             })
-            .catch(error => toast.error("Error", {
-                description: error.message,
-                duration: 3500,
-            }));
+            .catch(showErrorToast);
     }, [])
 
     return (

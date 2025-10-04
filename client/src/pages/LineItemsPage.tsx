@@ -1,12 +1,12 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import React, { useEffect, useState } from "react";
-import { toast } from "sonner";
 import LineItem from "../components/LineItem";
 import PaymentMethodFilter from "../components/PaymentMethodFilter";
 import { PageContainer, PageHeader } from "../components/ui/layout";
 import { Body, H1 } from "../components/ui/typography";
 import { LineItemInterface } from "../contexts/LineItemsContext";
 import axiosInstance from "../utils/axiosInstance";
+import { showErrorToast } from "../utils/toast-helpers";
 
 export default function LineItemsPage() {
 
@@ -14,8 +14,7 @@ export default function LineItemsPage() {
     const [paymentMethod, setPaymentMethod] = useState("All")
 
     useEffect(() => {
-        const VITE_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
-        axiosInstance.get(`${VITE_API_ENDPOINT}api/line_items`, {
+        axiosInstance.get(`api/line_items`, {
             params: {
                 "payment_method": paymentMethod,
             }
@@ -23,10 +22,7 @@ export default function LineItemsPage() {
             .then(response => {
                 setLineItems(response.data.data)
             })
-            .catch(error => toast.error("Error", {
-                description: error.message,
-                duration: 3500,
-            }));
+            .catch(showErrorToast);
     }, [paymentMethod])
 
     return (

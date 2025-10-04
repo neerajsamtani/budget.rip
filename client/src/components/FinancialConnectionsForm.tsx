@@ -5,8 +5,8 @@ import {
 } from "@stripe/react-stripe-js";
 import { FinancialConnectionsSession } from "@stripe/stripe-js/types/api";
 import React, { useState } from "react";
-import { toast } from "sonner";
 import axiosInstance from "../utils/axiosInstance";
+import { showErrorToast, showSuccessToast } from "../utils/toast-helpers";
 
 export default function FinancialConnectionsForm({ fcsess_secret, setStripeAccounts }:
   // eslint-disable-next-line no-unused-vars
@@ -17,16 +17,9 @@ export default function FinancialConnectionsForm({ fcsess_secret, setStripeAccou
   const [isLoading, setIsLoading] = useState(false);
 
   const storeAccounts = (accounts: FinancialConnectionsSession.Account[]) => {
-    const VITE_API_ENDPOINT = String(import.meta.env.VITE_API_ENDPOINT);
-    axiosInstance.post(`${VITE_API_ENDPOINT}api/create_accounts`, accounts)
-      .then(response => toast.success("Accounts Created", {
-        description: response.data,
-        duration: 3500,
-      }))
-      .catch(error => toast.error("Error", {
-        description: error.message,
-        duration: 3500,
-      }));
+    axiosInstance.post(`api/create_accounts`, accounts)
+      .then(response => showSuccessToast(response.data, "Accounts Created"))
+      .catch(showErrorToast);
   }
 
   const handleSubmit = async (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -47,15 +40,9 @@ export default function FinancialConnectionsForm({ fcsess_secret, setStripeAccou
     // be redirected to an intermediate site first to authorize the payment, then
     // redirected to the `return_url`.
     if (financialConnectionsSessionResult.error) {
-      toast.error("Error", {
-        description: `${financialConnectionsSessionResult.error.message} Please refresh the page and try again.`,
-        duration: 3500,
-      });
+      showErrorToast(new Error(`${financialConnectionsSessionResult.error.message} Please refresh the page and try again.`));
     } else if (financialConnectionsSessionResult.financialConnectionsSession.accounts.length === 0) {
-      toast.error("Error", {
-        description: "No new accounts were linked",
-        duration: 3500,
-      });
+      showErrorToast(new Error("No new accounts were linked"));
     } else {
       const returnedAccounts = financialConnectionsSessionResult.financialConnectionsSession.accounts
       setStripeAccounts(returnedAccounts)
