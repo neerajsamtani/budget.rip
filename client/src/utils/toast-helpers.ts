@@ -1,6 +1,5 @@
 import { toast } from 'sonner';
-
-const TOAST_DURATION = 3500;
+import { TOAST_DURATION } from '@/constants/ui';
 
 export const showErrorToast = (error: Error | unknown, title = "Error") => {
   const message = error instanceof Error ? error.message : String(error);

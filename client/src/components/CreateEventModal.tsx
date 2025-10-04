@@ -15,6 +15,7 @@ import { CurrencyFormatter } from '../utils/formatters';
 import defaultNameCleanup from '../utils/stringHelpers';
 import { CATEGORIES } from '@/constants/categories';
 import { showErrorToast, showSuccessToast } from '../utils/toast-helpers';
+import { MODAL_WIDTHS } from '@/constants/ui';
 
 interface Tag {
   id: string;
@@ -116,7 +117,7 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
   return (
     <Fragment>
       <Dialog open={show} onOpenChange={closeModal}>
-        <DialogContent className="w-full !max-w-[42rem]">
+        <DialogContent className={`w-full !max-w-[${MODAL_WIDTHS.MEDIUM}]`}>
           <DialogHeader className="pb-4 border-b border-muted -mx-6 px-6">
             <H3 className="text-foreground">New Event Details</H3>
             <Body className="text-muted-foreground mt-2">
