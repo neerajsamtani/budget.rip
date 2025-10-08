@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 
@@ -63,7 +63,7 @@ def test_iso_8601_to_readable(input_date, expected_output):
 @pytest.mark.parametrize(
     "input_date, expected_output",
     [
-        ("2023-03-28", datetime(2023, 3, 28).timestamp()),
+        ("2023-03-28", datetime(2023, 3, 28, tzinfo=timezone.utc).timestamp()),
         ("2022/03/28", None),  # Invalid input, expecting None
     ],
 )

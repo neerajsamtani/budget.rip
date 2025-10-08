@@ -200,7 +200,7 @@ class TestEventAPI:
         assert response.get_json() == {
             "_id": "event_1",
             "amount": 150,
-            "date": 1672549200.0,
+            "date": 1672531200.0,
             "description": "Test Event",
             "id": "event_1",
             "is_duplicate_transaction": False,

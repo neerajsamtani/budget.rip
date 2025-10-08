@@ -14,7 +14,7 @@ export default function LineItemsToReviewPage() {
     const [eventModalShow, setEventModalShow] = useState(false);
     const [cashModalShow, setCashModalShow] = useState(false);
     const lineItems = useLineItems();
-    const selectedLineItems = lineItems.filter(lineItem => lineItem.isSelected);
+    const selectedLineItems = lineItems?.filter(lineItem => lineItem.isSelected) ?? [];
     const total = selectedLineItems.reduce((prev, cur) => prev + cur.amount, 0);
 
 

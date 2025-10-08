@@ -74,6 +74,7 @@ def iso_8601_to_readable(date: str) -> str:
 
 def html_date_to_posix(date: str) -> float:
     date_time_obj: datetime = datetime.strptime(date, "%Y-%m-%d")
+    date_time_obj = date_time_obj.replace(tzinfo=timezone.utc)
     return date_time_obj.timestamp()
 
 
