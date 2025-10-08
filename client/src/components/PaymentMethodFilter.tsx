@@ -12,6 +12,7 @@ interface PaymentMethodFilterProps {
 }
 
 export default function PaymentMethodFilter({ paymentMethod, setPaymentMethod }: PaymentMethodFilterProps) {
+  // TODO: Find a way to use SelectFilter component here
 
   const [paymentMethods, setPaymentMethods] = useState([])
 

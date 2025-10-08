@@ -1,14 +1,14 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Dialog, DialogContent, DialogFooter, DialogHeader } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CATEGORIES } from '@/constants/categories';
 import React, { Fragment, useEffect, useState } from 'react';
 import { getPrefillFromLineItems } from '.././data/EventHints';
-import { Body, H3 } from "../components/ui/typography";
+import { Body } from "../components/ui/typography";
 import { useLineItems, useLineItemsDispatch } from "../contexts/LineItemsContext";
 import { FormField, useField } from '../hooks/useField';
 import axiosInstance from '../utils/axiosInstance';
@@ -27,8 +27,8 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
   const lineItemsDispatch = useLineItemsDispatch();
 
   const selectedLineItems = lineItems.filter(lineItem => lineItem.isSelected);
-  const selectedLineItemIds = lineItems.filter(lineItem => lineItem.isSelected).map(lineItem => lineItem.id);
-  // TODO: Make hints more robust with categories
+  const selectedLineItemIds = selectedLineItems.map(lineItem => lineItem.id);
+
   useEffect(() => {
     if (!show && selectedLineItems.length > 0) {
       const prefillSuggestion = getPrefillFromLineItems(selectedLineItems);
@@ -107,8 +107,7 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
           type: 'remove_line_items',
           lineItemIds: selectedLineItemIds
         })
-        showSuccessToast(response.data, "Created Event");
-        // TODO: Uncheck all checkboxes
+        showSuccessToast(response.data.name, "Created Event");
       })
       .catch(showErrorToast);
   }
@@ -118,10 +117,10 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
       <Dialog open={show} onOpenChange={closeModal}>
         <DialogContent className={"w-full !max-w-[42rem]"}>
           <DialogHeader className="pb-4 border-b border-muted -mx-6 px-6">
-            <H3 className="text-foreground">New Event Details</H3>
-            <Body className="text-muted-foreground mt-2">
+            <DialogTitle className="text-foreground">New Event Details</DialogTitle>
+            <DialogDescription className="text-muted-foreground mt-2">
               Create a financial event from your selected transactions
-            </Body>
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-6 -mx-6 px-6">
             <div className="space-y-3">
@@ -139,6 +138,7 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
             </div>
 
             <div className="space-y-3">
+              {/* TODO: Is it possible to replace this with a CategoryFilter component? */}
               <Label htmlFor="event-category" className="text-sm font-medium text-foreground">
                 Category
               </Label>
@@ -157,6 +157,7 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
             </div>
 
             <div className="space-y-3">
+              {/* TODO: Create a separate component for adding / removing tags */}
               <Label htmlFor="event-tags" className="text-sm font-medium text-foreground">
                 Tags
               </Label>

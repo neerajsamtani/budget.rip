@@ -34,11 +34,6 @@ export default function FinancialConnectionsForm({ fcsess_secret, setStripeAccou
     setIsLoading(true);
     const financialConnectionsSessionResult = await stripe.collectFinancialConnectionsAccounts({ clientSecret: fcsess_secret });
 
-    // This point will only be reached if there is an immediate error when
-    // confirming the payment. Otherwise, your customer will be redirected to
-    // your `return_url`. For some payment methods like iDEAL, your customer will
-    // be redirected to an intermediate site first to authorize the payment, then
-    // redirected to the `return_url`.
     if (financialConnectionsSessionResult.error) {
       showErrorToast(new Error(`${financialConnectionsSessionResult.error.message} Please refresh the page and try again.`));
     } else if (financialConnectionsSessionResult.financialConnectionsSession.accounts.length === 0) {

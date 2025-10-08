@@ -197,7 +197,16 @@ class TestEventAPI:
         )
 
         assert response.status_code == 201
-        assert response.get_data(as_text=True).strip() == '"Created Event"'
+        assert response.get_json() == {
+            "_id": "event_1",
+            "amount": 150,
+            "date": 1672549200.0,
+            "description": "Test Event",
+            "id": "event_1",
+            "is_duplicate_transaction": False,
+            "line_items": ["line_item_1", "line_item_2"],
+            "tags": ["test", "event"],
+        }
 
         # Verify event was created
         with flask_app.app_context():

@@ -29,7 +29,6 @@ export default function CreateCashTransactionModal({ show, onHide }: { show: boo
         description.setEmpty()
         amount.setEmpty()
         showSuccessToast("Created Cash Transaction", "Notification");
-        // TODO: Uncheck all checkboxes
         onHide();
       })
       .catch(showErrorToast);

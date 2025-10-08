@@ -1,11 +1,12 @@
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { PageContainer, PageHeader } from "../components/ui/layout";
-import { H1, Body } from "../components/ui/typography";
+import { CurrencyFormatter } from "@/utils/formatters";
 import React, { useCallback, useEffect, useState } from "react";
 import CreateCashTransactionModal from "../components/CreateCashTransactionModal";
 import CreateEventModal from "../components/CreateEventModal";
 import LineItem from "../components/LineItem";
+import { PageContainer, PageHeader } from "../components/ui/layout";
+import { Body, H1 } from "../components/ui/typography";
 import { useLineItems } from "../contexts/LineItemsContext";
 
 export default function LineItemsToReviewPage() {
@@ -13,6 +14,8 @@ export default function LineItemsToReviewPage() {
     const [eventModalShow, setEventModalShow] = useState(false);
     const [cashModalShow, setCashModalShow] = useState(false);
     const lineItems = useLineItems();
+    const selectedLineItems = lineItems.filter(lineItem => lineItem.isSelected);
+    const total = selectedLineItems.reduce((prev, cur) => prev + cur.amount, 0);
 
 
     const handleKeyDown = useCallback((event) => {
@@ -76,13 +79,18 @@ export default function LineItemsToReviewPage() {
 
             <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-6 shadow-lg">
                 <div className="container mx-auto max-w-7xl">
-                    <div className="flex justify-end space-x-4">
-                        <Button onClick={() => setCashModalShow(true)} variant="secondary">
-                            Create Cash Transaction
-                        </Button>
-                        <Button onClick={() => setEventModalShow(true)}>
-                            Create Event (↵)
-                        </Button>
+                    <div className="flex justify-between items-center">
+                        <Body className="text-muted-foreground">
+                            Total Selected: {CurrencyFormatter.format(total)}
+                        </Body>
+                        <div className="flex space-x-4">
+                            <Button onClick={() => setCashModalShow(true)} variant="secondary">
+                                Create Cash Transaction
+                            </Button>
+                            <Button onClick={() => setEventModalShow(true)}>
+                                Create Event (↵)
+                            </Button>
+                        </div>
                     </div>
                 </div>
             </div>

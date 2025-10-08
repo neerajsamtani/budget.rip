@@ -1,5 +1,5 @@
-import React, { ReactNode } from "react"
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils";
+import React, { ReactNode } from "react";
 
 interface TypographyProps {
   children: ReactNode;
@@ -32,7 +32,7 @@ export function H4({ children, className }: TypographyProps) {
 
 export function Body({ children, className }: TypographyProps) {
   return (
-    <p className={cn("text-[14px] font-normal leading-[1.5]", "font-body", className)}>
+    <p className={cn("text-[16px] font-normal leading-[1.5]", "font-body", className)}>
       {children}
     </p>
   )
