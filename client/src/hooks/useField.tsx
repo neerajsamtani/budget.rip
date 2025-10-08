@@ -1,9 +1,11 @@
-import { useState, ChangeEvent } from 'react'
+import { ChangeEvent, useState } from 'react';
 
 export type FormField<T> = {
     type: string;
     value: T;
+    // eslint-disable-next-line no-unused-vars
     onChange: (event: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => void;
+    // eslint-disable-next-line no-unused-vars
     setCustomValue: (value: T) => void;
     setEmpty: () => void;
 }

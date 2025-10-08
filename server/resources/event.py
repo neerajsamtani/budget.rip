@@ -99,7 +99,7 @@ def post_event_api() -> tuple[Response, int]:
     logging.info(
         f"Created event: {new_event['id']} with {len(line_items)} line items (amount: ${new_event['amount']:.2f})"
     )
-    return jsonify("Created Event"), 201
+    return jsonify(new_event), 201
 
 
 @events_blueprint.route("/api/events/<event_id>", methods=["DELETE"])

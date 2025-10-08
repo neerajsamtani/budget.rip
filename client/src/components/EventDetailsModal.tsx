@@ -6,10 +6,9 @@ import React, { Fragment } from 'react';
 import { Body, H3 } from "../components/ui/typography";
 import { LineItemInterface } from '../contexts/LineItemsContext';
 import axiosInstance from '../utils/axiosInstance';
+import { showErrorToast, showSuccessToast } from '../utils/toast-helpers';
 import { EventInterface } from './Event';
 import LineItem from './LineItem';
-import { showErrorToast, showSuccessToast } from '../utils/toast-helpers';
-import { MODAL_WIDTHS } from '@/constants/ui';
 
 export default function EventDetailsModal({ show, event, lineItemsForEvent, onHide }:
   { show: boolean, event: EventInterface, lineItemsForEvent: LineItemInterface[], onHide: () => void }) {
@@ -27,7 +26,7 @@ export default function EventDetailsModal({ show, event, lineItemsForEvent, onHi
   return (
     <Fragment>
       <Dialog open={show} onOpenChange={onHide}>
-        <DialogContent className={`w-full !max-w-[${MODAL_WIDTHS.LARGE}]`}>
+        <DialogContent className={"w-full !max-w-[56rem]"}>
           <DialogHeader className="pb-4 border-b border-muted -mx-6 px-6">
             <H3 className="text-foreground">{event.name}</H3>
             <Body className="text-muted-foreground mt-2">

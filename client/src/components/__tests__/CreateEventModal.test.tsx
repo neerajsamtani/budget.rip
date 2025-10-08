@@ -88,7 +88,7 @@ describe('CreateEventModal', () => {
         mockUseLineItemsDispatch.mockReturnValue(mockDispatch);
         mockGetPrefillFromLineItems.mockReturnValue(null);
         mockDefaultNameCleanup.mockImplementation((str) => str);
-        mockAxiosInstance.post.mockResolvedValue({ data: { success: true } });
+        mockAxiosInstance.post.mockResolvedValue({ data: { name: 'Test Event', success: true } });
     });
 
     describe('Rendering', () => {
@@ -447,7 +447,7 @@ describe('CreateEventModal', () => {
             await waitFor(() => {
                 const { toast } = require('sonner');
                 expect(toast.success).toHaveBeenCalledWith('Created Event', {
-                    description: { success: true },
+                    description: 'Test Event',
                     duration: 3500,
                 });
             });
@@ -576,7 +576,7 @@ describe('CreateEventModal', () => {
         });
 
         it('clears form fields after successful submission', async () => {
-            mockAxiosInstance.post.mockResolvedValueOnce({ data: { success: true } });
+            mockAxiosInstance.post.mockResolvedValueOnce({ data: { name: 'Test Event', success: true } });
 
             await act(async () => {
                 render(<CreateEventModal show={true} onHide={mockOnHide} />);

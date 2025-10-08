@@ -4,7 +4,8 @@ function isAlphanumeric(str: string) {
 
 function removePrefixes(inputString: string) {
     // Define prefixes to remove
-    const prefixesToRemove = ["SQ *", "TST* "];
+    // These are inserted by payment processors or platforms like Square and Toast
+    const prefixesToRemove = ["SQ *", "TST* ", "TST*", "SP ", "DD *DOORDASH "];
 
     // Iterate through prefixes and remove them if found at the start of the string
     for (const prefix of prefixesToRemove) {

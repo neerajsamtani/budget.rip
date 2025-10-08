@@ -61,6 +61,13 @@ const eventHints: EventHint[] = [
         }
     },
     {
+        cel_expression: 'description contains "WESTSIDE LAUNDROMAT CORP"',
+        prefill: {
+            name: "Laundry",
+            category: "Rent",
+        }
+    },
+    {
         cel_expression: 'description contains "AMC" && amount == 23.95',
         prefill: {
             name: "AMC A-List",
