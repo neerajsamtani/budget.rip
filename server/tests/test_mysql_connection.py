@@ -13,7 +13,8 @@ Run with: python test_mysql_connection.py
 """
 
 from sqlalchemy import text
-from models.database import engine, db_session
+
+from models.database import db_session, engine
 from models.sql_models import Category
 from utils.id_generator import generate_id
 
@@ -55,9 +56,7 @@ def test_category_crud():
         print("\n1. Creating test Category...")
         test_category_id = generate_id("cat")
         test_category = Category(
-            id=test_category_id,
-            name="TEST_CATEGORY_DO_NOT_USE",
-            is_active=True
+            id=test_category_id, name="TEST_CATEGORY_DO_NOT_USE", is_active=True
         )
 
         session.add(test_category)
@@ -66,9 +65,9 @@ def test_category_crud():
 
         # Step 2: Query to verify it exists
         print("\n2. Querying for created Category...")
-        queried_category = session.query(Category).filter(
-            Category.id == test_category_id
-        ).first()
+        queried_category = (
+            session.query(Category).filter(Category.id == test_category_id).first()
+        )
 
         if queried_category:
             print(f"✓ Category found: {queried_category.name}")
@@ -88,9 +87,9 @@ def test_category_crud():
 
         # Step 4: Verify it's gone
         print("\n4. Verifying Category was deleted...")
-        deleted_check = session.query(Category).filter(
-            Category.id == test_category_id
-        ).first()
+        deleted_check = (
+            session.query(Category).filter(Category.id == test_category_id).first()
+        )
 
         if deleted_check is None:
             print("✓ Category successfully removed from database")
@@ -106,14 +105,16 @@ def test_category_crud():
         # Cleanup: Try to delete the test category if it exists
         if test_category_id:
             try:
-                cleanup = session.query(Category).filter(
-                    Category.id == test_category_id
-                ).first()
+                cleanup = (
+                    session.query(Category)
+                    .filter(Category.id == test_category_id)
+                    .first()
+                )
                 if cleanup:
                     session.delete(cleanup)
                     session.commit()
                     print(f"✓ Cleaned up test category: {test_category_id}")
-            except:
+            except Exception as e:
                 pass
 
         return False
@@ -128,16 +129,16 @@ def test_table_existence():
     print("=" * 60)
 
     expected_tables = [
-        'categories',
-        'payment_methods',
-        'parties',
-        'tags',
-        'transactions',
-        'line_items',
-        'events',
-        'event_line_items',
-        'event_tags',
-        'alembic_version'
+        "categories",
+        "payment_methods",
+        "parties",
+        "tags",
+        "transactions",
+        "line_items",
+        "events",
+        "event_line_items",
+        "event_tags",
+        "alembic_version",
     ]
 
     try:
