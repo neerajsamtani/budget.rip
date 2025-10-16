@@ -14,8 +14,21 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 db_session = scoped_session(SessionLocal)
 
 def get_db():
-    """Dependency for Flask routes"""
-    db = db_session()
+    """
+    Dependency for Flask routes.
+
+    Usage in Flask routes:
+        db = next(get_db())
+        try:
+            # ... use db
+            db.commit()
+        except:
+            db.rollback()
+            raise
+        finally:
+            db.close()
+    """
+    db = SessionLocal()
     try:
         yield db
     finally:
