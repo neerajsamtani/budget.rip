@@ -1,5 +1,5 @@
 # server/models/sql_models.py
-from sqlalchemy import Column, String, DECIMAL, TIMESTAMP, Text, Boolean, ForeignKey, Enum
+from sqlalchemy import Column, String, DECIMAL, TIMESTAMP, Text, Boolean, ForeignKey, Enum, UniqueConstraint
 from sqlalchemy.orm import relationship, declarative_base
 from datetime import datetime, UTC
 from decimal import Decimal
@@ -28,7 +28,7 @@ class PaymentMethod(Base):
 
     id = Column(String(255), primary_key=True)  # pm_xxx
     name = Column(String(100), nullable=False, unique=True)
-    type = Column(Enum('bank', 'credit', 'venmo', 'splitwise', 'cash'), nullable=False)
+    type = Column(Enum('bank', 'credit', 'venmo', 'splitwise', 'cash', name='payment_method_type'), nullable=False)
     external_id = Column(String(255), nullable=True)
     is_active = Column(Boolean, default=True)
     created_at = Column(TIMESTAMP, default=lambda: datetime.now(UTC))
@@ -56,9 +56,12 @@ class Tag(Base):
 
 class Transaction(Base):
     __tablename__ = 'transactions'
+    __table_args__ = (
+        UniqueConstraint('source', 'source_id', name='uq_transaction_source'),
+    )
 
     id = Column(String(255), primary_key=True)  # txn_xxx
-    source = Column(Enum('venmo', 'splitwise', 'stripe', 'cash', 'manual'), nullable=False)
+    source = Column(Enum('venmo', 'splitwise', 'stripe', 'cash', 'manual', name='transaction_source'), nullable=False)
     source_id = Column(String(255), nullable=False)
     source_data = Column(Text, nullable=False)  # JSON string
     transaction_date = Column(TIMESTAMP, nullable=False)
@@ -117,6 +120,9 @@ class Event(Base):
 
 class EventLineItem(Base):
     __tablename__ = 'event_line_items'
+    __table_args__ = (
+        UniqueConstraint('event_id', 'line_item_id', name='uq_event_line_item'),
+    )
 
     id = Column(String(255), primary_key=True)  # eli_xxx
     event_id = Column(String(255), ForeignKey('events.id', ondelete='CASCADE'), nullable=False)
@@ -126,6 +132,9 @@ class EventLineItem(Base):
 
 class EventTag(Base):
     __tablename__ = 'event_tags'
+    __table_args__ = (
+        UniqueConstraint('event_id', 'tag_id', name='uq_event_tag'),
+    )
 
     id = Column(String(255), primary_key=True)  # etag_xxx
     event_id = Column(String(255), ForeignKey('events.id', ondelete='CASCADE'), nullable=False)
