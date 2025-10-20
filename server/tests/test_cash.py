@@ -68,6 +68,41 @@ def test_create_cash_transaction_api(test_client, jwt_token, flask_app):
         assert item_in_db["amount"] == mock_request_data["amount"]
 
 
+def test_create_cash_transaction_api_decimal_amounts(test_client, jwt_token, flask_app):
+    """Test that the cash transaction API handles decimal amounts correctly."""
+    # Test with decimal string (common from frontend forms)
+    mock_request_data = {
+        "date": "2023-09-15",
+        "person": "John Doe",
+        "description": "Decimal transaction",
+        "amount": "-110.50",  # String with decimal
+    }
+
+    # Send a POST request to the API
+    response = test_client.post(
+        "/api/cash_transaction",
+        json=mock_request_data,
+        headers={"Authorization": "Bearer " + jwt_token},
+    )
+
+    # Ensure that the status code is 201 (Created)
+    assert response.status_code == 201
+
+    # Ensure that the JSON response is as expected
+    expected_response = "Created Cash Transaction"
+    assert response.get_json() == expected_response
+
+    # Ensure that the DB state is as expected with preserved decimal amount
+    with flask_app.app_context():
+        cash_db = get_all_data(cash_raw_data_collection)
+        assert len(cash_db) == 1
+        item_in_db = cash_db[0]
+        assert item_in_db["date"] == html_date_to_posix(mock_request_data["date"])
+        assert item_in_db["person"] == mock_request_data["person"]
+        assert item_in_db["description"] == mock_request_data["description"]
+        assert item_in_db["amount"] == -110.5  # Decimal preserved
+
+
 def test_cash_to_line_items(flask_app, mock_cash_raw_data, expected_line_item):
     with flask_app.app_context():
         upsert_with_id(
