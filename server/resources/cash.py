@@ -24,7 +24,7 @@ cash_blueprint = Blueprint("cash", __name__)
 def create_cash_transaction_api() -> tuple[Response, int]:
     transaction: Dict[str, Any] = request.get_json()
     transaction["date"] = html_date_to_posix(transaction["date"])
-    transaction["amount"] = int(transaction["amount"])
+    transaction["amount"] = float(transaction["amount"])
     insert(cash_raw_data_collection, transaction)
     logging.info(
         f"Cash transaction created: {transaction['description']} - ${transaction['amount']}"
