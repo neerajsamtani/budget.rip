@@ -32,7 +32,7 @@ function SheetOverlay({
 }
 
 const sheetVariants = cva(
-  "bg-white data-[state=open]:animate-in data-[state=closed]:animate-out fixed z-50 flex flex-col shadow-lg transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500 border",
+  "bg-white data-[state=open]:animate-in data-[state=closed]:animate-out fixed z-50 flex flex-col gap-4 p-6 shadow-lg transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500 border",
   {
     variants: {
       side: {

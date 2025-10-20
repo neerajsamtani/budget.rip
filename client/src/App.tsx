@@ -34,6 +34,7 @@ export default function App() {
 
   const lineItemsDispatch = useLineItemsDispatch();
   const [loading, setLoading] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleRefreshData = () => {
     setLoading(true);
@@ -119,53 +120,60 @@ export default function App() {
               <Button onClick={handleRefreshData} variant="default" size="sm">
                 {loading ? <Spinner size="sm" /> : "Refresh"}
               </Button>
-              <Sheet>
+              <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                 <SheetTrigger asChild>
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" aria-label="Open navigation menu">
                     <MenuIcon className="h-5 w-5" />
                   </Button>
                 </SheetTrigger>
                 <SheetContent side="right" className="w-[250px] sm:w-[300px]">
-                  <nav className="flex flex-col gap-4 mt-8">
+                  <nav className="flex flex-col gap-4">
                     <Link
                       className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150 rounded-md hover:bg-muted"
                       to="/"
+                      onClick={() => setMobileMenuOpen(false)}
                     >
                       Review
                     </Link>
                     <Link
                       className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150 rounded-md hover:bg-muted"
                       to="/events"
+                      onClick={() => setMobileMenuOpen(false)}
                     >
                       Events
                     </Link>
                     <Link
                       className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150 rounded-md hover:bg-muted"
                       to="/line_items"
+                      onClick={() => setMobileMenuOpen(false)}
                     >
                       Line Items
                     </Link>
                     <Link
                       className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150 rounded-md hover:bg-muted"
                       to="/connected_accounts"
+                      onClick={() => setMobileMenuOpen(false)}
                     >
                       Connected Accounts
                     </Link>
                     <Link
                       className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150 rounded-md hover:bg-muted"
                       to="/graphs"
+                      onClick={() => setMobileMenuOpen(false)}
                     >
                       Graphs
                     </Link>
                     <Link
                       className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150 rounded-md hover:bg-muted"
                       to="/test"
+                      onClick={() => setMobileMenuOpen(false)}
                     >
                       Test Shadcn
                     </Link>
                     <Link
                       className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150 rounded-md hover:bg-muted"
                       to="/login"
+                      onClick={() => setMobileMenuOpen(false)}
                     >
                       Login
                     </Link>
