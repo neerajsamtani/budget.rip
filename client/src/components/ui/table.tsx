@@ -62,7 +62,7 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
     <th
       data-slot="table-head"
       className={cn(
-        "h-12 px-6 text-left align-middle font-medium text-foreground font-body text-sm",
+        "h-12 px-3 md:px-6 text-left align-middle font-medium text-foreground font-body text-sm",
         className
       )}
       {...props}
@@ -75,7 +75,7 @@ function TableCell({ className, ...props }: React.ComponentProps<"td">) {
     <td
       data-slot="table-cell"
       className={cn(
-        "p-6 align-middle text-foreground font-body text-sm",
+        "p-3 md:p-6 align-middle text-foreground font-body text-sm",
         className
       )}
       {...props}

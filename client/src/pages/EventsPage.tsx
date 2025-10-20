@@ -99,7 +99,7 @@ export default function EventsPage() {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="bg-muted rounded-lg p-4 flex items-center justify-between">
+                        <div className="bg-muted rounded-lg p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                             <Body className="font-medium">Cash Flow in {' '}
                                 {month && month !== 'All' ? month : ''} {year}
                                 {category !== 'All' ? ` (${category})` : ''}:</Body>
@@ -107,7 +107,7 @@ export default function EventsPage() {
                                 {CurrencyFormatter.format(Math.abs(cashFlowWithFilters))}
                             </StatusBadge>
                         </div>
-                        <div className="bg-muted rounded-lg p-4 flex items-center justify-between">
+                        <div className="bg-muted rounded-lg p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                             <Body className="font-medium">Spending:</Body>
                             <StatusBadge status={spending <= 0 ? 'success' : 'warning'}>
                                 {CurrencyFormatter.format(Math.abs(spending))}
