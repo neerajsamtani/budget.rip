@@ -1,8 +1,8 @@
-# MongoDB to MySQL Migration Plan
+# MongoDB to PostgreSQL Migration Plan
 
 ## Migration Philosophy
 
-**Goal**: Migrate existing MongoDB data structure to MySQL with proper relationships, foreign keys, and transactions. This is a **1:1 structural migration**, not a feature addition project.
+**Goal**: Migrate existing MongoDB data structure to PostgreSQL with proper relationships, foreign keys, and transactions. This is a **1:1 structural migration**, not a feature addition project.
 
 **Out of Scope** (for this migration):
 - Multi-user support (user_id on everything)
@@ -31,7 +31,7 @@ Based on feedback, this migration plan has been simplified:
 ### 1. Stripe-Style IDs with ULID (Not Auto-Increment)
 Format: `{prefix}_{ulid}` (e.g., `evt_01JA8QM9TNWQ3BK42G5YZH3K0P`)
 
-**Why**: Human-readable, type-safe, debuggable, time-sortable (better MySQL performance), matches modern API design
+**Why**: Human-readable, type-safe, debuggable, time-sortable (better PostgreSQL performance), matches modern API design
 
 ### 2. No user_id Fields (Single User For Now)
 All tables remain single-user. We can add `user_id` later when needed without breaking changes.
@@ -102,7 +102,7 @@ Single-user authentication using environment variables:
 Using ULID (Universally Unique Lexicographically Sortable Identifier):
 - Format: `{prefix}_{ulid}` (e.g., `evt_01ARZ3NDEKTSV4RRFFQ69G5FAV`)
 - Time-sortable (IDs sort by creation time)
-- Better MySQL performance (sequential inserts, less index fragmentation)
+- Better PostgreSQL performance (sequential inserts, less index fragmentation)
 - Collision-resistant (80 bits of randomness per millisecond)
 
 Copy to `server/utils/id_generator.py` in Phase 1.
@@ -182,30 +182,30 @@ Run with confirmation prompt. Re-run audit script after cleanup to verify.
 
 ---
 
-### Phase 1: Setup MySQL (Week 2)
-**Goal**: Get MySQL running alongside MongoDB with no production impact
+### Phase 1: Setup PostgreSQL (Week 2)
+**Goal**: Get PostgreSQL running alongside MongoDB with no production impact
 
-1. **Install MySQL**
+1. **Install PostgreSQL**
    ```bash
    # macOS
-   brew install mysql
-   brew services start mysql
+   brew install postgresql@16
+   brew services start postgresql@16
 
    # Create database
-   mysql -u root -p
-   CREATE DATABASE budgit CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-   CREATE USER 'budgit_user'@'localhost' IDENTIFIED BY 'secure_password';
-   GRANT ALL PRIVILEGES ON budgit.* TO 'budgit_user'@'localhost';
-   FLUSH PRIVILEGES;
+   psql postgres
+   CREATE DATABASE budgit ENCODING 'UTF8' LC_COLLATE='en_US.UTF-8' LC_CTYPE='en_US.UTF-8';
+   CREATE USER budgit_user WITH PASSWORD 'secure_password';
+   GRANT ALL PRIVILEGES ON DATABASE budgit TO budgit_user;
+   \q
    ```
 
-   **Note on Foreign Key Constraints**: MySQL with InnoDB (the default storage engine) enforces foreign key constraints automatically. No additional configuration is needed. All foreign key relationships defined in `schema.sql` will be enforced by the database.
+   **Note on Foreign Key Constraints**: PostgreSQL enforces foreign key constraints automatically. All foreign key relationships defined in `schema.sql` will be enforced by the database with better error messages than MySQL.
 
 2. **Add SQLAlchemy to requirements**
    ```python
    # requirements.txt
    SQLAlchemy==2.0.23
-   PyMySQL==1.1.0
+   psycopg2-binary==2.9.11  # PostgreSQL adapter
    alembic==1.13.1  # For migrations
    pydantic==2.5.0  # For request/response validation
    python-ulid==2.2.0  # For time-sortable IDs (imports as: from ulid import ULID)
@@ -218,7 +218,7 @@ Run with confirmation prompt. Re-run audit script after cleanup to verify.
    ```bash
    cd server
    alembic init alembic
-   # Edit alembic.ini to point to MySQL
+   # Edit alembic/env.py to import DATABASE_URL from constants
    ```
 
 5. **Run initial migration**
@@ -227,9 +227,9 @@ Run with confirmation prompt. Re-run audit script after cleanup to verify.
    alembic upgrade head
    ```
 
-6. **Test database connection**: Create `test_mysql_connection.py` that tests engine connection with `SELECT 1`, creates/commits/deletes a test Category to verify models work
+6. **Test database connection**: Create `test_postgresql_connection.py` that tests engine connection with `SELECT 1`, creates/commits/deletes a test Category to verify models work
 
-**Deliverable**: MySQL running with schema, connection tested, no production code changed
+**Deliverable**: PostgreSQL running with schema, connection tested, no production code changed
 
 ---
 
@@ -278,12 +278,12 @@ Run with confirmation prompt. Re-run audit script after cleanup to verify.
    - Data integrity (all records migrated)
    - See `migration_examples/templates/verification_template.py` for details
 
-**Deliverable**: All reference data migrated to MySQL with verification
+**Deliverable**: All reference data migrated to PostgreSQL with verification
 
 ---
 
 ### Phase 3: Migrate Transactions & Line Items (Week 4-5)
-**Goal**: Historical data in MySQL, dual-write for new transactions
+**Goal**: Historical data in PostgreSQL, dual-write for new transactions
 
 **Note**: Migration scripts store the original MongoDB `_id` in the `mongo_id` column to allow API endpoints to accept both ID formats during transition. See Phase 4 for full ID coexistence pattern.
 
@@ -291,45 +291,45 @@ Run with confirmation prompt. Re-run audit script after cleanup to verify.
 
 2. **Migrate line items**: For each MongoDB line item, create LineItem record with `mongo_id` stored for ID coexistence. Look up payment_method and party by name to get foreign key IDs. Create manual Transaction records for orphaned line items.
 
-3. **Update refresh endpoints to dual-write**: Modify Venmo, Splitwise, Stripe, and manual transaction refresh functions to write to both MongoDB (existing) and MySQL (new). Apply dual-write pattern to all CRUD operations.
+3. **Update refresh endpoints to dual-write**: Modify Venmo, Splitwise, Stripe, and manual transaction refresh functions to write to both MongoDB (existing) and PostgreSQL (new). Apply dual-write pattern to all CRUD operations.
 
-4. **Dual-Write Error Handling**: Create `server/utils/dual_write.py` with `dual_write_operation()` helper. Strategy: Write to MongoDB first (primary), then MySQL (secondary). If MySQL fails, log error but don't fail operation. Create reconciliation script to run periodically (hourly cron) to sync missed writes. Reference implementation in `migration_examples/templates/` directory.
+4. **Dual-Write Error Handling**: Create `server/utils/dual_write.py` with `dual_write_operation()` helper. Strategy: Write to MongoDB first (primary), then PostgreSQL (secondary). If PostgreSQL fails, log error but don't fail operation. Create reconciliation script to run periodically (hourly cron) to sync missed writes. Reference implementation in `migration_examples/templates/` directory.
 
 5. **Verification script**: Run `python migration_examples/templates/verification_template.py --phase 3` to verify transaction and line item counts match between databases.
 
-**Deliverable**: All transactions and line items in MySQL with verification, new data dual-written
+**Deliverable**: All transactions and line items in PostgreSQL with verification, new data dual-written
 
 ---
 
 ### Phase 4: Migrate Events with ID Coexistence (Week 6-7)
-**Goal**: Events and relationships in MySQL, API accepts both MongoDB and MySQL IDs during transition
+**Goal**: Events and relationships in PostgreSQL, API accepts both MongoDB and PostgreSQL IDs during transition
 
 1. **Update Pydantic schemas to include both IDs**: Add `legacy_id` field to EventResponse to return MongoDB ID during transition. Frontend can continue using old IDs.
 
 2. **Migrate events and tags**: For each event in MongoDB, create Event record with `mongo_id` stored. Look up category and line items by name/mongo_id. Create junction table entries. Extract unique tags and create Tag records with EventTag junctions.
 
-3. **Update event endpoints to accept both ID formats**: Modify GET/POST/DELETE endpoints to check if ID starts with prefix (evt_, li_) for MySQL or looks like ObjectId for MongoDB. Dual-write new events to both databases.
+3. **Update event endpoints to accept both ID formats**: Modify GET/POST/DELETE endpoints to check if ID starts with prefix (evt_, li_) for PostgreSQL or looks like ObjectId for MongoDB. Dual-write new events to both databases.
 
 **Frontend compatibility**: No frontend changes needed during Phases 0-5. Frontend continues using MongoDB ObjectIds.
 
-**Deliverable**: All events in MySQL with ID coexistence, CRUD operations dual-written
+**Deliverable**: All events in PostgreSQL with ID coexistence, CRUD operations dual-written
 
 ---
 
 ### Phase 5: Switch Read Operations (Week 8)
-**Goal**: Read from MySQL, still dual-write to both
+**Goal**: Read from PostgreSQL, still dual-write to both
 
-1. **Add feature flag**: `READ_FROM_MYSQL` environment variable (default: false)
+1. **Add feature flag**: `READ_FROM_POSTGRESQL` environment variable (default: false)
 
-2. **Update query functions**: Wrap all queries in conditional - if flag true, query MySQL using SQLAlchemy; otherwise use existing MongoDB queries. Apply to all_line_items(), all_events(), get_event(), etc.
+2. **Update query functions**: Wrap all queries in conditional - if flag true, query PostgreSQL using SQLAlchemy; otherwise use existing MongoDB queries. Apply to all_line_items(), all_events(), get_event(), etc.
 
 3. **Test thoroughly**: Verify data consistency, check query performance, monitor for errors
 
-4. **Enable in production**: `export READ_FROM_MYSQL=true`
+4. **Enable in production**: `export READ_FROM_POSTGRESQL=true`
 
 5. **Monitor (optional)**: Track read/write counts, query latency, slow queries
 
-**Deliverable**: All reads from MySQL with monitoring, writes to both databases
+**Deliverable**: All reads from PostgreSQL with monitoring, writes to both databases
 
 #### Verification Script: Dual-Write Consistency Checker
 
@@ -354,7 +354,7 @@ The template provides:
 ---
 
 ### Phase 6: Remove MongoDB & Update Frontend (Week 9)
-**Goal**: MySQL only, MongoDB decommissioned, frontend updated for new IDs
+**Goal**: PostgreSQL only, MongoDB decommissioned, frontend updated for new IDs
 
 1. **Update frontend to use Stripe-style IDs**: Create TypeScript types for EventId, LineItemId, etc. with template literal types (`evt_${string}`). Add ID validators. Update Event and LineItem interfaces to use typed IDs.
 
@@ -370,9 +370,9 @@ The template provides:
 
 7. **Shut down MongoDB**: `brew services stop mongodb-community`
 
-8. **Final verification**: Run SQL queries to verify row counts, foreign key constraints, data integrity. Test all API endpoints with new MySQL IDs.
+8. **Final verification**: Run SQL queries to verify row counts, foreign key constraints, data integrity. Test all API endpoints with new PostgreSQL IDs.
 
-**Deliverable**: MySQL only, MongoDB removed, frontend updated, final verification complete
+**Deliverable**: PostgreSQL only, MongoDB removed, frontend updated, final verification complete
 
 ---
 
@@ -389,9 +389,8 @@ flask-pymongo==2.3.0
 ```python
 # requirements.txt
 SQLAlchemy==2.0.23
-PyMySQL==1.1.0
+psycopg2-binary==2.9.11  # PostgreSQL adapter
 alembic==1.13.1
-mysqlclient==2.2.0  # Better performance than PyMySQL for production
 pydantic==2.5.0     # For request/response validation
 python-ulid==2.2.0  # For time-sortable IDs (imports as: from ulid import ULID)
 ```
@@ -404,7 +403,7 @@ MONGO_URI = os.getenv("LIVE_MONGO_URI", "mongodb://localhost:27017/test_db")
 # New: constants.py
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "mysql+pymysql://budgit_user:password@localhost:3306/budgit"
+    "postgresql://budgit_user:password@localhost:5432/budgit"
 )
 ```
 
@@ -459,9 +458,9 @@ When updating routes to use SQLAlchemy + Pydantic:
 
 **MongoDB (Current)**: Requires manual relationship lookups (separate queries + manual dictionary mapping) and aggregation pipelines for joins.
 
-**MySQL (With Indexes)**: Single JOIN queries with automatic relationship loading via SQLAlchemy. Uses `uncategorized_line_items` view for finding unassigned items.
+**PostgreSQL (With Indexes)**: Single JOIN queries with automatic relationship loading via SQLAlchemy. Uses `uncategorized_line_items` view for finding unassigned items. Native JSONB support for querying transaction source data.
 
-**Expected Performance**: 2-5x faster for complex queries with JOINs, especially for category/tag filtering and uncategorized item lookups.
+**Expected Performance**: 2-5x faster for complex queries with JOINs, especially for category/tag filtering and uncategorized item lookups. JSONB queries significantly faster than parsing JSON strings.
 
 ---
 
@@ -494,10 +493,10 @@ def set_sqlite_pragma(dbapi_conn, connection_record):
     cursor.close()
 ```
 
-**MySQL (for production)**: Foreign key constraints are enforced by default when using the InnoDB engine (MySQL's default storage engine). No special configuration needed. The schema in `migration_examples/schema.sql` already defines all foreign key constraints with `ON DELETE CASCADE` or `ON DELETE RESTRICT` as appropriate.
+**PostgreSQL (for production)**: Foreign key constraints are enforced by default. No special configuration needed. The schema in `migration_examples/schema.sql` already defines all foreign key constraints with `ON DELETE CASCADE` or `ON DELETE RESTRICT` as appropriate. PostgreSQL provides superior error messages for constraint violations compared to other databases.
 
 **Integration Tests** (during dual-write period):
-- Data consistency checks between MongoDB and MySQL
+- Data consistency checks between MongoDB and PostgreSQL
 - Count verification across all entities
 - Spot checks comparing field values via `mongo_id`
 - Use `migration_examples/templates/verification_template.py` for automated checks
@@ -512,18 +511,18 @@ If migration fails at any phase:
 
 1. **Set feature flag to read from MongoDB**
    ```bash
-   export READ_FROM_MYSQL=false
+   export READ_FROM_POSTGRESQL=false
    ```
 
-2. **Stop dual-writes to MySQL (optional)**
+2. **Stop dual-writes to PostgreSQL (optional)**
    ```python
-   # Comment out MySQL write code in affected endpoints
+   # Comment out PostgreSQL write code in affected endpoints
    # Keep MongoDB writes active
    ```
 
 3. **MongoDB is still primary** - no data loss
    - All user-facing operations continue with MongoDB
-   - MySQL data can be dropped and re-migrated
+   - PostgreSQL data can be dropped and re-migrated
    - Frontend unaffected due to ID coexistence pattern
 
 4. **Analyze what went wrong**
@@ -546,9 +545,9 @@ If migration fails at any phase:
    mongorestore /backup/pre_migration_YYYYMMDD_HHMMSS/
    ```
 
-2. **Reverse migrate new MySQL data to MongoDB**
+2. **Reverse migrate new PostgreSQL data to MongoDB**
    ```python
-   # Migrate any data created in MySQL after Phase 6 back to MongoDB
+   # Migrate any data created in PostgreSQL after Phase 6 back to MongoDB
    # This is complex and should be avoided by thorough testing before Phase 6
    ```
 
@@ -565,8 +564,8 @@ If migration fails at any phase:
 
 ## Benefits Summary
 
-| Aspect | MongoDB (Current) | MySQL (Proposed) |
-|--------|------------------|------------------|
+| Aspect | MongoDB (Current) | PostgreSQL (Proposed) |
+|--------|------------------|----------------------|
 | **Referential Integrity** | Manual | Automatic (FK) ✅ |
 | **Transactions** | Requires replica set | Built-in ACID ✅ |
 | **Schema Validation** | Application code | Database + Pydantic ✅ |
@@ -576,8 +575,10 @@ If migration fails at any phase:
 | **Relationships** | Manual | Declarative (ORM) ✅ |
 | **Cascading Deletes** | Manual | Automatic (ON DELETE) ✅ |
 | **Debugging** | Harder | Easier (SQL logs) ✅ |
-| **Tooling** | Limited | Extensive (DBeaver, etc.) ✅ |
+| **Tooling** | Limited | Extensive (pgAdmin, DBeaver, etc.) ✅ |
 | **ID Format** | ObjectId/Custom | Stripe-style prefixed ✅ |
+| **JSON Support** | Native BSON | Native JSONB with indexing ✅ |
+| **Timezone Support** | Basic | TIMESTAMP WITH TIME ZONE ✅ |
 
 ---
 
@@ -586,12 +587,12 @@ If migration fails at any phase:
 | Phase | Duration | Description |
 |-------|----------|-------------|
 | 0. Pre-Migration Validation | 1 week | Data audit, quality checks, baseline metrics |
-| 1. Setup MySQL | 1 week | Install, create schema, add ID generator, test connection |
+| 1. Setup PostgreSQL | 1 week | Install, create schema, add ID generator, test connection |
 | 2. Migrate Reference Data | 1 week | Categories, payment methods, parties, with verification |
 | 3. Migrate Transactions & Line Items | 2 weeks | Historical data + mongo_id coexistence + dual-write |
 | 4. Migrate Events & ID Coexistence | 2 weeks | Events + tags + ID coexistence pattern |
-| 5. Switch Reads | 2 weeks | Read from MySQL with monitoring, still dual-write |
-| 6. Remove MongoDB & Update Frontend | 1 week | MySQL only, frontend updates, final verification |
+| 5. Switch Reads | 2 weeks | Read from PostgreSQL with monitoring, still dual-write |
+| 6. Remove MongoDB & Update Frontend | 1 week | PostgreSQL only, frontend updates, final verification |
 | **Migration Total** | **10 weeks** | Safe, incremental, with comprehensive safeguards |
 | **7. Enhancements** | TBD | Soft deletes, additional fields, optimizations (see Phase 7 below) |
 
@@ -714,8 +715,8 @@ These are **not** part of the 1:1 migration and should be separate projects:
 
 ## Questions to Answer
 
-1. **Hosting**: Where will MySQL run in production? (AWS RDS, DigitalOcean, Render?)
-2. **Backups**: What's the backup strategy? (Automated daily backups?)
-3. **Monitoring**: How will we monitor MySQL? (CloudWatch, DataDog?)
+1. **Hosting**: Where will PostgreSQL run in production? (Supabase, AWS RDS, DigitalOcean, Render?)
+2. **Backups**: What's the backup strategy? (Automated daily backups via hosting provider?)
+3. **Monitoring**: How will we monitor PostgreSQL? (Built-in pgAdmin, CloudWatch, DataDog?)
 4. **Scaling**: What's the read/write pattern? (Need read replicas?)
-5. **Dev/Staging**: Do we need separate MySQL instances for dev/staging?
+5. **Dev/Staging**: Do we need separate PostgreSQL instances for dev/staging?

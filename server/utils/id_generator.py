@@ -10,7 +10,7 @@ def generate_id(prefix: str) -> str:
     ULID = 48-bit timestamp + 80-bit randomness
     - Lexicographically sortable by creation time
     - 26 characters (base32 encoded)
-    - Better MySQL performance (sequential inserts)
+    - Better PostgreSQL performance (sequential inserts)
     - Can extract timestamp if needed
 
     Args:

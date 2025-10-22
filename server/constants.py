@@ -20,7 +20,7 @@ MONGO_URI = os.getenv(
     "MONGO_URI", "mongodb://localhost:27017/test_db"
 )  # Change to LIVE_MONGO_URI if you want to use the live database
 DATABASE_URL = os.getenv(
-    "DATABASE_URL", "mysql+pymysql://budgit_user:password@localhost:3306/budgit"
+    "DATABASE_URL", "postgresql://budgit_user:password@localhost:5432/budgit"
 )
 VENMO_ACCESS_TOKEN = os.getenv("VENMO_ACCESS_TOKEN")
 SPLITWISE_CONSUMER_KEY = os.getenv("SPLITWISE_CONSUMER_KEY")
