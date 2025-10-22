@@ -91,8 +91,6 @@ describe('GraphsPage', () => {
 
             await waitFor(() => {
                 expect(screen.getByTestId('layout-barmode')).toHaveTextContent('relative');
-                expect(screen.getByTestId('layout-width')).toHaveTextContent('1000');
-                expect(screen.getByTestId('layout-height')).toHaveTextContent('600');
             });
         });
     });
@@ -254,8 +252,7 @@ describe('GraphsPage', () => {
                 expect(layoutData.barmode).toBe('relative');
                 expect(layoutData.xaxis.title).toBe('Date');
                 expect(layoutData.yaxis.title).toBe('Amount');
-                expect(layoutData.width).toBe(1000);
-                expect(layoutData.height).toBe(600);
+                expect(layoutData.autosize).toBe(true);
             });
         });
 
@@ -264,8 +261,6 @@ describe('GraphsPage', () => {
 
             await waitFor(() => {
                 expect(screen.getByTestId('layout-barmode')).toBeInTheDocument();
-                expect(screen.getByTestId('layout-width')).toBeInTheDocument();
-                expect(screen.getByTestId('layout-height')).toBeInTheDocument();
             });
         });
     });

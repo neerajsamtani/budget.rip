@@ -213,7 +213,7 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
                         </TableBody>
                     </Table>
 
-                    <div className="bg-muted rounded-lg p-6">
+                    <div className="bg-muted rounded-lg p-4 md:p-6">
                         <H4>Net Worth: <StatusBadge status={netWorth >= 0 ? 'success' : 'error'}>{CurrencyFormatter.format(netWorth)}</StatusBadge></H4>
                     </div>
 

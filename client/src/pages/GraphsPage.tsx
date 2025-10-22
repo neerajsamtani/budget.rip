@@ -53,8 +53,7 @@ export default function GraphsPage() {
       gridcolor: '#F5F5F5',
       linecolor: '#E0E0E0',
     },
-    width: 1000,
-    height: 600,
+    autosize: true,
     // Nordic styling
     paper_bgcolor: '#FFFFFF',
     plot_bgcolor: '#FFFFFF',
@@ -77,7 +76,7 @@ export default function GraphsPage() {
       </PageHeader>
 
       <div className="space-y-6">
-        <div className="bg-white rounded-xl border p-6 shadow-sm">
+        <div className="bg-white rounded-xl border p-4 md:p-6 shadow-sm">
           <Suspense fallback={
             <div className="flex items-center justify-center h-96">
               <Body className="text-muted-foreground">Loading chart...</Body>
@@ -90,7 +89,9 @@ export default function GraphsPage() {
                 displayModeBar: false,
                 responsive: true
               }}
-              style={{ width: '100%', height: '600px' }}
+              style={{ width: '100%', height: 'auto', minHeight: '400px' }}
+              useResizeHandler={true}
+              className="w-full"
             />
           </Suspense>
         </div>
