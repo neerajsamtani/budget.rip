@@ -1,4 +1,5 @@
 # tests/test_models.py
+import os
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -12,7 +13,9 @@ from utils.id_generator import generate_id
 def db_session():
     # Use PostgreSQL for tests (matches production)
     # This requires a test database to be created
-    engine = create_engine('postgresql://budgit_user:password@localhost:5432/budgit_test')
+    # Read from DATABASE_URL environment variable (set in CI) or use local default
+    database_url = os.getenv('DATABASE_URL', 'postgresql://budgit_user:password@localhost:5432/budgit_test')
+    engine = create_engine(database_url)
 
     # Drop all tables and recreate for clean test state
     Base.metadata.drop_all(engine)
