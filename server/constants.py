@@ -16,7 +16,12 @@ USER_FIRST_NAME = "Neeraj"
 PARTIES_TO_IGNORE = ["Pink Palace Babes", "Nyusha", "John Jonah"]
 STRIPE_API_KEY = os.getenv("STRIPE_LIVE_API_SECRET_KEY")
 STRIPE_CUSTOMER_ID = os.getenv("STRIPE_CUSTOMER_ID")
-MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/test_db") # Change to LIVE_MONGO_URI if you want to use the live database
+MONGO_URI = os.getenv(
+    "MONGO_URI", "mongodb://localhost:27017/test_db"
+)  # Change to LIVE_MONGO_URI if you want to use the live database
+DATABASE_URL = os.getenv(
+    "DATABASE_URL", "postgresql://budgit_user:password@localhost:5432/budgit"
+)
 VENMO_ACCESS_TOKEN = os.getenv("VENMO_ACCESS_TOKEN")
 SPLITWISE_CONSUMER_KEY = os.getenv("SPLITWISE_CONSUMER_KEY")
 SPLITWISE_CONSUMER_SECRET = os.getenv("SPLITWISE_CONSUMER_SECRET")
@@ -25,3 +30,22 @@ JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "testSecretKey123")
 JWT_COOKIE_DOMAIN = os.getenv("JWT_COOKIE_DOMAIN")
 SMALLEST_EPOCH_TIME = float(0)
 LARGEST_EPOCH_TIME = float(9999999999)
+# Keep this in sync with the categories on the frontend
+CATEGORIES = [
+    "All",
+    "Alcohol",
+    "Dining",
+    "Entertainment",
+    "Forma",
+    "Groceries",
+    "Hobbies",
+    "Income",
+    "Investment",
+    "Medical",
+    "Rent",
+    "Shopping",
+    "Subscription",
+    "Transfer",
+    "Transit",
+    "Travel",
+]

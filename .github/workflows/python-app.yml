@@ -17,12 +17,26 @@ jobs:
 
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: budgit_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
     steps:
     - uses: actions/checkout@v3
-    - name: Set up Python 3.10
+    - name: Set up Python 3.13
       uses: actions/setup-python@v3
       with:
-        python-version: "3.10"
+        python-version: "3.13"
     - name: Start MongoDB
       uses: supercharge/mongodb-github-action@1.10.0
       with:
@@ -36,6 +50,12 @@ jobs:
           pip install -r requirements.txt
           cd ..
         fi
+    - name: Run Alembic migrations
+      run: |
+        cd server
+        alembic upgrade head
+      env:
+        DATABASE_URL: postgresql://postgres:test_password@localhost:5432/budgit_test
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
@@ -45,3 +65,5 @@ jobs:
     - name: Test with pytest
       run: |
         pytest
+      env:
+        DATABASE_URL: postgresql://postgres:test_password@localhost:5432/budgit_test
