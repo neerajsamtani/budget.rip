@@ -1,31 +1,31 @@
 # tests/test_models.py
 import pytest
-import sqlalchemy
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import IntegrityError
 from models.sql_models import Base, Event, LineItem, Category, PaymentMethod, Transaction, EventLineItem, Party
 from decimal import Decimal
-from datetime import datetime
+from datetime import datetime, UTC
 from utils.id_generator import generate_id
 
 @pytest.fixture
 def db_session():
-    # In-memory SQLite for tests
-    engine = create_engine('sqlite:///:memory:')
+    # Use PostgreSQL for tests (matches production)
+    # This requires a test database to be created
+    engine = create_engine('postgresql://budgit_user:password@localhost:5432/budgit_test')
 
-    # Enable foreign key constraints in SQLite
-    @sqlalchemy.event.listens_for(engine, "connect")
-    def set_sqlite_pragma(dbapi_conn, connection_record):
-        cursor = dbapi_conn.cursor()
-        cursor.execute("PRAGMA foreign_keys=ON")
-        cursor.close()
-
+    # Drop all tables and recreate for clean test state
+    Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
+
     Session = sessionmaker(bind=engine)
     session = Session()
     yield session
+    session.rollback()
     session.close()
+
+    # Cleanup after tests
+    Base.metadata.drop_all(engine)
 
 def test_create_event_with_line_items(db_session):
     # Create category
@@ -41,8 +41,8 @@ def test_create_event_with_line_items(db_session):
         id=generate_id("txn"),
         source='stripe',
         source_id='txn_test123',
-        source_data='{}',
-        transaction_date=datetime.now()
+        source_data={},  # JSONB field accepts dict
+        transaction_date=datetime.now(UTC)
     )
     db_session.add(transaction)
     db_session.commit()
@@ -51,7 +51,7 @@ def test_create_event_with_line_items(db_session):
     line_item = LineItem(
         id=generate_id("li"),
         transaction_id=transaction.id,
-        date=datetime.now(),
+        date=datetime.now(UTC),
         amount=Decimal('50.00'),
         description='Test purchase',
         payment_method_id=payment_method.id
@@ -62,7 +62,7 @@ def test_create_event_with_line_items(db_session):
     # Create event
     event = Event(
         id=generate_id("evt"),
-        date=datetime.now(),
+        date=datetime.now(UTC),
         description='Test Event',
         category_id=category.id,
         is_duplicate=False
@@ -94,7 +94,7 @@ def test_foreign_key_constraint(db_session):
     with pytest.raises(IntegrityError):
         event = Event(
             id=generate_id("evt"),
-            date=datetime.now(),
+            date=datetime.now(UTC),
             description='Test',
             category_id='cat_nonexistent',
             is_duplicate=False
@@ -111,8 +111,8 @@ def test_event_total_amount_property(db_session):
         id=generate_id("txn"),
         source='manual',
         source_id='test123',
-        source_data='{}',
-        transaction_date=datetime.now()
+        source_data={},
+        transaction_date=datetime.now(UTC)
     )
     db_session.add_all([category, payment_method, transaction])
     db_session.commit()
@@ -120,7 +120,7 @@ def test_event_total_amount_property(db_session):
     # Create event
     event = Event(
         id=generate_id("evt"),
-        date=datetime.now(),
+        date=datetime.now(UTC),
         description='Multi-item event',
         category_id=category.id,
         is_duplicate=False
@@ -134,7 +134,7 @@ def test_event_total_amount_property(db_session):
         line_item = LineItem(
             id=generate_id("li"),
             transaction_id=transaction.id,
-            date=datetime.now(),
+            date=datetime.now(UTC),
             amount=amount,
             description='Test item',
             payment_method_id=payment_method.id
@@ -166,8 +166,8 @@ def test_event_duplicate_total(db_session):
         id=generate_id("txn"),
         source='manual',
         source_id='test',
-        source_data='{}',
-        transaction_date=datetime.now()
+        source_data={},
+        transaction_date=datetime.now(UTC)
     )
     db_session.add_all([category, payment_method, transaction])
     db_session.commit()
@@ -175,7 +175,7 @@ def test_event_duplicate_total(db_session):
     # Create duplicate event
     event = Event(
         id=generate_id("evt"),
-        date=datetime.now(),
+        date=datetime.now(UTC),
         description='Duplicate transaction',
         category_id=category.id,
         is_duplicate=True  # Mark as duplicate
@@ -189,7 +189,7 @@ def test_event_duplicate_total(db_session):
         line_item = LineItem(
             id=generate_id("li"),
             transaction_id=transaction.id,
-            date=datetime.now(),
+            date=datetime.now(UTC),
             amount=amount,
             description='Duplicate charge',
             payment_method_id=payment_method.id
@@ -221,8 +221,8 @@ def test_cascade_delete_event_deletes_junction_records(db_session):
         id=generate_id("txn"),
         source='manual',
         source_id='cascade_test',
-        source_data='{}',
-        transaction_date=datetime.now()
+        source_data={},
+        transaction_date=datetime.now(UTC)
     )
     db_session.add_all([category, payment_method, transaction])
     db_session.commit()
@@ -230,7 +230,7 @@ def test_cascade_delete_event_deletes_junction_records(db_session):
     # Create event and line item
     event = Event(
         id=generate_id("evt"),
-        date=datetime.now(),
+        date=datetime.now(UTC),
         description='Test Event',
         category_id=category.id,
         is_duplicate=False
@@ -238,7 +238,7 @@ def test_cascade_delete_event_deletes_junction_records(db_session):
     line_item = LineItem(
         id=generate_id("li"),
         transaction_id=transaction.id,
-        date=datetime.now(),
+        date=datetime.now(UTC),
         amount=Decimal('50.00'),
         description='Test item',
         payment_method_id=payment_method.id
@@ -276,8 +276,8 @@ def test_cascade_delete_transaction_deletes_line_items(db_session):
         id=generate_id("txn"),
         source='stripe',
         source_id='txn_cascade',
-        source_data='{}',
-        transaction_date=datetime.now()
+        source_data={},
+        transaction_date=datetime.now(UTC)
     )
     db_session.add_all([payment_method, transaction])
     db_session.commit()
@@ -286,7 +286,7 @@ def test_cascade_delete_transaction_deletes_line_items(db_session):
     line_item = LineItem(
         id=generate_id("li"),
         transaction_id=transaction.id,
-        date=datetime.now(),
+        date=datetime.now(UTC),
         amount=Decimal('100.00'),
         description='Test',
         payment_method_id=payment_method.id
@@ -312,8 +312,8 @@ def test_set_null_delete_party_nullifies_line_item(db_session):
         id=generate_id("txn"),
         source='venmo',
         source_id='venmo_123',
-        source_data='{}',
-        transaction_date=datetime.now()
+        source_data={},
+        transaction_date=datetime.now(UTC)
     )
     db_session.add_all([party, payment_method, transaction])
     db_session.commit()
@@ -322,7 +322,7 @@ def test_set_null_delete_party_nullifies_line_item(db_session):
     line_item = LineItem(
         id=generate_id("li"),
         transaction_id=transaction.id,
-        date=datetime.now(),
+        date=datetime.now(UTC),
         amount=Decimal('25.00'),
         description='Payment to party',
         payment_method_id=payment_method.id,
@@ -351,8 +351,8 @@ def test_restrict_delete_category_with_events_fails(db_session):
         id=generate_id("txn"),
         source='cash',
         source_id='cash_123',
-        source_data='{}',
-        transaction_date=datetime.now()
+        source_data={},
+        transaction_date=datetime.now(UTC)
     )
     db_session.add_all([category, payment_method, transaction])
     db_session.commit()
@@ -360,7 +360,7 @@ def test_restrict_delete_category_with_events_fails(db_session):
     # Create event with this category
     event = Event(
         id=generate_id("evt"),
-        date=datetime.now(),
+        date=datetime.now(UTC),
         description='Event using category',
         category_id=category.id,
         is_duplicate=False
@@ -381,8 +381,8 @@ def test_restrict_delete_payment_method_with_line_items_fails(db_session):
         id=generate_id("txn"),
         source='stripe',
         source_id='stripe_123',
-        source_data='{}',
-        transaction_date=datetime.now()
+        source_data={},
+        transaction_date=datetime.now(UTC)
     )
     db_session.add_all([payment_method, transaction])
     db_session.commit()
@@ -391,7 +391,7 @@ def test_restrict_delete_payment_method_with_line_items_fails(db_session):
     line_item = LineItem(
         id=generate_id("li"),
         transaction_id=transaction.id,
-        date=datetime.now(),
+        date=datetime.now(UTC),
         amount=Decimal('75.00'),
         description='Purchase',
         payment_method_id=payment_method.id
