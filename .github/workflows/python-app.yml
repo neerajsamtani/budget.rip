@@ -18,15 +18,15 @@ jobs:
     runs-on: ubuntu-latest
 
     services:
-      mysql:
-        image: mysql:8.0
+      postgres:
+        image: postgres:16
         env:
-          MYSQL_ROOT_PASSWORD: test_password
-          MYSQL_DATABASE: budgit_test
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: budgit_test
         ports:
-          - 3306:3306
+          - 5432:5432
         options: >-
-          --health-cmd="mysqladmin ping"
+          --health-cmd="pg_isready"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=3
@@ -55,7 +55,7 @@ jobs:
         cd server
         alembic upgrade head
       env:
-        DATABASE_URL: mysql+pymysql://root:test_password@localhost:3306/budgit_test
+        DATABASE_URL: postgresql://postgres:test_password@localhost:5432/budgit_test
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
@@ -66,4 +66,4 @@ jobs:
       run: |
         pytest
       env:
-        DATABASE_URL: mysql+pymysql://root:test_password@localhost:3306/budgit_test
+        DATABASE_URL: postgresql://postgres:test_password@localhost:5432/budgit_test
