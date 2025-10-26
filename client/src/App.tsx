@@ -11,6 +11,8 @@ import {
   BrowserRouter as Router,
   Routes
 } from "react-router-dom";
+import { ProtectedRoute } from "./components/ProtectedRoute";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { useLineItemsDispatch } from "./contexts/LineItemsContext";
 import { showErrorToast, showSuccessToast } from "./utils/toast-helpers";
 import ConnectedAccountsPage from "./pages/ConnectedAccountsPage";
@@ -30,11 +32,11 @@ import axiosInstance from "./utils/axiosInstance";
 const STRIPE_PUBLIC_KEY = String(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
 const stripePromise = loadStripe(STRIPE_PUBLIC_KEY);
 
-export default function App() {
-
+function AppContent() {
   const lineItemsDispatch = useLineItemsDispatch();
   const [loading, setLoading] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { isAuthenticated } = useAuth();
 
   const handleRefreshData = () => {
     setLoading(true);
@@ -53,10 +55,8 @@ export default function App() {
       })
   }
 
-
   return (
-    <React.StrictMode>
-      <Toaster position="top-right" richColors />
+    <>
       <Router>
         <Navbar className="bg-white shadow-sm border-b">
           <div className="container mx-auto flex justify-between items-center px-4 md:px-6 h-16">
@@ -103,12 +103,14 @@ export default function App() {
                 >
                   Test Shadcn
                 </Link>
-                <Link
-                  className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150"
-                  to="/login"
-                >
-                  Login
-                </Link>
+                {!isAuthenticated && (
+                  <Link
+                    className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150"
+                    to="/login"
+                  >
+                    Login
+                  </Link>
+                )}
               </div>
               <Button onClick={handleRefreshData} variant="default" size="sm">
                 {loading ? <Spinner size="sm" /> : "Refresh Data"}
@@ -170,13 +172,15 @@ export default function App() {
                     >
                       Test Shadcn
                     </Link>
-                    <Link
-                      className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150 rounded-md hover:bg-muted"
-                      to="/login"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      Login
-                    </Link>
+                    {!isAuthenticated && (
+                      <Link
+                        className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150 rounded-md hover:bg-muted"
+                        to="/login"
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        Login
+                      </Link>
+                    )}
                   </nav>
                 </SheetContent>
               </Sheet>
@@ -185,15 +189,26 @@ export default function App() {
         </Navbar>
 
         <Routes>
-          <Route path="/" element={<LineItemsToReviewPage />} />
-          <Route path="/events" element={<EventsPage />} />
-          <Route path="/line_items" element={<LineItemsPage />} />
-          <Route path="/connected_accounts" element={<ConnectedAccountsPage stripePromise={stripePromise} />} />
-          <Route path="/graphs" element={<GraphsPage />} />
-          <Route path="/test" element={<ShadcnTestPage />} />
+          <Route path="/" element={<ProtectedRoute><LineItemsToReviewPage /></ProtectedRoute>} />
+          <Route path="/events" element={<ProtectedRoute><EventsPage /></ProtectedRoute>} />
+          <Route path="/line_items" element={<ProtectedRoute><LineItemsPage /></ProtectedRoute>} />
+          <Route path="/connected_accounts" element={<ProtectedRoute><ConnectedAccountsPage stripePromise={stripePromise} /></ProtectedRoute>} />
+          <Route path="/graphs" element={<ProtectedRoute><GraphsPage /></ProtectedRoute>} />
+          <Route path="/test" element={<ProtectedRoute><ShadcnTestPage /></ProtectedRoute>} />
           <Route path="/login" element={<LoginPage />} />
         </Routes>
       </Router>
+    </>
+  );
+}
+
+export default function App() {
+  return (
+    <React.StrictMode>
+      <Toaster position="top-right" richColors />
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
     </React.StrictMode>
   );
 }

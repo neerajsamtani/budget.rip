@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from "sonner";
 import { PageContainer, PageHeader } from "../components/ui/layout";
 import { Body, H1 } from "../components/ui/typography";
+import { useAuth } from "../contexts/AuthContext";
 import { FormField, useField } from '../hooks/useField';
 import axiosInstance from "../utils/axiosInstance";
 import { showErrorToast } from "../utils/toast-helpers";
@@ -15,6 +16,7 @@ export default function LoginPage() {
     const password = useField("password", "" as string)
     const navigate = useNavigate()
     const [error, setError] = useState<string | null>(null);
+    const { login, logout } = useAuth();
 
     const validateEmail = (email: string) => {
         // Simple email regex
@@ -40,6 +42,7 @@ export default function LoginPage() {
                 email.setEmpty()
                 password.setEmpty()
                 setError(null);
+                login(); // Update auth state
                 navigate('/')
             })
             .catch(error => {
@@ -48,15 +51,16 @@ export default function LoginPage() {
             });
     }
 
-    const handleLogout = () => {
-        axiosInstance.post(`api/auth/logout`)
-            .then(() => {
-                toast.info("Notification", {
-                    description: "Logged out",
-                    duration: 3500,
-                });
-            })
-            .catch(showErrorToast);
+    const handleLogout = async () => {
+        try {
+            await logout(); // This also calls the API
+            toast.info("Notification", {
+                description: "Logged out",
+                duration: 3500,
+            });
+        } catch (error) {
+            showErrorToast(error);
+        }
     }
 
     return (
