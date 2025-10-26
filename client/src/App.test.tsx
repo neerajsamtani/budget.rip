@@ -46,6 +46,7 @@ jest.mock('react-plotly.js', () => {
 });
 
 // Mock Sonner toast
+const mockToaster = jest.fn((props: any) => <div data-testid="toaster" />);
 jest.mock('sonner', () => {
     const mockToast = jest.fn();
     return {
@@ -55,7 +56,10 @@ jest.mock('sonner', () => {
             info: jest.fn(),
             warning: jest.fn(),
         }),
-        Toaster: (props: any) => <div data-testid="toaster" {...props} />,
+        Toaster: (props: any) => {
+            mockToaster(props);
+            return <div data-testid="toaster" />;
+        },
     };
 });
 
@@ -81,6 +85,7 @@ const mockDispatch = jest.fn();
 describe('App', () => {
     beforeEach(() => {
         jest.clearAllMocks();
+        mockToaster.mockClear();
         process.env.VITE_API_ENDPOINT = 'http://localhost:5000/';
         process.env.VITE_STRIPE_PUBLIC_KEY = 'test_stripe_key';
         mockUseLineItemsDispatch.mockReturnValue(mockDispatch);
@@ -131,6 +136,22 @@ describe('App', () => {
             // The default route should show the review page
             // We can verify this by checking if the navbar is present and the button is there
             expect(screen.getByRole('button', { name: /refresh data/i })).toBeInTheDocument();
+        });
+
+        it('renders toaster with close button enabled', () => {
+            render(<App />);
+
+            const toaster = screen.getByTestId('toaster');
+            expect(toaster).toBeInTheDocument();
+
+            // Verify the Toaster component was called with closeButton prop
+            expect(mockToaster).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    closeButton: true,
+                    position: 'top-right',
+                    richColors: true,
+                })
+            );
         });
     });
 
