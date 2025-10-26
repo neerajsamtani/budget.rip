@@ -55,7 +55,7 @@ jest.mock('sonner', () => {
             info: jest.fn(),
             warning: jest.fn(),
         }),
-        Toaster: () => <div data-testid="toaster" />,
+        Toaster: (props: any) => <div data-testid="toaster" {...props} />,
     };
 });
 
