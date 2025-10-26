@@ -56,7 +56,7 @@ export default function App() {
 
   return (
     <React.StrictMode>
-      <Toaster position="top-right" richColors />
+      <Toaster position="top-right" richColors closeButton />
       <Router>
         <Navbar className="bg-white shadow-sm border-b">
           <div className="container mx-auto flex justify-between items-center px-4 md:px-6 h-16">
