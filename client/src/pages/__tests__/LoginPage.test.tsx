@@ -2,6 +2,7 @@ import { act, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { mockAxiosInstance, render, screen, waitFor } from '../../utils/test-utils';
+import { AuthProvider } from '../../contexts/AuthContext';
 import LoginPage from '../LoginPage';
 
 // Mock sonner toast
@@ -24,16 +25,27 @@ jest.mock('react-router-dom', () => ({
     useNavigate: () => mockNavigate,
 }));
 
+// Helper function to render LoginPage with AuthProvider
+const renderLoginPage = () => {
+    return render(
+        <AuthProvider>
+            <LoginPage />
+        </AuthProvider>
+    );
+};
+
 describe('LoginPage', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         mockAxiosInstance.post.mockResolvedValue({ data: { success: true } });
+        // Mock the auth check that happens in AuthProvider
+        mockAxiosInstance.get.mockResolvedValue({ data: {} });
     });
 
     describe('Rendering', () => {
         it('renders login form with all required elements', async () => {
             await act(async () => {
-                render(<LoginPage />);
+                renderLoginPage();
             });
 
             expect(screen.getByLabelText('Email')).toBeInTheDocument();
@@ -44,7 +56,7 @@ describe('LoginPage', () => {
 
         it('renders form fields with correct types', async () => {
             await act(async () => {
-                render(<LoginPage />);
+                renderLoginPage();
             });
 
             const emailField = screen.getByLabelText('Email') as HTMLInputElement;
@@ -56,7 +68,7 @@ describe('LoginPage', () => {
 
         it('renders form fields with empty initial values', async () => {
             await act(async () => {
-                render(<LoginPage />);
+                renderLoginPage();
             });
 
             const emailField = screen.getByLabelText('Email') as HTMLInputElement;
@@ -70,7 +82,7 @@ describe('LoginPage', () => {
     describe('User Interactions', () => {
         it('allows typing in email field', async () => {
             await act(async () => {
-                render(<LoginPage />);
+                renderLoginPage();
             });
 
             const emailField = screen.getByLabelText('Email');
@@ -81,7 +93,7 @@ describe('LoginPage', () => {
 
         it('allows typing in password field', async () => {
             await act(async () => {
-                render(<LoginPage />);
+                renderLoginPage();
             });
 
             const passwordField = screen.getByLabelText('Password');
@@ -92,7 +104,7 @@ describe('LoginPage', () => {
 
         it('calls login API when Log In button is clicked', async () => {
             await act(async () => {
-                render(<LoginPage />);
+                renderLoginPage();
             });
 
             const emailField = screen.getByLabelText('Email');
@@ -118,7 +130,7 @@ describe('LoginPage', () => {
 
         it('calls logout API when Log Out button is clicked', async () => {
             await act(async () => {
-                render(<LoginPage />);
+                renderLoginPage();
             });
 
             const logoutButton = screen.getByRole('button', { name: /log out/i });
@@ -135,7 +147,7 @@ describe('LoginPage', () => {
 
         it('navigates to home page after successful login', async () => {
             await act(async () => {
-                render(<LoginPage />);
+                renderLoginPage();
             });
 
             const emailField = screen.getByLabelText('Email');
@@ -155,7 +167,7 @@ describe('LoginPage', () => {
 
         it('clears form fields after successful login', async () => {
             await act(async () => {
-                render(<LoginPage />);
+                renderLoginPage();
             });
 
             const emailField = screen.getByLabelText('Email');
@@ -181,7 +193,7 @@ describe('LoginPage', () => {
             mockAxiosInstance.post.mockRejectedValue(new Error('Login failed'));
 
             await act(async () => {
-                render(<LoginPage />);
+                renderLoginPage();
             });
 
             const emailField = screen.getByLabelText('Email');
@@ -202,12 +214,12 @@ describe('LoginPage', () => {
             });
         });
 
-        it('handles logout API error gracefully', async () => {
+        it('handles logout API error gracefully and still shows success toast', async () => {
             const { toast } = require('sonner');
             mockAxiosInstance.post.mockRejectedValueOnce(new Error('Logout failed'));
 
             await act(async () => {
-                render(<LoginPage />);
+                renderLoginPage();
             });
 
             const logoutButton = screen.getByRole('button', { name: /log out/i });
@@ -215,9 +227,10 @@ describe('LoginPage', () => {
                 await userEvent.click(logoutButton);
             });
 
+            // Even if API fails, we show success toast and log user out locally
             await waitFor(() => {
-                expect(toast.error).toHaveBeenCalledWith("Error", {
-                    description: "Logout failed",
+                expect(toast.info).toHaveBeenCalledWith("Notification", {
+                    description: "Logged out",
                     duration: 3500,
                 });
             });
@@ -227,7 +240,7 @@ describe('LoginPage', () => {
             mockAxiosInstance.post.mockRejectedValue(new Error('Login failed'));
 
             await act(async () => {
-                render(<LoginPage />);
+                renderLoginPage();
             });
 
             const emailField = screen.getByLabelText('Email');
@@ -249,7 +262,7 @@ describe('LoginPage', () => {
     describe('Accessibility', () => {
         it('has proper form labels', async () => {
             await act(async () => {
-                render(<LoginPage />);
+                renderLoginPage();
             });
 
             expect(screen.getByLabelText('Email')).toBeInTheDocument();
@@ -257,14 +270,14 @@ describe('LoginPage', () => {
         });
 
         it('has proper button labels', () => {
-            render(<LoginPage />);
+            renderLoginPage();
 
             expect(screen.getByRole('button', { name: /log in/i })).toBeInTheDocument();
             expect(screen.getByRole('button', { name: /log out/i })).toBeInTheDocument();
         });
 
         it('has proper form structure', () => {
-            render(<LoginPage />);
+            renderLoginPage();
 
             // Check that form elements are present
             expect(screen.getByLabelText('Email')).toBeInTheDocument();
@@ -276,7 +289,7 @@ describe('LoginPage', () => {
 
     describe('Form Validation', () => {
         it('handles special characters in email and password', async () => {
-            render(<LoginPage />);
+            renderLoginPage();
 
             const emailField = screen.getByLabelText('Email');
             const passwordField = screen.getByLabelText('Password');
@@ -301,7 +314,7 @@ describe('LoginPage', () => {
 
         it('validates required fields', async () => {
             await act(async () => {
-                render(<LoginPage />);
+                renderLoginPage();
             });
 
             const submitButton = screen.getByRole('button', { name: /log in/i });
@@ -317,7 +330,7 @@ describe('LoginPage', () => {
 
         it('validates email format', async () => {
             await act(async () => {
-                render(<LoginPage />);
+                renderLoginPage();
             });
 
             const emailInput = screen.getByLabelText(/email/i);
@@ -338,7 +351,7 @@ describe('LoginPage', () => {
 
         it('does not submit when fields are empty and shows error', async () => {
             await act(async () => {
-                render(<LoginPage />);
+                renderLoginPage();
             });
 
             const submitButton = screen.getByRole('button', { name: /log in/i });
@@ -358,7 +371,7 @@ describe('LoginPage', () => {
             mockAxiosInstance.post.mockResolvedValueOnce({ data: { success: true } });
 
             await act(async () => {
-                render(<LoginPage />);
+                renderLoginPage();
             });
 
             const emailInput = screen.getByLabelText(/email/i);
@@ -387,7 +400,7 @@ describe('LoginPage', () => {
             mockAxiosInstance.post.mockRejectedValueOnce(new Error('Login failed'));
 
             await act(async () => {
-                render(<LoginPage />);
+                renderLoginPage();
             });
 
             const emailInput = screen.getByLabelText(/email/i);
@@ -414,7 +427,7 @@ describe('LoginPage', () => {
 
         it('validates required fields', async () => {
             await act(async () => {
-                render(<LoginPage />);
+                renderLoginPage();
             });
 
             const submitButton = screen.getByRole('button', { name: /log in/i });
@@ -430,7 +443,7 @@ describe('LoginPage', () => {
 
         it('validates email format', async () => {
             await act(async () => {
-                render(<LoginPage />);
+                renderLoginPage();
             });
 
             const emailInput = screen.getByLabelText(/email/i);
@@ -455,7 +468,7 @@ describe('LoginPage', () => {
             mockAxiosInstance.post.mockRejectedValueOnce(new Error('Login failed'));
 
             await act(async () => {
-                render(<LoginPage />);
+                renderLoginPage();
             });
 
             const emailInput = screen.getByLabelText(/email/i);
@@ -478,7 +491,7 @@ describe('LoginPage', () => {
             mockAxiosInstance.post.mockRejectedValueOnce(new Error('Network Error'));
 
             await act(async () => {
-                render(<LoginPage />);
+                renderLoginPage();
             });
 
             const emailInput = screen.getByLabelText(/email/i);
@@ -501,7 +514,7 @@ describe('LoginPage', () => {
     describe('Form State Management', () => {
         it('updates form fields on user input', async () => {
             await act(async () => {
-                render(<LoginPage />);
+                renderLoginPage();
             });
 
             const emailInput = screen.getByLabelText(/email/i);
@@ -518,7 +531,7 @@ describe('LoginPage', () => {
             mockAxiosInstance.post.mockResolvedValueOnce({ data: { success: true } });
 
             await act(async () => {
-                render(<LoginPage />);
+                renderLoginPage();
             });
 
             const emailInput = screen.getByLabelText(/email/i);

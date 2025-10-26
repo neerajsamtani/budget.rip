@@ -107,7 +107,7 @@ describe('App', () => {
     });
 
     describe('Rendering', () => {
-        it('renders navbar with brand and navigation links', () => {
+        it('renders navbar with brand and navigation links', async () => {
             render(<App />);
 
             expect(screen.getByText('Budgit')).toBeInTheDocument();
@@ -116,7 +116,11 @@ describe('App', () => {
             expect(screen.getByRole('link', { name: /line items/i })).toBeInTheDocument();
             expect(screen.getByRole('link', { name: /connected accounts/i })).toBeInTheDocument();
             expect(screen.getByRole('link', { name: /graphs/i })).toBeInTheDocument();
-            expect(screen.getByRole('link', { name: /login/i })).toBeInTheDocument();
+
+            // Login link should NOT be visible when authenticated (default mock behavior)
+            await waitFor(() => {
+                expect(screen.queryByRole('link', { name: /login/i })).not.toBeInTheDocument();
+            });
         });
 
         it('renders refresh data button', () => {
@@ -135,7 +139,7 @@ describe('App', () => {
     });
 
     describe('Navigation Links', () => {
-        it('has all required navigation links', () => {
+        it('has all required navigation links when authenticated', async () => {
             render(<App />);
 
             // Test that all navigation links are present and accessible
@@ -144,7 +148,23 @@ describe('App', () => {
             expect(screen.getByRole('link', { name: /line items/i })).toBeInTheDocument();
             expect(screen.getByRole('link', { name: /connected accounts/i })).toBeInTheDocument();
             expect(screen.getByRole('link', { name: /graphs/i })).toBeInTheDocument();
-            expect(screen.getByRole('link', { name: /login/i })).toBeInTheDocument();
+
+            // Login link should NOT be visible when authenticated
+            await waitFor(() => {
+                expect(screen.queryByRole('link', { name: /login/i })).not.toBeInTheDocument();
+            });
+        });
+
+        it('shows login link when unauthenticated', async () => {
+            const mockAxiosInstance = require('./utils/axiosInstance').default;
+            mockAxiosInstance.get.mockRejectedValueOnce(new Error('Unauthorized'));
+
+            render(<App />);
+
+            // Login link should be visible when unauthenticated
+            await waitFor(() => {
+                expect(screen.getByRole('link', { name: /login/i })).toBeInTheDocument();
+            });
         });
     });
 
@@ -173,9 +193,14 @@ describe('App', () => {
             ];
 
             const mockAxiosInstance = require('./utils/axiosInstance').default;
-            mockAxiosInstance.get.mockResolvedValueOnce({ data: { data: mockLineItems } });
+            // Note: beforeEach already sets up default mocks that resolve to { data: { data: [] } }
+            // We need to override for the refresh call specifically
 
             render(<App />);
+
+            // Clear the mocks from the initial renders (auth check, line items fetch)
+            mockAxiosInstance.get.mockClear();
+            mockAxiosInstance.get.mockResolvedValueOnce({ data: { data: mockLineItems } });
 
             const refreshButton = screen.getByRole('button', { name: /refresh data/i });
             fireEvent.click(refreshButton);
@@ -282,7 +307,8 @@ describe('App', () => {
         it('has proper navbar structure', () => {
             render(<App />);
             expect(screen.getByText('Budgit')).toBeInTheDocument();
-            expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
+            // The navbar brand is not a heading, just a div with text
+            expect(screen.getByText('Budgit')).toHaveClass('font-heading');
         });
 
         it('has proper button labels', () => {
@@ -290,14 +316,18 @@ describe('App', () => {
             expect(screen.getByRole('button', { name: /refresh data/i })).toBeInTheDocument();
         });
 
-        it('has proper link labels', () => {
+        it('has proper link labels when authenticated', async () => {
             render(<App />);
             expect(screen.getByRole('link', { name: /review/i })).toBeInTheDocument();
             expect(screen.getByRole('link', { name: /events/i })).toBeInTheDocument();
             expect(screen.getByRole('link', { name: /line items/i })).toBeInTheDocument();
             expect(screen.getByRole('link', { name: /connected accounts/i })).toBeInTheDocument();
             expect(screen.getByRole('link', { name: /graphs/i })).toBeInTheDocument();
-            expect(screen.getByRole('link', { name: /login/i })).toBeInTheDocument();
+
+            // Login link should NOT be visible when authenticated
+            await waitFor(() => {
+                expect(screen.queryByRole('link', { name: /login/i })).not.toBeInTheDocument();
+            });
         });
 
         it('has proper spinner accessibility attributes', async () => {
@@ -364,9 +394,13 @@ describe('App', () => {
         it('calls error toast on error', async () => {
             const mockAxiosInstance = require('./utils/axiosInstance').default;
             const { toast } = require('sonner');
-            mockAxiosInstance.get.mockRejectedValueOnce(new Error('API Error'));
 
             render(<App />);
+
+            // Clear the mocks from the initial renders
+            mockAxiosInstance.get.mockClear();
+            // Next call (refresh) will fail
+            mockAxiosInstance.get.mockRejectedValueOnce(new Error('API Error'));
 
             const refreshButton = screen.getByRole('button', { name: /refresh data/i });
             fireEvent.click(refreshButton);
