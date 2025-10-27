@@ -1,5 +1,5 @@
 # server/utils/id_generator.py
-from ulid import ULID
+from ulid import monotonic
 
 def generate_id(prefix: str) -> str:
     """
@@ -9,6 +9,7 @@ def generate_id(prefix: str) -> str:
 
     ULID = 48-bit timestamp + 80-bit randomness
     - Lexicographically sortable by creation time
+    - Monotonic: IDs generated in same millisecond increment by 1
     - 26 characters (base32 encoded)
     - Better PostgreSQL performance (sequential inserts)
     - Can extract timestamp if needed
@@ -24,4 +25,4 @@ def generate_id(prefix: str) -> str:
         line_item_id = generate_id("li") # li_01JA8QMA1XPRT2DS93F7VN6K1Q
         category_id = generate_id("cat") # cat_01JA8QMA1XPRT2DS93F7VN6K1Q
     """
-    return f"{prefix}_{ULID()}"
+    return f"{prefix}_{monotonic.new()}"
