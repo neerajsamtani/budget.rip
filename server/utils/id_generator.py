@@ -1,5 +1,5 @@
 # server/utils/id_generator.py
-from ulid import monotonic
+from ulid import ULID
 
 def generate_id(prefix: str) -> str:
     """
@@ -14,6 +14,10 @@ def generate_id(prefix: str) -> str:
     - Better PostgreSQL performance (sequential inserts)
     - Can extract timestamp if needed
 
+    Note: python-ulid 3.1.0 has built-in monotonic support. When multiple
+    ULIDs are generated within the same millisecond, the randomness portion
+    is automatically incremented to maintain sort order.
+
     Args:
         prefix: Stripe-style prefix (evt, li, cat, pm, party, tag, txn, eli, etag)
 
@@ -25,4 +29,4 @@ def generate_id(prefix: str) -> str:
         line_item_id = generate_id("li") # li_01JA8QMA1XPRT2DS93F7VN6K1Q
         category_id = generate_id("cat") # cat_01JA8QMA1XPRT2DS93F7VN6K1Q
     """
-    return f"{prefix}_{monotonic.new()}"
+    return f"{prefix}_{ULID()}"
