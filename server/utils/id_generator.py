@@ -9,9 +9,14 @@ def generate_id(prefix: str) -> str:
 
     ULID = 48-bit timestamp + 80-bit randomness
     - Lexicographically sortable by creation time
+    - Monotonic: IDs generated in same millisecond increment by 1
     - 26 characters (base32 encoded)
     - Better PostgreSQL performance (sequential inserts)
     - Can extract timestamp if needed
+
+    Note: python-ulid 3.1.0 has built-in monotonic support. When multiple
+    ULIDs are generated within the same millisecond, the randomness portion
+    is automatically incremented to maintain sort order.
 
     Args:
         prefix: Stripe-style prefix (evt, li, cat, pm, party, tag, txn, eli, etag)
