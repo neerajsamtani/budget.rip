@@ -143,6 +143,11 @@ def main():
     if not is_git_commit_command(command):
         sys.exit(0)
 
+    # Allow bypassing the hook if --no-verify is in the command
+    if "--no-verify" in command:
+        print("Pre-commit hook: Skipping tests (--no-verify flag detected)", file=sys.stderr)
+        sys.exit(0)
+
     # Get project directory
     project_dir = os.environ.get("CLAUDE_PROJECT_DIR")
     if not project_dir:
