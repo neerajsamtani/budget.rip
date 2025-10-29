@@ -449,3 +449,111 @@ class TestApplicationIntegration:
             # Should include both bank account display names
             assert "Checking Account 1" in data
             assert "Savings Account 2" in data
+
+    # Tests for single account refresh endpoint
+    def test_refresh_single_account_venmo_success(self, test_client, jwt_token, mocker):
+        """Test GET /api/account/venmo/refresh endpoint - success case"""
+        mock_refresh_venmo = mocker.patch("resources.account.refresh_venmo")
+        mock_venmo_to_line_items = mocker.patch("resources.account.venmo_to_line_items")
+        mock_cash_to_line_items = mocker.patch("resources.account.cash_to_line_items")
+        mock_add_event_ids = mocker.patch("application.add_event_ids_to_line_items")
+        mock_all_line_items = mocker.patch("resources.account.all_line_items")
+        mock_all_line_items.return_value = []
+
+        response = test_client.get(
+            "/api/account/venmo/refresh",
+            headers={"Authorization": "Bearer " + jwt_token},
+        )
+
+        assert response.status_code == 200
+        mock_refresh_venmo.assert_called_once()
+        mock_venmo_to_line_items.assert_called_once()
+        mock_cash_to_line_items.assert_called_once()
+        mock_add_event_ids.assert_called_once()
+
+    def test_refresh_single_account_splitwise_success(
+        self, test_client, jwt_token, mocker
+    ):
+        """Test GET /api/account/splitwise/refresh endpoint - success case"""
+        mock_refresh_splitwise = mocker.patch("resources.account.refresh_splitwise")
+        mock_splitwise_to_line_items = mocker.patch(
+            "resources.account.splitwise_to_line_items"
+        )
+        mock_cash_to_line_items = mocker.patch("resources.account.cash_to_line_items")
+        mock_add_event_ids = mocker.patch("application.add_event_ids_to_line_items")
+        mock_all_line_items = mocker.patch("resources.account.all_line_items")
+        mock_all_line_items.return_value = []
+
+        response = test_client.get(
+            "/api/account/splitwise/refresh",
+            headers={"Authorization": "Bearer " + jwt_token},
+        )
+
+        assert response.status_code == 200
+        mock_refresh_splitwise.assert_called_once()
+        mock_splitwise_to_line_items.assert_called_once()
+        mock_cash_to_line_items.assert_called_once()
+        mock_add_event_ids.assert_called_once()
+
+    def test_refresh_single_account_stripe_success(
+        self, test_client, jwt_token, mocker
+    ):
+        """Test GET /api/account/stripe/<account_id>/refresh endpoint - success case"""
+        account_id = "fca_test123"
+        mock_refresh_account = mocker.patch(
+            "resources.account.refresh_account_api", return_value=(mocker.Mock(), 200)
+        )
+        mock_refresh_transactions = mocker.patch(
+            "resources.account.refresh_transactions_api", return_value=(mocker.Mock(), 200)
+        )
+        mock_stripe_to_line_items = mocker.patch("resources.account.stripe_to_line_items")
+        mock_cash_to_line_items = mocker.patch("resources.account.cash_to_line_items")
+        mock_add_event_ids = mocker.patch("application.add_event_ids_to_line_items")
+        mock_all_line_items = mocker.patch("resources.account.all_line_items")
+        mock_all_line_items.return_value = []
+
+        response = test_client.get(
+            f"/api/account/stripe/{account_id}/refresh",
+            headers={"Authorization": "Bearer " + jwt_token},
+        )
+
+        assert response.status_code == 200
+        mock_refresh_account.assert_called_once_with(account_id)
+        mock_refresh_transactions.assert_called_once_with(account_id)
+        mock_stripe_to_line_items.assert_called_once()
+        mock_cash_to_line_items.assert_called_once()
+        mock_add_event_ids.assert_called_once()
+
+    def test_refresh_single_account_invalid_type(self, test_client, jwt_token, mocker):
+        """Test GET /api/account/<invalid_type>/refresh endpoint - invalid account type"""
+        response = test_client.get(
+            "/api/account/invalid_type/refresh",
+            headers={"Authorization": "Bearer " + jwt_token},
+        )
+
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "Invalid account type" in data["error"]
+
+    def test_refresh_single_account_unauthorized(self, test_client):
+        """Test GET /api/account/venmo/refresh endpoint - unauthorized"""
+        response = test_client.get("/api/account/venmo/refresh")
+        assert response.status_code == 401
+
+    def test_refresh_single_account_error_handling(
+        self, test_client, jwt_token, mocker
+    ):
+        """Test GET /api/account/venmo/refresh endpoint - error handling"""
+        # Mock refresh_venmo to raise an exception
+        mocker.patch(
+            "resources.account.refresh_venmo", side_effect=Exception("Test error message")
+        )
+
+        response = test_client.get(
+            "/api/account/venmo/refresh",
+            headers={"Authorization": "Bearer " + jwt_token},
+        )
+
+        assert response.status_code == 500
+        data = response.get_json()
+        assert "Test error message" in data["error"]

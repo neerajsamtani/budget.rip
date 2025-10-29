@@ -22,6 +22,7 @@ from dao import (
     line_items_collection,
     users_collection,
 )
+from resources.account import account_blueprint
 from resources.auth import auth_blueprint
 from resources.cash import cash_blueprint, cash_to_line_items
 from resources.event import events_blueprint
@@ -64,6 +65,7 @@ application.config["MONGO"] = PyMongo(application)
 application.logger.setLevel(logging.DEBUG)
 
 application.register_blueprint(auth_blueprint)
+application.register_blueprint(account_blueprint)
 application.register_blueprint(line_items_blueprint)
 application.register_blueprint(events_blueprint)
 application.register_blueprint(monthly_breakdown_blueprint)

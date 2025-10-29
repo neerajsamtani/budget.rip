@@ -174,4 +174,153 @@ describe('ConnectedAccountsPage', () => {
             });
         });
     });
+
+    describe('Refresh Single Account', () => {
+        it('refreshes venmo account when refresh button is clicked', async () => {
+            const mockLineItems = [{ id: 'li_1', amount: 100 }];
+            mockAxiosInstance.get.mockImplementation((url: string) => {
+                if (url.includes('connected_accounts')) return Promise.resolve({ data: mockConnectedAccounts });
+                if (url.includes('accounts_and_balances')) return Promise.resolve({ data: mockAccountsAndBalances });
+                if (url.includes('account/venmo/refresh')) return Promise.resolve({ data: { data: mockLineItems } });
+                return Promise.resolve({ data: {} });
+            });
+
+            render(<ConnectedAccountsPage stripePromise={mockStripePromise} />);
+
+            await waitFor(() => {
+                expect(screen.getByText(/Venmo - user1/)).toBeInTheDocument();
+            });
+
+            const refreshButtons = screen.getAllByRole('button', { name: /refresh/i });
+            const venmoRefreshButton = refreshButtons[0];
+            fireEvent.click(venmoRefreshButton);
+
+            await waitFor(() => {
+                expect(mockAxiosInstance.get).toHaveBeenCalledWith(
+                    expect.stringContaining('api/account/venmo/refresh')
+                );
+            });
+
+            await waitFor(() => {
+                expect(mockAxiosInstance.get).toHaveBeenCalledWith(
+                    expect.stringContaining('accounts_and_balances')
+                );
+            });
+        });
+
+        it('refreshes splitwise account when refresh button is clicked', async () => {
+            const mockLineItems = [{ id: 'li_1', amount: 100 }];
+            mockAxiosInstance.get.mockImplementation((url: string) => {
+                if (url.includes('connected_accounts')) return Promise.resolve({ data: mockConnectedAccounts });
+                if (url.includes('accounts_and_balances')) return Promise.resolve({ data: mockAccountsAndBalances });
+                if (url.includes('account/splitwise/refresh')) return Promise.resolve({ data: { data: mockLineItems } });
+                return Promise.resolve({ data: {} });
+            });
+
+            render(<ConnectedAccountsPage stripePromise={mockStripePromise} />);
+
+            await waitFor(() => {
+                expect(screen.getByText(/Splitwise - swuser1/)).toBeInTheDocument();
+            });
+
+            const refreshButtons = screen.getAllByRole('button', { name: /refresh/i });
+            const splitwiseRefreshButton = refreshButtons[1];
+            fireEvent.click(splitwiseRefreshButton);
+
+            await waitFor(() => {
+                expect(mockAxiosInstance.get).toHaveBeenCalledWith(
+                    expect.stringContaining('api/account/splitwise/refresh')
+                );
+            });
+        });
+
+        it('refreshes stripe account when refresh button is clicked', async () => {
+            const mockLineItems = [{ id: 'li_1', amount: 100 }];
+            mockAxiosInstance.get.mockImplementation((url: string) => {
+                if (url.includes('connected_accounts')) return Promise.resolve({ data: mockConnectedAccounts });
+                if (url.includes('accounts_and_balances')) return Promise.resolve({ data: mockAccountsAndBalances });
+                if (url.includes('account/stripe/stripe-1/refresh')) return Promise.resolve({ data: { data: mockLineItems } });
+                return Promise.resolve({ data: {} });
+            });
+
+            render(<ConnectedAccountsPage stripePromise={mockStripePromise} />);
+
+            await waitFor(() => {
+                expect(screen.getByText(/Bank Checking 1234/)).toBeInTheDocument();
+            });
+
+            const refreshButtons = screen.getAllByRole('button', { name: /refresh/i });
+            const stripeRefreshButton = refreshButtons[2];
+            fireEvent.click(stripeRefreshButton);
+
+            await waitFor(() => {
+                expect(mockAxiosInstance.get).toHaveBeenCalledWith(
+                    expect.stringContaining('api/account/stripe/stripe-1/refresh')
+                );
+            });
+        });
+
+        it('disables refresh button while refreshing', async () => {
+            const mockLineItems = [{ id: 'li_1', amount: 100 }];
+            let resolveRefresh: any;
+            const refreshPromise = new Promise((resolve) => {
+                resolveRefresh = resolve;
+            });
+
+            mockAxiosInstance.get.mockImplementation((url: string) => {
+                if (url.includes('connected_accounts')) return Promise.resolve({ data: mockConnectedAccounts });
+                if (url.includes('accounts_and_balances')) return Promise.resolve({ data: mockAccountsAndBalances });
+                if (url.includes('account/venmo/refresh')) return refreshPromise;
+                return Promise.resolve({ data: {} });
+            });
+
+            render(<ConnectedAccountsPage stripePromise={mockStripePromise} />);
+
+            await waitFor(() => {
+                expect(screen.getByText(/Venmo - user1/)).toBeInTheDocument();
+            });
+
+            const refreshButtons = screen.getAllByRole('button', { name: /refresh/i });
+            const venmoRefreshButton = refreshButtons[0];
+            fireEvent.click(venmoRefreshButton);
+
+            await waitFor(() => {
+                expect(screen.getByRole('button', { name: /refreshing\.\.\./i })).toBeDisabled();
+            });
+
+            // Resolve the refresh
+            resolveRefresh({ data: { data: mockLineItems } });
+
+            await waitFor(() => {
+                expect(screen.queryByRole('button', { name: /refreshing\.\.\./i })).not.toBeInTheDocument();
+            });
+        });
+
+        it('handles refresh error gracefully', async () => {
+            const { toast } = require('sonner');
+            mockAxiosInstance.get.mockImplementation((url: string) => {
+                if (url.includes('connected_accounts')) return Promise.resolve({ data: mockConnectedAccounts });
+                if (url.includes('accounts_and_balances')) return Promise.resolve({ data: mockAccountsAndBalances });
+                if (url.includes('account/venmo/refresh')) return Promise.reject(new Error('Refresh failed'));
+                return Promise.resolve({ data: {} });
+            });
+
+            render(<ConnectedAccountsPage stripePromise={mockStripePromise} />);
+
+            await waitFor(() => {
+                expect(screen.getByText(/Venmo - user1/)).toBeInTheDocument();
+            });
+
+            const refreshButtons = screen.getAllByRole('button', { name: /refresh/i });
+            const venmoRefreshButton = refreshButtons[0];
+            fireEvent.click(venmoRefreshButton);
+
+            await waitFor(() => {
+                expect(toast.error).toHaveBeenCalledWith("Error", {
+                    description: "Error refreshing venmo account",
+                    duration: 3500,
+                });
+            });
+        });
+    });
 }); 

@@ -3,7 +3,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Elements } from "@stripe/react-stripe-js";
 import { FinancialConnectionsSession } from "@stripe/stripe-js/types/api";
 import { Stripe } from "@stripe/stripe-js/types/stripe-js";
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { toast } from "sonner";
 import FinancialConnectionsForm from "../components/FinancialConnectionsForm";
 import { PageContainer, PageHeader } from "../components/ui/layout";
@@ -11,7 +11,8 @@ import { StatusBadge } from "../components/ui/status-badge";
 import { Body, H1, H4 } from "../components/ui/typography";
 import axiosInstance from "../utils/axiosInstance";
 import { CurrencyFormatter, DateFormatter } from "../utils/formatters";
-import { showErrorToast } from "../utils/toast-helpers";
+import { showErrorToast, showSuccessToast } from "../utils/toast-helpers";
+import { LineItemsContext } from "../contexts/LineItemsContext";
 
 export default function ConnectedAccountsPage({ stripePromise }: { stripePromise: Promise<Stripe | null> }) {
 
@@ -19,6 +20,9 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
     const [accountsAndBalances, setAccountsAndBalances] = useState({})
     const [clientSecret, setClientSecret] = useState("");
     const [stripeAccounts, setStripeAccounts] = useState<FinancialConnectionsSession.Account[]>([])
+    const [refreshingAccounts, setRefreshingAccounts] = useState<Set<string>>(new Set());
+
+    const { dispatch: lineItemsDispatch } = useContext(LineItemsContext);
 
     const formatDate = (unixTime: number) => DateFormatter.format(new Date(unixTime * 1000))
 
@@ -75,6 +79,40 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
             .catch(showErrorToast);
     }
 
+    const handleRefreshAccount = (accountType: string, accountId?: string) => {
+        const refreshKey = accountId || accountType;
+        setRefreshingAccounts(prev => new Set(prev).add(refreshKey));
+
+        const url = accountId
+            ? `api/account/${accountType}/${accountId}/refresh`
+            : `api/account/${accountType}/refresh`;
+
+        axiosInstance.get(url)
+            .then(response => {
+                showSuccessToast(`Refreshed ${accountType} account`, "Notification");
+                lineItemsDispatch({
+                    type: "populate_line_items",
+                    fetchedLineItems: response.data.data
+                });
+                // Refresh balances after updating transactions
+                axiosInstance.get(`api/accounts_and_balances`)
+                    .then(response => {
+                        setAccountsAndBalances(response.data);
+                    })
+                    .catch(showErrorToast);
+            })
+            .catch((error) => {
+                showErrorToast(new Error(`Error refreshing ${accountType} account`), "Notification");
+            })
+            .finally(() => {
+                setRefreshingAccounts(prev => {
+                    const newSet = new Set(prev);
+                    newSet.delete(refreshKey);
+                    return newSet;
+                });
+            });
+    }
+
     const appearance = {
         theme: 'stripe' as const,
     };
@@ -92,6 +130,16 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
                     <TableCell></TableCell>
                     <TableCell></TableCell>
                     <TableCell></TableCell>
+                    <TableCell>
+                        <Button
+                            onClick={() => handleRefreshAccount("venmo")}
+                            variant="outline"
+                            size="sm"
+                            disabled={refreshingAccounts.has("venmo")}
+                        >
+                            {refreshingAccounts.has("venmo") ? "Refreshing..." : "Refresh"}
+                        </Button>
+                    </TableCell>
                 </TableRow>
             ));
         }
@@ -104,6 +152,16 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
                     <TableCell></TableCell>
                     <TableCell></TableCell>
                     <TableCell></TableCell>
+                    <TableCell>
+                        <Button
+                            onClick={() => handleRefreshAccount("splitwise")}
+                            variant="outline"
+                            size="sm"
+                            disabled={refreshingAccounts.has("splitwise")}
+                        >
+                            {refreshingAccounts.has("splitwise") ? "Refreshing..." : "Refresh"}
+                        </Button>
+                    </TableCell>
                 </TableRow>
             ));
         }
@@ -126,6 +184,16 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
                             )}
                         </TableCell>
                         <TableCell>{accountsAndBalances[_id] && formatDate(accountsAndBalances[_id]["as_of"])}</TableCell>
+                        <TableCell>
+                            <Button
+                                onClick={() => handleRefreshAccount("stripe", _id)}
+                                variant="outline"
+                                size="sm"
+                                disabled={refreshingAccounts.has(_id)}
+                            >
+                                {refreshingAccounts.has(_id) ? "Refreshing..." : "Refresh"}
+                            </Button>
+                        </TableCell>
                     </TableRow>
                 );
             });
@@ -198,6 +266,7 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
                                 <TableHead>Status</TableHead>
                                 <TableHead>Balance</TableHead>
                                 <TableHead>Last Updated</TableHead>
+                                <TableHead>Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -205,7 +274,7 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
                                 connectedAccounts.flatMap(renderConnectedAccount)
                             ) : (
                                 <TableRow>
-                                    <TableCell colSpan={4} className="text-center text-muted-foreground">
+                                    <TableCell colSpan={5} className="text-center text-muted-foreground">
                                         No connected accounts found
                                     </TableCell>
                                 </TableRow>
