@@ -316,7 +316,7 @@ describe('ConnectedAccountsPage', () => {
             fireEvent.click(venmoRefreshButton);
 
             await waitFor(() => {
-                expect(toast.error).toHaveBeenCalledWith("Error", {
+                expect(toast.error).toHaveBeenCalledWith("Notification", {
                     description: "Error refreshing venmo account",
                     duration: 3500,
                 });
