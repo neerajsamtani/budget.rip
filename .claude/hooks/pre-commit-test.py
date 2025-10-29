@@ -57,6 +57,42 @@ def run_server_tests(project_dir: str) -> tuple[bool, str]:
     if not os.path.exists(server_dir):
         return True, "No server directory found, skipping server tests"
 
+    # Check if run_tests.py exists (Docker-based test runner)
+    run_tests_path = os.path.join(server_dir, 'run_tests.py')
+
+    # First, try to check if Docker is available
+    docker_available = False
+    try:
+        docker_check = subprocess.run(
+            ['docker', '--version'],
+            capture_output=True,
+            timeout=5
+        )
+        docker_available = docker_check.returncode == 0
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        docker_available = False
+
+    # Use Docker-based runner if available
+    if docker_available and os.path.exists(run_tests_path):
+        try:
+            result = subprocess.run(
+                ['python', 'run_tests.py'],
+                cwd=server_dir,
+                capture_output=True,
+                text=True,
+                timeout=300  # 5 minute timeout for Docker startup + tests
+            )
+
+            if result.returncode == 0:
+                return True, "Server tests passed (Docker-based)"
+            else:
+                return False, f"Server tests failed:\n{result.stdout}\n{result.stderr}"
+        except subprocess.TimeoutExpired:
+            return False, "Server tests timed out after 5 minutes"
+        except Exception as e:
+            return False, f"Error running server tests: {str(e)}"
+
+    # Fallback to direct pytest if Docker not available
     try:
         result = subprocess.run(
             ['pytest', '-v'],
@@ -69,9 +105,21 @@ def run_server_tests(project_dir: str) -> tuple[bool, str]:
         if result.returncode == 0:
             return True, "Server tests passed"
         else:
-            return False, f"Server tests failed:\n{result.stdout}\n{result.stderr}"
+            # If pytest fails due to missing dependencies or databases, provide helpful message
+            error_msg = result.stderr + result.stdout
+            if "ModuleNotFoundError" in error_msg or "No module named" in error_msg:
+                return False, "Server tests failed: Missing Python dependencies. Run 'pip install -r requirements.txt' in server directory."
+            elif "ServerSelectionTimeoutError" in error_msg or "Connection refused" in error_msg:
+                if os.path.exists(run_tests_path):
+                    return False, f"Server tests failed: Database not available.\n\nDocker is not available. To run tests:\n1. Install Docker\n2. Run: python server/run_tests.py\n\nOR set up MongoDB and PostgreSQL manually."
+                else:
+                    return False, f"Server tests failed: Database not available. Please install MongoDB and PostgreSQL."
+            else:
+                return False, f"Server tests failed:\n{result.stdout}\n{result.stderr}"
     except subprocess.TimeoutExpired:
         return False, "Server tests timed out after 2 minutes"
+    except FileNotFoundError:
+        return False, "Server tests failed: pytest not found. Run 'pip install -r requirements.txt' in server directory."
     except Exception as e:
         return False, f"Error running server tests: {str(e)}"
 
