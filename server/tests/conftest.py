@@ -8,11 +8,10 @@ if "STRIPE_LIVE_API_SECRET_KEY" not in os.environ:
 if "STRIPE_CUSTOMER_ID" not in os.environ:
     os.environ["STRIPE_CUSTOMER_ID"] = "fake_customer_id_for_testing"
 
+import mongomock
 import pytest
 from flask import Flask
 from flask_jwt_extended import JWTManager, create_access_token
-from flask_pymongo import PyMongo
-from pymongo.errors import ServerSelectionTimeoutError
 
 from constants import JWT_SECRET_KEY
 from dao import (
@@ -65,7 +64,15 @@ def flask_app():
     app.config["MONGO_DB_NAME"] = TEST_DB_NAME
 
     with app.app_context():
-        app.config["MONGO"] = PyMongo(app)
+        # Use mongomock for testing - no real MongoDB server required
+        mongo_client = mongomock.MongoClient()
+
+        # Create a mock MongoDB object that mimics PyMongo's structure
+        class MockMongo:
+            def __init__(self, client):
+                self.cx = client
+
+        app.config["MONGO"] = MockMongo(mongo_client)
         jwt = JWTManager(app)
         app.config["JWT_SECRET_KEY"] = JWT_SECRET_KEY
 
@@ -126,11 +133,27 @@ def jwt_token(flask_app):
 def setup_teardown(flask_app, request):
     # This fixture will be used for setup and teardown
     with flask_app.app_context():
-        try:
+        # Get the test database
+        test_db = flask_app.config["MONGO"].cx[flask_app.config["MONGO_DB_NAME"]]
+
+        # Clean up collections before each test
+        test_db.drop_collection(test_collection)
+        test_db.drop_collection(cash_raw_data_collection)
+        test_db.drop_collection(line_items_collection)
+        test_db.drop_collection(splitwise_raw_data_collection)
+        test_db.drop_collection(stripe_raw_account_data_collection)
+        test_db.drop_collection(stripe_raw_transaction_data_collection)
+        test_db.drop_collection(bank_accounts_collection)
+        test_db.drop_collection(events_collection)
+        test_db.drop_collection(users_collection)
+        test_db.drop_collection(venmo_raw_data_collection)
+
+    def teardown():
+        with flask_app.app_context():
             # Get the test database
             test_db = flask_app.config["MONGO"].cx[flask_app.config["MONGO_DB_NAME"]]
 
-            # Clean up collections before each test
+            # Clean up collections after each test
             test_db.drop_collection(test_collection)
             test_db.drop_collection(cash_raw_data_collection)
             test_db.drop_collection(line_items_collection)
@@ -141,31 +164,5 @@ def setup_teardown(flask_app, request):
             test_db.drop_collection(events_collection)
             test_db.drop_collection(users_collection)
             test_db.drop_collection(venmo_raw_data_collection)
-        except ServerSelectionTimeoutError:
-            # This error happens on Github Actions
-            pass
-
-    def teardown():
-        with flask_app.app_context():
-            try:
-                # Get the test database
-                test_db = flask_app.config["MONGO"].cx[
-                    flask_app.config["MONGO_DB_NAME"]
-                ]
-
-                # Clean up collections after each test
-                test_db.drop_collection(test_collection)
-                test_db.drop_collection(cash_raw_data_collection)
-                test_db.drop_collection(line_items_collection)
-                test_db.drop_collection(splitwise_raw_data_collection)
-                test_db.drop_collection(stripe_raw_account_data_collection)
-                test_db.drop_collection(stripe_raw_transaction_data_collection)
-                test_db.drop_collection(bank_accounts_collection)
-                test_db.drop_collection(events_collection)
-                test_db.drop_collection(users_collection)
-                test_db.drop_collection(venmo_raw_data_collection)
-            except ServerSelectionTimeoutError:
-                # This error happens on Github Actions
-                pass
 
     request.addfinalizer(teardown)
