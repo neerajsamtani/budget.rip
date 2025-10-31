@@ -1,5 +1,7 @@
 import os
 
+import pytest
+
 # Set up fake environment variables for testing before any imports
 if "VENMO_ACCESS_TOKEN" not in os.environ:
     os.environ["VENMO_ACCESS_TOKEN"] = "fake_token_for_testing"
@@ -9,7 +11,6 @@ if "STRIPE_CUSTOMER_ID" not in os.environ:
     os.environ["STRIPE_CUSTOMER_ID"] = "fake_customer_id_for_testing"
 
 import mongomock
-import pytest
 from flask import Flask
 from flask_jwt_extended import JWTManager, create_access_token
 

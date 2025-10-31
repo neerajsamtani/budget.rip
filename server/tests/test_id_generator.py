@@ -1,8 +1,10 @@
 # tests/test_id_generator.py
-import pytest
-from utils.id_generator import generate_id
-from ulid import ULID
 import time
+
+from ulid import ULID
+
+from utils.id_generator import generate_id
+
 
 def test_generate_id_format():
     """Test that generated IDs have the correct format"""
@@ -18,6 +20,7 @@ def test_generate_id_format():
     # Should be valid ULID
     ULID.from_str(ulid_part)  # Will raise if invalid
 
+
 def test_generate_id_different_prefixes():
     """Test ID generation with different prefixes"""
     prefixes = ["evt", "li", "cat", "pm", "party", "tag", "txn", "eli", "etag"]
@@ -31,6 +34,7 @@ def test_generate_id_different_prefixes():
         assert len(ulid_part) == 26
         ULID.from_str(ulid_part)
 
+
 def test_generate_id_uniqueness():
     """Test that rapidly generated IDs are unique"""
     ids = set()
@@ -42,6 +46,7 @@ def test_generate_id_uniqueness():
 
     # All IDs should be unique
     assert len(ids) == num_ids
+
 
 def test_generate_id_sortability():
     """Test that ULIDs are lexicographically sortable by creation time"""
@@ -59,11 +64,11 @@ def test_generate_id_sortability():
     # Should be sortable
     assert ulid1 < ulid2 < ulid3
 
+
 def test_generate_id_timestamp_extraction():
     """Test that we can extract timestamps from ULIDs"""
     before = time.time()
     id = generate_id("evt")
-    after = time.time()
 
     # Extract ULID and get timestamp
     ulid_part = id.split("_", 1)[1]
@@ -74,6 +79,7 @@ def test_generate_id_timestamp_extraction():
     # So we need to check within a reasonable range
     # Timestamp should be close to the time of generation
     assert abs(timestamp - before) < 1.0  # Within 1 second
+
 
 def test_generate_id_empty_prefix():
     """Test ID generation with empty prefix"""
@@ -86,6 +92,7 @@ def test_generate_id_empty_prefix():
     ulid_part = id.split("_", 1)[1]
     assert len(ulid_part) == 26
     ULID.from_str(ulid_part)
+
 
 def test_generate_id_special_characters_in_prefix():
     """Test ID generation with special characters in prefix"""
@@ -100,6 +107,7 @@ def test_generate_id_special_characters_in_prefix():
         ulid_part = id.split("_", 1)[1]
         ULID.from_str(ulid_part)
 
+
 def test_generate_id_monotonicity():
     """Test that ULIDs maintain monotonicity within the same millisecond"""
     # Generate multiple IDs rapidly (likely within same millisecond)
@@ -111,6 +119,7 @@ def test_generate_id_monotonicity():
     # Should all be unique and sortable
     assert len(set(ulids)) == len(ulids)
     assert ulids == sorted(ulids)
+
 
 def test_generate_id_string_length():
     """Test total ID length for various prefixes"""
