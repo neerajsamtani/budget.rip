@@ -2,47 +2,84 @@
 
 This document explains how to set up and run tests for the Budgit server application.
 
+## Quick Start (Recommended)
+
+The easiest way to run tests is using the test runner script, which automatically handles virtual environment setup and dependency management:
+
+```bash
+# Run all tests
+./run_tests.sh
+
+# Run only Phase 3 migration tests
+./run_tests.sh phase3
+
+# Run specific test file
+./run_tests.sh tests/test_cash.py
+
+# Run with additional pytest arguments
+./run_tests.sh tests/test_cash.py -k "test_create"
+```
+
+The script will:
+- ✅ Create a virtual environment (if needed)
+- ✅ Install/update dependencies automatically
+- ✅ Run tests in an isolated environment
+- ✅ Avoid system package conflicts
+
 ## Test Environment Setup
 
-The tests are configured to use a separate test database to avoid affecting your production data.
-
-### Quick Setup
-
-1. **Run the setup script** (recommended):
-   ```bash
-   python setup_test_env.py
-   ```
-
-2. **Or manually create a `.env.test` file**:
-   ```bash
-   # Test Database URI - Use a separate database for testing
-   TEST_MONGO_URI=mongodb://localhost:27017/budgit_test
-   
-   # Test JWT Secret
-   JWT_SECRET_KEY=testSecretKey123
-   ```
+The tests are configured to use:
+- **mongomock** for MongoDB tests (no MongoDB server needed)
+- **SQLite in-memory** for PostgreSQL/SQLAlchemy tests (no PostgreSQL server needed)
+- **Virtual environment** to avoid dependency conflicts
 
 ### Prerequisites
 
-- MongoDB running locally (or accessible via the configured URI)
-- Python dependencies installed (`pip install -r requirements.txt`)
+- Python 3.11+
+- No external databases required (uses mocks)
+
+### Manual Setup (Advanced)
+
+If you prefer to set up the environment manually:
+
+1. **Create virtual environment**:
+   ```bash
+   python3 -m venv test_env
+   source test_env/bin/activate
+   ```
+
+2. **Install dependencies**:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. **Run tests**:
+   ```bash
+   python -m pytest tests/ -v
+   ```
 
 ## Running Tests
 
-### Run all tests:
+### Using the test runner (recommended):
 ```bash
+./run_tests.sh                    # All tests
+./run_tests.sh phase3             # Phase 3 migration tests only
+./run_tests.sh tests/test_cash.py # Specific file
+```
+
+### Using pytest directly:
+```bash
+# Activate virtual environment first
+source test_env/bin/activate
+
+# Run all tests
 python -m pytest tests/ -v
-```
 
-### Run specific test files:
-```bash
+# Run specific test files
 python -m pytest tests/test_cash.py -v
-python -m pytest tests/test_dao.py -v
-python -m pytest tests/test_helpers.py -v
-```
+python -m pytest tests/test_phase3_migration.py -v
 
-### Run specific test functions:
-```bash
+# Run specific test functions
 python -m pytest tests/test_cash.py::test_create_cash_transaction_api -v
 ```
 
