@@ -36,16 +36,6 @@ class PaymentMethod(Base):
     updated_at = Column(TIMESTAMP(timezone=True), default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
 
 
-class Party(Base):
-    __tablename__ = 'parties'
-
-    id = Column(String(255), primary_key=True)  # party_xxx
-    name = Column(String(100), nullable=False, unique=True)
-    is_ignored = Column(Boolean, default=False)
-    created_at = Column(TIMESTAMP(timezone=True), default=lambda: datetime.now(UTC))
-    updated_at = Column(TIMESTAMP(timezone=True), default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
-
-
 class Tag(Base):
     __tablename__ = 'tags'
 
@@ -80,7 +70,6 @@ class LineItem(Base):
     amount = Column(DECIMAL(12, 2), nullable=False)
     description = Column(Text, nullable=False)
     payment_method_id = Column(String(255), ForeignKey('payment_methods.id', ondelete='RESTRICT'), nullable=False)
-    party_id = Column(String(255), ForeignKey('parties.id', ondelete='SET NULL'), nullable=True)
     notes = Column(Text, nullable=True)
     created_at = Column(TIMESTAMP(timezone=True), default=lambda: datetime.now(UTC))
     updated_at = Column(TIMESTAMP(timezone=True), default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
@@ -88,7 +77,6 @@ class LineItem(Base):
     # Relationships
     transaction = relationship('Transaction')
     payment_method = relationship('PaymentMethod')
-    party = relationship('Party')
     events = relationship('Event', secondary='event_line_items', back_populates='line_items')
 
 

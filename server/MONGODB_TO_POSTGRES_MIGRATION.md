@@ -6,7 +6,6 @@
 
 **Out of Scope** (for this migration):
 - Multi-user support (user_id on everything)
-- Advanced party normalization and aliases
 - Category hierarchies
 - Automatic deduplication
 - New features or business logic changes
@@ -45,22 +44,17 @@ Simple flat list of categories - no parent/child relationships.
 
 **Why**: Not needed for current use case, adds unnecessary complexity
 
-### 4. No Party Normalization Features
-Parties stored as simple records, no aliases table or stored procedures.
-
-**Why**: Can add later if needed, keep migration minimal
-
-### 5. Pydantic for Validation
+### 4. Pydantic for Validation
 SQLAlchemy for ORM + Pydantic for request/response validation.
 
 **Why**: Type safety, automatic validation, better error messages, modern Python best practice
 
-### 6. 1:1 Migration
+### 5. 1:1 Migration
 Current MongoDB structure → MySQL structure with minimal changes to business logic.
 
 **Why**: Reduces risk, keeps migration scope manageable, improvements come from DB features not code changes
 
-### 7. All Line Items Must Have Transactions
+### 6. All Line Items Must Have Transactions
 **No manual line items** - even manual/cash entries must create a transaction first.
 
 **Why**:
@@ -71,7 +65,7 @@ Current MongoDB structure → MySQL structure with minimal changes to business l
 
 **Implementation**: Manual entries create a "manual" transaction with source='manual'
 
-### 8. Environment-Based Authentication (Single User)
+### 7. Environment-Based Authentication (Single User)
 
 **Authentication config available in** `migration_examples/utils/auth_config.py`
 
@@ -114,7 +108,7 @@ Copy to `server/utils/id_generator.py` in Phase 1.
 **Complete SQL schema available in** `migration_examples/schema.sql`
 
 The schema includes:
-- **Reference Tables**: categories, payment_methods, parties, tags
+- **Reference Tables**: categories, payment_methods, tags
 - **Transaction Tables**: transactions (immutable source), line_items (normalized view)
 - **Event Tables**: events (user groupings), event_line_items & event_tags (junctions)
 - **Views**: uncategorized_line_items, event_totals, monthly_category_totals
@@ -234,51 +228,71 @@ Run with confirmation prompt. Re-run audit script after cleanup to verify.
 ---
 
 ### Phase 2: Migrate Reference Data (Week 3)
-**Goal**: Migrate reference tables (categories, payment methods, parties, tags)
+**Goal**: Migrate reference tables (categories, payment methods, and tags)
 
-**Use the reusable migration template** (`migration_examples/templates/migration_template.py`) for all reference data.
+#### 2.1 Migrate Categories and Payment Methods
 
 1. **Migrate categories:**
    ```bash
-   python migration_examples/templates/migration_template.py --entity categories
+   cd server
+   source env/bin/activate
+   python migrations/phase2_migrate_categories.py
    ```
 
 2. **Migrate payment methods:**
    ```bash
-   python migration_examples/templates/migration_template.py --entity payment_methods
+   python migrations/phase2_migrate_payment_methods.py
    ```
 
-3. **Migrate parties** (extracted from line items):
+3. **Verify migrations:**
    ```bash
-   python migration_examples/templates/migration_template.py --entity parties
-   ```
-
-4. **Migrate tags** (if applicable):
-   ```bash
-   python migration_examples/templates/migration_template.py --entity tags
+   python migrations/phase2_verify.py
    ```
 
 **Pattern Used:**
-- For each entity, the template calls `migrate_reference_data()` with:
-  - MongoDB collection name
-  - SQL model class
-  - ID prefix (cat, pm, party, tag)
-  - Transform function (converts MongoDB doc to SQL model kwargs)
-- Handles IntegrityError (duplicates) automatically
-- Returns name-to-ID mapping for later lookups
-- See `migration_examples/templates/migration_template.py` for complete implementation
+- Categories created from `CATEGORIES` constant (15 records)
+- Payment methods deduplicated from MongoDB `accounts` collection (18 → 14 records)
+- Stripe-style IDs with ULID: `cat_xxx`, `pm_xxx`
+- Idempotent scripts (safe to re-run)
+- Built-in verification
+
+#### 2.2 Tags - Migrate in Phase 2 or Phase 4
+
+**MongoDB Data:**
+- No `tags` collection exists
+- Tags stored as string arrays on events: `tags: ["Advika Trip", "Dubai"]`
+- 1,119 out of 2,998 events have tags (37%)
+- 9 unique tags total: "Advika 2025 Trip", "Advika Shopping", "Advika Trip", "Bois Trip 2025", "Dubai", "Laver Cup", "Moving", "Onsite", "Yosemite"
+
+**Migration Options:**
+
+**Option A: Migrate in Phase 2 (Recommended)**
+- Extract unique tags from MongoDB events now
+- Create `Tag` records with IDs like `tag_xxx`
+- Simpler Phase 4 (just migrate event-tag relationships)
+
+**Option B: Defer to Phase 4**
+- Extract tags during event migration
+- Create tags and event_tags junction table entries together
+- Single migration script for all event-related data
+
+**Recommendation**: **Option A** - Migrate tags in Phase 2 alongside other reference data for consistency.
+
+**Implementation:**
+   ```bash
+   python migrations/phase2_migrate_tags.py  # Script to create
+   ```
 
 5. **Verify data consistency:**
    ```bash
-   python migration_examples/templates/verification_template.py --phase 2
+   python migrations/phase2_verify.py
    ```
 
    This runs automated checks for:
-   - Record counts (categories, payment methods, parties)
+   - Record counts (categories, payment methods, tags)
    - Data integrity (all records migrated)
-   - See `migration_examples/templates/verification_template.py` for details
 
-**Deliverable**: All reference data migrated to PostgreSQL with verification
+**Deliverable**: Categories, payment methods, and tags migrated to PostgreSQL with verification.
 
 ---
 
@@ -287,9 +301,18 @@ Run with confirmation prompt. Re-run audit script after cleanup to verify.
 
 **Note**: Migration scripts store the original MongoDB `_id` in the `mongo_id` column to allow API endpoints to accept both ID formats during transition. See Phase 4 for full ID coexistence pattern.
 
-1. **Migrate raw transactions**: Create script to iterate through venmo_raw_data, splitwise_raw_data, stripe_raw_transaction_data collections and insert into transactions table with source mapping.
+1. **Migrate raw transactions**:
+   - Iterate through venmo_raw_data, splitwise_raw_data, stripe_raw_transaction_data, cash_raw_data collections
+   - Insert into transactions table with source mapping
+   - Store original transaction data in `source_data` JSONB column
+   - Create manual Transaction records for any orphaned line items
+   - Script: `python migrations/phase3_migrate_transactions.py`
 
-2. **Migrate line items**: For each MongoDB line item, create LineItem record with `mongo_id` stored for ID coexistence. Look up payment_method and party by name to get foreign key IDs. Create manual Transaction records for orphaned line items.
+2. **Migrate line items**:
+   - For each MongoDB line item, create LineItem record with `mongo_id` stored for ID coexistence
+   - Look up payment_method_id by name (from Phase 2 mapping)
+   - Link to transaction via transaction_id foreign key
+   - Script: `python migrations/phase3_migrate_line_items.py`
 
 3. **Update refresh endpoints to dual-write**: Modify Venmo, Splitwise, Stripe, and manual transaction refresh functions to write to both MongoDB (existing) and PostgreSQL (new). Apply dual-write pattern to all CRUD operations.
 
@@ -418,7 +441,7 @@ See `migration_examples/README.md` for full documentation.
 ### Quick Reference
 
 **SQLAlchemy Models** (`migration_examples/models/sql_models.py`):
-- Category, PaymentMethod, Party, Tag, Transaction, LineItem, Event
+- Category, PaymentMethod, Tag, Transaction, LineItem, Event
 - Includes relationships, foreign keys, and computed properties
 - Copy to `server/models/sql_models.py` in Phase 1
 
@@ -588,7 +611,7 @@ If migration fails at any phase:
 |-------|----------|-------------|
 | 0. Pre-Migration Validation | 1 week | Data audit, quality checks, baseline metrics |
 | 1. Setup PostgreSQL | 1 week | Install, create schema, add ID generator, test connection |
-| 2. Migrate Reference Data | 1 week | Categories, payment methods, parties, with verification |
+| 2. Migrate Reference Data | 1 week | Categories, payment methods, tags with verification |
 | 3. Migrate Transactions & Line Items | 2 weeks | Historical data + mongo_id coexistence + dual-write |
 | 4. Migrate Events & ID Coexistence | 2 weeks | Events + tags + ID coexistence pattern |
 | 5. Switch Reads | 2 weeks | Read from PostgreSQL with monitoring, still dual-write |
@@ -670,9 +693,6 @@ ALTER TABLE tags ADD COLUMN color VARCHAR(7) NULL COMMENT 'Hex color code like #
 -- For date range queries
 ALTER TABLE line_items ADD INDEX idx_date_amount (date, amount);
 
--- For party filtering
-ALTER TABLE line_items ADD INDEX idx_party_date (party_id, date);
-
 -- For payment method reporting
 ALTER TABLE line_items ADD INDEX idx_payment_date (payment_method_id, date);
 ```
@@ -690,7 +710,6 @@ These are **not** part of the 1:1 migration and should be separate projects:
 
 - **Multi-user support**: Add `user_id` to all tables, add row-level security
 - **Category hierarchies**: Parent/child category relationships
-- **Party normalization**: Aliases table for party name matching
 - **Automatic deduplication**: ML-based duplicate transaction detection
 - **Budgeting features**: Budget table, spending limits, alerts
 - **Recurring transactions**: Template-based transaction creation
