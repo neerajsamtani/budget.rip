@@ -12,7 +12,7 @@ from constants import DATABASE_URL
 from models.sql_models import Base
 # Import all models to ensure they're registered with Base.metadata
 from models.sql_models import (
-    Category, PaymentMethod, Party, Tag, Transaction,
+    Category, PaymentMethod, Tag, Transaction,
     LineItem, Event, EventLineItem, EventTag
 )
 
