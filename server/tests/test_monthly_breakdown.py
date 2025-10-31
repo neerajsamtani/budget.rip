@@ -1,6 +1,10 @@
+from collections import defaultdict
+from datetime import datetime, timezone
+from typing import Any, Dict, List
+
 import pytest
 
-from dao import events_collection, upsert_with_id
+from dao import events_collection, get_all_data, upsert_with_id
 
 
 @pytest.fixture
@@ -43,6 +47,43 @@ def mock_event_data():
             "description": "Groceries",
         },
     ]
+
+
+def mock_get_categorized_data() -> List[Dict[str, Any]]:
+    """
+    Mock implementation of get_categorized_data() that doesn't use MongoDB aggregation.
+    This is needed because mongomock doesn't support the $toDate operator.
+    """
+    # Get all events from the database
+    events = get_all_data(events_collection)
+
+    # Group by year, month, and category
+    aggregated: Dict[tuple, float] = defaultdict(float)
+    for event in events:
+        # Convert Unix timestamp to datetime (use UTC to match MongoDB behavior)
+        date = datetime.fromtimestamp(event["date"], tz=timezone.utc)
+        key = (date.year, date.month, event["category"])
+        aggregated[key] += event["amount"]
+
+    # Convert to the expected output format
+    result = []
+    for (year, month, category), total in aggregated.items():
+        result.append(
+            {"year": year, "month": month, "category": category, "totalExpense": total}
+        )
+
+    return result
+
+
+@pytest.fixture(autouse=True)
+def mock_categorized_data_for_monthly_breakdown(monkeypatch):
+    """
+    Automatically mock get_categorized_data() for all tests in this file.
+    This is needed because mongomock doesn't support MongoDB's $toDate aggregation operator.
+    """
+    monkeypatch.setattr(
+        "resources.monthly_breakdown.get_categorized_data", mock_get_categorized_data
+    )
 
 
 @pytest.fixture

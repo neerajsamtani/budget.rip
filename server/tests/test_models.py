@@ -1,5 +1,11 @@
 # tests/test_models.py
-import os
+"""
+SQLAlchemy model tests using SQLite in-memory database.
+
+These tests validate model relationships, constraints, and basic behavior.
+For PostgreSQL-specific features (JSONB operators, etc.), consider
+separate integration tests in CI.
+"""
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -11,11 +17,18 @@ from utils.id_generator import generate_id
 
 @pytest.fixture
 def db_session():
-    # Use PostgreSQL for tests (matches production)
-    # This requires a test database to be created
-    # Read from DATABASE_URL environment variable (set in CI) or use local default
-    database_url = os.getenv('DATABASE_URL', 'postgresql://budgit_user:password@localhost:5432/budgit_test')
-    engine = create_engine(database_url)
+    # Use SQLite in-memory database for testing
+    # This provides fast tests without external dependencies (consistent with mongomock approach)
+    # SQLite tests basic model logic, relationships, and constraints
+    engine = create_engine("sqlite:///:memory:")
+
+    # Enable foreign key constraints in SQLite (disabled by default)
+    from sqlalchemy import event
+    @event.listens_for(engine, "connect")
+    def set_sqlite_pragma(dbapi_conn, connection_record):
+        cursor = dbapi_conn.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
 
     # Drop all tables and recreate for clean test state
     Base.metadata.drop_all(engine)

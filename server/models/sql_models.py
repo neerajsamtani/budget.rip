@@ -1,5 +1,5 @@
 # server/models/sql_models.py
-from sqlalchemy import Column, String, DECIMAL, TIMESTAMP, Text, Boolean, ForeignKey, Enum, UniqueConstraint
+from sqlalchemy import Column, String, DECIMAL, TIMESTAMP, Text, Boolean, ForeignKey, Enum, UniqueConstraint, JSON
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship, declarative_base
 from datetime import datetime, UTC
@@ -64,7 +64,7 @@ class Transaction(Base):
     id = Column(String(255), primary_key=True)  # txn_xxx
     source = Column(Enum('venmo', 'splitwise', 'stripe', 'cash', 'manual', name='transaction_source'), nullable=False)
     source_id = Column(String(255), nullable=False)
-    source_data = Column(JSONB, nullable=False)  # Native PostgreSQL JSON with indexing
+    source_data = Column(JSON().with_variant(JSONB, 'postgresql'), nullable=False)  # JSONB for PostgreSQL, JSON for others
     transaction_date = Column(TIMESTAMP(timezone=True), nullable=False)
     imported_at = Column(TIMESTAMP(timezone=True), default=lambda: datetime.now(UTC))
     created_at = Column(TIMESTAMP(timezone=True), default=lambda: datetime.now(UTC))
