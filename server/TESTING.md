@@ -32,11 +32,21 @@ The tests are configured to use:
 - **mongomock** for MongoDB tests (no MongoDB server needed)
 - **SQLite in-memory** for PostgreSQL/SQLAlchemy tests (no PostgreSQL server needed)
 - **Virtual environment** to avoid dependency conflicts
+- **pyproject.toml** for pytest and coverage configuration
 
 ### Prerequisites
 
 - Python 3.11+
+- Make (for convenience commands)
 - No external databases required (uses mocks)
+
+### Configuration
+
+Test configuration is defined in `pyproject.toml`:
+- **pytest settings**: Test discovery, markers, output options
+- **coverage settings**: Source paths, exclusions, reporting format
+
+This follows modern Python best practices (PEP 518/621) while keeping dependencies in `requirements.txt` for this legacy Flask app.
 
 ### Manual Setup (Advanced)
 
