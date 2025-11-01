@@ -464,6 +464,174 @@ class TestVenmoFunctions:
             assert -10.0 in amounts  # Received (flipped)
 
 
+class TestVenmoDualWrite:
+    """Test dual-write functionality for Venmo endpoints"""
+
+    def test_refresh_venmo_calls_dual_write_for_transactions(
+        self, flask_app, mock_venmo_user, mocker
+    ):
+        """Test that refresh_venmo uses dual_write_operation for transactions"""
+        with flask_app.app_context():
+            # Mock the get_venmo_client function
+            mock_venmo_client = mocker.Mock()
+            mock_venmo_client.my_profile.return_value = mock_venmo_user
+            mocker.patch(
+                "resources.venmo.get_venmo_client", return_value=mock_venmo_client
+            )
+
+            # Mock transaction
+            mock_transaction = mocker.Mock()
+            mock_transaction.date_created = 1673778600.0
+            mock_transaction.actor.first_name = "Neeraj"
+            mock_transaction.target.first_name = "John"
+            mock_transaction.payment_type = "pay"
+            mock_transaction.note = "Test payment"
+            mock_transaction.amount = 25.0
+
+            mock_transactions = mocker.Mock()
+            mock_transactions.__iter__ = lambda self: iter([mock_transaction])
+            mock_transactions.get_next_page.return_value = None
+            mock_venmo_client.user.get_user_transactions.return_value = (
+                mock_transactions
+            )
+
+            # Mock dual_write_operation
+            mock_dual_write = mocker.patch("resources.venmo.dual_write_operation")
+            mock_dual_write.return_value = {
+                "success": True,
+                "mongo_success": True,
+                "pg_success": True,
+            }
+
+            # Call refresh_venmo
+            refresh_venmo()
+
+            # Verify dual_write_operation was called
+            mock_dual_write.assert_called_once()
+            call_kwargs = mock_dual_write.call_args[1]
+
+            # Verify operation name
+            assert call_kwargs["operation_name"] == "venmo_refresh_transactions"
+
+            # Verify mongo_write_func and pg_write_func are callables
+            assert callable(call_kwargs["mongo_write_func"])
+            assert callable(call_kwargs["pg_write_func"])
+
+    def test_venmo_to_line_items_calls_dual_write(
+        self, flask_app, mock_venmo_transaction, mocker
+    ):
+        """Test that venmo_to_line_items uses dual_write_operation"""
+        with flask_app.app_context():
+            # Insert test transaction data
+            test_transaction = mock_venmo_transaction
+            upsert_with_id(
+                venmo_raw_data_collection, test_transaction, test_transaction["id"]
+            )
+
+            # Mock dual_write_operation
+            mock_dual_write = mocker.patch("resources.venmo.dual_write_operation")
+            mock_dual_write.return_value = {
+                "success": True,
+                "mongo_success": True,
+                "pg_success": True,
+            }
+
+            # Call venmo_to_line_items
+            venmo_to_line_items()
+
+            # Verify dual_write_operation was called
+            mock_dual_write.assert_called_once()
+            call_kwargs = mock_dual_write.call_args[1]
+
+            # Verify operation name
+            assert call_kwargs["operation_name"] == "venmo_create_line_items"
+
+            # Verify both write functions are callables
+            assert callable(call_kwargs["mongo_write_func"])
+            assert callable(call_kwargs["pg_write_func"])
+
+    def test_venmo_dual_write_mongo_failure_propagates(
+        self, flask_app, mock_venmo_user, mocker
+    ):
+        """Test that MongoDB failure in dual-write raises exception"""
+        with flask_app.app_context():
+            # Mock the get_venmo_client function
+            mock_venmo_client = mocker.Mock()
+            mock_venmo_client.my_profile.return_value = mock_venmo_user
+            mocker.patch(
+                "resources.venmo.get_venmo_client", return_value=mock_venmo_client
+            )
+
+            # Mock transaction
+            mock_transaction = mocker.Mock()
+            mock_transaction.date_created = 1673778600.0
+            mock_transaction.actor.first_name = "Neeraj"
+            mock_transaction.target.first_name = "John"
+            mock_transaction.payment_type = "pay"
+            mock_transaction.note = "Test payment"
+            mock_transaction.amount = 25.0
+
+            mock_transactions = mocker.Mock()
+            mock_transactions.__iter__ = lambda self: iter([mock_transaction])
+            mock_transactions.get_next_page.return_value = None
+            mock_venmo_client.user.get_user_transactions.return_value = (
+                mock_transactions
+            )
+
+            # Mock dual_write_operation to simulate MongoDB failure
+            from utils.dual_write import DualWriteError
+
+            mock_dual_write = mocker.patch("resources.venmo.dual_write_operation")
+            mock_dual_write.side_effect = DualWriteError("MongoDB write failed")
+
+            # Call refresh_venmo and expect exception
+            with pytest.raises(DualWriteError):
+                refresh_venmo()
+
+    def test_venmo_dual_write_pg_failure_continues(
+        self, flask_app, mock_venmo_user, mocker
+    ):
+        """Test that PostgreSQL failure in dual-write logs but continues"""
+        with flask_app.app_context():
+            # Mock the get_venmo_client function
+            mock_venmo_client = mocker.Mock()
+            mock_venmo_client.my_profile.return_value = mock_venmo_user
+            mocker.patch(
+                "resources.venmo.get_venmo_client", return_value=mock_venmo_client
+            )
+
+            # Mock transaction
+            mock_transaction = mocker.Mock()
+            mock_transaction.date_created = 1673778600.0
+            mock_transaction.actor.first_name = "Neeraj"
+            mock_transaction.target.first_name = "John"
+            mock_transaction.payment_type = "pay"
+            mock_transaction.note = "Test payment"
+            mock_transaction.amount = 25.0
+
+            mock_transactions = mocker.Mock()
+            mock_transactions.__iter__ = lambda self: iter([mock_transaction])
+            mock_transactions.get_next_page.return_value = None
+            mock_venmo_client.user.get_user_transactions.return_value = (
+                mock_transactions
+            )
+
+            # Mock dual_write_operation to simulate PG failure (non-critical)
+            mock_dual_write = mocker.patch("resources.venmo.dual_write_operation")
+            mock_dual_write.return_value = {
+                "success": True,  # Still success because MongoDB succeeded
+                "mongo_success": True,
+                "pg_success": False,
+                "pg_error": "PostgreSQL connection failed",
+            }
+
+            # Call refresh_venmo - should not raise
+            refresh_venmo()  # Should complete without exception
+
+            # Verify dual_write was called
+            mock_dual_write.assert_called_once()
+
+
 class TestVenmoIntegration:
     def test_full_refresh_workflow(self, flask_app, mock_venmo_user, mocker):
         """Test the complete refresh workflow from API to database"""

@@ -203,7 +203,7 @@ class TestTransactionMigration:
 
         stripe_transaction = {
             '_id': '123',
-            'created': 1609459200,  # 2021-01-01 00:00:00 UTC
+            'transacted_at': 1609459200,  # 2021-01-01 00:00:00 UTC
         }
 
         date = get_transaction_date(stripe_transaction, 'stripe')
