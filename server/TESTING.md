@@ -98,61 +98,141 @@ pytest tests/test_cash.py::test_create_cash_transaction_api -v
 pytest tests/ -v -k "venmo" --maxfail=1
 ```
 
-## Test Database
+## Test Database Isolation
 
-- **Database Name**: `budgit_test`
-- **Collections**: All collections are automatically cleaned up between tests
-- **Isolation**: Tests use a completely separate database from your production data
+**CRITICAL**: Tests are completely isolated from production databases.
+
+### MongoDB
+- **Implementation**: `mongomock` (in-memory fake MongoDB)
+- **No server required**: Tests don't connect to real MongoDB
+- **Automatic cleanup**: Collections dropped before/after each test
+
+### PostgreSQL
+- **Implementation**: SQLite in-memory (`sqlite:///:memory:`)
+- **No server required**: Tests don't connect to real PostgreSQL
+- **Configuration**: `DATABASE_URL` automatically set in `tests/conftest.py` before imports
+- **Schema management**: Tables created/destroyed for each test
+- **Complete isolation**: Production database never touched
+
+### How It Works
+```python
+# In tests/conftest.py (executed before any imports)
+os.environ["DATABASE_URL"] = "sqlite:///:memory:"  # Override production PostgreSQL
+
+# Later in the file
+test_engine = create_engine(TEST_DATABASE_URL)  # SQLite in-memory
+Base.metadata.create_all(test_engine)  # Create schema
+```
 
 ## Test Configuration
 
 The test configuration is handled by:
 
 1. **`tests/conftest.py`**: Main test configuration and fixtures
-2. **`test_config.py`**: Test-specific configuration settings
-3. **`.env.test`**: Environment variables for testing
+   - Sets `DATABASE_URL` to SQLite before imports
+   - Provides `mongomock` for MongoDB tests
+   - Creates/destroys PostgreSQL schema per test
+   - Provides Flask app and test client fixtures
+2. **`pyproject.toml`**: pytest and coverage settings
+3. **Environment variables**: Automatically configured in conftest
 
 ## Key Features
 
-- ✅ **Database Isolation**: Tests use a separate `budgit_test` database
-- ✅ **Automatic Cleanup**: Collections are dropped before and after each test
-- ✅ **JWT Authentication**: Test JWT tokens are automatically generated
+- ✅ **Complete Database Isolation**: Tests never touch production MongoDB or PostgreSQL
+- ✅ **No External Dependencies**: No database servers needed
+- ✅ **Automatic Cleanup**: All data cleaned between tests
+- ✅ **JWT Authentication**: Test JWT tokens automatically generated
 - ✅ **Flask Test Client**: Full Flask application context for integration tests
+- ✅ **Fast Execution**: In-memory databases for speed
 
 ## Troubleshooting
 
-### MongoDB Connection Issues
-If you get connection errors:
+### Tests Failing to Run
+If pytest can't find tests or modules:
 ```bash
-# Start MongoDB (macOS with Homebrew)
-brew services start mongodb-community
+# Ensure you're in the server directory
+cd server
 
-# Or start manually
-mongod --dbpath /usr/local/var/mongodb
+# Activate virtual environment
+source env/bin/activate
+
+# Reinstall dependencies
+pip install -r requirements.txt
+
+# Run tests
+python -m pytest tests/ -v
 ```
 
-### Test Database Issues
-If tests are still writing to production database:
-1. Check that `TEST_MONGO_URI` is set correctly in `.env.test`
-2. Verify that `dao.py` is using the configured database name
-3. Ensure your tests are importing from the updated `conftest.py`
-
-### Permission Issues
-If you can't create the test database:
+### Import Errors
+If you see import errors for `models.sql_models`:
 ```bash
-# Check MongoDB permissions
-mongo --eval "db.createUser({user: 'testuser', pwd: 'testpass', roles: ['readWrite']})"
+# Make sure you're running from server directory with virtualenv active
+cd server
+source env/bin/activate
+python -m pytest tests/ -v
+```
+
+### Test Data Pollution (FIXED)
+**This issue is resolved** in the current implementation. If you suspect test data is polluting production:
+1. Verify `tests/conftest.py` sets `os.environ["DATABASE_URL"] = "sqlite:///:memory:"` at the top
+2. Check that this line executes **before** any imports of application code
+3. Confirm tests are using the `flask_app` fixture (which uses the test config)
+
+### Virtual Environment Issues
+```bash
+# Remove and recreate virtual environment
+rm -rf env
+python3 -m venv env
+source env/bin/activate
+pip install -r requirements.txt
 ```
 
 ## Test Structure
 
 ```
 tests/
-├── conftest.py          # Test configuration and fixtures
-├── test_cash.py         # Cash-related API tests
-├── test_dao.py          # Data access object tests
-└── test_helpers.py      # Utility function tests
+├── conftest.py                  # Test configuration and fixtures
+│                                # - Database isolation setup
+│                                # - Flask app and client fixtures
+│                                # - Cleanup fixtures
+├── test_phase3_migration.py     # Phase 3 migration tests
+│                                # - Dual-write utility tests
+│                                # - Transaction migration tests
+│                                # - Line item migration tests
+├── test_cash.py                 # Cash-related API tests
+│   └── TestCashDualWrite        # Dual-write behavior tests
+├── test_venmo.py                # Venmo API tests
+│   └── TestVenmoDualWrite       # Dual-write behavior tests
+├── test_splitwise.py            # Splitwise API tests
+│   └── TestSplitwiseDualWrite   # Dual-write behavior tests
+├── test_stripe.py               # Stripe API tests
+│   └── TestStripeDualWrite      # Dual-write behavior tests
+├── test_dao.py                  # Data access object tests
+└── test_helpers.py              # Utility function tests
 ```
+
+### Test Categories
+
+1. **Migration Tests** (`test_phase3_migration.py`):
+   - Dual-write utility functionality
+   - Transaction and line item migration logic
+   - Payment method lookup and creation
+
+2. **Dual-Write Tests** (in each endpoint test file):
+   - Verify `dual_write_operation()` is called
+   - Check operation names are correct
+   - Test MongoDB failure handling (should raise)
+   - Test PostgreSQL failure handling (should log and continue)
+
+3. **Integration Tests**:
+   - End-to-end workflow tests
+   - Full API request/response testing
+   - Multi-step operations
+
+4. **Unit Tests**:
+   - Individual function testing
+   - Helper function testing
+   - DAO operations
 
 ## Adding New Tests
 

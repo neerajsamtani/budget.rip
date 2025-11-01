@@ -226,18 +226,29 @@ CREATE TABLE line_items (
    ```
    All checks should pass before proceeding.
 
-### Dual-Write Period (Ongoing)
+### Dual-Write Period (Active)
 
-**Note**: The refresh endpoint updates (Venmo, Splitwise, Stripe, Cash) should be implemented to use the dual-write utility. This ensures new data is written to both databases.
+✅ **COMPLETED**: All refresh endpoints now use dual-write utility.
 
-**Example Dual-Write Integration** (to be implemented):
+All refresh endpoints have been updated to write to both databases:
+- ✅ Venmo: `refresh_venmo()` and `venmo_to_line_items()`
+- ✅ Splitwise: `refresh_splitwise()` and `splitwise_to_line_items()`
+- ✅ Stripe: `refresh_transactions_api()` and `stripe_to_line_items()`
+- ✅ Cash: `create_cash_transaction_api()` and `cash_to_line_items()`
+
+**Implementation Details**:
 ```python
-# In resources/venmo.py
+# In resources/venmo.py (example)
 from utils.dual_write import dual_write_operation
 
-# Dual-write should be implemented in refresh endpoints
-# to write to both MongoDB and PostgreSQL
+result = dual_write_operation(
+    operation_name="venmo_refresh_transactions",
+    mongo_write_func=lambda: bulk_upsert(venmo_raw_data_collection, transactions),
+    pg_write_func=lambda: pg_bulk_upsert_transactions(transactions, "venmo")
+)
 ```
+
+**Testing**: All endpoints have dual-write unit tests (see `test_*_dual_write` classes)
 
 ### Reconciliation (Automated)
 
@@ -309,23 +320,36 @@ All migration scripts can be safely re-run.
 - Easy to test
 - Reduces risk during migration
 
+## Phase 3 Status: ✅ COMPLETE
+
+All Phase 3 objectives have been achieved:
+- ✅ Historical data migration complete
+- ✅ Dual-write implemented for all refresh endpoints
+- ✅ Verification passing (19/19 checks)
+- ✅ Unit tests complete (16 dual-write tests added)
+- ✅ Test isolation fixed (no production database pollution)
+- ✅ `responsible_party` field added to line_items table
+
 ## Next Steps (Phase 4)
 
-After Phase 3 is complete and verified:
+Now that Phase 3 is complete:
 
-1. **Update Refresh Endpoints**:
-   - Integrate dual-write utility into Venmo/Splitwise/Stripe/Cash refresh functions
-   - Test dual-write with live API calls
-
-2. **Monitor Dual-Write Period**:
-   - Review reconciliation logs
+1. **Monitor Dual-Write Period** (Ongoing):
+   - Review reconciliation logs regularly
    - Monitor PostgreSQL write success rate
-   - Verify data consistency regularly
+   - Run verification script periodically: `python migrations/phase3_verify.py`
+   - Set up automated reconciliation (cron job recommended)
 
-3. **Phase 4 Preparation**:
-   - Migrate events and tags
+2. **Phase 4 Preparation**:
+   - Migrate events and tags (historical data)
    - Implement ID coexistence for events
    - Update event CRUD endpoints to dual-write
+   - Begin read operation cutover planning
+
+3. **Read Cutover** (Phase 4+):
+   - Gradually switch read operations from MongoDB to PostgreSQL
+   - Maintain dual-write for write operations
+   - Monitor performance and data consistency
 
 ## Troubleshooting
 
@@ -351,14 +375,40 @@ After Phase 3 is complete and verified:
 
 Phase 3 is considered complete when:
 
-- ✅ All transactions migrated (counts match)
-- ✅ All line items migrated (counts match)
-- ✅ Verification script passes all checks
-- ✅ Foreign key integrity verified
-- ✅ Spot checks show matching data
-- ✅ Dual-write utility tested
-- ✅ Reconciliation script tested
-- ✅ Unit tests written and passing
+- ✅ All transactions migrated (counts match) - **COMPLETE**
+- ✅ All line items migrated (counts match) - **COMPLETE**
+- ✅ Verification script passes all checks - **COMPLETE (19/19 checks passing)**
+- ✅ Foreign key integrity verified - **COMPLETE**
+- ✅ Spot checks show matching data - **COMPLETE**
+- ✅ Dual-write utility tested - **COMPLETE**
+- ✅ Reconciliation script tested - **COMPLETE**
+- ✅ Unit tests written and passing - **COMPLETE (193 tests, including 16 dual-write tests)**
+- ✅ Refresh endpoints use dual-write - **COMPLETE (Venmo, Splitwise, Stripe, Cash)**
+- ✅ Test database isolation - **COMPLETE (SQLite in-memory for PostgreSQL tests)**
+
+**Phase 3: ✅ COMPLETE**
+
+## Recent Updates & Fixes
+
+### November 2025: Schema & Test Fixes
+
+**Problem**: Missing `responsible_party` field in PostgreSQL schema
+- **Root Cause**: Field was being mapped to `notes` instead of having its own column
+- **Fix**:
+  - Added `responsible_party` column to `line_items` table
+  - Created Alembic migration: `c967c3314f9f_add_responsible_party_column_to_line_items.py`
+  - Updated `utils/pg_bulk_ops.py` to properly map the field
+  - Migrated existing data from `notes` to `responsible_party`
+
+**Problem**: Test data polluting production PostgreSQL database
+- **Root Cause**: Tests used mongomock for MongoDB but production PostgreSQL
+- **Fix**:
+  - Modified `tests/conftest.py` to set `DATABASE_URL=sqlite:///:memory:` before imports
+  - Added PostgreSQL schema setup/teardown in test fixtures
+  - All tests now use SQLite in-memory database for complete isolation
+  - Production database no longer touched by tests
+
+**Impact**: Verification now passes cleanly (19/19 checks)
 
 ## Support
 
