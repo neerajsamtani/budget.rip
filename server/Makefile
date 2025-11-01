@@ -38,7 +38,7 @@ test-quick: venv ## Run tests without verbose output
 	@$(PYTEST) tests/
 
 clean: ## Remove virtual environment and cache files
-	rm -rf env
+	rm -rf $(VENV)
 	rm -rf .pytest_cache
 	rm -rf __pycache__
 	rm -rf .coverage
