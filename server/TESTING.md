@@ -2,48 +2,100 @@
 
 This document explains how to set up and run tests for the Budgit server application.
 
+## Quick Start (Recommended)
+
+The easiest way to run tests is using Make commands, which automatically handle virtual environment setup and dependency management:
+
+```bash
+# Run all tests
+make test
+
+# Run only Phase 3 migration tests
+make test-phase3
+
+# Run tests with coverage report
+make test-coverage
+
+# See all available commands
+make help
+```
+
+The Makefile will:
+- ✅ Create a virtual environment (if needed)
+- ✅ Install/update dependencies automatically
+- ✅ Run tests in an isolated environment
+- ✅ Avoid system package conflicts
+
 ## Test Environment Setup
 
-The tests are configured to use a separate test database to avoid affecting your production data.
-
-### Quick Setup
-
-1. **Run the setup script** (recommended):
-   ```bash
-   python setup_test_env.py
-   ```
-
-2. **Or manually create a `.env.test` file**:
-   ```bash
-   # Test Database URI - Use a separate database for testing
-   TEST_MONGO_URI=mongodb://localhost:27017/budgit_test
-   
-   # Test JWT Secret
-   JWT_SECRET_KEY=testSecretKey123
-   ```
+The tests are configured to use:
+- **mongomock** for MongoDB tests (no MongoDB server needed)
+- **SQLite in-memory** for PostgreSQL/SQLAlchemy tests (no PostgreSQL server needed)
+- **Virtual environment** to avoid dependency conflicts
+- **pyproject.toml** for pytest and coverage configuration
 
 ### Prerequisites
 
-- MongoDB running locally (or accessible via the configured URI)
-- Python dependencies installed (`pip install -r requirements.txt`)
+- Python 3.11+
+- Make (for convenience commands)
+- No external databases required (uses mocks)
+
+### Configuration
+
+Test configuration is defined in `pyproject.toml`:
+- **pytest settings**: Test discovery, markers, output options
+- **coverage settings**: Source paths, exclusions, reporting format
+
+This follows modern Python best practices (PEP 518/621) while keeping dependencies in `requirements.txt` for this legacy Flask app.
+
+### Manual Setup (Advanced)
+
+If you prefer to set up the environment manually:
+
+1. **Create virtual environment**:
+   ```bash
+   python3 -m venv env
+   source env/bin/activate
+   ```
+
+2. **Install dependencies**:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. **Run tests**:
+   ```bash
+   python -m pytest tests/ -v
+   ```
 
 ## Running Tests
 
-### Run all tests:
+### Using Make (recommended):
 ```bash
-python -m pytest tests/ -v
+make test                         # All tests
+make test-phase3                  # Phase 3 migration tests only
+make test-coverage                # Tests with coverage report
+make test-quick                   # Quick run without verbose output
+make help                         # See all available commands
 ```
 
-### Run specific test files:
+### Using pytest directly (advanced):
 ```bash
-python -m pytest tests/test_cash.py -v
-python -m pytest tests/test_dao.py -v
-python -m pytest tests/test_helpers.py -v
-```
+# Activate virtual environment first
+source env/bin/activate
 
-### Run specific test functions:
-```bash
-python -m pytest tests/test_cash.py::test_create_cash_transaction_api -v
+# Run all tests
+pytest tests/ -v
+
+# Run specific test files
+pytest tests/test_cash.py -v
+pytest tests/test_phase3_migration.py -v
+
+# Run specific test functions
+pytest tests/test_cash.py::test_create_cash_transaction_api -v
+
+# Run with custom options
+pytest tests/ -v -k "venmo" --maxfail=1
 ```
 
 ## Test Database

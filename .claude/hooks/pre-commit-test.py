@@ -51,15 +51,16 @@ def run_client_tests(project_dir: str) -> tuple[bool, str]:
         return False, f"Error running client tests: {str(e)}"
 
 def run_server_tests(project_dir: str) -> tuple[bool, str]:
-    """Run pytest tests for the server."""
+    """Run pytest tests for the server using Make."""
     server_dir = os.path.join(project_dir, 'server')
 
     if not os.path.exists(server_dir):
         return True, "No server directory found, skipping server tests"
 
     try:
+        # Use make test-quick which handles virtual environment automatically
         result = subprocess.run(
-            ['pytest', '-v'],
+            ['make', 'test-quick'],
             cwd=server_dir,
             capture_output=True,
             text=True,
