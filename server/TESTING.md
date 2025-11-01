@@ -54,8 +54,8 @@ If you prefer to set up the environment manually:
 
 1. **Create virtual environment**:
    ```bash
-   python3 -m venv test_env
-   source test_env/bin/activate
+   python3 -m venv env
+   source env/bin/activate
    ```
 
 2. **Install dependencies**:
@@ -82,7 +82,7 @@ make help                         # See all available commands
 ### Using pytest directly (advanced):
 ```bash
 # Activate virtual environment first
-source test_env/bin/activate
+source env/bin/activate
 
 # Run all tests
 pytest tests/ -v

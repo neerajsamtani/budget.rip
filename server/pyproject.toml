@@ -23,9 +23,8 @@ omit = [
     "*/tests/*",
     "*/test_*.py",
     "*/__pycache__/*",
-    "*/venv/*",
     "*/env/*",
-    "*/test_env/*",
+    "*/venv/*",
     "*/migrations/*",
     "*/alembic/*",
 ]

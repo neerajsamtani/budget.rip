@@ -1,6 +1,6 @@
 .PHONY: help test test-phase3 test-watch venv clean install
 
-VENV := test_env
+VENV := env
 PYTHON := $(VENV)/bin/python
 PIP := $(VENV)/bin/pip
 PYTEST := $(VENV)/bin/pytest
@@ -38,7 +38,7 @@ test-quick: venv ## Run tests without verbose output
 	@$(PYTEST) tests/
 
 clean: ## Remove virtual environment and cache files
-	rm -rf $(VENV)
+	rm -rf env
 	rm -rf .pytest_cache
 	rm -rf __pycache__
 	rm -rf .coverage
