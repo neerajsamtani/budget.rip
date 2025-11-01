@@ -32,49 +32,38 @@ from utils.id_generator import generate_id
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
 # MongoDB collection to source type mapping
 COLLECTION_SOURCE_MAPPING = {
-    'venmo_raw_data': 'venmo',
-    'splitwise_raw_data': 'splitwise',
-    'stripe_raw_transaction_data': 'stripe',
-    'cash_raw_data': 'cash',
+    "venmo_raw_data": "venmo",
+    "splitwise_raw_data": "splitwise",
+    "stripe_raw_transaction_data": "stripe",
+    "cash_raw_data": "cash",
 }
 
 
 def get_transaction_date(transaction: Dict[str, Any], source: str) -> datetime:
-    """
-    Extract transaction date from raw data based on source type.
-
-    Args:
-        transaction: Raw transaction data from MongoDB
-        source: Transaction source type
-
-    Returns:
-        datetime object in UTC
-    """
-    if source == 'venmo':
+    if source == "venmo":
         # Venmo stores date_created as POSIX timestamp
-        posix_timestamp = float(transaction.get('date_created', 0))
+        posix_timestamp = float(transaction.get("date_created", 0))
         return datetime.fromtimestamp(posix_timestamp, UTC)
 
-    elif source == 'splitwise':
+    elif source == "splitwise":
         # Splitwise stores date as ISO 8601 string
-        iso_date = transaction.get('date', '')
+        iso_date = transaction.get("date", "")
         posix_timestamp = iso_8601_to_posix(iso_date)
         return datetime.fromtimestamp(posix_timestamp, UTC)
 
-    elif source == 'stripe':
-        # Stripe stores created as POSIX timestamp (integer seconds)
-        posix_timestamp = float(transaction.get('created', 0))
+    elif source == "stripe":
+        # Stripe stores transacted_at as POSIX timestamp (integer seconds)
+        posix_timestamp = float(transaction.get("transacted_at", 0))
         return datetime.fromtimestamp(posix_timestamp, UTC)
 
-    elif source == 'cash':
+    elif source == "cash":
         # Cash stores date as POSIX timestamp
-        posix_timestamp = float(transaction.get('date', 0))
+        posix_timestamp = float(transaction.get("date", 0))
         return datetime.fromtimestamp(posix_timestamp, UTC)
 
     else:
@@ -88,7 +77,7 @@ def migrate_collection(
     collection_name: str,
     source: str,
     db_session,
-    mongo_to_txn_map: Dict[str, str]
+    mongo_to_txn_map: Dict[str, str],
 ) -> int:
     """
     Migrate a single MongoDB collection to PostgreSQL transactions table.
@@ -110,13 +99,14 @@ def migrate_collection(
     logging.info(f"Migrating {collection_name} (source={source})...")
 
     for doc in collection.find():
-        mongo_id = str(doc['_id'])
+        mongo_id = str(doc["_id"])
 
         # Check if transaction already migrated (idempotent)
-        existing = db_session.query(Transaction).filter_by(
-            source=source,
-            source_id=mongo_id
-        ).first()
+        existing = (
+            db_session.query(Transaction)
+            .filter_by(source=source, source_id=mongo_id)
+            .first()
+        )
 
         if existing:
             mongo_to_txn_map[f"{source}:{mongo_id}"] = existing.id
@@ -124,14 +114,14 @@ def migrate_collection(
             continue
 
         # Generate new transaction ID
-        txn_id = generate_id('txn')
+        txn_id = generate_id("txn")
 
         # Extract transaction date
         transaction_date = get_transaction_date(doc, source)
 
         # Create Transaction record
         # Remove MongoDB-specific _id from source_data
-        source_data = {k: v for k, v in doc.items() if k != '_id'}
+        source_data = {k: v for k, v in doc.items() if k != "_id"}
 
         transaction = Transaction(
             id=txn_id,
@@ -151,7 +141,9 @@ def migrate_collection(
 
             if count % 100 == 0:
                 db_session.commit()
-                logging.info(f"  Migrated {count} transactions from {collection_name}...")
+                logging.info(
+                    f"  Migrated {count} transactions from {collection_name}..."
+                )
 
         except IntegrityError as e:
             logging.error(f"Error migrating transaction {mongo_id}: {e}")
@@ -161,7 +153,9 @@ def migrate_collection(
     # Final commit
     db_session.commit()
 
-    logging.info(f"✓ Migrated {count} transactions from {collection_name} (skipped {skipped} existing)")
+    logging.info(
+        f"✓ Migrated {count} transactions from {collection_name} (skipped {skipped} existing)"
+    )
     return count
 
 
@@ -174,7 +168,7 @@ def migrate_all_transactions() -> Dict[str, str]:
     """
     # Connect to MongoDB
     mongo_client = MongoClient(MONGO_URI)
-    db_name = MONGO_URI.split('/')[-1]
+    db_name = MONGO_URI.split("/")[-1]
     mongo_db = mongo_client[db_name]
 
     # Connect to PostgreSQL
@@ -189,11 +183,7 @@ def migrate_all_transactions() -> Dict[str, str]:
         # Migrate each collection
         for collection_name, source in COLLECTION_SOURCE_MAPPING.items():
             count = migrate_collection(
-                mongo_db,
-                collection_name,
-                source,
-                db_session,
-                mongo_to_txn_map
+                mongo_db, collection_name, source, db_session, mongo_to_txn_map
             )
             total_count += count
 
@@ -222,15 +212,16 @@ def verify_migration(db_session, mongo_db):
         pg_count = db_session.query(Transaction).filter_by(source=source).count()
 
         if mongo_count == pg_count:
-            logging.info(f"  ✓ {collection_name}: {mongo_count} MongoDB = {pg_count} PostgreSQL")
+            logging.info(
+                f"  ✓ {collection_name}: {mongo_count} MongoDB = {pg_count} PostgreSQL"
+            )
         else:
             logging.warning(
                 f"  ✗ {collection_name}: {mongo_count} MongoDB ≠ {pg_count} PostgreSQL"
             )
 
     total_mongo = sum(
-        mongo_db[coll].count_documents({})
-        for coll in COLLECTION_SOURCE_MAPPING.keys()
+        mongo_db[coll].count_documents({}) for coll in COLLECTION_SOURCE_MAPPING.keys()
     )
     total_pg = db_session.query(Transaction).count()
 
@@ -242,7 +233,7 @@ def verify_migration(db_session, mongo_db):
         logging.warning("✗ Verification failed - counts do not match")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     logging.info("Starting Phase 3: Transaction Migration")
     logging.info(f"MongoDB URI: {MONGO_URI}")
     logging.info(f"PostgreSQL URL: {DATABASE_URL}")
@@ -253,8 +244,9 @@ if __name__ == '__main__':
 
     # Save mapping to file for line items migration
     import json
-    mapping_file = Path(__file__).parent / 'phase3_transaction_mapping.json'
-    with open(mapping_file, 'w') as f:
+
+    mapping_file = Path(__file__).parent / "phase3_transaction_mapping.json"
+    with open(mapping_file, "w") as f:
         json.dump(mongo_to_txn_map, f, indent=2)
 
     logging.info(f"\nSaved transaction mapping to: {mapping_file}")
