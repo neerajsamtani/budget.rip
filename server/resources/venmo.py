@@ -15,6 +15,8 @@ from dao import (
 )
 from helpers import flip_amount
 from resources.line_item import LineItem
+from utils.dual_write import dual_write_operation
+from utils.pg_bulk_ops import bulk_upsert_line_items, bulk_upsert_transactions
 
 venmo_blueprint = Blueprint("venmo", __name__)
 
@@ -62,7 +64,11 @@ def refresh_venmo() -> None:
 
     # Bulk upsert all collected transactions at once
     if all_transactions:
-        bulk_upsert(venmo_raw_data_collection, all_transactions)
+        dual_write_operation(
+            mongo_write_func=lambda: bulk_upsert(venmo_raw_data_collection, all_transactions),
+            pg_write_func=lambda db: bulk_upsert_transactions(db, all_transactions, source="venmo"),
+            operation_name="venmo_refresh_transactions"
+        )
         logging.info(f"Refreshed {len(all_transactions)} Venmo transactions")
     else:
         logging.info("No new Venmo transactions to refresh")
@@ -131,7 +137,11 @@ def venmo_to_line_items() -> None:
 
     # Bulk upsert all collected line items at once
     if all_line_items:
-        bulk_upsert(line_items_collection, all_line_items)
+        dual_write_operation(
+            mongo_write_func=lambda: bulk_upsert(line_items_collection, all_line_items),
+            pg_write_func=lambda db: bulk_upsert_line_items(db, all_line_items, source="venmo"),
+            operation_name="venmo_create_line_items"
+        )
         logging.info(
             f"Converted {len(all_line_items)} Venmo transactions to line items"
         )

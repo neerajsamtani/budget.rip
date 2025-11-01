@@ -70,6 +70,7 @@ class LineItem(Base):
     amount = Column(DECIMAL(12, 2), nullable=False)
     description = Column(Text, nullable=False)
     payment_method_id = Column(String(255), ForeignKey('payment_methods.id', ondelete='RESTRICT'), nullable=False)
+    responsible_party = Column(String(255), nullable=True)
     notes = Column(Text, nullable=True)
     created_at = Column(TIMESTAMP(timezone=True), default=lambda: datetime.now(UTC))
     updated_at = Column(TIMESTAMP(timezone=True), default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))

@@ -10,6 +10,10 @@ if "STRIPE_LIVE_API_SECRET_KEY" not in os.environ:
 if "STRIPE_CUSTOMER_ID" not in os.environ:
     os.environ["STRIPE_CUSTOMER_ID"] = "fake_customer_id_for_testing"
 
+# CRITICAL: Set test database URL to SQLite in-memory BEFORE any imports
+# This prevents test data from polluting the production PostgreSQL database
+os.environ["DATABASE_URL"] = "sqlite:///:memory:"
+
 import mongomock
 from flask import Flask
 from flask_jwt_extended import JWTManager, create_access_token
@@ -35,6 +39,9 @@ from resources.monthly_breakdown import monthly_breakdown_blueprint
 from resources.splitwise import splitwise_blueprint
 from resources.stripe import stripe_blueprint
 from resources.venmo import venmo_blueprint
+from models.sql_models import Base
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
 # Import test configuration
 try:
@@ -45,6 +52,45 @@ except ImportError:
         "TEST_MONGO_URI", "mongodb://localhost:27017/budgit_test"
     )
     TEST_DB_NAME = "budgit_test"
+
+
+# Global test database engine and session
+TEST_DATABASE_URL = os.environ["DATABASE_URL"]
+test_engine = None
+TestSession = None
+
+
+def init_test_db():
+    """Initialize the test database schema"""
+    global test_engine, TestSession
+    test_engine = create_engine(TEST_DATABASE_URL, echo=False)
+    TestSession = sessionmaker(bind=test_engine)
+
+    # Create all tables
+    Base.metadata.create_all(test_engine)
+
+    return test_engine
+
+
+def cleanup_test_db():
+    """Clean up all tables in the test database"""
+    global test_engine
+    if test_engine is not None:
+        # Drop all tables
+        Base.metadata.drop_all(test_engine)
+        # Recreate them for the next test
+        Base.metadata.create_all(test_engine)
+
+
+@pytest.fixture(scope="session", autouse=True)
+def setup_test_database():
+    """Set up the test database once for the entire test session"""
+    init_test_db()
+    yield
+    # Final cleanup after all tests
+    if test_engine is not None:
+        Base.metadata.drop_all(test_engine)
+        test_engine.dispose()
 
 
 @pytest.fixture
@@ -134,10 +180,8 @@ def jwt_token(flask_app):
 def setup_teardown(flask_app, request):
     # This fixture will be used for setup and teardown
     with flask_app.app_context():
-        # Get the test database
+        # Clean up MongoDB collections before each test
         test_db = flask_app.config["MONGO"].cx[flask_app.config["MONGO_DB_NAME"]]
-
-        # Clean up collections before each test
         test_db.drop_collection(test_collection)
         test_db.drop_collection(cash_raw_data_collection)
         test_db.drop_collection(line_items_collection)
@@ -149,12 +193,13 @@ def setup_teardown(flask_app, request):
         test_db.drop_collection(users_collection)
         test_db.drop_collection(venmo_raw_data_collection)
 
+        # Clean up PostgreSQL tables before each test
+        cleanup_test_db()
+
     def teardown():
         with flask_app.app_context():
-            # Get the test database
+            # Clean up MongoDB collections after each test
             test_db = flask_app.config["MONGO"].cx[flask_app.config["MONGO_DB_NAME"]]
-
-            # Clean up collections after each test
             test_db.drop_collection(test_collection)
             test_db.drop_collection(cash_raw_data_collection)
             test_db.drop_collection(line_items_collection)
@@ -165,5 +210,8 @@ def setup_teardown(flask_app, request):
             test_db.drop_collection(events_collection)
             test_db.drop_collection(users_collection)
             test_db.drop_collection(venmo_raw_data_collection)
+
+            # Clean up PostgreSQL tables after each test
+            cleanup_test_db()
 
     request.addfinalizer(teardown)

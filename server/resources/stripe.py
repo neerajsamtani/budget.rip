@@ -20,6 +20,8 @@ from dao import (
 )
 from helpers import cents_to_dollars, flip_amount
 from resources.line_item import LineItem
+from utils.dual_write import dual_write_operation
+from utils.pg_bulk_ops import bulk_upsert_line_items, bulk_upsert_transactions
 
 stripe_blueprint = Blueprint("stripe", __name__)
 
@@ -261,7 +263,11 @@ def refresh_transactions_api(account_id: str) -> tuple[Response, int]:
 
         # Bulk upsert all collected transactions at once
         if all_transactions:
-            bulk_upsert(stripe_raw_transaction_data_collection, all_transactions)
+            dual_write_operation(
+                mongo_write_func=lambda: bulk_upsert(stripe_raw_transaction_data_collection, all_transactions),
+                pg_write_func=lambda db: bulk_upsert_transactions(db, all_transactions, source="stripe"),
+                operation_name="stripe_refresh_transactions"
+            )
 
         # If we want to enable only refreshing a single account, we need to uncomment this
         # stripe_to_line_items()
@@ -329,9 +335,17 @@ def stripe_to_line_items() -> None:
 
         # Bulk upsert when batch is full
         if len(line_items_batch) >= batch_size:
-            bulk_upsert(line_items_collection, line_items_batch)
+            dual_write_operation(
+                mongo_write_func=lambda: bulk_upsert(line_items_collection, line_items_batch),
+                pg_write_func=lambda db: bulk_upsert_line_items(db, line_items_batch, source="stripe"),
+                operation_name="stripe_create_line_items"
+            )
             line_items_batch = []
 
     # Upsert remaining items in the final batch
     if line_items_batch:
-        bulk_upsert(line_items_collection, line_items_batch)
+        dual_write_operation(
+            mongo_write_func=lambda: bulk_upsert(line_items_collection, line_items_batch),
+            pg_write_func=lambda db: bulk_upsert_line_items(db, line_items_batch, source="stripe"),
+            operation_name="stripe_create_line_items"
+        )

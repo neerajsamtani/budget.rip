@@ -389,6 +389,137 @@ class TestSplitwiseFunctions:
             assert line_item.amount == 100.0  # flip_amount(-100.0) = 100.0
 
 
+class TestSplitwiseDualWrite:
+    """Test dual-write functionality for Splitwise endpoints"""
+
+    def test_refresh_splitwise_calls_dual_write_for_transactions(self, flask_app, mocker):
+        """Test that refresh_splitwise uses dual_write_operation for transactions"""
+        with flask_app.app_context():
+            mock_splitwise_client = mocker.patch("resources.splitwise.splitwise_client")
+
+            # Mock expense
+            mock_expense = mocker.Mock()
+            mock_expense.deleted_at = None
+            mock_expense._id = "expense_test"
+            mock_expense.date = "2023-01-15T10:30:00Z"
+            mock_expense.description = "Test expense"
+
+            # Mock client response
+            mock_splitwise_client.getExpenses.return_value = [mock_expense]
+
+            # Mock dual_write_operation
+            mock_dual_write = mocker.patch("resources.splitwise.dual_write_operation")
+            mock_dual_write.return_value = {
+                "success": True,
+                "mongo_success": True,
+                "pg_success": True,
+            }
+
+            # Call refresh_splitwise
+            refresh_splitwise()
+
+            # Verify dual_write_operation was called
+            mock_dual_write.assert_called_once()
+            call_kwargs = mock_dual_write.call_args[1]
+
+            # Verify operation name
+            assert call_kwargs["operation_name"] == "splitwise_refresh_transactions"
+
+            # Verify mongo_write_func and pg_write_func are callables
+            assert callable(call_kwargs["mongo_write_func"])
+            assert callable(call_kwargs["pg_write_func"])
+
+    def test_splitwise_to_line_items_calls_dual_write(self, flask_app, mocker):
+        """Test that splitwise_to_line_items uses dual_write_operation"""
+        with flask_app.app_context():
+            mock_get_data = mocker.patch("resources.splitwise.get_all_data")
+
+            # Mock expense data
+            expense_data = {
+                "_id": "expense_test",
+                "date": "2023-01-15T10:30:00Z",
+                "description": "Test expense",
+                "users": [
+                    {"first_name": USER_FIRST_NAME, "net_balance": -50.0},
+                    {"first_name": "Test User", "net_balance": 50.0},
+                ],
+            }
+            mock_get_data.return_value = [expense_data]
+
+            # Mock dual_write_operation
+            mock_dual_write = mocker.patch("resources.splitwise.dual_write_operation")
+            mock_dual_write.return_value = {
+                "success": True,
+                "mongo_success": True,
+                "pg_success": True,
+            }
+
+            # Call splitwise_to_line_items
+            splitwise_to_line_items()
+
+            # Verify dual_write_operation was called
+            mock_dual_write.assert_called_once()
+            call_kwargs = mock_dual_write.call_args[1]
+
+            # Verify operation name
+            assert call_kwargs["operation_name"] == "splitwise_create_line_items"
+
+            # Verify both write functions are callables
+            assert callable(call_kwargs["mongo_write_func"])
+            assert callable(call_kwargs["pg_write_func"])
+
+    def test_splitwise_dual_write_error_handling(self, flask_app, mocker):
+        """Test error handling in dual-write for Splitwise"""
+        with flask_app.app_context():
+            mock_splitwise_client = mocker.patch("resources.splitwise.splitwise_client")
+
+            # Mock expense
+            mock_expense = mocker.Mock()
+            mock_expense.deleted_at = None
+            mock_expense._id = "expense_test"
+
+            # Mock client response
+            mock_splitwise_client.getExpenses.return_value = [mock_expense]
+
+            # Mock dual_write_operation to simulate MongoDB failure
+            from utils.dual_write import DualWriteError
+
+            mock_dual_write = mocker.patch("resources.splitwise.dual_write_operation")
+            mock_dual_write.side_effect = DualWriteError("MongoDB write failed")
+
+            # Call refresh_splitwise and expect exception
+            with pytest.raises(DualWriteError):
+                refresh_splitwise()
+
+    def test_splitwise_dual_write_pg_failure_continues(self, flask_app, mocker):
+        """Test that PostgreSQL failure in dual-write logs but continues"""
+        with flask_app.app_context():
+            mock_splitwise_client = mocker.patch("resources.splitwise.splitwise_client")
+
+            # Mock expense
+            mock_expense = mocker.Mock()
+            mock_expense.deleted_at = None
+            mock_expense._id = "expense_test"
+
+            # Mock client response
+            mock_splitwise_client.getExpenses.return_value = [mock_expense]
+
+            # Mock dual_write_operation to simulate PG failure (non-critical)
+            mock_dual_write = mocker.patch("resources.splitwise.dual_write_operation")
+            mock_dual_write.return_value = {
+                "success": True,  # Still success because MongoDB succeeded
+                "mongo_success": True,
+                "pg_success": False,
+                "pg_error": "PostgreSQL connection failed",
+            }
+
+            # Call refresh_splitwise - should not raise
+            refresh_splitwise()  # Should complete without exception
+
+            # Verify dual_write was called
+            mock_dual_write.assert_called_once()
+
+
 class TestSplitwiseIntegration:
     def test_full_refresh_workflow(self, flask_app, mocker):
         """Test the complete refresh workflow from API to database"""
