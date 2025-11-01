@@ -1,6 +1,3 @@
-# Configuration-only pyproject.toml for tool settings
-# Dependencies managed via requirements.txt (legacy Flask app structure)
-
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]

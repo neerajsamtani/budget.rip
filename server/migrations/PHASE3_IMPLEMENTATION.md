@@ -57,12 +57,6 @@ A robust dual-write utility for the migration period (Phases 3-5):
 - Comprehensive error logging for reconciliation
 - Supports critical mode for important operations
 
-**Functions**:
-- `dual_write_operation()`: Generic dual-write for any operation
-- `dual_write_transaction()`: Convenience function for transactions
-- `dual_write_line_item()`: Convenience function for line items
-- `log_dual_write_failure()`: Structured logging for reconciliation
-
 **Example Usage**:
 ```python
 from utils.dual_write import dual_write_operation
@@ -70,14 +64,8 @@ from utils.dual_write import dual_write_operation
 result = dual_write_operation(
     mongo_write_func=lambda: insert(collection, data),
     pg_write_func=lambda db: create_pg_record(db, data),
-    operation_name="venmo_transaction",
-    critical=False
+    operation_name="venmo_transaction"
 )
-
-if not result['pg_success']:
-    # PostgreSQL write failed but MongoDB succeeded
-    # Will be reconciled later
-    pass
 ```
 
 ### 3. Verification Script (`phase3_verify.py`)
@@ -245,18 +233,10 @@ CREATE TABLE line_items (
 **Example Dual-Write Integration** (to be implemented):
 ```python
 # In resources/venmo.py
-from utils.dual_write import dual_write_transaction
+from utils.dual_write import dual_write_operation
 
-def refresh_venmo():
-    # ... existing code to get transactions ...
-
-    for transaction in all_transactions:
-        dual_write_transaction(
-            mongo_write_func=lambda: bulk_upsert(venmo_raw_data_collection, [transaction]),
-            transaction_data=transaction,
-            source='venmo',
-            critical=False
-        )
+# Dual-write should be implemented in refresh endpoints
+# to write to both MongoDB and PostgreSQL
 ```
 
 ### Reconciliation (Automated)
