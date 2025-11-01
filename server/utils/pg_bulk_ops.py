@@ -281,4 +281,3 @@ def bulk_upsert_line_items(
         return len(bulk_inserts)
 
     return 0
-

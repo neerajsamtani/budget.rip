@@ -10,6 +10,7 @@ Base = declarative_base()
 # Note: No User model - this is a single-user application
 # Authentication handled via environment config or hardcoded credentials
 
+
 class Category(Base):
     __tablename__ = 'categories'
 

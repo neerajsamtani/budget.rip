@@ -74,7 +74,6 @@ def init_test_db():
 
 def cleanup_test_db():
     """Clean up all tables in the test database"""
-    global test_engine
     if test_engine is not None:
         # Drop all tables
         Base.metadata.drop_all(test_engine)
