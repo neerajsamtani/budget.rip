@@ -297,15 +297,23 @@ def _pg_get_all_line_items(filters: Optional[Dict[str, Any]]) -> List[Dict[str, 
                         (LineItem.mongo_id.in_(ids)) | (LineItem.id.in_(ids))
                     )
 
-            if "payment_method" in filters and filters["payment_method"] not in ["All", None]:
+            if "payment_method" in filters and filters["payment_method"] not in [
+                "All",
+                None,
+            ]:
                 query = query.join(LineItem.payment_method).filter(
                     PaymentMethod.name == filters["payment_method"]
                 )
 
             if "event_id" in filters:
-                if isinstance(filters["event_id"], dict) and "$exists" in filters["event_id"]:
+                if (
+                    isinstance(filters["event_id"], dict)
+                    and "$exists" in filters["event_id"]
+                ):
                     if not filters["event_id"]["$exists"]:
-                        query = query.outerjoin(LineItem.events).filter(Event.id.is_(None))
+                        query = query.outerjoin(LineItem.events).filter(
+                            Event.id.is_(None)
+                        )
 
         query = query.order_by(LineItem.date.desc())
         line_items = query.all()
@@ -325,8 +333,11 @@ def _pg_get_line_item_by_id(id: str) -> Optional[Dict[str, Any]]:
             joinedload(LineItem.payment_method), joinedload(LineItem.events)
         )
 
-        line_item = (query.filter(LineItem.id == id).first() if id.startswith("li_")
-                     else query.filter(LineItem.mongo_id == id).first())
+        line_item = (
+            query.filter(LineItem.id == id).first()
+            if id.startswith("li_")
+            else query.filter(LineItem.mongo_id == id).first()
+        )
 
         return _pg_serialize_line_item(line_item) if line_item else None
     finally:
@@ -336,8 +347,9 @@ def _pg_get_line_item_by_id(id: str) -> Optional[Dict[str, Any]]:
 def _pg_get_all_events(filters: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """Get events from PostgreSQL"""
     from datetime import datetime
+
     from models.database import SessionLocal
-    from models.sql_models import Category, Event, LineItem
+    from models.sql_models import Event, LineItem
 
     db_session = SessionLocal()
     try:
@@ -351,9 +363,13 @@ def _pg_get_all_events(filters: Optional[Dict[str, Any]]) -> List[Dict[str, Any]
             date_filter = filters["date"]
             if isinstance(date_filter, dict):
                 if "$gte" in date_filter:
-                    query = query.filter(Event.date >= datetime.fromtimestamp(date_filter["$gte"]))
+                    query = query.filter(
+                        Event.date >= datetime.fromtimestamp(date_filter["$gte"])
+                    )
                 if "$lte" in date_filter:
-                    query = query.filter(Event.date <= datetime.fromtimestamp(date_filter["$lte"]))
+                    query = query.filter(
+                        Event.date <= datetime.fromtimestamp(date_filter["$lte"])
+                    )
 
         events = query.all()
         return [_pg_serialize_event(event) for event in events]
@@ -374,8 +390,11 @@ def _pg_get_event_by_id(id: str) -> Optional[Dict[str, Any]]:
             joinedload(Event.tags),
         )
 
-        event = (query.filter(Event.id == id).first() if id.startswith("evt_") or id.startswith("event")
-                 else query.filter(Event.mongo_id == id).first())
+        event = (
+            query.filter(Event.id == id).first()
+            if id.startswith("evt_") or id.startswith("event")
+            else query.filter(Event.mongo_id == id).first()
+        )
 
         return _pg_serialize_event(event) if event else None
     finally:
@@ -389,9 +408,11 @@ def _pg_get_line_items_for_event(event_id: str) -> List[Dict[str, Any]]:
 
     db_session = SessionLocal()
     try:
-        pg_event = db_session.query(Event).filter(
-            (Event.id == event_id) | (Event.mongo_id == event_id)
-        ).first()
+        pg_event = (
+            db_session.query(Event)
+            .filter((Event.id == event_id) | (Event.mongo_id == event_id))
+            .first()
+        )
 
         if not pg_event:
             return []
@@ -412,6 +433,7 @@ def _pg_get_line_items_for_event(event_id: str) -> List[Dict[str, Any]]:
 def _pg_get_categorized_data() -> List[Dict[str, Any]]:
     """Get monthly breakdown from PostgreSQL"""
     from sqlalchemy import extract, func
+
     from models.database import SessionLocal
     from models.sql_models import Category, Event, LineItem
 
@@ -426,7 +448,9 @@ def _pg_get_categorized_data() -> List[Dict[str, Any]]:
             )
             .join(Event.category)
             .join(Event.line_items)
-            .group_by(extract("year", Event.date), extract("month", Event.date), Category.name)
+            .group_by(
+                extract("year", Event.date), extract("month", Event.date), Category.name
+            )
             .order_by("year", "month", Category.name)
             .all()
         )
@@ -444,7 +468,9 @@ def _pg_get_categorized_data() -> List[Dict[str, Any]]:
         db_session.close()
 
 
-def _pg_get_transactions(source: str, filters: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def _pg_get_transactions(
+    source: str, filters: Optional[Dict[str, Any]]
+) -> List[Dict[str, Any]]:
     """Get raw transactions from PostgreSQL by source (venmo, splitwise, stripe, cash)"""
     from models.database import SessionLocal
     from models.sql_models import Transaction
@@ -473,7 +499,9 @@ def _pg_get_transactions(source: str, filters: Optional[Dict[str, Any]]) -> List
         db_session.close()
 
 
-def _pg_get_all_bank_accounts(filters: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def _pg_get_all_bank_accounts(
+    filters: Optional[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
     """Get bank accounts from PostgreSQL"""
     from models.database import SessionLocal
     from models.sql_models import BankAccount

@@ -28,6 +28,7 @@ class BankAccount(Base):
     - PaymentMethod: How a transaction was paid (derived from accounts + manual methods)
     - PaymentMethod.external_id soft-references BankAccount.id when type is bank/credit
     """
+
     __tablename__ = "bank_accounts"
 
     id = Column(String(255), primary_key=True)  # fca_xxx or account ID from source
@@ -48,7 +49,9 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(String(255), primary_key=True)  # user_xxx
-    mongo_id = Column(String(255), unique=True, nullable=True, index=True)  # Original MongoDB _id
+    mongo_id = Column(
+        String(255), unique=True, nullable=True, index=True
+    )  # Original MongoDB _id
     first_name = Column(String(255), nullable=False)
     last_name = Column(String(255), nullable=False)
     email = Column(String(255), unique=True, nullable=False, index=True)

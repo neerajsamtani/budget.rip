@@ -21,7 +21,9 @@ from decimal import Decimal
 import pytest
 
 # Ensure test database is set before imports
-os.environ["DATABASE_URL"] = "sqlite:///file:test_phase5?mode=memory&cache=shared&uri=true"
+os.environ[
+    "DATABASE_URL"
+] = "sqlite:///file:test_phase5?mode=memory&cache=shared&uri=true"
 
 from models.database import SessionLocal
 from models.sql_models import (
@@ -426,9 +428,7 @@ class TestEventReads:
         start_time = datetime(2024, 1, 1, tzinfo=UTC).timestamp()
         mid_time = datetime(2024, 6, 1, tzinfo=UTC).timestamp()
 
-        result = _pg_get_all_events(
-            {"date": {"$gte": start_time, "$lte": mid_time}}
-        )
+        result = _pg_get_all_events({"date": {"$gte": start_time, "$lte": mid_time}})
 
         assert len(result) == 1
         assert result[0]["id"] == "evt_001"
@@ -928,8 +928,20 @@ class TestBankAccountReads:
     def test_pg_get_bank_accounts_with_status_filter(self, pg_session):
         """Test getting bank accounts with status filter"""
         accounts = [
-            BankAccount(id="fca_001", institution_name="Chase", display_name="Checking", last4="1234", status="active"),
-            BankAccount(id="fca_002", institution_name="BofA", display_name="Savings", last4="5678", status="inactive"),
+            BankAccount(
+                id="fca_001",
+                institution_name="Chase",
+                display_name="Checking",
+                last4="1234",
+                status="active",
+            ),
+            BankAccount(
+                id="fca_002",
+                institution_name="BofA",
+                display_name="Savings",
+                last4="5678",
+                status="inactive",
+            ),
         ]
 
         for acc in accounts:

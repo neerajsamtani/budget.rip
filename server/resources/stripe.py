@@ -21,7 +21,11 @@ from dao import (
 from helpers import cents_to_dollars, flip_amount
 from resources.line_item import LineItem
 from utils.dual_write import dual_write_operation
-from utils.pg_bulk_ops import bulk_upsert_bank_accounts, bulk_upsert_line_items, bulk_upsert_transactions
+from utils.pg_bulk_ops import (
+    bulk_upsert_bank_accounts,
+    bulk_upsert_line_items,
+    bulk_upsert_transactions,
+)
 
 stripe_blueprint = Blueprint("stripe", __name__)
 

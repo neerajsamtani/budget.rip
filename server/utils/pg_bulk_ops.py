@@ -316,9 +316,9 @@ def bulk_upsert_bank_accounts(db_session, accounts_data: List[Any]) -> int:
         return 0
 
     # Check existing accounts
-    existing = db_session.query(BankAccount.id).filter(
-        BankAccount.id.in_(account_ids)
-    ).all()
+    existing = (
+        db_session.query(BankAccount.id).filter(BankAccount.id.in_(account_ids)).all()
+    )
     existing_ids = {row[0] for row in existing}
 
     # Prepare bulk inserts for new accounts
@@ -328,14 +328,16 @@ def bulk_upsert_bank_accounts(db_session, accounts_data: List[Any]) -> int:
         if not account_id or account_id in existing_ids:
             continue
 
-        bulk_inserts.append({
-            "id": account_id,
-            "mongo_id": str(acc_dict.get("_id", "")),
-            "institution_name": acc_dict.get("institution_name", ""),
-            "display_name": acc_dict.get("display_name", ""),
-            "last4": acc_dict.get("last4", ""),
-            "status": acc_dict.get("status", "active"),
-        })
+        bulk_inserts.append(
+            {
+                "id": account_id,
+                "mongo_id": str(acc_dict.get("_id", "")),
+                "institution_name": acc_dict.get("institution_name", ""),
+                "display_name": acc_dict.get("display_name", ""),
+                "last4": acc_dict.get("last4", ""),
+                "status": acc_dict.get("status", "active"),
+            }
+        )
 
     if bulk_inserts:
         db_session.bulk_insert_mappings(BankAccount, bulk_inserts)
