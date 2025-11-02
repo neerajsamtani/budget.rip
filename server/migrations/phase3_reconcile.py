@@ -39,8 +39,7 @@ from utils.id_generator import generate_id
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
 
@@ -55,33 +54,33 @@ class ReconciliationStats:
 
     def print_summary(self):
         """Print reconciliation summary"""
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("RECONCILIATION SUMMARY")
-        print("="*60)
+        print("=" * 60)
         print(f"Transactions synced: {self.transactions_synced}")
         print(f"Line items synced:   {self.line_items_synced}")
         print(f"Skipped (exists):    {self.skipped}")
         print(f"Errors:              {self.errors}")
-        print("="*60)
+        print("=" * 60)
 
 
 def get_transaction_date(transaction: Dict[str, Any], source: str) -> datetime:
     """Extract transaction date from raw data based on source type"""
-    if source == 'venmo':
-        posix_timestamp = float(transaction.get('date_created', 0))
+    if source == "venmo":
+        posix_timestamp = float(transaction.get("date_created", 0))
         return datetime.fromtimestamp(posix_timestamp, UTC)
 
-    elif source == 'splitwise':
-        iso_date = transaction.get('date', '')
+    elif source == "splitwise":
+        iso_date = transaction.get("date", "")
         posix_timestamp = iso_8601_to_posix(iso_date)
         return datetime.fromtimestamp(posix_timestamp, UTC)
 
-    elif source == 'stripe':
-        posix_timestamp = float(transaction.get('created', 0))
+    elif source == "stripe":
+        posix_timestamp = float(transaction.get("created", 0))
         return datetime.fromtimestamp(posix_timestamp, UTC)
 
-    elif source == 'cash':
-        posix_timestamp = float(transaction.get('date', 0))
+    elif source == "cash":
+        posix_timestamp = float(transaction.get("date", 0))
         return datetime.fromtimestamp(posix_timestamp, UTC)
 
     else:
@@ -89,10 +88,7 @@ def get_transaction_date(transaction: Dict[str, Any], source: str) -> datetime:
 
 
 def reconcile_transactions(
-    mongo_db,
-    db_session,
-    stats: ReconciliationStats,
-    dry_run: bool = False
+    mongo_db, db_session, stats: ReconciliationStats, dry_run: bool = False
 ) -> Dict[str, str]:
     """
     Reconcile transactions between MongoDB and PostgreSQL.
@@ -101,10 +97,10 @@ def reconcile_transactions(
         Mapping of "source:mongo_id" -> transaction_id for line items
     """
     collections = {
-        'venmo_raw_data': 'venmo',
-        'splitwise_raw_data': 'splitwise',
-        'stripe_raw_transaction_data': 'stripe',
-        'cash_raw_data': 'cash',
+        "venmo_raw_data": "venmo",
+        "splitwise_raw_data": "splitwise",
+        "stripe_raw_transaction_data": "stripe",
+        "cash_raw_data": "cash",
     }
 
     mongo_to_txn_map: Dict[str, str] = {}
@@ -116,23 +112,25 @@ def reconcile_transactions(
 
         # Get all existing PostgreSQL transaction source_ids for this source
         existing_pg_ids: Set[str] = set(
-            row[0] for row in db_session.query(Transaction.source_id).filter_by(
-                source=source
-            ).all()
+            row[0]
+            for row in db_session.query(Transaction.source_id)
+            .filter_by(source=source)
+            .all()
         )
 
         # Find MongoDB docs not in PostgreSQL
         missing_count = 0
 
         for doc in collection.find():
-            mongo_id = str(doc['_id'])
+            mongo_id = str(doc["_id"])
 
             if mongo_id in existing_pg_ids:
                 # Already in PostgreSQL, build mapping
-                pg_txn = db_session.query(Transaction).filter_by(
-                    source=source,
-                    source_id=mongo_id
-                ).first()
+                pg_txn = (
+                    db_session.query(Transaction)
+                    .filter_by(source=source, source_id=mongo_id)
+                    .first()
+                )
                 if pg_txn:
                     mongo_to_txn_map[f"{source}:{mongo_id}"] = pg_txn.id
                 stats.skipped += 1
@@ -148,11 +146,11 @@ def reconcile_transactions(
                 continue
 
             # Create transaction in PostgreSQL
-            txn_id = generate_id('txn')
+            txn_id = generate_id("txn")
             transaction_date = get_transaction_date(doc, source)
 
             # Remove MongoDB _id from source_data
-            source_data = {k: v for k, v in doc.items() if k != '_id'}
+            source_data = {k: v for k, v in doc.items() if k != "_id"}
 
             transaction = Transaction(
                 id=txn_id,
@@ -191,7 +189,7 @@ def reconcile_line_items(
     db_session,
     mongo_to_txn_map: Dict[str, str],
     stats: ReconciliationStats,
-    dry_run: bool = False
+    dry_run: bool = False,
 ):
     """Reconcile line items between MongoDB and PostgreSQL"""
     logging.info("\n[2] Reconciling Line Items")
@@ -200,9 +198,10 @@ def reconcile_line_items(
 
     # Get all existing PostgreSQL mongo_ids
     existing_pg_ids: Set[str] = set(
-        row[0] for row in db_session.query(LineItem.mongo_id).filter(
-            LineItem.mongo_id.isnot(None)
-        ).all()
+        row[0]
+        for row in db_session.query(LineItem.mongo_id)
+        .filter(LineItem.mongo_id.isnot(None))
+        .all()
     )
 
     # Get payment method mapping
@@ -212,7 +211,7 @@ def reconcile_line_items(
     missing_count = 0
 
     for doc in collection.find():
-        mongo_id = str(doc['_id'])
+        mongo_id = str(doc["_id"])
 
         if mongo_id in existing_pg_ids:
             stats.skipped += 1
@@ -229,11 +228,11 @@ def reconcile_line_items(
         transaction_id = None
 
         # Line items use format "line_item_{transaction_mongo_id}"
-        if mongo_id.startswith('line_item_'):
-            txn_mongo_id = mongo_id.replace('line_item_', '')
+        if mongo_id.startswith("line_item_"):
+            txn_mongo_id = mongo_id.replace("line_item_", "")
 
             # Try each source
-            for source in ['venmo', 'splitwise', 'stripe', 'cash']:
+            for source in ["venmo", "splitwise", "stripe", "cash"]:
                 key = f"{source}:{txn_mongo_id}"
                 if key in mongo_to_txn_map:
                     transaction_id = mongo_to_txn_map[key]
@@ -241,19 +240,17 @@ def reconcile_line_items(
 
         # If no transaction found, create manual transaction
         if not transaction_id:
-            txn_id = generate_id('txn')
+            txn_id = generate_id("txn")
             transaction = Transaction(
                 id=txn_id,
-                source='manual',
+                source="manual",
                 source_id=f"manual_{mongo_id}",
                 source_data={
-                    'description': doc.get('description', 'Manual entry'),
-                    'amount': doc.get('amount', 0),
-                    'note': 'Created by reconciliation for orphaned line item'
+                    "description": doc.get("description", "Manual entry"),
+                    "amount": doc.get("amount", 0),
+                    "note": "Created by reconciliation for orphaned line item",
                 },
-                transaction_date=datetime.fromtimestamp(
-                    float(doc.get('date', 0)), UTC
-                ),
+                transaction_date=datetime.fromtimestamp(float(doc.get("date", 0)), UTC),
             )
 
             try:
@@ -267,38 +264,35 @@ def reconcile_line_items(
                 continue
 
         # Look up payment method
-        payment_method_name = doc.get('payment_method', 'Unknown')
+        payment_method_name = doc.get("payment_method", "Unknown")
         payment_method_id = pm_map.get(payment_method_name)
 
         if not payment_method_id:
             # Create Unknown payment method if needed
-            unknown_pm = db_session.query(PaymentMethod).filter_by(
-                name='Unknown'
-            ).first()
+            unknown_pm = (
+                db_session.query(PaymentMethod).filter_by(name="Unknown").first()
+            )
 
             if not unknown_pm:
                 unknown_pm = PaymentMethod(
-                    id=generate_id('pm'),
-                    name='Unknown',
-                    type='cash',
-                    is_active=True
+                    id=generate_id("pm"), name="Unknown", type="cash", is_active=True
                 )
                 db_session.add(unknown_pm)
                 db_session.flush()
-                pm_map['Unknown'] = unknown_pm.id
+                pm_map["Unknown"] = unknown_pm.id
 
-            payment_method_id = pm_map['Unknown']
+            payment_method_id = pm_map["Unknown"]
 
         # Create line item
         line_item = LineItem(
-            id=generate_id('li'),
+            id=generate_id("li"),
             transaction_id=transaction_id,
             mongo_id=mongo_id,
-            date=datetime.fromtimestamp(float(doc.get('date', 0)), UTC),
-            amount=Decimal(str(doc.get('amount', 0))),
-            description=doc.get('description', ''),
+            date=datetime.fromtimestamp(float(doc.get("date", 0)), UTC),
+            amount=Decimal(str(doc.get("amount", 0))),
+            description=doc.get("description", ""),
             payment_method_id=payment_method_id,
-            notes=doc.get('notes'),
+            notes=doc.get("notes"),
         )
 
         try:
@@ -328,27 +322,27 @@ def reconcile_line_items(
 def main():
     """Main reconciliation function"""
     parser = argparse.ArgumentParser(
-        description='Reconcile MongoDB and PostgreSQL data during dual-write period'
+        description="Reconcile MongoDB and PostgreSQL data during dual-write period"
     )
     parser.add_argument(
-        '--dry-run',
-        action='store_true',
-        help='Show what would be synced without making changes'
+        "--dry-run",
+        action="store_true",
+        help="Show what would be synced without making changes",
     )
     args = parser.parse_args()
 
-    logging.info("="*60)
+    logging.info("=" * 60)
     logging.info("Phase 3: Reconciliation Script")
     if args.dry_run:
         logging.info("[DRY RUN MODE - No changes will be made]")
-    logging.info("="*60)
+    logging.info("=" * 60)
     logging.info(f"MongoDB URI: {MONGO_URI}")
     logging.info(f"PostgreSQL URL: {DATABASE_URL}")
     logging.info("")
 
     # Connect to databases
     mongo_client = MongoClient(MONGO_URI)
-    db_name = MONGO_URI.split('/')[-1]
+    db_name = MONGO_URI.split("/")[-1]
     mongo_db = mongo_client[db_name]
 
     db_session = SessionLocal()
@@ -357,19 +351,12 @@ def main():
     try:
         # Reconcile transactions first
         mongo_to_txn_map = reconcile_transactions(
-            mongo_db,
-            db_session,
-            stats,
-            dry_run=args.dry_run
+            mongo_db, db_session, stats, dry_run=args.dry_run
         )
 
         # Then reconcile line items
         reconcile_line_items(
-            mongo_db,
-            db_session,
-            mongo_to_txn_map,
-            stats,
-            dry_run=args.dry_run
+            mongo_db, db_session, mongo_to_txn_map, stats, dry_run=args.dry_run
         )
 
         # Print summary
@@ -383,5 +370,5 @@ def main():
         mongo_client.close()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

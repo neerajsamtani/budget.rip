@@ -10,9 +10,10 @@ if "STRIPE_LIVE_API_SECRET_KEY" not in os.environ:
 if "STRIPE_CUSTOMER_ID" not in os.environ:
     os.environ["STRIPE_CUSTOMER_ID"] = "fake_customer_id_for_testing"
 
-# CRITICAL: Set test database URL to SQLite in-memory BEFORE any imports
+# CRITICAL: Set test database URL to SQLite shared in-memory BEFORE any imports
 # This prevents test data from polluting the production PostgreSQL database
-os.environ["DATABASE_URL"] = "sqlite:///:memory:"
+# Using shared memory mode allows multiple engine connections to access the same database
+os.environ["DATABASE_URL"] = "sqlite:///file:memdb1?mode=memory&cache=shared&uri=true"
 
 import mongomock
 from flask import Flask
@@ -40,7 +41,7 @@ from resources.splitwise import splitwise_blueprint
 from resources.stripe import stripe_blueprint
 from resources.venmo import venmo_blueprint
 from models.sql_models import Base
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 
 # Import test configuration
@@ -63,7 +64,10 @@ TestSession = None
 def init_test_db():
     """Initialize the test database schema"""
     global test_engine, TestSession
-    test_engine = create_engine(TEST_DATABASE_URL, echo=False)
+    # Enable URI mode for SQLite to support shared memory connections
+    test_engine = create_engine(
+        TEST_DATABASE_URL, echo=False, connect_args={"uri": True}
+    )
     TestSession = sessionmaker(bind=test_engine)
 
     # Create all tables
@@ -173,6 +177,18 @@ def jwt_token(flask_app):
     with flask_app.app_context():
         token = create_access_token(identity="user_id")
     return token
+
+
+@pytest.fixture
+def pg_session():
+    """Provide a SQLite session using the shared test database"""
+    if TestSession is None:
+        init_test_db()
+
+    session = TestSession()
+    yield session
+    session.rollback()  # Rollback any uncommitted changes
+    session.close()
 
 
 @pytest.fixture(autouse=True)

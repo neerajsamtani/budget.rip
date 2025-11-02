@@ -29,8 +29,10 @@ def create_cash_transaction_api() -> tuple[Response, int]:
     transaction["amount"] = float(transaction["amount"])
     dual_write_operation(
         mongo_write_func=lambda: insert(cash_raw_data_collection, transaction),
-        pg_write_func=lambda db: bulk_upsert_transactions(db, [transaction], source="cash"),
-        operation_name="cash_create_transaction"
+        pg_write_func=lambda db: bulk_upsert_transactions(
+            db, [transaction], source="cash"
+        ),
+        operation_name="cash_create_transaction",
     )
     logging.info(
         f"Cash transaction created: {transaction['description']} - ${transaction['amount']}"
@@ -69,8 +71,10 @@ def cash_to_line_items() -> None:
     if all_line_items:
         dual_write_operation(
             mongo_write_func=lambda: bulk_upsert(line_items_collection, all_line_items),
-            pg_write_func=lambda db: bulk_upsert_line_items(db, all_line_items, source="cash"),
-            operation_name="cash_create_line_items"
+            pg_write_func=lambda db: bulk_upsert_line_items(
+                db, all_line_items, source="cash"
+            ),
+            operation_name="cash_create_line_items",
         )
         logging.info(f"Converted {len(all_line_items)} cash transactions to line items")
     else:

@@ -1,6 +1,7 @@
 # server/utils/id_generator.py
 from ulid import ULID
 
+
 def generate_id(prefix: str) -> str:
     """
     Generate Stripe-style ID using ULID for sortability.

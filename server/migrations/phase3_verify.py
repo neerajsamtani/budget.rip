@@ -240,9 +240,13 @@ def verify_all_transactions(mongo_db, db_session, result: VerificationResult):
 
             # Verify transaction date matches
             if source == "stripe":
-                expected = datetime.fromtimestamp(float(doc.get("transacted_at", 0)), UTC)
+                expected = datetime.fromtimestamp(
+                    float(doc.get("transacted_at", 0)), UTC
+                )
             elif source == "venmo":
-                expected = datetime.fromtimestamp(float(doc.get("date_created", 0)), UTC)
+                expected = datetime.fromtimestamp(
+                    float(doc.get("date_created", 0)), UTC
+                )
             elif source == "splitwise":
                 iso_date = doc.get("date", "")
                 posix_timestamp = iso_8601_to_posix(iso_date)
@@ -326,9 +330,7 @@ def verify_all_line_items(mongo_db, db_session, result: VerificationResult):
 
     # Build a lookup dict for PostgreSQL line items by mongo_id
     logging.info("  Building PostgreSQL lookup index...")
-    pg_items_dict = {
-        item.mongo_id: item for item in db_session.query(LineItem).all()
-    }
+    pg_items_dict = {item.mongo_id: item for item in db_session.query(LineItem).all()}
 
     errors = []
     checked = 0
@@ -345,9 +347,7 @@ def verify_all_line_items(mongo_db, db_session, result: VerificationResult):
         # Check ALL fields
         # 1. Amount
         if abs(float(pg_item.amount) - float(doc["amount"])) > 0.01:
-            errors.append(
-                f"{mongo_id}: amount {doc['amount']} ≠ {pg_item.amount}"
-            )
+            errors.append(f"{mongo_id}: amount {doc['amount']} ≠ {pg_item.amount}")
 
         # 2. Description
         if pg_item.description != doc.get("description", ""):
@@ -356,9 +356,7 @@ def verify_all_line_items(mongo_db, db_session, result: VerificationResult):
         # 3. Date
         expected_date = datetime.fromtimestamp(float(doc.get("date", 0)), UTC)
         if pg_item.date != expected_date:
-            errors.append(
-                f"{mongo_id}: date {expected_date} ≠ {pg_item.date}"
-            )
+            errors.append(f"{mongo_id}: date {expected_date} ≠ {pg_item.date}")
 
         # 4. Payment method
         if pg_item.payment_method.name != doc.get("payment_method", ""):
@@ -474,17 +472,25 @@ def verify_no_extra_records(mongo_db, db_session, result: VerificationResult):
 
     # Get all mongo_ids from PostgreSQL
     logging.info("  Loading PostgreSQL mongo_ids...")
-    pg_mongo_ids = {item.mongo_id for item in db_session.query(LineItem.mongo_id).all() if item.mongo_id}
+    pg_mongo_ids = {
+        item.mongo_id
+        for item in db_session.query(LineItem.mongo_id).all()
+        if item.mongo_id
+    }
 
     # Get all _ids from MongoDB
     logging.info("  Loading MongoDB _ids...")
-    mongo_ids = {str(doc["_id"]) for doc in mongo_db[line_items_collection].find({}, {"_id": 1})}
+    mongo_ids = {
+        str(doc["_id"]) for doc in mongo_db[line_items_collection].find({}, {"_id": 1})
+    }
 
     # Find extras in PostgreSQL
     extra_in_pg = pg_mongo_ids - mongo_ids
 
     if extra_in_pg:
-        result.add_fail(f"Found {len(extra_in_pg)} line items in PostgreSQL not in MongoDB")
+        result.add_fail(
+            f"Found {len(extra_in_pg)} line items in PostgreSQL not in MongoDB"
+        )
         for mongo_id in list(extra_in_pg)[:5]:
             result.add_fail(f"  Extra in PostgreSQL: {mongo_id}")
         if len(extra_in_pg) > 5:
@@ -511,18 +517,24 @@ def verify_transaction_dates_accurate(mongo_db, db_session, result: Verification
     for collection_name, source in collections.items():
         for doc in mongo_db[collection_name].find():
             mongo_id = str(doc["_id"])
-            pg_txn = db_session.query(Transaction).filter_by(
-                source=source, source_id=mongo_id
-            ).first()
+            pg_txn = (
+                db_session.query(Transaction)
+                .filter_by(source=source, source_id=mongo_id)
+                .first()
+            )
 
             if not pg_txn:
                 continue
 
             # Calculate expected date based on source
             if source == "stripe":
-                expected = datetime.fromtimestamp(float(doc.get("transacted_at", 0)), UTC)
+                expected = datetime.fromtimestamp(
+                    float(doc.get("transacted_at", 0)), UTC
+                )
             elif source == "venmo":
-                expected = datetime.fromtimestamp(float(doc.get("date_created", 0)), UTC)
+                expected = datetime.fromtimestamp(
+                    float(doc.get("date_created", 0)), UTC
+                )
             elif source == "splitwise":
                 iso_date = doc.get("date", "")
                 posix_timestamp = iso_8601_to_posix(iso_date)
@@ -584,7 +596,9 @@ def verify_payment_method_mappings(mongo_db, db_session, result: VerificationRes
             logging.info(f"  Checked {checked} mappings...")
 
     if mismatches > 0:
-        result.add_fail(f"{mismatches} line items with incorrect payment_method mapping")
+        result.add_fail(
+            f"{mismatches} line items with incorrect payment_method mapping"
+        )
     else:
         result.add_pass(f"All {checked} payment method mappings correct")
 
@@ -604,9 +618,7 @@ def verify_aggregate_totals(mongo_db, db_session, result: VerificationResult):
             continue
 
         # PostgreSQL total for this source
-        pg_total = db_session.query(
-            func.sum(LineItem.amount)
-        ).filter(
+        pg_total = db_session.query(func.sum(LineItem.amount)).filter(
             LineItem.transaction_id.in_(source_txn_ids)
         ).scalar() or Decimal(0)
 
@@ -644,12 +656,12 @@ def main():
     parser.add_argument(
         "--quick",
         action="store_true",
-        help="Quick verification mode (spot checks only, faster)"
+        help="Quick verification mode (spot checks only, faster)",
     )
     parser.add_argument(
         "--thorough",
         action="store_true",
-        help="Thorough verification mode (checks every record, slower)"
+        help="Thorough verification mode (checks every record, slower)",
     )
     args = parser.parse_args()
 

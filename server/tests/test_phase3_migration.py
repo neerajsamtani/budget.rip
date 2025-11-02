@@ -57,7 +57,7 @@ def pg_session():
 def mongo_db():
     """Create a mock MongoDB database for testing"""
     client = mongomock.MongoClient()
-    db = client['test_db']
+    db = client["test_db"]
     return db
 
 
@@ -65,10 +65,7 @@ def mongo_db():
 def sample_payment_method(pg_session):
     """Create a sample payment method for tests"""
     pm = PaymentMethod(
-        id=generate_id('pm'),
-        name='Test Card',
-        type='credit',
-        is_active=True
+        id=generate_id("pm"), name="Test Card", type="credit", is_active=True
     )
     pg_session.add(pm)
     pg_session.commit()
@@ -80,8 +77,8 @@ class TestDualWriteUtility:
 
     def test_dual_write_operation_success(self):
         """Test successful dual-write to both databases"""
-        mongo_result = {'_id': '123'}
-        pg_result = {'id': 'txn_456'}
+        mongo_result = {"_id": "123"}
+        pg_result = {"id": "txn_456"}
 
         # Mock functions
         mongo_write = MagicMock(return_value=mongo_result)
@@ -91,7 +88,7 @@ class TestDualWriteUtility:
         result = dual_write_operation(
             mongo_write_func=mongo_write,
             pg_write_func=pg_write,
-            operation_name='test_operation'
+            operation_name="test_operation",
         )
 
         # Verify both writes were called
@@ -99,11 +96,11 @@ class TestDualWriteUtility:
         assert pg_write.called
 
         # Verify result
-        assert result['success'] is True
-        assert result['mongo_success'] is True
-        assert result['pg_success'] is True
-        assert result['mongo_result'] == mongo_result
-        assert result['pg_result'] == pg_result
+        assert result["success"] is True
+        assert result["mongo_success"] is True
+        assert result["pg_success"] is True
+        assert result["mongo_result"] == mongo_result
+        assert result["pg_result"] == pg_result
 
     def test_dual_write_mongo_failure(self):
         """Test dual-write when MongoDB write fails"""
@@ -116,7 +113,7 @@ class TestDualWriteUtility:
             dual_write_operation(
                 mongo_write_func=mongo_write,
                 pg_write_func=pg_write,
-                operation_name='test_operation'
+                operation_name="test_operation",
             )
 
         # PostgreSQL write should not be called
@@ -124,7 +121,7 @@ class TestDualWriteUtility:
 
     def test_dual_write_pg_failure_non_critical(self):
         """Test dual-write when PostgreSQL write fails (non-critical)"""
-        mongo_result = {'_id': '123'}
+        mongo_result = {"_id": "123"}
 
         # Mock PostgreSQL failure
         mongo_write = MagicMock(return_value=mongo_result)
@@ -134,19 +131,19 @@ class TestDualWriteUtility:
         result = dual_write_operation(
             mongo_write_func=mongo_write,
             pg_write_func=pg_write,
-            operation_name='test_operation',
-            critical=False
+            operation_name="test_operation",
+            critical=False,
         )
 
         # MongoDB write should succeed
-        assert result['success'] is True
-        assert result['mongo_success'] is True
-        assert result['pg_success'] is False
-        assert result['pg_error'] is not None
+        assert result["success"] is True
+        assert result["mongo_success"] is True
+        assert result["pg_success"] is False
+        assert result["pg_error"] is not None
 
     def test_dual_write_pg_failure_critical(self):
         """Test dual-write when PostgreSQL write fails (critical)"""
-        mongo_result = {'_id': '123'}
+        mongo_result = {"_id": "123"}
 
         # Mock PostgreSQL failure
         mongo_write = MagicMock(return_value=mongo_result)
@@ -157,8 +154,8 @@ class TestDualWriteUtility:
             dual_write_operation(
                 mongo_write_func=mongo_write,
                 pg_write_func=pg_write,
-                operation_name='test_operation',
-                critical=True
+                operation_name="test_operation",
+                critical=True,
             )
 
 
@@ -170,11 +167,11 @@ class TestTransactionMigration:
         from migrations.phase3_migrate_transactions import get_transaction_date
 
         venmo_transaction = {
-            '_id': '123',
-            'date_created': 1609459200.0,  # 2021-01-01 00:00:00 UTC
+            "_id": "123",
+            "date_created": 1609459200.0,  # 2021-01-01 00:00:00 UTC
         }
 
-        date = get_transaction_date(venmo_transaction, 'venmo')
+        date = get_transaction_date(venmo_transaction, "venmo")
 
         assert isinstance(date, datetime)
         assert date.year == 2021
@@ -186,11 +183,11 @@ class TestTransactionMigration:
         from migrations.phase3_migrate_transactions import get_transaction_date
 
         splitwise_transaction = {
-            '_id': '123',
-            'date': '2021-01-01T00:00:00Z',
+            "_id": "123",
+            "date": "2021-01-01T00:00:00Z",
         }
 
-        date = get_transaction_date(splitwise_transaction, 'splitwise')
+        date = get_transaction_date(splitwise_transaction, "splitwise")
 
         assert isinstance(date, datetime)
         assert date.year == 2021
@@ -202,11 +199,11 @@ class TestTransactionMigration:
         from migrations.phase3_migrate_transactions import get_transaction_date
 
         stripe_transaction = {
-            '_id': '123',
-            'transacted_at': 1609459200,  # 2021-01-01 00:00:00 UTC
+            "_id": "123",
+            "transacted_at": 1609459200,  # 2021-01-01 00:00:00 UTC
         }
 
-        date = get_transaction_date(stripe_transaction, 'stripe')
+        date = get_transaction_date(stripe_transaction, "stripe")
 
         assert isinstance(date, datetime)
         assert date.year == 2021
@@ -216,11 +213,11 @@ class TestTransactionMigration:
         from migrations.phase3_migrate_transactions import get_transaction_date
 
         cash_transaction = {
-            '_id': '123',
-            'date': 1609459200.0,
+            "_id": "123",
+            "date": 1609459200.0,
         }
 
-        date = get_transaction_date(cash_transaction, 'cash')
+        date = get_transaction_date(cash_transaction, "cash")
 
         assert isinstance(date, datetime)
         assert date.year == 2021
@@ -228,10 +225,10 @@ class TestTransactionMigration:
     def test_transaction_creation(self, pg_session):
         """Test creating a transaction in PostgreSQL"""
         txn = Transaction(
-            id=generate_id('txn'),
-            source='venmo',
-            source_id='mongo_123',
-            source_data={'amount': 50.0, 'note': 'Test'},
+            id=generate_id("txn"),
+            source="venmo",
+            source_id="mongo_123",
+            source_data={"amount": 50.0, "note": "Test"},
             transaction_date=datetime.now(UTC),
         )
 
@@ -239,21 +236,21 @@ class TestTransactionMigration:
         pg_session.commit()
 
         # Verify transaction was created
-        saved_txn = pg_session.query(Transaction).filter_by(
-            source_id='mongo_123'
-        ).first()
+        saved_txn = (
+            pg_session.query(Transaction).filter_by(source_id="mongo_123").first()
+        )
 
         assert saved_txn is not None
-        assert saved_txn.source == 'venmo'
-        assert saved_txn.source_data['amount'] == 50.0
+        assert saved_txn.source == "venmo"
+        assert saved_txn.source_data["amount"] == 50.0
 
     def test_transaction_unique_constraint(self, pg_session):
         """Test that duplicate transactions are prevented"""
         txn1 = Transaction(
-            id=generate_id('txn'),
-            source='venmo',
-            source_id='mongo_123',
-            source_data={'amount': 50.0},
+            id=generate_id("txn"),
+            source="venmo",
+            source_id="mongo_123",
+            source_data={"amount": 50.0},
             transaction_date=datetime.now(UTC),
         )
 
@@ -264,10 +261,10 @@ class TestTransactionMigration:
         from sqlalchemy.exc import IntegrityError
 
         txn2 = Transaction(
-            id=generate_id('txn'),
-            source='venmo',
-            source_id='mongo_123',  # Same source and source_id
-            source_data={'amount': 75.0},
+            id=generate_id("txn"),
+            source="venmo",
+            source_id="mongo_123",  # Same source and source_id
+            source_data={"amount": 75.0},
             transaction_date=datetime.now(UTC),
         )
 
@@ -284,10 +281,10 @@ class TestLineItemMigration:
         """Test creating a line item in PostgreSQL"""
         # Create transaction first
         txn = Transaction(
-            id=generate_id('txn'),
-            source='venmo',
-            source_id='mongo_123',
-            source_data={'amount': 50.0},
+            id=generate_id("txn"),
+            source="venmo",
+            source_id="mongo_123",
+            source_data={"amount": 50.0},
             transaction_date=datetime.now(UTC),
         )
         pg_session.add(txn)
@@ -295,12 +292,12 @@ class TestLineItemMigration:
 
         # Create line item
         line_item = LineItem(
-            id=generate_id('li'),
+            id=generate_id("li"),
             transaction_id=txn.id,
-            mongo_id='line_item_mongo_123',
+            mongo_id="line_item_mongo_123",
             date=datetime.now(UTC),
-            amount=Decimal('50.00'),
-            description='Test purchase',
+            amount=Decimal("50.00"),
+            description="Test purchase",
             payment_method_id=sample_payment_method.id,
         )
 
@@ -308,13 +305,13 @@ class TestLineItemMigration:
         pg_session.commit()
 
         # Verify line item was created
-        saved_item = pg_session.query(LineItem).filter_by(
-            mongo_id='line_item_mongo_123'
-        ).first()
+        saved_item = (
+            pg_session.query(LineItem).filter_by(mongo_id="line_item_mongo_123").first()
+        )
 
         assert saved_item is not None
-        assert saved_item.amount == Decimal('50.00')
-        assert saved_item.description == 'Test purchase'
+        assert saved_item.amount == Decimal("50.00")
+        assert saved_item.description == "Test purchase"
 
     def test_line_item_foreign_key_constraint(self, pg_session, sample_payment_method):
         """Test that line items require valid transaction_id"""
@@ -322,12 +319,12 @@ class TestLineItemMigration:
 
         # Try to create line item with invalid transaction_id
         line_item = LineItem(
-            id=generate_id('li'),
-            transaction_id='invalid_txn_id',
-            mongo_id='line_item_mongo_123',
+            id=generate_id("li"),
+            transaction_id="invalid_txn_id",
+            mongo_id="line_item_mongo_123",
             date=datetime.now(UTC),
-            amount=Decimal('50.00'),
-            description='Test purchase',
+            amount=Decimal("50.00"),
+            description="Test purchase",
             payment_method_id=sample_payment_method.id,
         )
 
@@ -340,10 +337,10 @@ class TestLineItemMigration:
         """Test that deleting transaction cascades to line items"""
         # Create transaction
         txn = Transaction(
-            id=generate_id('txn'),
-            source='venmo',
-            source_id='mongo_123',
-            source_data={'amount': 50.0},
+            id=generate_id("txn"),
+            source="venmo",
+            source_id="mongo_123",
+            source_data={"amount": 50.0},
             transaction_date=datetime.now(UTC),
         )
         pg_session.add(txn)
@@ -351,12 +348,12 @@ class TestLineItemMigration:
 
         # Create line item
         line_item = LineItem(
-            id=generate_id('li'),
+            id=generate_id("li"),
             transaction_id=txn.id,
-            mongo_id='line_item_mongo_123',
+            mongo_id="line_item_mongo_123",
             date=datetime.now(UTC),
-            amount=Decimal('50.00'),
-            description='Test purchase',
+            amount=Decimal("50.00"),
+            description="Test purchase",
             payment_method_id=sample_payment_method.id,
         )
         pg_session.add(line_item)
@@ -367,9 +364,9 @@ class TestLineItemMigration:
         pg_session.commit()
 
         # Verify line item was cascade deleted
-        saved_item = pg_session.query(LineItem).filter_by(
-            mongo_id='line_item_mongo_123'
-        ).first()
+        saved_item = (
+            pg_session.query(LineItem).filter_by(mongo_id="line_item_mongo_123").first()
+        )
 
         assert saved_item is None
 
@@ -377,35 +374,37 @@ class TestLineItemMigration:
 class TestMigrationIntegration:
     """Integration tests for complete migration flow"""
 
-    def test_end_to_end_venmo_migration(self, mongo_db, pg_session, sample_payment_method):
+    def test_end_to_end_venmo_migration(
+        self, mongo_db, pg_session, sample_payment_method
+    ):
         """Test complete Venmo transaction and line item migration"""
         # Setup MongoDB data
-        venmo_collection = mongo_db['venmo_raw_data']
+        venmo_collection = mongo_db["venmo_raw_data"]
         venmo_doc = {
-            '_id': 'venmo_123',
-            'date_created': 1609459200.0,
-            'amount': 50.0,
-            'note': 'Coffee',
-            'actor': {'first_name': 'Alice'},
-            'target': {'first_name': 'Bob'},
+            "_id": "venmo_123",
+            "date_created": 1609459200.0,
+            "amount": 50.0,
+            "note": "Coffee",
+            "actor": {"first_name": "Alice"},
+            "target": {"first_name": "Bob"},
         }
         venmo_collection.insert_one(venmo_doc)
 
-        line_items_collection = mongo_db['line_items']
+        line_items_collection = mongo_db["line_items"]
         line_item_doc = {
-            '_id': 'line_item_venmo_123',
-            'date': 1609459200.0,
-            'amount': 50.0,
-            'description': 'Coffee',
-            'payment_method': 'Test Card',
+            "_id": "line_item_venmo_123",
+            "date": 1609459200.0,
+            "amount": 50.0,
+            "description": "Coffee",
+            "payment_method": "Test Card",
         }
         line_items_collection.insert_one(line_item_doc)
 
         # Migrate transaction
         txn = Transaction(
-            id=generate_id('txn'),
-            source='venmo',
-            source_id='venmo_123',
+            id=generate_id("txn"),
+            source="venmo",
+            source_id="venmo_123",
             source_data=venmo_doc,
             transaction_date=datetime.fromtimestamp(1609459200.0, UTC),
         )
@@ -414,12 +413,12 @@ class TestMigrationIntegration:
 
         # Migrate line item
         line_item = LineItem(
-            id=generate_id('li'),
+            id=generate_id("li"),
             transaction_id=txn.id,
-            mongo_id='line_item_venmo_123',
+            mongo_id="line_item_venmo_123",
             date=datetime.fromtimestamp(1609459200.0, UTC),
-            amount=Decimal('50.00'),
-            description='Coffee',
+            amount=Decimal("50.00"),
+            description="Coffee",
             payment_method_id=sample_payment_method.id,
         )
         pg_session.add(line_item)
@@ -430,33 +429,35 @@ class TestMigrationIntegration:
         assert pg_session.query(LineItem).count() == 1
 
         saved_txn = pg_session.query(Transaction).first()
-        assert saved_txn.source == 'venmo'
-        assert saved_txn.source_data['amount'] == 50.0
+        assert saved_txn.source == "venmo"
+        assert saved_txn.source_data["amount"] == 50.0
 
         saved_item = pg_session.query(LineItem).first()
-        assert saved_item.amount == Decimal('50.00')
+        assert saved_item.amount == Decimal("50.00")
         assert saved_item.transaction_id == txn.id
 
-    def test_orphaned_line_item_handling(self, mongo_db, pg_session, sample_payment_method):
+    def test_orphaned_line_item_handling(
+        self, mongo_db, pg_session, sample_payment_method
+    ):
         """Test creating manual transaction for orphaned line items"""
         # Create line item without corresponding transaction
         line_item_doc = {
-            '_id': 'orphaned_line_item',
-            'date': 1609459200.0,
-            'amount': 25.0,
-            'description': 'Manual entry',
-            'payment_method': 'Test Card',
+            "_id": "orphaned_line_item",
+            "date": 1609459200.0,
+            "amount": 25.0,
+            "description": "Manual entry",
+            "payment_method": "Test Card",
         }
 
         # Create manual transaction
         manual_txn = Transaction(
-            id=generate_id('txn'),
-            source='manual',
-            source_id='manual_orphaned_line_item',
+            id=generate_id("txn"),
+            source="manual",
+            source_id="manual_orphaned_line_item",
             source_data={
-                'description': 'Manual entry',
-                'amount': 25.0,
-                'note': 'Created for orphaned line item'
+                "description": "Manual entry",
+                "amount": 25.0,
+                "note": "Created for orphaned line item",
             },
             transaction_date=datetime.fromtimestamp(1609459200.0, UTC),
         )
@@ -465,22 +466,23 @@ class TestMigrationIntegration:
 
         # Create line item linked to manual transaction
         line_item = LineItem(
-            id=generate_id('li'),
+            id=generate_id("li"),
             transaction_id=manual_txn.id,
-            mongo_id='orphaned_line_item',
+            mongo_id="orphaned_line_item",
             date=datetime.fromtimestamp(1609459200.0, UTC),
-            amount=Decimal('25.00'),
-            description='Manual entry',
+            amount=Decimal("25.00"),
+            description="Manual entry",
             payment_method_id=sample_payment_method.id,
         )
         pg_session.add(line_item)
         pg_session.commit()
 
         # Verify
-        assert pg_session.query(Transaction).filter_by(source='manual').count() == 1
-        assert pg_session.query(LineItem).filter_by(
-            mongo_id='orphaned_line_item'
-        ).first() is not None
+        assert pg_session.query(Transaction).filter_by(source="manual").count() == 1
+        assert (
+            pg_session.query(LineItem).filter_by(mongo_id="orphaned_line_item").first()
+            is not None
+        )
 
 
 class TestPaymentMethodLookup:
@@ -489,18 +491,13 @@ class TestPaymentMethodLookup:
     def test_payment_method_lookup_by_name(self, pg_session):
         """Test looking up payment method by name"""
         pm = PaymentMethod(
-            id=generate_id('pm'),
-            name='Chase Sapphire',
-            type='credit',
-            is_active=True
+            id=generate_id("pm"), name="Chase Sapphire", type="credit", is_active=True
         )
         pg_session.add(pm)
         pg_session.commit()
 
         # Lookup
-        found = pg_session.query(PaymentMethod).filter_by(
-            name='Chase Sapphire'
-        ).first()
+        found = pg_session.query(PaymentMethod).filter_by(name="Chase Sapphire").first()
 
         assert found is not None
         assert found.id == pm.id
@@ -509,14 +506,11 @@ class TestPaymentMethodLookup:
         """Test creating Unknown payment method when needed"""
         # Create Unknown payment method
         unknown_pm = PaymentMethod(
-            id=generate_id('pm'),
-            name='Unknown',
-            type='cash',
-            is_active=True
+            id=generate_id("pm"), name="Unknown", type="cash", is_active=True
         )
         pg_session.add(unknown_pm)
         pg_session.commit()
 
         # Verify
-        found = pg_session.query(PaymentMethod).filter_by(name='Unknown').first()
+        found = pg_session.query(PaymentMethod).filter_by(name="Unknown").first()
         assert found is not None

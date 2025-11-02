@@ -10,10 +10,17 @@ from constants import DATABASE_URL
 
 # Import Base and all models for autogenerate support
 from models.sql_models import Base
+
 # Import all models to ensure they're registered with Base.metadata
 from models.sql_models import (
-    Category, PaymentMethod, Tag, Transaction,
-    LineItem, Event, EventLineItem, EventTag
+    Category,
+    PaymentMethod,
+    Tag,
+    Transaction,
+    LineItem,
+    Event,
+    EventLineItem,
+    EventTag,
 )
 
 # this is the Alembic Config object, which provides
@@ -21,7 +28,7 @@ from models.sql_models import (
 config = context.config
 
 # Override sqlalchemy.url with DATABASE_URL from constants
-config.set_main_option('sqlalchemy.url', DATABASE_URL)
+config.set_main_option("sqlalchemy.url", DATABASE_URL)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
@@ -76,9 +83,7 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
-        context.configure(
-            connection=connection, target_metadata=target_metadata
-        )
+        context.configure(connection=connection, target_metadata=target_metadata)
 
         with context.begin_transaction():
             context.run_migrations()
