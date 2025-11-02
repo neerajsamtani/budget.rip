@@ -342,8 +342,6 @@ def test_cascade_delete_transaction_deletes_line_items(db_session):
     assert db_session.query(LineItem).filter_by(id=line_item_id).first() is None
 
 
-
-
 def test_restrict_delete_category_with_events_fails(db_session):
     """Test that deleting a category with events raises an error (RESTRICT)"""
     # Setup

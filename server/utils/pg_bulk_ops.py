@@ -118,15 +118,15 @@ def bulk_upsert_transactions(
 
     if bulk_inserts:
         db_session.bulk_insert_mappings(Transaction, bulk_inserts)
-        logger.info(f"Bulk inserted {len(bulk_inserts)} {source} transactions to PostgreSQL")
+        logger.info(
+            f"Bulk inserted {len(bulk_inserts)} {source} transactions to PostgreSQL"
+        )
         return len(bulk_inserts)
 
     return 0
 
 
-def bulk_upsert_line_items(
-    db_session, line_items_data: List[Any], source: str
-) -> int:
+def bulk_upsert_line_items(db_session, line_items_data: List[Any], source: str) -> int:
     """
     Bulk upsert line items to PostgreSQL.
 
@@ -163,10 +163,14 @@ def bulk_upsert_line_items(
 
     # Query transactions for this source
     if line_item_mongo_ids:
-        transactions = db_session.query(Transaction).filter(
-            Transaction.source == source,
-            Transaction.source_id.in_(line_item_mongo_ids)
-        ).all()
+        transactions = (
+            db_session.query(Transaction)
+            .filter(
+                Transaction.source == source,
+                Transaction.source_id.in_(line_item_mongo_ids),
+            )
+            .all()
+        )
         transaction_lookup = {txn.source_id: txn.id for txn in transactions}
     else:
         transaction_lookup = {}
@@ -210,9 +214,11 @@ def bulk_upsert_line_items(
     # Check existing line items by mongo_id
     existing_mongo_ids = set()
     if line_item_mongo_ids_check:
-        existing = db_session.query(LineItem.mongo_id).filter(
-            LineItem.mongo_id.in_(line_item_mongo_ids_check)
-        ).all()
+        existing = (
+            db_session.query(LineItem.mongo_id)
+            .filter(LineItem.mongo_id.in_(line_item_mongo_ids_check))
+            .all()
+        )
         existing_mongo_ids = {row[0] for row in existing}
 
     # Prepare bulk insert mappings
@@ -236,7 +242,9 @@ def bulk_upsert_line_items(
 
         if not payment_method_id:
             # Create "Unknown" payment method if not found
-            unknown_pm = db_session.query(PaymentMethod).filter_by(name="Unknown").first()
+            unknown_pm = (
+                db_session.query(PaymentMethod).filter_by(name="Unknown").first()
+            )
             if not unknown_pm:
                 unknown_pm = PaymentMethod(
                     id=generate_id("pm"), name="Unknown", type="cash", is_active=True
@@ -251,7 +259,9 @@ def bulk_upsert_line_items(
         if isinstance(date_value, (int, float)):
             li_date = datetime.fromtimestamp(float(date_value), UTC)
         else:
-            logger.warning(f"Unexpected date type: {type(date_value)}, using current time")
+            logger.warning(
+                f"Unexpected date type: {type(date_value)}, using current time"
+            )
             li_date = datetime.now(UTC)
 
         amount_value = li_dict.get("amount", 0)
@@ -277,7 +287,9 @@ def bulk_upsert_line_items(
 
     if bulk_inserts:
         db_session.bulk_insert_mappings(LineItem, bulk_inserts)
-        logger.info(f"Bulk inserted {len(bulk_inserts)} {source} line items to PostgreSQL")
+        logger.info(
+            f"Bulk inserted {len(bulk_inserts)} {source} line items to PostgreSQL"
+        )
         return len(bulk_inserts)
 
     return 0

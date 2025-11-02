@@ -625,6 +625,7 @@ class TestStripeDualWrite:
 
             # Call refresh_transactions_api
             from resources.stripe import refresh_transactions_api
+
             response, status_code = refresh_transactions_api("test_account_id")
 
             # Verify the endpoint succeeded
@@ -671,6 +672,7 @@ class TestStripeDualWrite:
 
             # Call stripe_to_line_items
             from resources.stripe import stripe_to_line_items
+
             stripe_to_line_items()
 
             # Verify dual_write_operation was called (at least once for line items)
@@ -710,6 +712,7 @@ class TestStripeDualWrite:
 
             # Call refresh_transactions_api and expect it to handle the error
             from resources.stripe import refresh_transactions_api
+
             response, status_code = refresh_transactions_api("test_account_id")
 
             # Should return error status
@@ -744,6 +747,7 @@ class TestStripeDualWrite:
 
             # Call refresh_transactions_api - should not raise
             from resources.stripe import refresh_transactions_api
+
             response, status_code = refresh_transactions_api("test_account_id")
 
             # Should succeed (200) despite PG failure

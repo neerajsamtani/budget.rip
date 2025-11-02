@@ -128,7 +128,9 @@ def test_cash_to_line_items(flask_app, mock_cash_raw_data, expected_line_item):
 class TestCashDualWrite:
     """Test dual-write functionality for Cash endpoints"""
 
-    def test_create_cash_transaction_calls_dual_write(self, test_client, jwt_token, flask_app, mocker):
+    def test_create_cash_transaction_calls_dual_write(
+        self, test_client, jwt_token, flask_app, mocker
+    ):
         """Test that create_cash_transaction_api uses dual_write_operation"""
         with flask_app.app_context():
             # Mock dual_write_operation
@@ -170,7 +172,9 @@ class TestCashDualWrite:
             assert callable(call_kwargs["mongo_write_func"])
             assert callable(call_kwargs["pg_write_func"])
 
-    def test_cash_to_line_items_calls_dual_write(self, flask_app, mock_cash_raw_data, mocker):
+    def test_cash_to_line_items_calls_dual_write(
+        self, flask_app, mock_cash_raw_data, mocker
+    ):
         """Test that cash_to_line_items uses dual_write_operation"""
         with flask_app.app_context():
             # Insert test transaction data
@@ -215,7 +219,9 @@ class TestCashDualWrite:
                 "description": "Test transaction",
                 "amount": 100,
             }
-            upsert_with_id(cash_raw_data_collection, transaction_data, transaction_data["id"])
+            upsert_with_id(
+                cash_raw_data_collection, transaction_data, transaction_data["id"]
+            )
 
             # Mock dual_write_operation to simulate MongoDB failure
             mock_dual_write = mocker.patch("resources.cash.dual_write_operation")
@@ -225,7 +231,9 @@ class TestCashDualWrite:
             with pytest.raises(DualWriteError):
                 cash_to_line_items()
 
-    def test_cash_dual_write_pg_failure_continues(self, test_client, jwt_token, flask_app, mocker):
+    def test_cash_dual_write_pg_failure_continues(
+        self, test_client, jwt_token, flask_app, mocker
+    ):
         """Test that PostgreSQL failure in dual-write logs but continues"""
         with flask_app.app_context():
             # Mock dual_write_operation to simulate PG failure (non-critical)

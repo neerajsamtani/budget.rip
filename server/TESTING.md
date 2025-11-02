@@ -30,7 +30,9 @@ The Makefile will:
 
 The tests are configured to use:
 - **mongomock** for MongoDB tests (no MongoDB server needed)
-- **SQLite in-memory** for PostgreSQL/SQLAlchemy tests (no PostgreSQL server needed)
+- **SQLite shared in-memory** for PostgreSQL/SQLAlchemy tests (no PostgreSQL server needed)
+  - Uses `sqlite:///file:memdb1?mode=memory&cache=shared&uri=true` to allow multiple connections to share the same database
+  - This ensures dual-write operations and test fixtures access the same database instance
 - **Virtual environment** to avoid dependency conflicts
 - **pyproject.toml** for pytest and coverage configuration
 

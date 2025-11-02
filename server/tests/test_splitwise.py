@@ -392,7 +392,9 @@ class TestSplitwiseFunctions:
 class TestSplitwiseDualWrite:
     """Test dual-write functionality for Splitwise endpoints"""
 
-    def test_refresh_splitwise_calls_dual_write_for_transactions(self, flask_app, mocker):
+    def test_refresh_splitwise_calls_dual_write_for_transactions(
+        self, flask_app, mocker
+    ):
         """Test that refresh_splitwise uses dual_write_operation for transactions"""
         with flask_app.app_context():
             mock_splitwise_client = mocker.patch("resources.splitwise.splitwise_client")

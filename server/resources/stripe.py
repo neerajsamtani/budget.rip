@@ -133,9 +133,7 @@ def get_accounts_and_balances_api() -> tuple[Response, int]:
             data=data,
             auth=(STRIPE_API_KEY, ""),
         )
-        account_name: str = (
-            f'{account["institution_name"]} {account["display_name"]} {account["last4"]}'
-        )
+        account_name: str = f'{account["institution_name"]} {account["display_name"]} {account["last4"]}'
         response_data: List[Dict[str, Any]] = response.json()["data"]
         accounts_and_balances[account_id] = {
             "id": account_id,
@@ -264,9 +262,13 @@ def refresh_transactions_api(account_id: str) -> tuple[Response, int]:
         # Bulk upsert all collected transactions at once
         if all_transactions:
             dual_write_operation(
-                mongo_write_func=lambda: bulk_upsert(stripe_raw_transaction_data_collection, all_transactions),
-                pg_write_func=lambda db: bulk_upsert_transactions(db, all_transactions, source="stripe"),
-                operation_name="stripe_refresh_transactions"
+                mongo_write_func=lambda: bulk_upsert(
+                    stripe_raw_transaction_data_collection, all_transactions
+                ),
+                pg_write_func=lambda db: bulk_upsert_transactions(
+                    db, all_transactions, source="stripe"
+                ),
+                operation_name="stripe_refresh_transactions",
             )
 
         # If we want to enable only refreshing a single account, we need to uncomment this
@@ -336,16 +338,24 @@ def stripe_to_line_items() -> None:
         # Bulk upsert when batch is full
         if len(line_items_batch) >= batch_size:
             dual_write_operation(
-                mongo_write_func=lambda: bulk_upsert(line_items_collection, line_items_batch),
-                pg_write_func=lambda db: bulk_upsert_line_items(db, line_items_batch, source="stripe"),
-                operation_name="stripe_create_line_items"
+                mongo_write_func=lambda: bulk_upsert(
+                    line_items_collection, line_items_batch
+                ),
+                pg_write_func=lambda db: bulk_upsert_line_items(
+                    db, line_items_batch, source="stripe"
+                ),
+                operation_name="stripe_create_line_items",
             )
             line_items_batch = []
 
     # Upsert remaining items in the final batch
     if line_items_batch:
         dual_write_operation(
-            mongo_write_func=lambda: bulk_upsert(line_items_collection, line_items_batch),
-            pg_write_func=lambda db: bulk_upsert_line_items(db, line_items_batch, source="stripe"),
-            operation_name="stripe_create_line_items"
+            mongo_write_func=lambda: bulk_upsert(
+                line_items_collection, line_items_batch
+            ),
+            pg_write_func=lambda db: bulk_upsert_line_items(
+                db, line_items_batch, source="stripe"
+            ),
+            operation_name="stripe_create_line_items",
         )
