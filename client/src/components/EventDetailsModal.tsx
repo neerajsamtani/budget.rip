@@ -15,7 +15,7 @@ export default function EventDetailsModal({ show, event, lineItemsForEvent, onHi
 
 
   const deleteEvent = () => {
-    axiosInstance.delete(`api/events/${event._id}`)
+    axiosInstance.delete(`api/events/${event.id}`)
       .then(() => {
         showSuccessToast(event.name, "Deleted Event");
         onHide();
@@ -47,7 +47,7 @@ export default function EventDetailsModal({ show, event, lineItemsForEvent, onHi
                 </TableHeader>
                 <TableBody>
                   {lineItemsForEvent.map(lineItem =>
-                    <LineItem key={lineItem._id} lineItem={lineItem} />
+                    <LineItem key={lineItem.id} lineItem={lineItem} />
                   )}
                 </TableBody>
               </Table>

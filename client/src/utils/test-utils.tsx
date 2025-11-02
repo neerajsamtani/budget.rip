@@ -8,16 +8,16 @@ if (!Element.prototype.hasPointerCapture) {
 }
 
 if (!Element.prototype.setPointerCapture) {
-    Element.prototype.setPointerCapture = () => {};
+    Element.prototype.setPointerCapture = () => { };
 }
 
 if (!Element.prototype.releasePointerCapture) {
-    Element.prototype.releasePointerCapture = () => {};
+    Element.prototype.releasePointerCapture = () => { };
 }
 
 // Polyfill for scrollIntoView - needed for Radix UI Select component in tests
 if (!Element.prototype.scrollIntoView) {
-    Element.prototype.scrollIntoView = () => {};
+    Element.prototype.scrollIntoView = () => { };
 }
 
 // Mock axios instance for API calls - create mock without importing axios
@@ -81,6 +81,7 @@ export const mockLineItem = {
 
 export const mockEvent = {
     _id: '1',
+    id: '1',
     name: 'Test Event',
     date: 1640995200,
     description: 'Test event description',

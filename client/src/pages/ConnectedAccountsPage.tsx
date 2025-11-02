@@ -111,21 +111,21 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
         // Handle Stripe data (array of objects)
         if (connectedAccount.stripe) {
             return connectedAccount.stripe.map((stripeAccount) => {
-                const { institution_name, display_name, last4, _id, status } = stripeAccount;
+                const { institution_name, display_name, last4, id, status } = stripeAccount;
                 return (
-                    <TableRow key={`stripe-${_id}`}>
+                    <TableRow key={`stripe-${id}`}>
                         <TableCell>{institution_name} {display_name} {last4}</TableCell>
                         {status === 'inactive' ?
-                            <TableCell><Button onClick={() => { relinkAccount(_id) }} variant="secondary">Reactivate</Button></TableCell>
+                            <TableCell><Button onClick={() => { relinkAccount(id) }} variant="secondary">Reactivate</Button></TableCell>
                             : <TableCell>Active</TableCell>}
                         <TableCell>
-                            {accountsAndBalances[_id] && (
-                                <StatusBadge status={accountsAndBalances[_id]["balance"] >= 0 ? 'success' : 'error'}>
-                                    {CurrencyFormatter.format(accountsAndBalances[_id]["balance"])}
+                            {accountsAndBalances[id] && (
+                                <StatusBadge status={accountsAndBalances[id]["balance"] >= 0 ? 'success' : 'error'}>
+                                    {CurrencyFormatter.format(accountsAndBalances[id]["balance"])}
                                 </StatusBadge>
                             )}
                         </TableCell>
-                        <TableCell>{accountsAndBalances[_id] && formatDate(accountsAndBalances[_id]["as_of"])}</TableCell>
+                        <TableCell>{accountsAndBalances[id] && formatDate(accountsAndBalances[id]["as_of"])}</TableCell>
                     </TableRow>
                 );
             });

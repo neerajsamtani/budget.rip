@@ -1,6 +1,7 @@
 import React from "react";
 import { LineItemInterface, useLineItems, useLineItemsDispatch } from "../contexts/LineItemsContext";
 import { CurrencyFormatter, DateFormatter } from "../utils/formatters";
+import { Checkbox } from "./ui/checkbox";
 import { StatusBadge } from "./ui/status-badge";
 import { TableCell, TableRow } from "./ui/table";
 
@@ -13,7 +14,7 @@ export default function LineItem({ lineItem, showCheckBox }: LineItemProps) {
     const readableDate = DateFormatter.format(lineItem.date * 1000);
     const lineItems = useLineItems();
     const lineItemsDispatch = useLineItemsDispatch();
-    const isChecked = lineItems.some(li => li.isSelected && li.id === lineItem._id);
+    const isChecked = lineItems.some(li => li.isSelected && li.id === lineItem.id);
 
     const handleToggle = () => {
         lineItemsDispatch({
@@ -29,11 +30,9 @@ export default function LineItem({ lineItem, showCheckBox }: LineItemProps) {
         <TableRow data-state={isChecked ? 'selected' : undefined}>
             {showCheckBox && (
                 <TableCell className="w-12">
-                    <input
-                        type="checkbox"
+                    <Checkbox
                         checked={isChecked}
-                        onChange={handleToggle}
-                        className="w-4 h-4 text-primary bg-white border rounded focus:ring-primary focus:ring-2 focus:ring-offset-2"
+                        onCheckedChange={handleToggle}
                     />
                 </TableCell>
             )}

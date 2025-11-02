@@ -390,6 +390,10 @@ The template provides:
 
 ---
 
+TODO: Before starting Phase 6, we need to ensure that all server tests pass
+when READ_FROM_POSTGRESQL=false and when READ_FROM_POSTGRESQL=true. Right now,
+it only passes when it's false.
+
 ### Phase 6: Remove MongoDB & Update Frontend (Week 9)
 **Goal**: PostgreSQL only, MongoDB decommissioned, frontend updated for new IDs
 

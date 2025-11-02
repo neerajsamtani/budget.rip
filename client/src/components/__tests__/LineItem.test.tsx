@@ -340,7 +340,7 @@ describe('LineItem', () => {
 
             const checkbox = screen.getByRole('checkbox');
             expect(checkbox).toBeInTheDocument();
-            expect(checkbox).toHaveAttribute('type', 'checkbox');
+            expect(checkbox).toHaveAttribute('role', 'checkbox');
         });
 
         it('maintains proper table cell structure', () => {
@@ -436,8 +436,8 @@ describe('LineItem', () => {
             expect(checkbox).toBeChecked();
         });
 
-        it('matches line item by _id for selection state', () => {
-            const differentIdLineItem = { ...mockLineItem, _id: 'different-id' };
+        it('matches line item by id for selection state', () => {
+            const differentIdLineItem = { ...mockLineItem, id: 'different-id' };
             mockUseLineItems.mockReturnValue([differentIdLineItem]);
 
             render(

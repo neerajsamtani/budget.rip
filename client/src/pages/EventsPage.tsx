@@ -1,16 +1,16 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Category } from "@/constants/categories";
 import { CurrencyFormatter } from "@/utils/formatters";
 import { DateTime } from "luxon";
 import React, { useEffect, useState } from "react";
 import CategoryFilter from "../components/CategoryFilter";
-import { Category } from "@/constants/categories";
 import Event, { EventInterface } from "../components/Event";
 import MonthFilter from "../components/MonthFilter";
 import TagsFilter from "../components/TagsFilter";
 import { PageContainer, PageHeader } from "../components/ui/layout";
 import { StatusBadge } from "../components/ui/status-badge";
 import { Body, H1 } from "../components/ui/typography";
-import YearFilter from "../components/YearFilter";
+import YearFilter, { type Year } from "../components/YearFilter";
 import axiosInstance from "../utils/axiosInstance";
 import { showErrorToast } from "../utils/toast-helpers";
 
@@ -94,7 +94,7 @@ export default function EventsPage() {
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <CategoryFilter category={category as Category} setCategory={setCategory} />
                         <MonthFilter month={month} setMonth={setMonth} />
-                        <YearFilter year={year} setYear={setYear} />
+                        <YearFilter year={year as Year} setYear={setYear} />
                         <TagsFilter tagFilter={tagFilter} setTagFilter={setTagFilter} />
                     </div>
 
@@ -132,7 +132,7 @@ export default function EventsPage() {
                             events
                                 .filter(event => matchCategory(event) && matchTags(event))
                                 .map(event => (
-                                    <TableRow key={event._id}>
+                                    <TableRow key={event.id}>
                                         <Event event={event} />
                                     </TableRow>
                                 ))

@@ -19,13 +19,14 @@ jest.mock('sonner', () => {
 
 // Mock EventDetailsModal component
 jest.mock('../EventDetailsModal', () => {
-    return function MockEventDetailsModal({ show, onHide }: { show: boolean; onHide: () => void }) {
+    return function MockEventDetailsModal({ show }: { show: boolean }) {
         return show ? <div data-testid="event-details-modal">Event Details Modal</div> : null;
     };
 });
 
 const mockEvent: EventInterface = {
     _id: '1',
+    id: '1',
     name: 'Test Event',
     category: 'Entertainment',
     amount: 150.00,

@@ -38,6 +38,7 @@ describe('EventDetailsModal', () => {
 
     const mockEvent: EventInterface = {
         _id: 'event-1',
+        id: 'event-1',
         name: 'Test Event',
         category: 'Dining',
         amount: 150.00,
@@ -485,6 +486,7 @@ describe('EventDetailsModal', () => {
         it('handles event with different data types', () => {
             const eventWithDifferentData: EventInterface = {
                 _id: 'event-2',
+                id: 'event-2',
                 name: 'Another Event',
                 category: 'Shopping',
                 amount: 299.99,

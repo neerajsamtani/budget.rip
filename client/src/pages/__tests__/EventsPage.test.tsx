@@ -83,18 +83,18 @@ jest.mock('../../components/Event', () => {
     return function MockEvent({ event }: any) {
         return (
             <>
-                <td data-testid={`event-date-${event._id}`}>
+                <td data-testid={`event-date-${event.id}`}>
                     {new Date(event.date * 1000).toLocaleDateString()}
                 </td>
-                <td data-testid={`event-name-${event._id}`}>{event.name}</td>
-                <td data-testid={`event-category-${event._id}`}>{event.category}</td>
-                <td data-testid={`event-amount-${event._id}`}>${event.amount.toFixed(2)}</td>
-                <td data-testid={`event-tags-${event._id}`}>
+                <td data-testid={`event-name-${event.id}`}>{event.name}</td>
+                <td data-testid={`event-category-${event.id}`}>{event.category}</td>
+                <td data-testid={`event-amount-${event.id}`}>${event.amount.toFixed(2)}</td>
+                <td data-testid={`event-tags-${event.id}`}>
                     {event.tags && event.tags.map((tag: string, index: number) => (
-                        <span key={index} data-testid={`tag-${event._id}-${index}`}>{tag}</span>
+                        <span key={index} data-testid={`tag-${event.id}-${index}`}>{tag}</span>
                     ))}
                 </td>
-                <td data-testid={`event-actions-${event._id}`}>
+                <td data-testid={`event-actions-${event.id}`}>
                     <button>Details</button>
                 </td>
             </>
@@ -105,6 +105,7 @@ jest.mock('../../components/Event', () => {
 const mockEvents = [
     {
         _id: '1',
+        id: '1',
         name: 'Dinner Out',
         category: 'Dining',
         amount: 50.00,
@@ -114,6 +115,7 @@ const mockEvents = [
     },
     {
         _id: '2',
+        id: '2',
         name: 'Grocery Shopping',
         category: 'Groceries',
         amount: 100.00,
@@ -123,6 +125,7 @@ const mockEvents = [
     },
     {
         _id: '3',
+        id: '3',
         name: 'Salary',
         category: 'Income',
         amount: 5000.00,
@@ -132,6 +135,7 @@ const mockEvents = [
     },
     {
         _id: '4',
+        id: '4',
         name: 'Rent Payment',
         category: 'Rent',
         amount: 2000.00,
@@ -141,6 +145,7 @@ const mockEvents = [
     },
     {
         _id: '5',
+        id: '5',
         name: 'Movie Night',
         category: 'Entertainment',
         amount: 25.00,
@@ -435,6 +440,7 @@ describe('EventsPage', () => {
             const zeroAmountEvents = [
                 {
                     _id: '1',
+                    id: '1',
                     name: 'Zero Amount Event',
                     category: 'Dining',
                     amount: 0,
@@ -458,6 +464,7 @@ describe('EventsPage', () => {
             const decimalEvents = [
                 {
                     _id: '1',
+                    id: '1',
                     name: 'Decimal Amount Event',
                     category: 'Dining',
                     amount: 123.456,
@@ -518,6 +525,7 @@ describe('EventsPage', () => {
             const eventsWithoutTags = [
                 {
                     _id: '1',
+                    id: '1',
                     name: 'Event Without Tags',
                     category: 'Dining',
                     amount: 50.00,
@@ -591,6 +599,7 @@ describe('EventsPage', () => {
         it('handles large datasets efficiently', async () => {
             const largeDataset = Array.from({ length: 100 }, (_, i) => ({
                 _id: String(i + 1),
+                id: String(i + 1),
                 name: `Event ${i + 1}`,
                 category: 'Dining',
                 amount: 50.00,

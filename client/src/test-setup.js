@@ -1,5 +1,5 @@
 // Suppress Node.js deprecation warnings during tests
-module.exports = async () => {
+export default async () => {
     process.env.NODE_NO_WARNINGS = '1';
 
     // Suppress specific deprecation warnings
