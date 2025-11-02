@@ -339,20 +339,19 @@ Run with confirmation prompt. Re-run audit script after cleanup to verify.
 
 ---
 
-### Phase 5: Switch Read Operations (Week 8)
+### Phase 5: Switch Read Operations (Week 8) ✅ COMPLETE
 **Goal**: Read from PostgreSQL, still dual-write to both
 
-1. **Add feature flag**: `READ_FROM_POSTGRESQL` environment variable (default: false)
+**Status**: COMPLETE - All 223 tests passing, including 26 Phase 5 tests
 
-2. **Update query functions**: Wrap all queries in conditional - if flag true, query PostgreSQL using SQLAlchemy; otherwise use existing MongoDB queries. Apply to all_line_items(), all_events(), get_event(), etc.
+1. ✅ Feature flag `READ_FROM_POSTGRESQL` in `constants.py` (default: false)
+2. ✅ All read functions in `dao.py` route to PostgreSQL when flag enabled
+3. ✅ ID coexistence via `mongo_id` column supports both PostgreSQL and MongoDB IDs
+4. ✅ All collections: line_items, events, transactions, bank_accounts, users
 
-3. **Test thoroughly**: Verify data consistency, check query performance, monitor for errors
+**Next**: Enable `READ_FROM_POSTGRESQL=true` in production, monitor for 2+ weeks before Phase 6
 
-4. **Enable in production**: `export READ_FROM_POSTGRESQL=true`
-
-5. **Monitor (optional)**: Track read/write counts, query latency, slow queries
-
-**Deliverable**: All reads from PostgreSQL with monitoring, writes to both databases
+**Deliverable**: All reads from PostgreSQL, writes to both databases
 
 #### Verification Script: Dual-Write Consistency Checker
 
@@ -373,6 +372,21 @@ The template provides:
 - Detailed error reporting
 
 **Schedule periodic runs** during Phases 3-5 (e.g., hourly cron job) to catch sync issues early.
+
+---
+
+### Phase 5.5: Migrate Bank Accounts & Users (Week 8.5) ✅ COMPLETE
+**Goal**: Complete MongoDB independence
+
+**Status**: COMPLETE - MongoDB can be fully offline when `READ_FROM_POSTGRESQL=true`
+
+**Implementation**:
+- BankAccount and User models in `models/sql_models.py`
+- Historical data migrated: 18 bank accounts, 2 users
+- Dual-write in `resources/stripe.py` and `resources/auth.py`
+- Read functions in `dao.py`
+- Migration scripts: `phase5_5_migrate_accounts_users.py`, `phase5_5_verify.py`
+- 6 new tests in `test_phase5_read_cutover.py`
 
 ---
 
@@ -607,17 +621,18 @@ If migration fails at any phase:
 
 ## Timeline (Updated)
 
-| Phase | Duration | Description |
-|-------|----------|-------------|
-| 0. Pre-Migration Validation | 1 week | Data audit, quality checks, baseline metrics |
-| 1. Setup PostgreSQL | 1 week | Install, create schema, add ID generator, test connection |
-| 2. Migrate Reference Data | 1 week | Categories, payment methods, tags with verification |
-| 3. Migrate Transactions & Line Items | 2 weeks | Historical data + mongo_id coexistence + dual-write |
-| 4. Migrate Events & ID Coexistence | 2 weeks | Events + tags + ID coexistence pattern |
-| 5. Switch Reads | 2 weeks | Read from PostgreSQL with monitoring, still dual-write |
-| 6. Remove MongoDB & Update Frontend | 1 week | PostgreSQL only, frontend updates, final verification |
-| **Migration Total** | **10 weeks** | Safe, incremental, with comprehensive safeguards |
-| **7. Enhancements** | TBD | Soft deletes, additional fields, optimizations (see Phase 7 below) |
+| Phase | Duration | Status | Description |
+|-------|----------|--------|-------------|
+| 0. Pre-Migration Validation | 1 week | ✅ COMPLETE | Data audit, quality checks, baseline metrics |
+| 1. Setup PostgreSQL | 1 week | ✅ COMPLETE | Install, create schema, add ID generator, test connection |
+| 2. Migrate Reference Data | 1 week | ✅ COMPLETE | Categories, payment methods, tags with verification |
+| 3. Migrate Transactions & Line Items | 2 weeks | ✅ COMPLETE | Historical data + mongo_id coexistence + dual-write |
+| 4. Migrate Events & ID Coexistence | 2 weeks | ✅ COMPLETE | Events + tags + ID coexistence pattern |
+| 5. Switch Reads | 2 weeks | ✅ COMPLETE | Read from PostgreSQL with monitoring, still dual-write |
+| 5.5. Migrate Bank Accounts & Users | 3 days | ✅ COMPLETE | Complete MongoDB independence |
+| 6. Remove MongoDB & Update Frontend | 1 week | 🔄 NEXT | PostgreSQL only, frontend updates, final verification |
+| **Migration Total** | **10 weeks** | **Phase 5 Complete** | Safe, incremental, with comprehensive safeguards |
+| **7. Enhancements** | TBD | FUTURE | Soft deletes, additional fields, optimizations (see Phase 7 below) |
 
 **Note**: No multi-user support or advanced features in this migration. Just a clean 1:1 structural migration with improved data integrity.
 

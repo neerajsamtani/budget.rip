@@ -18,8 +18,47 @@ from decimal import Decimal
 
 Base = declarative_base()
 
-# Note: No User model - this is a single-user application
-# Authentication handled via environment config or hardcoded credentials
+
+class BankAccount(Base):
+    """
+    Financial accounts from external sources (e.g., Stripe Financial Connections).
+
+    BankAccount vs PaymentMethod:
+    - BankAccount: The actual financial account (e.g., "Chase Checking 1234")
+    - PaymentMethod: How a transaction was paid (derived from accounts + manual methods)
+    - PaymentMethod.external_id soft-references BankAccount.id when type is bank/credit
+    """
+    __tablename__ = "bank_accounts"
+
+    id = Column(String(255), primary_key=True)  # fca_xxx or account ID from source
+    mongo_id = Column(String(255), unique=True, nullable=True, index=True)
+    institution_name = Column(String(255), nullable=False)
+    display_name = Column(String(255), nullable=False)
+    last4 = Column(String(4), nullable=False)
+    status = Column(String(50), nullable=False)
+    created_at = Column(TIMESTAMP(timezone=True), default=lambda: datetime.now(UTC))
+    updated_at = Column(
+        TIMESTAMP(timezone=True),
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
+    )
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(String(255), primary_key=True)  # user_xxx
+    mongo_id = Column(String(255), unique=True, nullable=True, index=True)  # Original MongoDB _id
+    first_name = Column(String(255), nullable=False)
+    last_name = Column(String(255), nullable=False)
+    email = Column(String(255), unique=True, nullable=False, index=True)
+    password_hash = Column(String(255), nullable=False)
+    created_at = Column(TIMESTAMP(timezone=True), default=lambda: datetime.now(UTC))
+    updated_at = Column(
+        TIMESTAMP(timezone=True),
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
+    )
 
 
 class Category(Base):

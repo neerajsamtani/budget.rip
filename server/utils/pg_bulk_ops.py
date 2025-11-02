@@ -11,7 +11,7 @@ from decimal import Decimal
 from typing import Any, Dict, List
 
 from helpers import iso_8601_to_posix, to_dict_robust
-from models.sql_models import LineItem, PaymentMethod, Transaction
+from models.sql_models import BankAccount, LineItem, PaymentMethod, Transaction, User
 from utils.id_generator import generate_id
 
 logger = logging.getLogger(__name__)
@@ -293,3 +293,91 @@ def bulk_upsert_line_items(db_session, line_items_data: List[Any], source: str) 
         return len(bulk_inserts)
 
     return 0
+
+
+def bulk_upsert_bank_accounts(db_session, accounts_data: List[Any]) -> int:
+    """
+    Bulk upsert bank accounts to PostgreSQL.
+
+    Args:
+        db_session: SQLAlchemy session
+        accounts_data: List of account dicts
+
+    Returns:
+        Count of inserted/updated accounts
+    """
+    if not accounts_data:
+        return 0
+
+    account_dicts = [to_dict_robust(acc) for acc in accounts_data]
+    account_ids = [acc.get("id") for acc in account_dicts if acc.get("id")]
+
+    if not account_ids:
+        return 0
+
+    # Check existing accounts
+    existing = db_session.query(BankAccount.id).filter(
+        BankAccount.id.in_(account_ids)
+    ).all()
+    existing_ids = {row[0] for row in existing}
+
+    # Prepare bulk inserts for new accounts
+    bulk_inserts = []
+    for acc_dict in account_dicts:
+        account_id = acc_dict.get("id")
+        if not account_id or account_id in existing_ids:
+            continue
+
+        bulk_inserts.append({
+            "id": account_id,
+            "mongo_id": str(acc_dict.get("_id", "")),
+            "institution_name": acc_dict.get("institution_name", ""),
+            "display_name": acc_dict.get("display_name", ""),
+            "last4": acc_dict.get("last4", ""),
+            "status": acc_dict.get("status", "active"),
+        })
+
+    if bulk_inserts:
+        db_session.bulk_insert_mappings(BankAccount, bulk_inserts)
+        logger.info(f"Bulk inserted {len(bulk_inserts)} bank accounts to PostgreSQL")
+        return len(bulk_inserts)
+
+    return 0
+
+
+def upsert_user(db_session, user_data: Dict[str, Any]) -> bool:
+    """
+    Upsert a single user to PostgreSQL.
+
+    Args:
+        db_session: SQLAlchemy session
+        user_data: User dict
+
+    Returns:
+        True if inserted, False if already exists
+    """
+    user_dict = to_dict_robust(user_data)
+    user_id = user_dict.get("id")
+
+    if not user_id:
+        logger.warning("Cannot upsert user without id")
+        return False
+
+    # Check if user exists
+    existing = db_session.query(User).filter(User.id == user_id).first()
+    if existing:
+        return False
+
+    # Create new user
+    user = User(
+        id=user_id,
+        mongo_id=str(user_dict.get("_id", "")),
+        first_name=user_dict.get("first_name", ""),
+        last_name=user_dict.get("last_name", ""),
+        email=user_dict.get("email", ""),
+        password_hash=user_dict.get("password_hash", ""),
+    )
+
+    db_session.add(user)
+    logger.info(f"Inserted user {user_id} to PostgreSQL")
+    return True

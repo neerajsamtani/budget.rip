@@ -21,7 +21,7 @@ from dao import (
 from helpers import cents_to_dollars, flip_amount
 from resources.line_item import LineItem
 from utils.dual_write import dual_write_operation
-from utils.pg_bulk_ops import bulk_upsert_line_items, bulk_upsert_transactions
+from utils.pg_bulk_ops import bulk_upsert_bank_accounts, bulk_upsert_line_items, bulk_upsert_transactions
 
 stripe_blueprint = Blueprint("stripe", __name__)
 
@@ -91,8 +91,11 @@ def create_accounts_api() -> tuple[Response, int]:
     if len(new_accounts) == 0:
         return jsonify("Failed to Create Accounts: No Accounts Submitted"), 400
 
-    # Bulk upsert all accounts at once
-    bulk_upsert(bank_accounts_collection, new_accounts)
+    dual_write_operation(
+        mongo_write_func=lambda: bulk_upsert(bank_accounts_collection, new_accounts),
+        pg_write_func=lambda db: bulk_upsert_bank_accounts(db, new_accounts),
+        operation_name="create_bank_accounts",
+    )
 
     return jsonify({"data": new_accounts}), 201
 
@@ -181,7 +184,11 @@ def refresh_account_api(account_id: str) -> tuple[Response, int]:
         account: stripe.financial_connections.Account = (
             stripe.financial_connections.Account.retrieve(account_id)
         )
-        upsert(bank_accounts_collection, account)
+        dual_write_operation(
+            mongo_write_func=lambda: upsert(bank_accounts_collection, account),
+            pg_write_func=lambda db: bulk_upsert_bank_accounts(db, [account]),
+            operation_name="refresh_bank_account",
+        )
         return jsonify({"data": "success"}), 200
     except Exception as e:
         return jsonify(error=str(e)), 500
