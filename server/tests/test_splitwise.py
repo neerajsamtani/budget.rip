@@ -102,7 +102,11 @@ class TestSplitwiseFunctions:
         """Test refresh_splitwise function - success case"""
         with flask_app.app_context():
             mock_splitwise_client = mocker.patch("resources.splitwise.splitwise_client")
+            # Mock bulk_upsert (MongoDB)
             mock_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert")
+
+            # Mock bulk_upsert_transactions (PostgreSQL)
+            mock_pg_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert_transactions")
 
             # Mock the getExpenses method
             mock_splitwise_client.getExpenses.return_value = [mock_splitwise_expense]
@@ -126,7 +130,11 @@ class TestSplitwiseFunctions:
         """Test refresh_splitwise function - filters out deleted expenses"""
         with flask_app.app_context():
             mock_splitwise_client = mocker.patch("resources.splitwise.splitwise_client")
+            # Mock bulk_upsert (MongoDB)
             mock_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert")
+
+            # Mock bulk_upsert_transactions (PostgreSQL)
+            mock_pg_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert_transactions")
 
             # Mock the getExpenses method to return both regular and deleted expenses
             mock_splitwise_client.getExpenses.return_value = [
@@ -146,7 +154,11 @@ class TestSplitwiseFunctions:
         """Test refresh_splitwise function - no expenses returned"""
         with flask_app.app_context():
             mock_splitwise_client = mocker.patch("resources.splitwise.splitwise_client")
+            # Mock bulk_upsert (MongoDB)
             mock_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert")
+
+            # Mock bulk_upsert_transactions (PostgreSQL)
+            mock_pg_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert_transactions")
 
             # Mock the getExpenses method to return empty list
             mock_splitwise_client.getExpenses.return_value = []
@@ -163,7 +175,11 @@ class TestSplitwiseFunctions:
         """Test splitwise_to_line_items function - success case"""
         with flask_app.app_context():
             mock_get_data = mocker.patch("resources.splitwise.get_all_data")
+            # Mock bulk_upsert (MongoDB)
             mock_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert")
+
+            # Mock bulk_upsert_line_items (PostgreSQL)
+            mock_pg_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert_line_items")
 
             # Mock get_all_data to return our test expense
             mock_get_data.return_value = [mock_splitwise_expense_dict]
@@ -194,7 +210,11 @@ class TestSplitwiseFunctions:
         """Test splitwise_to_line_items function - filters out ignored parties"""
         with flask_app.app_context():
             mock_get_data = mocker.patch("resources.splitwise.get_all_data")
+            # Mock bulk_upsert (MongoDB)
             mock_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert")
+
+            # Mock bulk_upsert_line_items (PostgreSQL)
+            mock_pg_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert_line_items")
 
             # Mock expense where the responsible party is in the ignore list
             expense_with_ignored = {
@@ -221,7 +241,11 @@ class TestSplitwiseFunctions:
         """Test splitwise_to_line_items function - handles non-ignored parties correctly"""
         with flask_app.app_context():
             mock_get_data = mocker.patch("resources.splitwise.get_all_data")
+            # Mock bulk_upsert (MongoDB)
             mock_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert")
+
+            # Mock bulk_upsert_line_items (PostgreSQL)
+            mock_pg_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert_line_items")
 
             # Mock expense with non-ignored party
             expense_with_non_ignored = {
@@ -253,7 +277,11 @@ class TestSplitwiseFunctions:
         """Test splitwise_to_line_items function - handles multiple users correctly"""
         with flask_app.app_context():
             mock_get_data = mocker.patch("resources.splitwise.get_all_data")
+            # Mock bulk_upsert (MongoDB)
             mock_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert")
+
+            # Mock bulk_upsert_line_items (PostgreSQL)
+            mock_pg_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert_line_items")
 
             # Mock expense with multiple users
             expense_multiple_users = {
@@ -289,7 +317,11 @@ class TestSplitwiseFunctions:
         """Test splitwise_to_line_items function - no expenses to process"""
         with flask_app.app_context():
             mock_get_data = mocker.patch("resources.splitwise.get_all_data")
+            # Mock bulk_upsert (MongoDB)
             mock_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert")
+
+            # Mock bulk_upsert_line_items (PostgreSQL)
+            mock_pg_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert_line_items")
 
             # Mock get_all_data to return empty list
             mock_get_data.return_value = []
@@ -304,7 +336,11 @@ class TestSplitwiseFunctions:
         """Test splitwise_to_line_items function - user not found in expense"""
         with flask_app.app_context():
             mock_get_data = mocker.patch("resources.splitwise.get_all_data")
+            # Mock bulk_upsert (MongoDB)
             mock_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert")
+
+            # Mock bulk_upsert_line_items (PostgreSQL)
+            mock_pg_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert_line_items")
 
             # Mock expense without the current user
             expense_no_user = {
@@ -328,7 +364,11 @@ class TestSplitwiseFunctions:
         """Test splitwise_to_line_items function - date conversion"""
         with flask_app.app_context():
             mock_get_data = mocker.patch("resources.splitwise.get_all_data")
+            # Mock bulk_upsert (MongoDB)
             mock_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert")
+
+            # Mock bulk_upsert_line_items (PostgreSQL)
+            mock_pg_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert_line_items")
 
             # Mock expense with specific date
             expense_with_date = {
@@ -360,7 +400,11 @@ class TestSplitwiseFunctions:
         """Test splitwise_to_line_items function - amount flipping logic"""
         with flask_app.app_context():
             mock_get_data = mocker.patch("resources.splitwise.get_all_data")
+            # Mock bulk_upsert (MongoDB)
             mock_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert")
+
+            # Mock bulk_upsert_line_items (PostgreSQL)
+            mock_pg_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert_line_items")
 
             # Mock expense with positive and negative balances
             expense_mixed_balances = {
@@ -527,7 +571,15 @@ class TestSplitwiseIntegration:
         """Test the complete refresh workflow from API to database"""
         with flask_app.app_context():
             mock_splitwise_client = mocker.patch("resources.splitwise.splitwise_client")
+            # Mock bulk_upsert (MongoDB)
+            # Mock bulk_upsert (MongoDB)
             mock_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert")
+
+            # Mock bulk_upsert_line_items (PostgreSQL)
+            mock_pg_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert_line_items")
+
+            # Mock bulk_upsert_transactions (PostgreSQL)
+            mock_pg_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert_transactions")
             mock_get_data = mocker.patch("resources.splitwise.get_all_data")
 
             # Mock expense for refresh

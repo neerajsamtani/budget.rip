@@ -6,6 +6,7 @@ from dao import (
     get_collection,
     line_items_collection,
     stripe_raw_transaction_data_collection,
+    upsert_with_id,
 )
 from resources.stripe import refresh_stripe, stripe_to_line_items
 
@@ -215,7 +216,7 @@ class TestStripeAPI:
                 "last4": "1234",
                 "status": "active",
             }
-            get_collection(bank_accounts_collection).insert_one(test_account)
+            upsert_with_id(bank_accounts_collection, test_account, test_account["id"])
 
             response = test_client.get(
                 "/api/accounts",
@@ -238,6 +239,7 @@ class TestStripeAPI:
 
             # Insert test account
             test_account = {
+                "id": "fca_test123",
                 "_id": "fca_test123",  # For lookup in stripe_to_line_items
                 "id": "fca_test123",  # For refresh_stripe function
                 "institution_name": "Test Bank",
@@ -245,7 +247,7 @@ class TestStripeAPI:
                 "last4": "1234",
                 "status": "active",
             }
-            get_collection(bank_accounts_collection).insert_one(test_account)
+            upsert_with_id(bank_accounts_collection, test_account, test_account["id"])
 
             # Mock balance response
             mock_response = mocker.Mock()
@@ -442,13 +444,14 @@ class TestStripeFunctions:
 
             # Insert test account data
             test_account = {
+                "id": "fca_test123",
                 "_id": "fca_test123",  # For lookup in stripe_to_line_items
                 "id": "fca_test123",  # For refresh_stripe function
                 "institution_name": "Test Bank",
                 "display_name": "Checking Account",
                 "last4": "1234",
             }
-            get_collection(bank_accounts_collection).insert_one(test_account)
+            upsert_with_id(bank_accounts_collection, test_account, test_account["id"])
 
             # Call the function
             refresh_stripe()
@@ -482,19 +485,30 @@ class TestStripeFunctions:
         with flask_app.app_context():
             # Insert test data
             test_account = {
+                "id": "fca_test123",
                 "_id": "fca_test123",
                 "institution_name": "Test Bank",
                 "display_name": "Checking Account",
                 "last4": "1234",
             }
-            get_collection(bank_accounts_collection).insert_one(test_account)
+            upsert_with_id(bank_accounts_collection, test_account, test_account["id"])
 
             test_transaction = mock_stripe_transaction
-            get_collection(stripe_raw_transaction_data_collection).insert_one(
-                test_transaction
+            upsert_with_id(
+                stripe_raw_transaction_data_collection,
+                test_transaction,
+                test_transaction["id"],
             )
 
+            # Mock bulk_upsert (MongoDB)
+            # Mock bulk_upsert (MongoDB)
             mock_bulk_upsert = mocker.patch("resources.stripe.bulk_upsert")
+
+            # Mock bulk_upsert_line_items (PostgreSQL)
+            mock_pg_bulk_upsert = mocker.patch("resources.stripe.bulk_upsert_line_items")
+
+            # Mock bulk_upsert_transactions (PostgreSQL)
+            mock_pg_bulk_upsert = mocker.patch("resources.stripe.bulk_upsert_transactions")
 
             # Call the function
             stripe_to_line_items()
@@ -519,7 +533,11 @@ class TestStripeFunctions:
     def test_stripe_to_line_items_no_transactions(self, flask_app, mocker):
         """Test stripe_to_line_items function - no transactions to process"""
         with flask_app.app_context():
+            # Mock bulk_upsert (MongoDB)
             mock_bulk_upsert = mocker.patch("resources.stripe.bulk_upsert")
+
+            # Mock bulk_upsert_line_items (PostgreSQL)
+            mock_pg_bulk_upsert = mocker.patch("resources.stripe.bulk_upsert_line_items")
 
             # Call the function with no transactions
             stripe_to_line_items()
@@ -534,11 +552,17 @@ class TestStripeFunctions:
         with flask_app.app_context():
             # Insert transaction without corresponding account
             test_transaction = mock_stripe_transaction
-            get_collection(stripe_raw_transaction_data_collection).insert_one(
-                test_transaction
+            upsert_with_id(
+                stripe_raw_transaction_data_collection,
+                test_transaction,
+                test_transaction["id"],
             )
 
+            # Mock bulk_upsert (MongoDB)
             mock_bulk_upsert = mocker.patch("resources.stripe.bulk_upsert")
+
+            # Mock bulk_upsert_line_items (PostgreSQL)
+            mock_pg_bulk_upsert = mocker.patch("resources.stripe.bulk_upsert_line_items")
 
             # Call the function
             stripe_to_line_items()
@@ -555,12 +579,13 @@ class TestStripeFunctions:
         with flask_app.app_context():
             # Insert test account
             test_account = {
+                "id": "fca_test123",
                 "_id": "fca_test123",
                 "institution_name": "Test Bank",
                 "display_name": "Checking Account",
                 "last4": "1234",
             }
-            get_collection(bank_accounts_collection).insert_one(test_account)
+            upsert_with_id(bank_accounts_collection, test_account, test_account["id"])
 
             # Insert multiple transactions
             transactions = []
@@ -574,11 +599,17 @@ class TestStripeFunctions:
                     "transacted_at": 1673778600 + i,
                 }
                 transactions.append(transaction)
-                get_collection(stripe_raw_transaction_data_collection).insert_one(
-                    transaction
+                upsert_with_id(
+                    stripe_raw_transaction_data_collection,
+                    transaction,
+                    transaction["id"],
                 )
 
+            # Mock bulk_upsert (MongoDB)
             mock_bulk_upsert = mocker.patch("resources.stripe.bulk_upsert")
+
+            # Mock bulk_upsert_line_items (PostgreSQL)
+            mock_pg_bulk_upsert = mocker.patch("resources.stripe.bulk_upsert_line_items")
 
             # Call the function
             stripe_to_line_items()
@@ -765,17 +796,22 @@ class TestStripeIntegration:
             mock_refresh_transactions = mocker.patch(
                 "resources.stripe.refresh_transactions_api"
             )
+            # Mock bulk_upsert (MongoDB)
             mock_bulk_upsert = mocker.patch("resources.stripe.bulk_upsert")
+
+            # Mock bulk_upsert_line_items (PostgreSQL)
+            mock_pg_bulk_upsert = mocker.patch("resources.stripe.bulk_upsert_line_items")
 
             # Insert test account
             test_account = {
+                "id": "fca_test123",
                 "_id": "fca_test123",  # For lookup in stripe_to_line_items
                 "id": "fca_test123",  # For refresh_stripe function
                 "institution_name": "Test Bank",
                 "display_name": "Checking Account",
                 "last4": "1234",
             }
-            get_collection(bank_accounts_collection).insert_one(test_account)
+            upsert_with_id(bank_accounts_collection, test_account, test_account["id"])
 
             # Insert test transaction
             test_transaction = {
@@ -786,8 +822,10 @@ class TestStripeIntegration:
                 "status": "posted",
                 "transacted_at": 1673778600,
             }
-            get_collection(stripe_raw_transaction_data_collection).insert_one(
-                test_transaction
+            upsert_with_id(
+                stripe_raw_transaction_data_collection,
+                test_transaction,
+                test_transaction["id"],
             )
 
             # Call refresh function

@@ -61,6 +61,7 @@ def mock_event():
         "id": "event_1",
         "date": 1673778600.0,
         "description": "Test event",
+        "category": "Dining",
         "line_items": ["line_item_1", "line_item_2"],
     }
 

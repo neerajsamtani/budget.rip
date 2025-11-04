@@ -12,6 +12,7 @@ from dao import (
     line_items_collection,
 )
 from helpers import html_date_to_posix
+from utils.id_generator import generate_id
 from resources.line_item import LineItem
 from utils.dual_write import dual_write_operation
 from utils.pg_bulk_ops import bulk_upsert_line_items, bulk_upsert_transactions
@@ -25,6 +26,7 @@ cash_blueprint = Blueprint("cash", __name__)
 @jwt_required()
 def create_cash_transaction_api() -> tuple[Response, int]:
     transaction: Dict[str, Any] = request.get_json()
+    transaction["id"] = generate_id("cash")
     transaction["date"] = html_date_to_posix(transaction["date"])
     transaction["amount"] = float(transaction["amount"])
     dual_write_operation(

@@ -202,7 +202,12 @@ class TestLineItemReads:
         result = _pg_get_all_line_items({})
 
         assert len(result) == 3
-        assert result[0]["id"] in ["li_001", "li_002", "li_003"]
+        # id field returns mongo_id for MongoDB compatibility
+        assert result[0]["id"] in [
+            "507f1f77bcf86cd799439011",
+            "507f1f77bcf86cd799439012",
+            "507f1f77bcf86cd799439013",
+        ]
         assert "_id" in result[0]
         assert "date" in result[0]
         assert "amount" in result[0]
@@ -227,7 +232,8 @@ class TestLineItemReads:
         result = _pg_get_line_item_by_id("li_001")
 
         assert result is not None
-        assert result["id"] == "li_001"
+        # id field returns mongo_id for MongoDB compatibility
+        assert result["id"] == "507f1f77bcf86cd799439011"
         assert result["_id"] == "507f1f77bcf86cd799439011"
 
     def test_pg_get_line_item_by_id_mongodb_id(
@@ -249,7 +255,8 @@ class TestLineItemReads:
         result = _pg_get_line_item_by_id("507f1f77bcf86cd799439011")
 
         assert result is not None
-        assert result["id"] == "li_001"
+        # id field returns mongo_id for MongoDB compatibility
+        assert result["id"] == "507f1f77bcf86cd799439011"
         assert result["_id"] == "507f1f77bcf86cd799439011"
 
     def test_pg_get_line_items_with_payment_method_filter(

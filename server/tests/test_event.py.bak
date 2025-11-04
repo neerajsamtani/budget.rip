@@ -44,7 +44,7 @@ def mock_event_data():
     return {
         "id": "event1",
         "date": 1234567890,
-        "name": "Test Event",
+        "description": "Test Event",
         "amount": 150,
         "line_items": ["line_item_1", "line_item_2"],
         "tags": ["test", "event"],
@@ -68,16 +68,14 @@ class TestEventAPI:
 
         # Create events via API
         create_event_via_api({
-            "name": "Test Event 1",
-            "category": "Dining",
+            "description": "Test Event 1",
             "date": "2009-02-13",
             "line_items": [line_item_ids[0]],
             "tags": ["test"],
             "is_duplicate_transaction": False,
         })
         create_event_via_api({
-            "name": "Test Event 2",
-            "category": "Dining",
+            "description": "Test Event 2",
             "date": "2009-02-14",
             "line_items": [line_item_ids[1]],
             "tags": ["event"],
@@ -158,8 +156,7 @@ class TestEventAPI:
 
         # Create event via API
         event_response = create_event_via_api({
-            "name": "Test Event",
-            "category": "Dining",
+            "description": "Test Event",
             "date": "2009-02-13",
             "line_items": line_item_ids,
             "tags": ["test"],
@@ -176,7 +173,7 @@ class TestEventAPI:
         assert response.status_code == 200
         data = response.get_json()
         assert data["id"] == event_id
-        assert data["name"] == "Test Event"
+        assert data["description"] == "Test Event"
         assert data["amount"] == 100
 
     def test_get_event_by_id_api_not_found(self, test_client, jwt_token):
@@ -215,8 +212,7 @@ class TestEventAPI:
 
         # Test API call with dynamic line item IDs
         new_event_data = {
-            "name": "Test Event",
-            "category": "Dining",
+            "description": "Test Event",
             "date": "2023-01-01",
             "line_items": line_item_ids,
             "tags": ["test", "event"],
@@ -232,7 +228,7 @@ class TestEventAPI:
         assert response.status_code == 201
         response_data = response.get_json()
         assert response_data["amount"] == 150
-        assert response_data["name"] == "Test Event"
+        assert response_data["description"] == "Test Event"
         assert response_data["is_duplicate_transaction"] is False
         assert set(response_data["line_items"]) == set(line_item_ids)
         assert set(response_data["tags"]) == {"test", "event"}
@@ -244,7 +240,7 @@ class TestEventAPI:
 
             created_event = get_item_by_id(events_collection, created_event_id)
             assert created_event is not None
-            assert created_event["name"] == "Test Event"
+            assert created_event["description"] == "Test Event"
             assert created_event["amount"] == 150  # 100 + 50
             assert set(created_event["line_items"]) == set(line_item_ids)
 
@@ -257,7 +253,7 @@ class TestEventAPI:
     def test_create_event_api_no_line_items(self, test_client, jwt_token):
         """Test POST /api/events endpoint - no line items"""
         new_event_data = {
-            "name": "Test Event",
+            "description": "Test Event",
             "date": "2023-01-01",
             "line_items": [],
             "tags": ["test"],
@@ -297,8 +293,7 @@ class TestEventAPI:
 
         # Test API call with duplicate transaction
         new_event_data = {
-            "name": "Test Event",
-            "category": "Dining",
+            "description": "Test Event",
             "date": "2023-01-01",
             "line_items": line_item_ids,
             "tags": ["test"],
@@ -342,8 +337,7 @@ class TestEventAPI:
 
         # Test API call without date
         new_event_data = {
-            "name": "Test Event",
-            "category": "Dining",
+            "description": "Test Event",
             "date": None,
             "line_items": line_item_ids,
             "tags": ["test"],
@@ -387,8 +381,7 @@ class TestEventAPI:
 
         # Create event via API
         event_data = {
-            "name": "Test Event",
-            "category": "Dining",
+            "description": "Test Event",
             "date": "2009-02-13",
             "line_items": line_item_ids,
             "tags": ["test"],
@@ -446,8 +439,7 @@ class TestEventAPI:
 
         # Create event via API
         event_response = create_event_via_api({
-            "name": "Test Event",
-            "category": "Dining",
+            "description": "Test Event",
             "date": "2009-02-13",
             "line_items": line_item_ids,
             "tags": ["test"],
@@ -499,8 +491,7 @@ class TestEventAPI:
             test_event = {
                 "id": "event_test",
                 "date": 1234567890,
-                "name": "Test Event",
-                "category": "Dining",
+                "description": "Test Event",
                 "amount": 100,
                 "line_items": [line_item_ids[0], "nonexistent_line_item"],
                 "tags": ["test"],
@@ -796,7 +787,7 @@ class TestEventDualWrite:
             test_event = {
                 "id": "event_1",
                 "date": 1234567890,
-                "name": "Test Event",
+                "description": "Test Event",
                 "category": "Dining",
                 "amount": 100,
                 "line_items": ["line_item_1"],
@@ -933,7 +924,7 @@ class TestEventDualWrite:
             test_event = {
                 "id": "event_1",
                 "date": 1234567890,
-                "name": "Test Event",
+                "description": "Test Event",
                 "category": "Dining",
                 "amount": 100,
                 "line_items": ["line_item_1"],

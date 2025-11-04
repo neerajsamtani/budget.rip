@@ -115,8 +115,11 @@ class TestVenmoFunctions:
                 "resources.venmo.get_venmo_client", return_value=mock_venmo_client
             )
 
-            # Mock bulk_upsert
+            # Mock bulk_upsert (MongoDB)
             mock_bulk_upsert = mocker.patch("resources.venmo.bulk_upsert")
+
+            # Mock bulk_upsert_transactions (PostgreSQL)
+            mock_pg_bulk_upsert = mocker.patch("resources.venmo.bulk_upsert_transactions")
 
             # Mock transactions
             mock_transactions = mocker.Mock()
@@ -161,8 +164,11 @@ class TestVenmoFunctions:
                 "resources.venmo.get_venmo_client", return_value=mock_venmo_client
             )
 
-            # Mock bulk_upsert
+            # Mock bulk_upsert (MongoDB)
             mock_bulk_upsert = mocker.patch("resources.venmo.bulk_upsert")
+
+            # Mock bulk_upsert_transactions (PostgreSQL)
+            mock_pg_bulk_upsert = mocker.patch("resources.venmo.bulk_upsert_transactions")
 
             # Mock transactions - all before moving date (1659510000.0)
             mock_transactions = mocker.Mock()
@@ -199,8 +205,11 @@ class TestVenmoFunctions:
                 "resources.venmo.get_venmo_client", return_value=mock_venmo_client
             )
 
-            # Mock bulk_upsert
+            # Mock bulk_upsert (MongoDB)
             mock_bulk_upsert = mocker.patch("resources.venmo.bulk_upsert")
+
+            # Mock bulk_upsert_transactions (PostgreSQL)
+            mock_pg_bulk_upsert = mocker.patch("resources.venmo.bulk_upsert_transactions")
 
             # Mock transactions - one with ignored party
             mock_transactions = mocker.Mock()
@@ -235,8 +244,11 @@ class TestVenmoFunctions:
                 "resources.venmo.get_venmo_client", return_value=mock_venmo_client
             )
 
-            # Mock bulk_upsert
+            # Mock bulk_upsert (MongoDB)
             mock_bulk_upsert = mocker.patch("resources.venmo.bulk_upsert")
+
+            # Mock bulk_upsert_transactions (PostgreSQL)
+            mock_pg_bulk_upsert = mocker.patch("resources.venmo.bulk_upsert_transactions")
 
             # Mock first page of transactions
             mock_transactions_page1 = mocker.Mock()
@@ -308,7 +320,11 @@ class TestVenmoFunctions:
                 venmo_raw_data_collection, test_transaction, test_transaction["id"]
             )
 
+            # Mock bulk_upsert (MongoDB)
             mock_bulk_upsert = mocker.patch("resources.venmo.bulk_upsert")
+
+            # Mock bulk_upsert_line_items (PostgreSQL)
+            mock_pg_bulk_upsert = mocker.patch("resources.venmo.bulk_upsert_line_items")
 
             # Call the function
             venmo_to_line_items()
@@ -340,7 +356,11 @@ class TestVenmoFunctions:
                 venmo_raw_data_collection, test_transaction, test_transaction["id"]
             )
 
+            # Mock bulk_upsert (MongoDB)
             mock_bulk_upsert = mocker.patch("resources.venmo.bulk_upsert")
+
+            # Mock bulk_upsert_line_items (PostgreSQL)
+            mock_pg_bulk_upsert = mocker.patch("resources.venmo.bulk_upsert_line_items")
 
             # Call the function
             venmo_to_line_items()
@@ -369,7 +389,11 @@ class TestVenmoFunctions:
                 venmo_raw_data_collection, test_transaction, test_transaction["id"]
             )
 
+            # Mock bulk_upsert (MongoDB)
             mock_bulk_upsert = mocker.patch("resources.venmo.bulk_upsert")
+
+            # Mock bulk_upsert_line_items (PostgreSQL)
+            mock_pg_bulk_upsert = mocker.patch("resources.venmo.bulk_upsert_line_items")
 
             # Call the function
             venmo_to_line_items()
@@ -390,7 +414,11 @@ class TestVenmoFunctions:
     def test_venmo_to_line_items_no_transactions(self, flask_app, mocker):
         """Test venmo_to_line_items function - no transactions to process"""
         with flask_app.app_context():
+            # Mock bulk_upsert (MongoDB)
             mock_bulk_upsert = mocker.patch("resources.venmo.bulk_upsert")
+
+            # Mock bulk_upsert_line_items (PostgreSQL)
+            mock_pg_bulk_upsert = mocker.patch("resources.venmo.bulk_upsert_line_items")
 
             # Call the function with no transactions
             venmo_to_line_items()
@@ -440,7 +468,11 @@ class TestVenmoFunctions:
                     venmo_raw_data_collection, transaction, transaction["id"]
                 )
 
+            # Mock bulk_upsert (MongoDB)
             mock_bulk_upsert = mocker.patch("resources.venmo.bulk_upsert")
+
+            # Mock bulk_upsert_line_items (PostgreSQL)
+            mock_pg_bulk_upsert = mocker.patch("resources.venmo.bulk_upsert_line_items")
 
             # Call the function
             venmo_to_line_items()
@@ -677,7 +709,11 @@ class TestVenmoIntegration:
                 "note": "Integration test payment",
                 "amount": 25.0,
             }
-            coll.insert_one(transaction_dict)
+            upsert_with_id(
+                venmo_raw_data_collection,
+                transaction_dict,
+                transaction_dict["id"],
+            )
 
             # Now call line items conversion with the stored data
             mock_bulk_upsert = mocker.patch("resources.venmo.bulk_upsert")

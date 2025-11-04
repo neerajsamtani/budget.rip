@@ -64,18 +64,15 @@ class TestAuthAPI:
             assert created_user["email"] == "neerajjsamtani@gmail.com"
             assert "password_hash" in created_user  # Should have hashed password
 
-    def test_signup_user_api_user_already_exists(self, test_client, flask_app):
+    def test_signup_user_api_user_already_exists(self, test_client, flask_app, create_user_via_api):
         """Test POST /api/auth/signup endpoint - user already exists"""
-        # Insert existing user first
-        with flask_app.app_context():
-            existing_user = {
-                "id": "existing_user",
-                "first_name": "Neeraj",
-                "last_name": "Samtani",
-                "email": "neerajjsamtani@gmail.com",
-                "password_hash": "existing_hash",
-            }
-            upsert_with_id(users_collection, existing_user, existing_user["id"])
+        # Create existing user via API
+        create_user_via_api({
+            "first_name": "Neeraj",
+            "last_name": "Samtani",
+            "email": "neerajjsamtani@gmail.com",
+            "password": "existingpassword",
+        })
 
         # Test API call with same email
         signup_data = {
@@ -136,24 +133,19 @@ class TestAuthAPI:
         data = response.get_json()
         assert data["error"].startswith("Missing required field: password")
 
-    def test_login_user_api_success(self, test_client, flask_app):
+    def test_login_user_api_success(self, test_client, flask_app, create_user_via_api):
         """Test POST /api/auth/login endpoint - success case"""
-        # Insert test user with known password hash
-        with flask_app.app_context():
-            from helpers import hash_password
-
-            test_user = {
-                "id": "test_user",
-                "first_name": "Test",
-                "last_name": "User",
-                "email": "test@example.com",
-                "password_hash": hash_password("testpassword123"),
-            }
-            upsert_with_id(users_collection, test_user, test_user["id"])
+        # Create test user via API (but use a gated email for signup)
+        create_user_via_api({
+            "first_name": "Neeraj",
+            "last_name": "Samtani",
+            "email": "neerajjsamtani@gmail.com",  # Gated user
+            "password": "testpassword123",
+        })
 
         # Test API call with correct credentials
         login_data = {
-            "email": "test@example.com",
+            "email": "neerajjsamtani@gmail.com",
             "password": "testpassword123",
         }
 
@@ -180,24 +172,19 @@ class TestAuthAPI:
         data = response.get_json()
         assert data["error"] == "Email or password invalid"
 
-    def test_login_user_api_invalid_password(self, test_client, flask_app):
+    def test_login_user_api_invalid_password(self, test_client, flask_app, create_user_via_api):
         """Test POST /api/auth/login endpoint - invalid password"""
-        # Insert test user
-        with flask_app.app_context():
-            from helpers import hash_password
-
-            test_user = {
-                "id": "test_user",
-                "first_name": "Test",
-                "last_name": "User",
-                "email": "test@example.com",
-                "password_hash": hash_password("correctpassword"),
-            }
-            upsert_with_id(users_collection, test_user, test_user["id"])
+        # Create test user via API
+        create_user_via_api({
+            "first_name": "Neeraj",
+            "last_name": "Samtani",
+            "email": "neerajjsamtani@gmail.com",  # Gated user
+            "password": "correctpassword",
+        })
 
         # Test API call with wrong password
         login_data = {
-            "email": "test@example.com",
+            "email": "neerajjsamtani@gmail.com",
             "password": "wrongpassword",
         }
 

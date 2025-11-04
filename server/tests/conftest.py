@@ -191,6 +191,55 @@ def pg_session():
     session.close()
 
 
+def seed_postgresql_base_data():
+    """Seed PostgreSQL with required base data (categories, payment methods)"""
+    from models.sql_models import Category, PaymentMethod
+
+    session = TestSession()
+    try:
+        categories = [
+            {"id": "cat_all", "name": "All"},
+            {"id": "cat_alcohol", "name": "Alcohol"},
+            {"id": "cat_dining", "name": "Dining"},
+            {"id": "cat_entertainment", "name": "Entertainment"},
+            {"id": "cat_forma", "name": "Forma"},
+            {"id": "cat_groceries", "name": "Groceries"},
+            {"id": "cat_hobbies", "name": "Hobbies"},
+            {"id": "cat_income", "name": "Income"},
+            {"id": "cat_investment", "name": "Investment"},
+            {"id": "cat_medical", "name": "Medical"},
+            {"id": "cat_rent", "name": "Rent"},
+            {"id": "cat_shopping", "name": "Shopping"},
+            {"id": "cat_subscription", "name": "Subscription"},
+            {"id": "cat_transfer", "name": "Transfer"},
+            {"id": "cat_transit", "name": "Transit"},
+            {"id": "cat_travel", "name": "Travel"},
+            {"id": "cat_food", "name": "Food"},
+            {"id": "cat_transportation", "name": "Transportation"},
+        ]
+        for cat_data in categories:
+            if not session.query(Category).filter_by(name=cat_data["name"]).first():
+                session.add(Category(**cat_data))
+
+        payment_methods = [
+            {"id": "pm_cash", "name": "Cash", "type": "cash", "is_active": True},
+            {"id": "pm_venmo", "name": "Venmo", "type": "venmo", "is_active": True},
+            {"id": "pm_splitwise", "name": "Splitwise", "type": "splitwise", "is_active": True},
+            {"id": "pm_credit_card", "name": "Credit Card", "type": "credit", "is_active": True},
+            {"id": "pm_debit_card", "name": "Debit Card", "type": "bank", "is_active": True},
+        ]
+        for pm_data in payment_methods:
+            if not session.query(PaymentMethod).filter_by(name=pm_data["name"]).first():
+                session.add(PaymentMethod(**pm_data))
+
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+
+
 @pytest.fixture(autouse=True)
 def setup_teardown(flask_app, request):
     # This fixture will be used for setup and teardown
@@ -211,6 +260,12 @@ def setup_teardown(flask_app, request):
         # Clean up PostgreSQL tables before each test
         cleanup_test_db()
 
+        # Seed PostgreSQL with base data if READ_FROM_POSTGRESQL=true
+        # Skip for phase5 tests as they have their own fixtures
+        test_name = request.node.name
+        if "test_phase5" not in request.node.fspath.basename:
+            seed_postgresql_base_data()
+
     def teardown():
         with flask_app.app_context():
             # Clean up MongoDB collections after each test
@@ -230,3 +285,50 @@ def setup_teardown(flask_app, request):
             cleanup_test_db()
 
     request.addfinalizer(teardown)
+
+
+@pytest.fixture
+def create_line_item_via_cash(test_client, jwt_token):
+    """Helper to create line items via cash transaction API"""
+    def _create(**kwargs):
+        transaction_data = {
+            "date": kwargs.get("date", "2009-02-13"),
+            "person": kwargs.get("person", "Test Person"),
+            "description": kwargs.get("description", "Test Transaction"),
+            "amount": kwargs.get("amount", 100.0),
+        }
+        response = test_client.post(
+            "/api/cash_transaction",
+            json=transaction_data,
+            headers={"Authorization": f"Bearer {jwt_token}"},
+        )
+        assert response.status_code == 201
+        return transaction_data
+    return _create
+
+
+@pytest.fixture
+def create_event_via_api(test_client, jwt_token):
+    """Helper to create events via API"""
+    def _create(event_data):
+        response = test_client.post(
+            "/api/events",
+            json=event_data,
+            headers={"Authorization": f"Bearer {jwt_token}"},
+        )
+        assert response.status_code == 201
+        return response.get_json()
+    return _create
+
+
+@pytest.fixture
+def create_user_via_api(test_client):
+    """Helper to create users via signup API"""
+    def _create(user_data):
+        response = test_client.post(
+            "/api/auth/signup",
+            json=user_data,
+        )
+        assert response.status_code == 201
+        return response.get_json()
+    return _create

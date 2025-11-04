@@ -148,8 +148,7 @@ class TestLineItemAPI:
 
         # Create event with the 50-amount line item (this will set event_id on that line item)
         create_event_via_api({
-            "name": "Test Event",
-            "category": "Dining",
+            "description": "Test Event",
             "date": "2009-02-14",
             "line_items": [line_item_50["id"]],  # Only the 50-amount line item has event
             "tags": ["test"],

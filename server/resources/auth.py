@@ -13,6 +13,7 @@ from constants import GATED_USERS
 from dao import get_user_by_email, insert, users_collection
 from helpers import check_password, hash_password
 from utils.dual_write import dual_write_operation
+from utils.id_generator import generate_id
 from utils.pg_bulk_ops import upsert_user
 
 auth_blueprint = Blueprint("auth", __name__)
@@ -37,6 +38,7 @@ def signup_user_api() -> tuple[Response, int]:
         logging.warning(f"Signup attempt by non-gated user: {body['email']}")
         return jsonify("User Not Signed Up For Private Beta"), 403
     else:
+        user["id"] = generate_id("user")
         user["first_name"] = body["first_name"]
         user["last_name"] = body["last_name"]
         user["email"] = body["email"]

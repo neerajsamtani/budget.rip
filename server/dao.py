@@ -60,6 +60,9 @@ def get_all_data(
             raise NotImplementedError(
                 "Use get_user_by_email() instead of get_all_data() for users"
             )
+        elif cur_collection_str == test_collection:
+            # Fall back to MongoDB for test collections
+            pass
         else:
             raise NotImplementedError(
                 f"Unknown collection '{cur_collection_str}' - cannot read from PostgreSQL"
@@ -77,6 +80,11 @@ def get_item_by_id(
             return _pg_get_line_item_by_id(str(id))
         elif cur_collection_str == events_collection:
             return _pg_get_event_by_id(str(id))
+        else:
+            # Fall back to MongoDB for unmigrated collections
+            logging.debug(
+                f"Collection '{cur_collection_str}' not migrated to PostgreSQL, reading from MongoDB"
+            )
 
     cur_collection: Collection = get_collection(cur_collection_str)
     return cur_collection.find_one({"_id": id})
@@ -85,6 +93,8 @@ def get_item_by_id(
 def insert(cur_collection_str: str, item: Any) -> None:
     cur_collection: Collection = get_collection(cur_collection_str)
     item_dict: Dict[str, Any] = to_dict(item)
+    if "id" in item_dict:
+        item_dict["_id"] = item_dict["id"]
     cur_collection.insert_one(item_dict)
 
 
@@ -129,9 +139,76 @@ def upsert(cur_collection_str: str, item: Any) -> None:
 def upsert_with_id(
     cur_collection_str: str, item: Dict[str, Any], id: Union[str, int, ObjectId]
 ) -> None:
+    """Upsert item to MongoDB and also to PostgreSQL for transaction collections (dual-write for tests)"""
+    # MongoDB write
     cur_collection: Collection = get_collection(cur_collection_str)
     item["_id"] = item["id"]
     cur_collection.replace_one({"_id": id}, item, upsert=True)
+
+    # PostgreSQL write (for transaction collections used in tests)
+    if cur_collection_str in [
+        venmo_raw_data_collection,
+        splitwise_raw_data_collection,
+        stripe_raw_transaction_data_collection,
+        cash_raw_data_collection,
+    ]:
+        from utils.pg_bulk_ops import bulk_upsert_transactions
+        from models.database import SessionLocal
+
+        source_map = {
+            venmo_raw_data_collection: "venmo",
+            splitwise_raw_data_collection: "splitwise",
+            stripe_raw_transaction_data_collection: "stripe",
+            cash_raw_data_collection: "cash",
+        }
+        source = source_map[cur_collection_str]
+
+        db_session = SessionLocal()
+        try:
+            bulk_upsert_transactions(db_session, [item], source=source)
+            db_session.commit()
+        except Exception as e:
+            db_session.rollback()
+            # Re-raise the exception - don't swallow it!
+            raise Exception(
+                f"Failed to dual-write transaction {item.get('id')} to PostgreSQL: {e}"
+            ) from e
+        finally:
+            db_session.close()
+
+    elif cur_collection_str == events_collection:
+        from models.database import SessionLocal
+        from utils.pg_event_operations import upsert_event_to_postgresql
+
+        db_session = SessionLocal()
+        try:
+            upsert_event_to_postgresql(item, db_session)
+            db_session.commit()
+        except Exception as e:
+            db_session.rollback()
+            # Re-raise the exception - don't swallow it!
+            raise Exception(
+                f"Failed to dual-write event {item.get('id')} to PostgreSQL: {e}"
+            ) from e
+        finally:
+            db_session.close()
+
+    elif cur_collection_str == bank_accounts_collection:
+        from utils.pg_bulk_ops import bulk_upsert_bank_accounts
+        from models.database import SessionLocal
+
+        db_session = SessionLocal()
+        try:
+            bulk_upsert_bank_accounts(db_session, [item])
+            db_session.commit()
+        except Exception as e:
+            db_session.rollback()
+            # Re-raise the exception - don't swallow it!
+            raise Exception(
+                f"Failed to dual-write bank account {item.get('id')} to PostgreSQL: {e}"
+            ) from e
+        finally:
+            db_session.close()
 
 
 def bulk_upsert(cur_collection_str: str, items: List[Any]) -> None:
@@ -241,10 +318,19 @@ def get_categorized_data() -> List[Dict[str, Any]]:
 
 def _pg_serialize_line_item(li: Any) -> Dict[str, Any]:
     """Convert LineItem ORM to dict matching MongoDB format"""
+    from datetime import timezone as tz
+
+    mongo_id = li.mongo_id or li.id
+    # Handle naive datetimes from SQLite by treating them as UTC
+    if li.date and li.date.tzinfo is None:
+        date_timestamp = li.date.replace(tzinfo=tz.utc).timestamp()
+    else:
+        date_timestamp = li.date.timestamp() if li.date else 0.0
+
     data = {
-        "_id": li.mongo_id or li.id,
-        "id": li.id,
-        "date": li.date.timestamp() if li.date else 0.0,
+        "_id": mongo_id,
+        "id": mongo_id,
+        "date": date_timestamp,
         "payment_method": li.payment_method.name if li.payment_method else "Unknown",
         "description": li.description or "",
         "amount": float(li.amount or 0.0),
@@ -258,14 +344,23 @@ def _pg_serialize_line_item(li: Any) -> Dict[str, Any]:
 
 def _pg_serialize_event(event: Any) -> Dict[str, Any]:
     """Convert Event ORM to dict matching MongoDB format"""
+    from datetime import timezone as tz
+
     amount = float(event.total_amount) if event.total_amount else 0.0
     line_item_ids = [li.mongo_id or li.id for li in event.line_items]
     tag_names = [tag.name for tag in event.tags] if event.tags else []
 
+    # Handle naive datetimes from SQLite by treating them as UTC
+    if event.date and event.date.tzinfo is None:
+        date_timestamp = event.date.replace(tzinfo=tz.utc).timestamp()
+    else:
+        date_timestamp = event.date.timestamp() if event.date else 0.0
+
+    mongo_id = event.mongo_id or event.id
     return {
-        "_id": event.mongo_id or event.id,
-        "id": event.id,
-        "date": event.date.timestamp() if event.date else 0.0,
+        "_id": mongo_id,
+        "id": mongo_id,
+        "date": date_timestamp,
         "name": event.description or "",
         "category": event.category.name if event.category else "Unknown",
         "amount": amount,
@@ -353,10 +448,14 @@ def _pg_get_all_events(filters: Optional[Dict[str, Any]]) -> List[Dict[str, Any]
 
     db_session = SessionLocal()
     try:
-        query = db_session.query(Event).options(
-            joinedload(Event.category),
-            joinedload(Event.line_items).joinedload(LineItem.payment_method),
-            joinedload(Event.tags),
+        query = (
+            db_session.query(Event)
+            .distinct()
+            .options(
+                joinedload(Event.category),
+                joinedload(Event.line_items).joinedload(LineItem.payment_method),
+                joinedload(Event.tags),
+            )
         )
 
         if filters and "date" in filters:
@@ -390,9 +489,14 @@ def _pg_get_event_by_id(id: str) -> Optional[Dict[str, Any]]:
             joinedload(Event.tags),
         )
 
+        # PostgreSQL event IDs look like "event_01K..." (ULID after underscore)
+        # MongoDB event IDs look like "event_cash_..." or "event{hash}"
+        # Check if it's a PostgreSQL ID by looking for ULID pattern
+        is_pg_id = id.startswith("event_0") and len(id) > 10
+
         event = (
             query.filter(Event.id == id).first()
-            if id.startswith("evt_") or id.startswith("event")
+            if is_pg_id
             else query.filter(Event.mongo_id == id).first()
         )
 
