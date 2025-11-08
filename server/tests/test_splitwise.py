@@ -106,7 +106,9 @@ class TestSplitwiseFunctions:
             mock_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert")
 
             # Mock bulk_upsert_transactions (PostgreSQL)
-            mock_pg_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert_transactions")
+            mock_pg_bulk_upsert = mocker.patch(
+                "resources.splitwise.bulk_upsert_transactions"
+            )
 
             # Mock the getExpenses method
             mock_splitwise_client.getExpenses.return_value = [mock_splitwise_expense]
@@ -134,7 +136,9 @@ class TestSplitwiseFunctions:
             mock_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert")
 
             # Mock bulk_upsert_transactions (PostgreSQL)
-            mock_pg_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert_transactions")
+            mock_pg_bulk_upsert = mocker.patch(
+                "resources.splitwise.bulk_upsert_transactions"
+            )
 
             # Mock the getExpenses method to return both regular and deleted expenses
             mock_splitwise_client.getExpenses.return_value = [
@@ -158,7 +162,9 @@ class TestSplitwiseFunctions:
             mock_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert")
 
             # Mock bulk_upsert_transactions (PostgreSQL)
-            mock_pg_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert_transactions")
+            mock_pg_bulk_upsert = mocker.patch(
+                "resources.splitwise.bulk_upsert_transactions"
+            )
 
             # Mock the getExpenses method to return empty list
             mock_splitwise_client.getExpenses.return_value = []
@@ -179,7 +185,9 @@ class TestSplitwiseFunctions:
             mock_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert")
 
             # Mock bulk_upsert_line_items (PostgreSQL)
-            mock_pg_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert_line_items")
+            mock_pg_bulk_upsert = mocker.patch(
+                "resources.splitwise.bulk_upsert_line_items"
+            )
 
             # Mock get_all_data to return our test expense
             mock_get_data.return_value = [mock_splitwise_expense_dict]
@@ -214,7 +222,9 @@ class TestSplitwiseFunctions:
             mock_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert")
 
             # Mock bulk_upsert_line_items (PostgreSQL)
-            mock_pg_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert_line_items")
+            mock_pg_bulk_upsert = mocker.patch(
+                "resources.splitwise.bulk_upsert_line_items"
+            )
 
             # Mock expense where the responsible party is in the ignore list
             expense_with_ignored = {
@@ -245,7 +255,9 @@ class TestSplitwiseFunctions:
             mock_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert")
 
             # Mock bulk_upsert_line_items (PostgreSQL)
-            mock_pg_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert_line_items")
+            mock_pg_bulk_upsert = mocker.patch(
+                "resources.splitwise.bulk_upsert_line_items"
+            )
 
             # Mock expense with non-ignored party
             expense_with_non_ignored = {
@@ -281,7 +293,9 @@ class TestSplitwiseFunctions:
             mock_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert")
 
             # Mock bulk_upsert_line_items (PostgreSQL)
-            mock_pg_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert_line_items")
+            mock_pg_bulk_upsert = mocker.patch(
+                "resources.splitwise.bulk_upsert_line_items"
+            )
 
             # Mock expense with multiple users
             expense_multiple_users = {
@@ -321,7 +335,9 @@ class TestSplitwiseFunctions:
             mock_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert")
 
             # Mock bulk_upsert_line_items (PostgreSQL)
-            mock_pg_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert_line_items")
+            mock_pg_bulk_upsert = mocker.patch(
+                "resources.splitwise.bulk_upsert_line_items"
+            )
 
             # Mock get_all_data to return empty list
             mock_get_data.return_value = []
@@ -340,7 +356,9 @@ class TestSplitwiseFunctions:
             mock_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert")
 
             # Mock bulk_upsert_line_items (PostgreSQL)
-            mock_pg_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert_line_items")
+            mock_pg_bulk_upsert = mocker.patch(
+                "resources.splitwise.bulk_upsert_line_items"
+            )
 
             # Mock expense without the current user
             expense_no_user = {
@@ -368,7 +386,9 @@ class TestSplitwiseFunctions:
             mock_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert")
 
             # Mock bulk_upsert_line_items (PostgreSQL)
-            mock_pg_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert_line_items")
+            mock_pg_bulk_upsert = mocker.patch(
+                "resources.splitwise.bulk_upsert_line_items"
+            )
 
             # Mock expense with specific date
             expense_with_date = {
@@ -404,7 +424,9 @@ class TestSplitwiseFunctions:
             mock_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert")
 
             # Mock bulk_upsert_line_items (PostgreSQL)
-            mock_pg_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert_line_items")
+            mock_pg_bulk_upsert = mocker.patch(
+                "resources.splitwise.bulk_upsert_line_items"
+            )
 
             # Mock expense with positive and negative balances
             expense_mixed_balances = {
@@ -576,10 +598,14 @@ class TestSplitwiseIntegration:
             mock_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert")
 
             # Mock bulk_upsert_line_items (PostgreSQL)
-            mock_pg_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert_line_items")
+            mock_pg_bulk_upsert = mocker.patch(
+                "resources.splitwise.bulk_upsert_line_items"
+            )
 
             # Mock bulk_upsert_transactions (PostgreSQL)
-            mock_pg_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert_transactions")
+            mock_pg_bulk_upsert = mocker.patch(
+                "resources.splitwise.bulk_upsert_transactions"
+            )
             mock_get_data = mocker.patch("resources.splitwise.get_all_data")
 
             # Mock expense for refresh

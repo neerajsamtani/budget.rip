@@ -370,7 +370,15 @@ class TestEventReads:
         result = _pg_get_all_events({})
 
         assert len(result) == 2
-        assert result[0]["id"] in ["evt_001", "evt_002"]
+        # Should return MongoDB IDs, not PostgreSQL IDs (for application transparency)
+        assert result[0]["id"] in [
+            "507f1f77bcf86cd799439021",
+            "507f1f77bcf86cd799439022",
+        ]
+        assert result[0]["_id"] in [
+            "507f1f77bcf86cd799439021",
+            "507f1f77bcf86cd799439022",
+        ]
         assert "category" in result[0]
         assert "amount" in result[0]
 
@@ -389,7 +397,8 @@ class TestEventReads:
         result = _pg_get_event_by_id("evt_001")
 
         assert result is not None
-        assert result["id"] == "evt_001"
+        # Should return MongoDB ID for both fields (application transparency)
+        assert result["id"] == "507f1f77bcf86cd799439021"
         assert result["_id"] == "507f1f77bcf86cd799439021"
 
     def test_pg_get_event_by_id_mongodb_id(self, pg_session, sample_categories):
@@ -407,7 +416,9 @@ class TestEventReads:
         result = _pg_get_event_by_id("507f1f77bcf86cd799439021")
 
         assert result is not None
-        assert result["id"] == "evt_001"
+        # Should return MongoDB ID (application transparency)
+        assert result["id"] == "507f1f77bcf86cd799439021"
+        assert result["_id"] == "507f1f77bcf86cd799439021"
         assert result["category"] == "Dining"
 
     def test_pg_get_events_with_date_filter(self, pg_session, sample_categories):

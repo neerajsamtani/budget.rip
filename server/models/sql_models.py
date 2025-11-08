@@ -175,7 +175,7 @@ class Event(Base):
     __tablename__ = "events"
 
     id = Column(String(255), primary_key=True)  # evt_xxx
-    mongo_id = Column(String(255), nullable=True, index=True)  # Original MongoDB _id
+    mongo_id = Column(String(255), nullable=True, unique=True)  # Original MongoDB _id
     date = Column(TIMESTAMP(timezone=True), nullable=False)
     description = Column(Text, nullable=False)
     category_id = Column(

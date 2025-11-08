@@ -35,9 +35,7 @@ def upsert_event_to_postgresql(event_dict: Dict[str, Any], db_session) -> str:
             f"Event {event_dict.get('id')} has no category - cannot write to PostgreSQL"
         )
 
-    category = (
-        db_session.query(Category).filter(Category.name == category_name).first()
-    )
+    category = db_session.query(Category).filter(Category.name == category_name).first()
     if not category:
         raise ValueError(
             f"Category '{category_name}' not found in PostgreSQL - cannot write event"

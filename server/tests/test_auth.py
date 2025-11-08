@@ -1,7 +1,6 @@
 import pytest
 
 from constants import GATED_USERS
-from dao import upsert_with_id, users_collection
 
 
 @pytest.fixture
@@ -64,15 +63,19 @@ class TestAuthAPI:
             assert created_user["email"] == "neerajjsamtani@gmail.com"
             assert "password_hash" in created_user  # Should have hashed password
 
-    def test_signup_user_api_user_already_exists(self, test_client, flask_app, create_user_via_api):
+    def test_signup_user_api_user_already_exists(
+        self, test_client, flask_app, create_user_via_api
+    ):
         """Test POST /api/auth/signup endpoint - user already exists"""
         # Create existing user via API
-        create_user_via_api({
-            "first_name": "Neeraj",
-            "last_name": "Samtani",
-            "email": "neerajjsamtani@gmail.com",
-            "password": "existingpassword",
-        })
+        create_user_via_api(
+            {
+                "first_name": "Neeraj",
+                "last_name": "Samtani",
+                "email": "neerajjsamtani@gmail.com",
+                "password": "existingpassword",
+            }
+        )
 
         # Test API call with same email
         signup_data = {
@@ -136,12 +139,14 @@ class TestAuthAPI:
     def test_login_user_api_success(self, test_client, flask_app, create_user_via_api):
         """Test POST /api/auth/login endpoint - success case"""
         # Create test user via API (but use a gated email for signup)
-        create_user_via_api({
-            "first_name": "Neeraj",
-            "last_name": "Samtani",
-            "email": "neerajjsamtani@gmail.com",  # Gated user
-            "password": "testpassword123",
-        })
+        create_user_via_api(
+            {
+                "first_name": "Neeraj",
+                "last_name": "Samtani",
+                "email": "neerajjsamtani@gmail.com",  # Gated user
+                "password": "testpassword123",
+            }
+        )
 
         # Test API call with correct credentials
         login_data = {
@@ -172,15 +177,19 @@ class TestAuthAPI:
         data = response.get_json()
         assert data["error"] == "Email or password invalid"
 
-    def test_login_user_api_invalid_password(self, test_client, flask_app, create_user_via_api):
+    def test_login_user_api_invalid_password(
+        self, test_client, flask_app, create_user_via_api
+    ):
         """Test POST /api/auth/login endpoint - invalid password"""
         # Create test user via API
-        create_user_via_api({
-            "first_name": "Neeraj",
-            "last_name": "Samtani",
-            "email": "neerajjsamtani@gmail.com",  # Gated user
-            "password": "correctpassword",
-        })
+        create_user_via_api(
+            {
+                "first_name": "Neeraj",
+                "last_name": "Samtani",
+                "email": "neerajjsamtani@gmail.com",  # Gated user
+                "password": "correctpassword",
+            }
+        )
 
         # Test API call with wrong password
         login_data = {
@@ -233,12 +242,13 @@ class TestAuthAPI:
 
 
 class TestAuthFunctions:
-    def test_get_user_by_email_success(self, flask_app):
+    def test_get_user_by_email_success(self, flask_app, pg_session):
         """Test get_user_by_email function - success case"""
+        from tests.test_helpers import setup_test_user
+
         with flask_app.app_context():
             from dao import get_user_by_email
 
-            # Insert test user
             test_user = {
                 "id": "test_user",
                 "first_name": "Test",
@@ -246,7 +256,8 @@ class TestAuthFunctions:
                 "email": "test@example.com",
                 "password_hash": "test_hash",
             }
-            upsert_with_id(users_collection, test_user, test_user["id"])
+            setup_test_user(pg_session, test_user)
+            pg_session.commit()
 
             # Test function call
             found_user = get_user_by_email("test@example.com")

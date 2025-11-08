@@ -81,7 +81,9 @@ def verify_bank_accounts() -> bool:
                         f"     Display name: {pg_account.display_name} (matches: {sample.get('display_name') == pg_account.display_name})"
                     )
                 else:
-                    logger.warning(f"  ⚠️  Sample account {sample_id} not in PostgreSQL")
+                    logger.warning(
+                        f"  ⚠️  Sample account {sample_id} not in PostgreSQL"
+                    )
                     success = False
 
     except Exception as e:
@@ -144,11 +146,11 @@ def verify_users() -> bool:
 
                 if pg_user:
                     logger.info(f"  ✅ Sample user {sample_email} exists in PostgreSQL")
-                    logger.info(
-                        f"     Name: {pg_user.first_name} {pg_user.last_name}"
-                    )
+                    logger.info(f"     Name: {pg_user.first_name} {pg_user.last_name}")
                 else:
-                    logger.warning(f"  ⚠️  Sample user {sample_email} not in PostgreSQL")
+                    logger.warning(
+                        f"  ⚠️  Sample user {sample_email} not in PostgreSQL"
+                    )
                     success = False
             else:
                 logger.info("  ⚠️  No users with email found for sample verification")

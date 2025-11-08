@@ -108,7 +108,7 @@ def post_event_api() -> tuple[Response, int]:
         # This will raise ValueError if category missing/not found
         # The dual_write_operation will catch and handle appropriately
         upsert_event_to_postgresql(new_event, db_session)
-        db_session.commit()
+        # Note: No explicit commit needed - dual_write_operation handles it
 
     # Execute dual-write
     result = dual_write_operation(
@@ -145,6 +145,8 @@ def delete_event_api(event_id: str) -> tuple[Response, int]:
 
     # PostgreSQL write function
     def pg_write(db_session):
+        # Find event by exact ID first, then by mongo_id
+        # Unique constraint on mongo_id ensures at most one event per ID
         pg_event = db_session.query(Event).filter(Event.id == event_id).first()
         if not pg_event:
             pg_event = (
@@ -153,7 +155,6 @@ def delete_event_api(event_id: str) -> tuple[Response, int]:
 
         if pg_event:
             db_session.delete(pg_event)
-            db_session.commit()
         else:
             logging.info(f"Event {event_id} not in PostgreSQL yet")
 

@@ -1,5 +1,6 @@
-import pytest
 from datetime import UTC, datetime
+
+import pytest
 
 from dao import events_collection, line_items_collection, upsert_with_id
 from models.sql_models import (
@@ -53,36 +54,52 @@ def mock_event_data():
 
 
 class TestEventAPI:
-    def test_get_all_events_api(self, test_client, jwt_token, flask_app, create_line_item_via_cash, create_event_via_api):
+    def test_get_all_events_api(
+        self,
+        test_client,
+        jwt_token,
+        flask_app,
+        create_line_item_via_cash,
+        create_event_via_api,
+    ):
         """Test GET /api/events endpoint"""
         # Create test line items via API
-        create_line_item_via_cash(date="2009-02-13", person="Person1", description="Transaction 1", amount=100)
-        create_line_item_via_cash(date="2009-02-14", person="Person2", description="Transaction 2", amount=50)
+        create_line_item_via_cash(
+            date="2009-02-13", person="Person1", description="Transaction 1", amount=100
+        )
+        create_line_item_via_cash(
+            date="2009-02-14", person="Person2", description="Transaction 2", amount=50
+        )
 
         # Get created line item IDs
         with flask_app.app_context():
             from dao import get_all_data
+
             all_line_items = get_all_data(line_items_collection)
             line_item_ids = [item["id"] for item in all_line_items]
             assert len(line_item_ids) == 2
 
         # Create events via API
-        create_event_via_api({
-            "name": "Test Event 1",
-            "category": "Dining",
-            "date": "2009-02-13",
-            "line_items": [line_item_ids[0]],
-            "tags": ["test"],
-            "is_duplicate_transaction": False,
-        })
-        create_event_via_api({
-            "name": "Test Event 2",
-            "category": "Dining",
-            "date": "2009-02-14",
-            "line_items": [line_item_ids[1]],
-            "tags": ["event"],
-            "is_duplicate_transaction": False,
-        })
+        create_event_via_api(
+            {
+                "name": "Test Event 1",
+                "category": "Dining",
+                "date": "2009-02-13",
+                "line_items": [line_item_ids[0]],
+                "tags": ["test"],
+                "is_duplicate_transaction": False,
+            }
+        )
+        create_event_via_api(
+            {
+                "name": "Test Event 2",
+                "category": "Dining",
+                "date": "2009-02-14",
+                "line_items": [line_item_ids[1]],
+                "tags": ["event"],
+                "is_duplicate_transaction": False,
+            }
+        )
 
         # Test API call
         response = test_client.get(
@@ -97,15 +114,27 @@ class TestEventAPI:
         assert data["total"] == 150  # 100 + 50
         assert len(data["data"]) == 2
 
-    def test_get_all_events_with_time_filter(self, test_client, jwt_token, flask_app, create_line_item_via_cash, create_event_via_api):
+    def test_get_all_events_with_time_filter(
+        self,
+        test_client,
+        jwt_token,
+        flask_app,
+        create_line_item_via_cash,
+        create_event_via_api,
+    ):
         """Test GET /api/events with time filters"""
         # Create test line items via API
-        create_line_item_via_cash(date="2009-02-13", person="Person1", description="Transaction 1", amount=100)
-        create_line_item_via_cash(date="2009-02-14", person="Person2", description="Transaction 2", amount=50)
+        create_line_item_via_cash(
+            date="2009-02-13", person="Person1", description="Transaction 1", amount=100
+        )
+        create_line_item_via_cash(
+            date="2009-02-14", person="Person2", description="Transaction 2", amount=50
+        )
 
         # Get created line item IDs and dates (sort by date to ensure consistent ordering)
         with flask_app.app_context():
             from dao import get_all_data
+
             all_line_items = get_all_data(line_items_collection)
             all_line_items_sorted = sorted(all_line_items, key=lambda x: x["date"])
             assert len(all_line_items_sorted) == 2
@@ -113,22 +142,26 @@ class TestEventAPI:
             line_item_feb14 = all_line_items_sorted[1]  # 2009-02-14, amount=50
 
         # Create events via API
-        event1_response = create_event_via_api({
-            "name": "Test Event 1",
-            "category": "Dining",
-            "date": "2009-02-13",
-            "line_items": [line_item_feb13["id"]],
-            "tags": ["test"],
-            "is_duplicate_transaction": False,
-        })
-        create_event_via_api({
-            "name": "Test Event 2",
-            "category": "Dining",
-            "date": "2009-02-14",
-            "line_items": [line_item_feb14["id"]],
-            "tags": ["event"],
-            "is_duplicate_transaction": False,
-        })
+        event1_response = create_event_via_api(
+            {
+                "name": "Test Event 1",
+                "category": "Dining",
+                "date": "2009-02-13",
+                "line_items": [line_item_feb13["id"]],
+                "tags": ["test"],
+                "is_duplicate_transaction": False,
+            }
+        )
+        create_event_via_api(
+            {
+                "name": "Test Event 2",
+                "category": "Dining",
+                "date": "2009-02-14",
+                "line_items": [line_item_feb14["id"]],
+                "tags": ["event"],
+                "is_duplicate_transaction": False,
+            }
+        )
         event1_id = event1_response["id"]
         event_1_date = line_item_feb13["date"]
 
@@ -144,27 +177,39 @@ class TestEventAPI:
         assert len(data["data"]) == 1
         assert data["data"][0]["id"] == event1_id
 
-    def test_get_event_by_id_api_success(self, test_client, jwt_token, flask_app, create_line_item_via_cash, create_event_via_api):
+    def test_get_event_by_id_api_success(
+        self,
+        test_client,
+        jwt_token,
+        flask_app,
+        create_line_item_via_cash,
+        create_event_via_api,
+    ):
         """Test GET /api/events/<event_id> endpoint - success case"""
         # Create test line item via API
-        create_line_item_via_cash(date="2009-02-13", person="Person1", description="Transaction 1", amount=100)
+        create_line_item_via_cash(
+            date="2009-02-13", person="Person1", description="Transaction 1", amount=100
+        )
 
         # Get created line item ID
         with flask_app.app_context():
             from dao import get_all_data
+
             all_line_items = get_all_data(line_items_collection)
             line_item_ids = [item["id"] for item in all_line_items]
             assert len(line_item_ids) == 1
 
         # Create event via API
-        event_response = create_event_via_api({
-            "name": "Test Event",
-            "category": "Dining",
-            "date": "2009-02-13",
-            "line_items": line_item_ids,
-            "tags": ["test"],
-            "is_duplicate_transaction": False,
-        })
+        event_response = create_event_via_api(
+            {
+                "name": "Test Event",
+                "category": "Dining",
+                "date": "2009-02-13",
+                "line_items": line_item_ids,
+                "tags": ["test"],
+                "is_duplicate_transaction": False,
+            }
+        )
         event_id = event_response["id"]
 
         # Test API call
@@ -190,7 +235,9 @@ class TestEventAPI:
         data = response.get_json()
         assert data["error"] == "Event not found"
 
-    def test_create_event_api_success(self, test_client, jwt_token, flask_app, create_line_item_via_cash):
+    def test_create_event_api_success(
+        self, test_client, jwt_token, flask_app, create_line_item_via_cash
+    ):
         """Test POST /api/events endpoint - success case"""
         # Create test line items via API
         create_line_item_via_cash(
@@ -209,6 +256,7 @@ class TestEventAPI:
         # Get created line item IDs
         with flask_app.app_context():
             from dao import get_all_data
+
             all_line_items = get_all_data(line_items_collection)
             line_item_ids = [item["id"] for item in all_line_items]
             assert len(line_item_ids) == 2
@@ -291,6 +339,7 @@ class TestEventAPI:
         # Get created line item ID
         with flask_app.app_context():
             from dao import get_all_data
+
             all_line_items = get_all_data(line_items_collection)
             line_item_ids = [item["id"] for item in all_line_items]
             assert len(line_item_ids) == 1
@@ -323,7 +372,9 @@ class TestEventAPI:
             assert created_event is not None
             assert created_event["amount"] == 100  # Only the first line item amount
 
-    def test_create_event_api_no_date(self, test_client, jwt_token, flask_app, create_line_item_via_cash):
+    def test_create_event_api_no_date(
+        self, test_client, jwt_token, flask_app, create_line_item_via_cash
+    ):
         """Test POST /api/events endpoint - no date provided"""
         # Create test line item via API
         create_line_item_via_cash(
@@ -336,6 +387,7 @@ class TestEventAPI:
         # Get created line item ID
         with flask_app.app_context():
             from dao import get_all_data
+
             all_line_items = get_all_data(line_items_collection)
             line_item_ids = [item["id"] for item in all_line_items]
             assert len(line_item_ids) == 1
@@ -366,9 +418,18 @@ class TestEventAPI:
 
             created_event = get_item_by_id(events_collection, created_event_id)
             assert created_event is not None
-            assert created_event["date"] == all_line_items[0]["date"]  # Should use earliest line item date
+            assert (
+                created_event["date"] == all_line_items[0]["date"]
+            )  # Should use earliest line item date
 
-    def test_delete_event_api_success(self, test_client, jwt_token, flask_app, create_line_item_via_cash, create_event_via_api):
+    def test_delete_event_api_success(
+        self,
+        test_client,
+        jwt_token,
+        flask_app,
+        create_line_item_via_cash,
+        create_event_via_api,
+    ):
         """Test DELETE /api/events/<event_id> endpoint - success case"""
         # Create test line item via API
         create_line_item_via_cash(
@@ -381,6 +442,7 @@ class TestEventAPI:
         # Get created line item ID
         with flask_app.app_context():
             from dao import get_all_data
+
             all_line_items = get_all_data(line_items_collection)
             line_item_ids = [item["id"] for item in all_line_items]
             assert len(line_item_ids) == 1
@@ -430,29 +492,47 @@ class TestEventAPI:
         assert data["error"] == "Event not found"
 
     def test_get_line_items_for_event_api_success(
-        self, test_client, jwt_token, flask_app, create_line_item_via_cash, create_event_via_api
+        self,
+        test_client,
+        jwt_token,
+        flask_app,
+        create_line_item_via_cash,
+        create_event_via_api,
     ):
         """Test GET /api/events/<event_id>/line_items_for_event endpoint - success case"""
         # Create test line items via API
-        create_line_item_via_cash(date="2009-02-13", person="John Doe", description="Transaction 1", amount=100)
-        create_line_item_via_cash(date="2009-02-14", person="Jane Smith", description="Transaction 2", amount=50)
+        create_line_item_via_cash(
+            date="2009-02-13",
+            person="John Doe",
+            description="Transaction 1",
+            amount=100,
+        )
+        create_line_item_via_cash(
+            date="2009-02-14",
+            person="Jane Smith",
+            description="Transaction 2",
+            amount=50,
+        )
 
         # Get created line item IDs
         with flask_app.app_context():
             from dao import get_all_data
+
             all_line_items = get_all_data(line_items_collection)
             line_item_ids = [item["id"] for item in all_line_items]
             assert len(line_item_ids) == 2
 
         # Create event via API
-        event_response = create_event_via_api({
-            "name": "Test Event",
-            "category": "Dining",
-            "date": "2009-02-13",
-            "line_items": line_item_ids,
-            "tags": ["test"],
-            "is_duplicate_transaction": False,
-        })
+        event_response = create_event_via_api(
+            {
+                "name": "Test Event",
+                "category": "Dining",
+                "date": "2009-02-13",
+                "line_items": line_item_ids,
+                "tags": ["test"],
+                "is_duplicate_transaction": False,
+            }
+        )
         event_id = event_response["id"]
 
         # Test API call
@@ -484,11 +564,17 @@ class TestEventAPI:
     ):
         """Test GET /api/events/<event_id>/line_items_for_event endpoint - missing line item"""
         # Create one line item via API
-        create_line_item_via_cash(date="2009-02-13", person="John Doe", description="Transaction 1", amount=100)
+        create_line_item_via_cash(
+            date="2009-02-13",
+            person="John Doe",
+            description="Transaction 1",
+            amount=100,
+        )
 
         # Get created line item ID
         with flask_app.app_context():
             from dao import get_all_data
+
             all_line_items = get_all_data(line_items_collection)
             line_item_ids = [item["id"] for item in all_line_items]
             assert len(line_item_ids) == 1
@@ -519,69 +605,102 @@ class TestEventAPI:
         assert len(data["data"]) == 1  # Only the existing line item
         assert data["data"][0]["id"] == line_item_ids[0]
 
-    def test_remove_event_from_line_item_different_id_types(self, flask_app):
+    def test_remove_event_from_line_item_different_id_types(
+        self, flask_app, pg_session
+    ):
         """Test remove_event_from_line_item function with different ID types"""
-        with flask_app.app_context():
-            from bson import ObjectId
+        from tests.test_helpers import setup_test_event, setup_test_line_item_with_event
 
+        with flask_app.app_context():
             from dao import get_item_by_id, remove_event_from_line_item
 
-            # Test with string ID
-            test_line_item_str = {
-                "id": "line_item_str",
-                "date": 1234567890,
-                "responsible_party": "John Doe",
-                "payment_method": "Cash",
-                "description": "Test transaction",
-                "amount": 100,
-                "event_id": "event_1",
-            }
-            upsert_with_id(
-                line_items_collection, test_line_item_str, test_line_item_str["id"]
+            # Create events
+            event1 = setup_test_event(
+                pg_session,
+                {
+                    "id": "event_1",
+                    "date": 1234567890,
+                    "description": "Event event_1",
+                    "category": "Dining",
+                },
+            )
+            event2 = setup_test_event(
+                pg_session,
+                {
+                    "id": "event_2",
+                    "date": 1234567891,
+                    "description": "Event event_2",
+                    "category": "Dining",
+                },
+            )
+            event3 = setup_test_event(
+                pg_session,
+                {
+                    "id": "event_3",
+                    "date": 1234567892,
+                    "description": "Event event_3",
+                    "category": "Dining",
+                },
             )
 
-            # Test with integer ID
-            test_line_item_int = {
-                "id": 12345,
-                "date": 1234567891,
-                "responsible_party": "Jane Smith",
-                "payment_method": "Venmo",
-                "description": "Test transaction 2",
-                "amount": 50,
-                "event_id": "event_2",
-            }
-            upsert_with_id(
-                line_items_collection, test_line_item_int, test_line_item_int["id"]
+            # Create line items with events - test different ID types
+            setup_test_line_item_with_event(
+                pg_session,
+                {
+                    "id": "line_item_str",
+                    "date": 1234567890,
+                    "responsible_party": "John Doe",
+                    "payment_method": "Cash",
+                    "description": "Test transaction",
+                    "amount": 100,
+                    "event_id": "event_1",
+                },
+                event1.id,
             )
 
-            # Test with ObjectId
-            test_line_item_objectid = {
-                "id": ObjectId(),
-                "date": 1234567892,
-                "responsible_party": "Bob Johnson",
-                "payment_method": "Stripe",
-                "description": "Test transaction 3",
-                "amount": 75,
-                "event_id": "event_3",
-            }
-            upsert_with_id(
-                line_items_collection,
-                test_line_item_objectid,
-                test_line_item_objectid["id"],
+            setup_test_line_item_with_event(
+                pg_session,
+                {
+                    "id": 12345,
+                    "date": 1234567891,
+                    "responsible_party": "Jane Smith",
+                    "payment_method": "Venmo",
+                    "description": "Test transaction 2",
+                    "amount": 50,
+                    "event_id": "event_2",
+                },
+                event2.id,
             )
+
+            setup_test_line_item_with_event(
+                pg_session,
+                {
+                    "id": "line_item_str2_uuid",
+                    "date": 1234567892,
+                    "responsible_party": "Bob Johnson",
+                    "payment_method": "Credit Card",
+                    "description": "Test transaction 3",
+                    "amount": 75,
+                    "event_id": "event_3",
+                },
+                event3.id,
+            )
+
+            pg_session.commit()
 
             # Verify all line items have event_id
             line_item_str = get_item_by_id(line_items_collection, "line_item_str")
             line_item_int = get_item_by_id(line_items_collection, 12345)
-            line_item_objectid = get_item_by_id(
-                line_items_collection, test_line_item_objectid["id"]
+            line_item_str2 = get_item_by_id(
+                line_items_collection, "line_item_str2_uuid"
             )
+
             assert line_item_str is not None
             assert line_item_int is not None
-            assert line_item_objectid is not None
+            assert line_item_str2 is not None
             assert line_item_str["event_id"] == "event_1"
             assert line_item_int["event_id"] == "event_2"
-            assert line_item_objectid["event_id"] == "event_3"
+            assert line_item_str2["event_id"] == "event_3"
 
             # Test removing event_id with string ID
             remove_event_from_line_item("line_item_str")
@@ -595,13 +714,13 @@ class TestEventAPI:
             assert line_item_int_after is not None
             assert "event_id" not in line_item_int_after
 
-            # Test removing event_id with ObjectId
-            remove_event_from_line_item(test_line_item_objectid["id"])
-            line_item_objectid_after = get_item_by_id(
-                line_items_collection, test_line_item_objectid["id"]
+            # Test removing event_id with another string ID
+            remove_event_from_line_item("line_item_str2_uuid")
+            line_item_str2_after = get_item_by_id(
+                line_items_collection, "line_item_str2_uuid"
             )
-            assert line_item_objectid_after is not None
-            assert "event_id" not in line_item_objectid_after
+            assert line_item_str2_after is not None
+            assert "event_id" not in line_item_str2_after
 
 
 class TestEventDualWrite:
@@ -610,9 +729,6 @@ class TestEventDualWrite:
     @pytest.fixture(autouse=True)
     def setup_postgres_data(self, pg_session):
         """Set up necessary PostgreSQL data for event creation"""
-        # Get existing category (seeded by conftest.py)
-        category = pg_session.query(Category).filter_by(name="Dining").first()
-
         # Get existing payment method (seeded by conftest.py)
         payment_method = pg_session.query(PaymentMethod).filter_by(name="Cash").first()
 
@@ -791,70 +907,41 @@ class TestEventDualWrite:
         self, test_client, jwt_token, flask_app, pg_session
     ):
         """Test that deleting an event removes from both MongoDB and PostgreSQL"""
-        # Create event in MongoDB
-        with flask_app.app_context():
-            test_event = {
-                "id": "event_1",
-                "date": 1234567890,
-                "name": "Test Event",
-                "category": "Dining",
-                "amount": 100,
-                "line_items": ["line_item_1"],
-                "tags": ["test"],
-                "is_duplicate_transaction": False,
-            }
-            upsert_with_id(events_collection, test_event, test_event["id"])
+        from dao import get_collection
+        from tests.test_helpers import setup_test_event, setup_test_line_item
 
-            # Create line item with event_id
-            test_line_item = {
+        # Create event and line item in both databases using test helpers
+        with flask_app.app_context():
+            # Create line item first
+            line_item_data = {
                 "id": "line_item_1",
                 "date": 1234567890,
                 "responsible_party": "John Doe",
                 "payment_method": "Cash",
                 "description": "Test transaction",
                 "amount": 100,
-                "event_id": "event_1",
             }
-            upsert_with_id(line_items_collection, test_line_item, test_line_item["id"])
+            pg_line_item = setup_test_line_item(pg_session, line_item_data)
 
-        # Create event in PostgreSQL
-        category = pg_session.query(Category).filter(Category.name == "Dining").first()
-        tag = Tag(
-            id=generate_id("tag"),
-            name="test",
-            created_at=datetime.now(UTC),
-            updated_at=datetime.now(UTC),
-        )
-        pg_session.add(tag)
+            # Create event
+            event_data = {
+                "id": "event_1",
+                "date": 1234567890,
+                "description": "Test Event",
+                "category": "Dining",
+                "tags": ["test"],
+            }
+            pg_event = setup_test_event(pg_session, event_data, line_items=[pg_line_item])
 
-        pg_event = Event(
-            id=generate_id("event"),
-            mongo_id="event_1",
-            date=datetime.fromtimestamp(1234567890, UTC),
-            description="Test Event",
-            category_id=category.id,
-            is_duplicate=False,
-            created_at=datetime.now(UTC),
-            updated_at=datetime.now(UTC),
-        )
-        pg_session.add(pg_event)
+            # Manually link line item to event in MongoDB (test helpers don't do this)
+            collection = get_collection(line_items_collection)
+            collection.update_one({"_id": "line_item_1"}, {"$set": {"event_id": "event_1"}})
 
-        # Create junction records
-        event_line_item = EventLineItem(
-            id=generate_id("eli"),
-            event_id=pg_event.id,
-            line_item_id="li_test1",
-            created_at=datetime.now(UTC),
-        )
-        pg_session.add(event_line_item)
+            # Update MongoDB event to include line_item in its list
+            events_coll = get_collection(events_collection)
+            events_coll.update_one({"_id": "event_1"}, {"$set": {"line_items": ["line_item_1"], "amount": 100}})
 
-        event_tag = EventTag(
-            id=generate_id("etag"),
-            event_id=pg_event.id,
-            tag_id=tag.id,
-            created_at=datetime.now(UTC),
-        )
-        pg_session.add(event_tag)
+        # Commit the setup
         pg_session.commit()
 
         # Capture event ID before deletion for cascade verification
@@ -928,33 +1015,23 @@ class TestEventDualWrite:
         self, test_client, jwt_token, flask_app, pg_session
     ):
         """Test that delete works with both MongoDB and PostgreSQL ID formats"""
-        # Create event in MongoDB
+        from dao import get_collection
+        from tests.test_helpers import setup_test_event
+
+        # Create event using test helper (avoids dual-write)
         with flask_app.app_context():
-            test_event = {
+            event_data = {
                 "id": "event_1",
                 "date": 1234567890,
-                "name": "Test Event",
+                "description": "Test Event",
                 "category": "Dining",
-                "amount": 100,
-                "line_items": ["line_item_1"],
-                "tags": [],
-                "is_duplicate_transaction": False,
             }
-            upsert_with_id(events_collection, test_event, test_event["id"])
+            setup_test_event(pg_session, event_data)
 
-        # Create event in PostgreSQL with event_ prefix
-        category = pg_session.query(Category).filter(Category.name == "Dining").first()
-        pg_event = Event(
-            id="event_01JA8QM9TN",  # PostgreSQL ID with event_ prefix
-            mongo_id="event_1",
-            date=datetime.fromtimestamp(1234567890, UTC),
-            description="Test Event",
-            category_id=category.id,
-            is_duplicate=False,
-            created_at=datetime.now(UTC),
-            updated_at=datetime.now(UTC),
-        )
-        pg_session.add(pg_event)
+            # Update MongoDB event to include line_items and amount
+            events_coll = get_collection(events_collection)
+            events_coll.update_one({"_id": "event_1"}, {"$set": {"line_items": ["line_item_1"], "amount": 100, "tags": []}})
+
         pg_session.commit()
 
         # Delete using MongoDB ID format
@@ -971,7 +1048,13 @@ class TestEventDualWrite:
 
             assert get_item_by_id(events_collection, "event_1") is None
 
-        pg_session.expire_all()
+        # Create fresh session to verify deletion
+        pg_session.close()
+        from models.database import SessionLocal
+
+        fresh_session = SessionLocal()
         assert (
-            pg_session.query(Event).filter(Event.mongo_id == "event_1").first() is None
+            fresh_session.query(Event).filter(Event.mongo_id == "event_1").first()
+            is None
         )
+        fresh_session.close()

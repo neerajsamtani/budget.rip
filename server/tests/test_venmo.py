@@ -119,7 +119,9 @@ class TestVenmoFunctions:
             mock_bulk_upsert = mocker.patch("resources.venmo.bulk_upsert")
 
             # Mock bulk_upsert_transactions (PostgreSQL)
-            mock_pg_bulk_upsert = mocker.patch("resources.venmo.bulk_upsert_transactions")
+            mock_pg_bulk_upsert = mocker.patch(
+                "resources.venmo.bulk_upsert_transactions"
+            )
 
             # Mock transactions
             mock_transactions = mocker.Mock()
@@ -168,7 +170,9 @@ class TestVenmoFunctions:
             mock_bulk_upsert = mocker.patch("resources.venmo.bulk_upsert")
 
             # Mock bulk_upsert_transactions (PostgreSQL)
-            mock_pg_bulk_upsert = mocker.patch("resources.venmo.bulk_upsert_transactions")
+            mock_pg_bulk_upsert = mocker.patch(
+                "resources.venmo.bulk_upsert_transactions"
+            )
 
             # Mock transactions - all before moving date (1659510000.0)
             mock_transactions = mocker.Mock()
@@ -209,7 +213,9 @@ class TestVenmoFunctions:
             mock_bulk_upsert = mocker.patch("resources.venmo.bulk_upsert")
 
             # Mock bulk_upsert_transactions (PostgreSQL)
-            mock_pg_bulk_upsert = mocker.patch("resources.venmo.bulk_upsert_transactions")
+            mock_pg_bulk_upsert = mocker.patch(
+                "resources.venmo.bulk_upsert_transactions"
+            )
 
             # Mock transactions - one with ignored party
             mock_transactions = mocker.Mock()
@@ -248,7 +254,9 @@ class TestVenmoFunctions:
             mock_bulk_upsert = mocker.patch("resources.venmo.bulk_upsert")
 
             # Mock bulk_upsert_transactions (PostgreSQL)
-            mock_pg_bulk_upsert = mocker.patch("resources.venmo.bulk_upsert_transactions")
+            mock_pg_bulk_upsert = mocker.patch(
+                "resources.venmo.bulk_upsert_transactions"
+            )
 
             # Mock first page of transactions
             mock_transactions_page1 = mocker.Mock()

@@ -18,6 +18,8 @@ os.environ["DATABASE_URL"] = "sqlite:///file:memdb1?mode=memory&cache=shared&uri
 import mongomock
 from flask import Flask
 from flask_jwt_extended import JWTManager, create_access_token
+from sqlalchemy import create_engine, event
+from sqlalchemy.orm import sessionmaker
 
 from constants import JWT_SECRET_KEY
 from dao import (
@@ -32,6 +34,7 @@ from dao import (
     users_collection,
     venmo_raw_data_collection,
 )
+from models.sql_models import Base
 from resources.auth import auth_blueprint
 from resources.cash import cash_blueprint
 from resources.event import events_blueprint
@@ -40,9 +43,6 @@ from resources.monthly_breakdown import monthly_breakdown_blueprint
 from resources.splitwise import splitwise_blueprint
 from resources.stripe import stripe_blueprint
 from resources.venmo import venmo_blueprint
-from models.sql_models import Base
-from sqlalchemy import create_engine, event
-from sqlalchemy.orm import sessionmaker
 
 # Import test configuration
 try:
@@ -68,6 +68,14 @@ def init_test_db():
     test_engine = create_engine(
         TEST_DATABASE_URL, echo=False, connect_args={"uri": True}
     )
+
+    # Enable foreign key constraints for SQLite
+    @event.listens_for(test_engine, "connect")
+    def set_sqlite_pragma(dbapi_conn, connection_record):
+        cursor = dbapi_conn.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
+
     TestSession = sessionmaker(bind=test_engine)
 
     # Create all tables
@@ -224,9 +232,24 @@ def seed_postgresql_base_data():
         payment_methods = [
             {"id": "pm_cash", "name": "Cash", "type": "cash", "is_active": True},
             {"id": "pm_venmo", "name": "Venmo", "type": "venmo", "is_active": True},
-            {"id": "pm_splitwise", "name": "Splitwise", "type": "splitwise", "is_active": True},
-            {"id": "pm_credit_card", "name": "Credit Card", "type": "credit", "is_active": True},
-            {"id": "pm_debit_card", "name": "Debit Card", "type": "bank", "is_active": True},
+            {
+                "id": "pm_splitwise",
+                "name": "Splitwise",
+                "type": "splitwise",
+                "is_active": True,
+            },
+            {
+                "id": "pm_credit_card",
+                "name": "Credit Card",
+                "type": "credit",
+                "is_active": True,
+            },
+            {
+                "id": "pm_debit_card",
+                "name": "Debit Card",
+                "type": "bank",
+                "is_active": True,
+            },
         ]
         for pm_data in payment_methods:
             if not session.query(PaymentMethod).filter_by(name=pm_data["name"]).first():
@@ -262,7 +285,6 @@ def setup_teardown(flask_app, request):
 
         # Seed PostgreSQL with base data if READ_FROM_POSTGRESQL=true
         # Skip for phase5 tests as they have their own fixtures
-        test_name = request.node.name
         if "test_phase5" not in request.node.fspath.basename:
             seed_postgresql_base_data()
 
@@ -290,6 +312,7 @@ def setup_teardown(flask_app, request):
 @pytest.fixture
 def create_line_item_via_cash(test_client, jwt_token):
     """Helper to create line items via cash transaction API"""
+
     def _create(**kwargs):
         transaction_data = {
             "date": kwargs.get("date", "2009-02-13"),
@@ -304,12 +327,14 @@ def create_line_item_via_cash(test_client, jwt_token):
         )
         assert response.status_code == 201
         return transaction_data
+
     return _create
 
 
 @pytest.fixture
 def create_event_via_api(test_client, jwt_token):
     """Helper to create events via API"""
+
     def _create(event_data):
         response = test_client.post(
             "/api/events",
@@ -318,12 +343,14 @@ def create_event_via_api(test_client, jwt_token):
         )
         assert response.status_code == 201
         return response.get_json()
+
     return _create
 
 
 @pytest.fixture
 def create_user_via_api(test_client):
     """Helper to create users via signup API"""
+
     def _create(user_data):
         response = test_client.post(
             "/api/auth/signup",
@@ -331,4 +358,5 @@ def create_user_via_api(test_client):
         )
         assert response.status_code == 201
         return response.get_json()
+
     return _create

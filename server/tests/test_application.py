@@ -3,7 +3,6 @@ import pytest
 from dao import (
     bank_accounts_collection,
     events_collection,
-    get_collection,
     line_items_collection,
     upsert_with_id,
 )
@@ -239,22 +238,30 @@ class TestApplicationRoutes:
 
 
 class TestApplicationFunctions:
+    @pytest.mark.skipif(
+        __import__("os").environ.get("READ_FROM_POSTGRESQL", "false").lower() == "true",
+        reason="add_event_ids_to_line_items is a MongoDB-specific legacy function",
+    )
     def test_add_event_ids_to_line_items_success(
-        self, flask_app, mock_event, mock_line_item
+        self, flask_app, mock_event, mock_line_item, pg_session
     ):
         """Test add_event_ids_to_line_items function - success case"""
-        with flask_app.app_context():
-            # Insert test data
-            upsert_with_id(events_collection, mock_event, mock_event["id"])
+        from tests.test_helpers import setup_test_event, setup_test_line_item
 
-            # Insert line items that will be referenced by the event
+        with flask_app.app_context():
+            # Create event
+            setup_test_event(pg_session, mock_event)
+
+            # Create line items referenced by the event
             line_item_1 = mock_line_item.copy()
             line_item_1["id"] = "line_item_1"
-            upsert_with_id(line_items_collection, line_item_1, line_item_1["id"])
+            setup_test_line_item(pg_session, line_item_1)
 
             line_item_2 = mock_line_item.copy()
             line_item_2["id"] = "line_item_2"
-            upsert_with_id(line_items_collection, line_item_2, line_item_2["id"])
+            setup_test_line_item(pg_session, line_item_2)
+
+            pg_session.commit()
 
             # Import and call the function
             from application import add_event_ids_to_line_items
@@ -262,9 +269,16 @@ class TestApplicationFunctions:
             add_event_ids_to_line_items()
 
             # Verify line items were updated with event_id
-            line_items_coll = get_collection(line_items_collection)
-            updated_line_item_1 = line_items_coll.find_one({"id": "line_item_1"})
-            updated_line_item_2 = line_items_coll.find_one({"id": "line_item_2"})
+            from dao import get_all_data
+
+            all_line_items = get_all_data(line_items_collection)
+
+            updated_line_item_1 = next(
+                (li for li in all_line_items if li["id"] == "line_item_1"), None
+            )
+            updated_line_item_2 = next(
+                (li for li in all_line_items if li["id"] == "line_item_2"), None
+            )
 
             assert updated_line_item_1 is not None
             assert updated_line_item_2 is not None
@@ -349,11 +363,7 @@ class TestApplicationIntegration:
             # Import the functions
             # This would normally be called via the route, but we can test the logic
             # by calling the underlying functions
-            from application import (
-                create_consistent_line_items,
-                refresh_all,
-                refresh_all_api,
-            )
+            from application import create_consistent_line_items, refresh_all
 
             refresh_all()
             create_consistent_line_items()

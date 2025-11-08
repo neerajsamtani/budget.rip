@@ -7,10 +7,11 @@ from pymongo import UpdateOne
 from pymongo.collection import Collection
 from pymongo.database import Database
 from pymongo.errors import BulkWriteError
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, subqueryload
 
 from constants import READ_FROM_POSTGRESQL
 from helpers import to_dict, to_dict_robust
+from utils.dual_write import dual_write_operation
 
 venmo_raw_data_collection: str = "venmo_raw_data"
 splitwise_raw_data_collection: str = "splitwise_raw_data"
@@ -110,18 +111,41 @@ def remove_event_from_line_item(line_item_id: Union[str, int, ObjectId]) -> None
     Args:
         line_item_id: The ID of the line item (can be string, int, or ObjectId)
     """
-    cur_collection: Collection = get_collection(line_items_collection)
 
-    # Try to unset event_id using the provided ID as-is
-    result = cur_collection.update_one(
-        {"_id": line_item_id}, {"$unset": {"event_id": ""}}
-    )
-
-    if result.matched_count == 0:
-        # If we haven't found the document, log a warning
-        logging.warning(
-            f"Could not find line item with ID {line_item_id} to remove event_id"
+    def mongo_write():
+        collection = get_collection(line_items_collection)
+        # Try to unset event_id using the provided ID as-is
+        result = collection.update_one(
+            {"_id": line_item_id}, {"$unset": {"event_id": ""}}
         )
+        if result.matched_count == 0:
+            logging.warning(
+                f"Could not find line item with ID {line_item_id} to remove event_id"
+            )
+
+    def pg_write(db_session):
+        from models.sql_models import EventLineItem, LineItem
+
+        # Find the line item by mongo_id (the original MongoDB ID)
+        line_item = (
+            db_session.query(LineItem)
+            .filter(LineItem.mongo_id == str(line_item_id))
+            .first()
+        )
+        if line_item:
+            # Delete all EventLineItem junctions for this line item
+            db_session.query(EventLineItem).filter(
+                EventLineItem.line_item_id == line_item.id
+            ).delete()
+        else:
+            logging.info(f"Line item {line_item_id} not in PostgreSQL yet")
+
+    # dual_write_operation handles transaction management (commit/rollback)
+    dual_write_operation(
+        mongo_write,
+        pg_write,
+        line_items_collection,
+    )
 
 
 def get_user_by_email(email: str) -> Optional[Dict[str, Any]]:
@@ -448,26 +472,26 @@ def _pg_get_all_events(filters: Optional[Dict[str, Any]]) -> List[Dict[str, Any]
 
     db_session = SessionLocal()
     try:
-        query = (
-            db_session.query(Event)
-            .distinct()
-            .options(
-                joinedload(Event.category),
-                joinedload(Event.line_items).joinedload(LineItem.payment_method),
-                joinedload(Event.tags),
-            )
+        # Use subqueryload for one-to-many relationships to avoid duplicate rows
+        # joinedload is fine for many-to-one (category)
+        query = db_session.query(Event).options(
+            joinedload(Event.category),
+            subqueryload(Event.line_items).joinedload(LineItem.payment_method),
+            subqueryload(Event.tags),
         )
 
         if filters and "date" in filters:
             date_filter = filters["date"]
             if isinstance(date_filter, dict):
+                from datetime import UTC
+
                 if "$gte" in date_filter:
                     query = query.filter(
-                        Event.date >= datetime.fromtimestamp(date_filter["$gte"])
+                        Event.date >= datetime.fromtimestamp(date_filter["$gte"], UTC)
                     )
                 if "$lte" in date_filter:
                     query = query.filter(
-                        Event.date <= datetime.fromtimestamp(date_filter["$lte"])
+                        Event.date <= datetime.fromtimestamp(date_filter["$lte"], UTC)
                     )
 
         events = query.all()
@@ -489,10 +513,10 @@ def _pg_get_event_by_id(id: str) -> Optional[Dict[str, Any]]:
             joinedload(Event.tags),
         )
 
-        # PostgreSQL event IDs look like "event_01K..." (ULID after underscore)
+        # PostgreSQL event IDs look like "event_01K..." or "evt_xxx" (ULID or test IDs)
         # MongoDB event IDs look like "event_cash_..." or "event{hash}"
-        # Check if it's a PostgreSQL ID by looking for ULID pattern
-        is_pg_id = id.startswith("event_0") and len(id) > 10
+        # Check if it's a PostgreSQL ID by looking for patterns
+        is_pg_id = (id.startswith("evt_") or id.startswith("event_0")) and len(id) >= 7
 
         event = (
             query.filter(Event.id == id).first()

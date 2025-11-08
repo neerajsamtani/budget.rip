@@ -505,10 +505,14 @@ class TestStripeFunctions:
             mock_bulk_upsert = mocker.patch("resources.stripe.bulk_upsert")
 
             # Mock bulk_upsert_line_items (PostgreSQL)
-            mock_pg_bulk_upsert = mocker.patch("resources.stripe.bulk_upsert_line_items")
+            mock_pg_bulk_upsert = mocker.patch(
+                "resources.stripe.bulk_upsert_line_items"
+            )
 
             # Mock bulk_upsert_transactions (PostgreSQL)
-            mock_pg_bulk_upsert = mocker.patch("resources.stripe.bulk_upsert_transactions")
+            mock_pg_bulk_upsert = mocker.patch(
+                "resources.stripe.bulk_upsert_transactions"
+            )
 
             # Call the function
             stripe_to_line_items()
@@ -537,7 +541,9 @@ class TestStripeFunctions:
             mock_bulk_upsert = mocker.patch("resources.stripe.bulk_upsert")
 
             # Mock bulk_upsert_line_items (PostgreSQL)
-            mock_pg_bulk_upsert = mocker.patch("resources.stripe.bulk_upsert_line_items")
+            mock_pg_bulk_upsert = mocker.patch(
+                "resources.stripe.bulk_upsert_line_items"
+            )
 
             # Call the function with no transactions
             stripe_to_line_items()
@@ -562,7 +568,9 @@ class TestStripeFunctions:
             mock_bulk_upsert = mocker.patch("resources.stripe.bulk_upsert")
 
             # Mock bulk_upsert_line_items (PostgreSQL)
-            mock_pg_bulk_upsert = mocker.patch("resources.stripe.bulk_upsert_line_items")
+            mock_pg_bulk_upsert = mocker.patch(
+                "resources.stripe.bulk_upsert_line_items"
+            )
 
             # Call the function
             stripe_to_line_items()
@@ -609,7 +617,9 @@ class TestStripeFunctions:
             mock_bulk_upsert = mocker.patch("resources.stripe.bulk_upsert")
 
             # Mock bulk_upsert_line_items (PostgreSQL)
-            mock_pg_bulk_upsert = mocker.patch("resources.stripe.bulk_upsert_line_items")
+            mock_pg_bulk_upsert = mocker.patch(
+                "resources.stripe.bulk_upsert_line_items"
+            )
 
             # Call the function
             stripe_to_line_items()
@@ -800,7 +810,9 @@ class TestStripeIntegration:
             mock_bulk_upsert = mocker.patch("resources.stripe.bulk_upsert")
 
             # Mock bulk_upsert_line_items (PostgreSQL)
-            mock_pg_bulk_upsert = mocker.patch("resources.stripe.bulk_upsert_line_items")
+            mock_pg_bulk_upsert = mocker.patch(
+                "resources.stripe.bulk_upsert_line_items"
+            )
 
             # Insert test account
             test_account = {

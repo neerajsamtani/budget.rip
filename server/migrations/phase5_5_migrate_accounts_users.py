@@ -46,9 +46,13 @@ def migrate_bank_accounts(mongo_db, db_session) -> int:
             mongo_id = str(account["_id"])
 
             # Check if already migrated
-            existing = db_session.query(BankAccount).filter(
-                (BankAccount.id == account_id) | (BankAccount.mongo_id == mongo_id)
-            ).first()
+            existing = (
+                db_session.query(BankAccount)
+                .filter(
+                    (BankAccount.id == account_id) | (BankAccount.mongo_id == mongo_id)
+                )
+                .first()
+            )
 
             if existing:
                 skipped += 1
@@ -81,7 +85,9 @@ def migrate_bank_accounts(mongo_db, db_session) -> int:
             raise
 
     db_session.commit()
-    logger.info(f"✅ Bank accounts migration complete: {migrated} migrated, {skipped} skipped")
+    logger.info(
+        f"✅ Bank accounts migration complete: {migrated} migrated, {skipped} skipped"
+    )
     return migrated
 
 
@@ -102,9 +108,11 @@ def migrate_users(mongo_db, db_session) -> int:
             user_id = user_doc.get("id") or generate_id("user")
 
             # Check if already migrated
-            existing = db_session.query(User).filter(
-                (User.id == user_id) | (User.mongo_id == mongo_id)
-            ).first()
+            existing = (
+                db_session.query(User)
+                .filter((User.id == user_id) | (User.mongo_id == mongo_id))
+                .first()
+            )
 
             if existing:
                 skipped += 1

@@ -244,9 +244,7 @@ def verify_line_item_spot_checks(result: VerificationResult, sample_size=10):
         return
 
     # Sample random line items
-    sample = random.sample(
-        mongo_line_items, min(sample_size, len(mongo_line_items))
-    )
+    sample = random.sample(mongo_line_items, min(sample_size, len(mongo_line_items)))
 
     matches = 0
     for mongo_li in sample:
@@ -263,9 +261,7 @@ def verify_line_item_spot_checks(result: VerificationResult, sample_size=10):
     if matches == len(sample):
         result.add_pass(f"All {matches} spot-checked line items match")
     else:
-        result.add_fail(
-            f"Only {matches}/{len(sample)} spot-checked line items match"
-        )
+        result.add_fail(f"Only {matches}/{len(sample)} spot-checked line items match")
 
 
 def verify_event_spot_checks(result: VerificationResult, sample_size=10):
@@ -390,9 +386,7 @@ def verify_analytics_aggregation(result: VerificationResult):
     pg_categorized = _pg_get_categorized_data(None)
 
     if len(mongo_categorized) == len(pg_categorized):
-        result.add_pass(
-            f"Analytics aggregation count: {len(mongo_categorized)} groups"
-        )
+        result.add_pass(f"Analytics aggregation count: {len(mongo_categorized)} groups")
     else:
         result.add_warning(
             f"Analytics row count mismatch: MongoDB={len(mongo_categorized)}, PostgreSQL={len(pg_categorized)} (may be OK if grouping differs slightly)"
