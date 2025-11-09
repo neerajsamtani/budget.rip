@@ -1,4 +1,5 @@
 import logging
+from datetime import timezone as tz
 from typing import Any, Dict, List, Optional, Union
 
 from bson import ObjectId
@@ -11,6 +12,7 @@ from sqlalchemy.orm import joinedload, subqueryload
 
 from constants import READ_FROM_POSTGRESQL
 from helpers import to_dict, to_dict_robust
+from utils.database_handlers import get_collection_handler
 from utils.dual_write import dual_write_operation
 
 venmo_raw_data_collection: str = "venmo_raw_data"
@@ -35,50 +37,15 @@ def get_collection(cur_collection_str: str) -> Collection:
 
 
 def get_all_data(cur_collection_str: str, filters: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
-    if READ_FROM_POSTGRESQL:
-        if cur_collection_str == line_items_collection:
-            return _pg_get_all_line_items(filters)
-        elif cur_collection_str == events_collection:
-            return _pg_get_all_events(filters)
-        elif cur_collection_str in [
-            venmo_raw_data_collection,
-            splitwise_raw_data_collection,
-            stripe_raw_transaction_data_collection,
-            cash_raw_data_collection,
-        ]:
-            source_map = {
-                venmo_raw_data_collection: "venmo",
-                splitwise_raw_data_collection: "splitwise",
-                stripe_raw_transaction_data_collection: "stripe",
-                cash_raw_data_collection: "cash",
-            }
-            return _pg_get_transactions(source_map[cur_collection_str], filters)
-        elif cur_collection_str == bank_accounts_collection:
-            return _pg_get_all_bank_accounts(filters)
-        elif cur_collection_str == users_collection:
-            raise NotImplementedError("Use get_user_by_email() instead of get_all_data() for users")
-        elif cur_collection_str == test_collection:
-            # Fall back to MongoDB for test collections
-            pass
-        else:
-            raise NotImplementedError(f"Unknown collection '{cur_collection_str}' - cannot read from PostgreSQL")
-
-    cur_collection: Collection = get_collection(cur_collection_str)
-    return list(cur_collection.find(filters).sort("date", -1))
+    """Uses handler registry to route reads to PostgreSQL or MongoDB based on migration state"""
+    handler = get_collection_handler(cur_collection_str)
+    return handler.get_all(filters)
 
 
 def get_item_by_id(cur_collection_str: str, id: Union[str, int, ObjectId]) -> Optional[Dict[str, Any]]:
-    if READ_FROM_POSTGRESQL:
-        if cur_collection_str == line_items_collection:
-            return _pg_get_line_item_by_id(str(id))
-        elif cur_collection_str == events_collection:
-            return _pg_get_event_by_id(str(id))
-        else:
-            # Fall back to MongoDB for unmigrated collections
-            logging.debug(f"Collection '{cur_collection_str}' not migrated to PostgreSQL, reading from MongoDB")
-
-    cur_collection: Collection = get_collection(cur_collection_str)
-    return cur_collection.find_one({"_id": id})
+    """Uses handler registry to route reads to PostgreSQL or MongoDB based on migration state"""
+    handler = get_collection_handler(cur_collection_str)
+    return handler.get_by_id(id)
 
 
 def insert(cur_collection_str: str, item: Any) -> None:
@@ -141,20 +108,20 @@ def upsert(cur_collection_str: str, item: Any) -> None:
 
 
 def upsert_with_id(cur_collection_str: str, item: Dict[str, Any], id: Union[str, int, ObjectId]) -> None:
-    """Upsert item to MongoDB and also to PostgreSQL for transaction collections (dual-write for tests)"""
-    # MongoDB write
-    cur_collection: Collection = get_collection(cur_collection_str)
-    item["_id"] = item["id"]
-    cur_collection.replace_one({"_id": id}, item, upsert=True)
+    """Upsert item to MongoDB and also to PostgreSQL for migrated collections (dual-write)"""
 
-    # PostgreSQL write (for transaction collections used in tests)
+    def mongo_write():
+        cur_collection: Collection = get_collection(cur_collection_str)
+        item["_id"] = item["id"]
+        cur_collection.replace_one({"_id": id}, item, upsert=True)
+
+    # PostgreSQL write for transaction collections
     if cur_collection_str in [
         venmo_raw_data_collection,
         splitwise_raw_data_collection,
         stripe_raw_transaction_data_collection,
         cash_raw_data_collection,
     ]:
-        from models.database import SessionLocal
         from utils.pg_bulk_ops import bulk_upsert_transactions
 
         source_map = {
@@ -165,46 +132,30 @@ def upsert_with_id(cur_collection_str: str, item: Dict[str, Any], id: Union[str,
         }
         source = source_map[cur_collection_str]
 
-        db_session = SessionLocal()
-        try:
+        def pg_write(db_session):
             bulk_upsert_transactions(db_session, [item], source=source)
-            db_session.commit()
-        except Exception as e:
-            db_session.rollback()
-            # Re-raise the exception - don't swallow it!
-            raise Exception(f"Failed to dual-write transaction {item.get('id')} to PostgreSQL: {e}") from e
-        finally:
-            db_session.close()
+
+        dual_write_operation(mongo_write, pg_write, f"{source}_transaction_{item.get('id')}")
 
     elif cur_collection_str == events_collection:
-        from models.database import SessionLocal
         from utils.pg_event_operations import upsert_event_to_postgresql
 
-        db_session = SessionLocal()
-        try:
+        def pg_write(db_session):
             upsert_event_to_postgresql(item, db_session)
-            db_session.commit()
-        except Exception as e:
-            db_session.rollback()
-            # Re-raise the exception - don't swallow it!
-            raise Exception(f"Failed to dual-write event {item.get('id')} to PostgreSQL: {e}") from e
-        finally:
-            db_session.close()
+
+        dual_write_operation(mongo_write, pg_write, f"event_{item.get('id')}")
 
     elif cur_collection_str == bank_accounts_collection:
-        from models.database import SessionLocal
         from utils.pg_bulk_ops import bulk_upsert_bank_accounts
 
-        db_session = SessionLocal()
-        try:
+        def pg_write(db_session):
             bulk_upsert_bank_accounts(db_session, [item])
-            db_session.commit()
-        except Exception as e:
-            db_session.rollback()
-            # Re-raise the exception - don't swallow it!
-            raise Exception(f"Failed to dual-write bank account {item.get('id')} to PostgreSQL: {e}") from e
-        finally:
-            db_session.close()
+
+        dual_write_operation(mongo_write, pg_write, f"bank_account_{item.get('id')}")
+
+    else:
+        # Collections not yet migrated to PostgreSQL - MongoDB only
+        mongo_write()
 
 
 def bulk_upsert(cur_collection_str: str, items: List[Any]) -> None:
@@ -306,21 +257,25 @@ def get_categorized_data() -> List[Dict[str, Any]]:
 # ============================================================================
 
 
+def _serialize_datetime(dt: Optional[Any]) -> float:
+    """Treats naive datetimes from SQLite as UTC to ensure consistent timestamp conversion"""
+    if not dt:
+        return 0.0
+
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=tz.utc).timestamp()
+    else:
+        return dt.timestamp()
+
+
 def _pg_serialize_line_item(li: Any) -> Dict[str, Any]:
     """Convert LineItem ORM to dict matching MongoDB format"""
-    from datetime import timezone as tz
-
     mongo_id = li.mongo_id or li.id
-    # Handle naive datetimes from SQLite by treating them as UTC
-    if li.date and li.date.tzinfo is None:
-        date_timestamp = li.date.replace(tzinfo=tz.utc).timestamp()
-    else:
-        date_timestamp = li.date.timestamp() if li.date else 0.0
 
     data = {
         "_id": mongo_id,
         "id": mongo_id,
-        "date": date_timestamp,
+        "date": _serialize_datetime(li.date),
         "payment_method": li.payment_method.name if li.payment_method else "Unknown",
         "description": li.description or "",
         "amount": float(li.amount or 0.0),
@@ -334,23 +289,15 @@ def _pg_serialize_line_item(li: Any) -> Dict[str, Any]:
 
 def _pg_serialize_event(event: Any) -> Dict[str, Any]:
     """Convert Event ORM to dict matching MongoDB format"""
-    from datetime import timezone as tz
-
     amount = float(event.total_amount) if event.total_amount else 0.0
     line_item_ids = [li.mongo_id or li.id for li in event.line_items]
     tag_names = [tag.name for tag in event.tags] if event.tags else []
-
-    # Handle naive datetimes from SQLite by treating them as UTC
-    if event.date and event.date.tzinfo is None:
-        date_timestamp = event.date.replace(tzinfo=tz.utc).timestamp()
-    else:
-        date_timestamp = event.date.timestamp() if event.date else 0.0
 
     mongo_id = event.mongo_id or event.id
     return {
         "_id": mongo_id,
         "id": mongo_id,
-        "date": date_timestamp,
+        "date": _serialize_datetime(event.date),
         "name": event.description or "",
         "category": event.category.name if event.category else "Unknown",
         "amount": amount,
