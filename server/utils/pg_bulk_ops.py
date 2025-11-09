@@ -37,9 +37,7 @@ def get_transaction_date(transaction: Dict[str, Any], source: str) -> datetime:
         return datetime.now(UTC)
 
 
-def bulk_upsert_transactions(
-    db_session, transactions_data: List[Any], source: str
-) -> int:
+def bulk_upsert_transactions(db_session, transactions_data: List[Any], source: str) -> int:
     """
     Bulk upsert transactions to PostgreSQL.
 
@@ -82,15 +80,11 @@ def bulk_upsert_transactions(
         return 0
 
     # Check existing transactions to avoid duplicates
-    existing_query = db_session.query(Transaction.source, Transaction.source_id).filter(
-        Transaction.source == source
-    )
+    existing_query = db_session.query(Transaction.source, Transaction.source_id).filter(Transaction.source == source)
     if mongo_ids:
         existing_pairs = set(
             (row.source, row.source_id)
-            for row in existing_query.filter(
-                Transaction.source_id.in_([mid for _, mid in mongo_ids])
-            ).all()
+            for row in existing_query.filter(Transaction.source_id.in_([mid for _, mid in mongo_ids])).all()
         )
     else:
         existing_pairs = set()
@@ -118,9 +112,7 @@ def bulk_upsert_transactions(
 
     if bulk_inserts:
         db_session.bulk_insert_mappings(Transaction, bulk_inserts)
-        logger.info(
-            f"Bulk inserted {len(bulk_inserts)} {source} transactions to PostgreSQL"
-        )
+        logger.info(f"Bulk inserted {len(bulk_inserts)} {source} transactions to PostgreSQL")
         return len(bulk_inserts)
 
     return 0
@@ -214,11 +206,7 @@ def bulk_upsert_line_items(db_session, line_items_data: List[Any], source: str) 
     # Check existing line items by mongo_id
     existing_mongo_ids = set()
     if line_item_mongo_ids_check:
-        existing = (
-            db_session.query(LineItem.mongo_id)
-            .filter(LineItem.mongo_id.in_(line_item_mongo_ids_check))
-            .all()
-        )
+        existing = db_session.query(LineItem.mongo_id).filter(LineItem.mongo_id.in_(line_item_mongo_ids_check)).all()
         existing_mongo_ids = {row[0] for row in existing}
 
     # Prepare bulk insert mappings
@@ -232,9 +220,7 @@ def bulk_upsert_line_items(db_session, line_items_data: List[Any], source: str) 
         transaction_id = transaction_lookup.get(txn_mongo_id)
 
         if not transaction_id:
-            logger.warning(
-                f"Transaction not found for line item {mongo_id} (source={source}, txn_mongo_id={txn_mongo_id})"
-            )
+            logger.warning(f"Transaction not found for line item {mongo_id} (source={source}, txn_mongo_id={txn_mongo_id})")
             continue
 
         payment_method_name = li_dict.get("payment_method", "Unknown")
@@ -242,13 +228,9 @@ def bulk_upsert_line_items(db_session, line_items_data: List[Any], source: str) 
 
         if not payment_method_id:
             # Create "Unknown" payment method if not found
-            unknown_pm = (
-                db_session.query(PaymentMethod).filter_by(name="Unknown").first()
-            )
+            unknown_pm = db_session.query(PaymentMethod).filter_by(name="Unknown").first()
             if not unknown_pm:
-                unknown_pm = PaymentMethod(
-                    id=generate_id("pm"), name="Unknown", type="cash", is_active=True
-                )
+                unknown_pm = PaymentMethod(id=generate_id("pm"), name="Unknown", type="cash", is_active=True)
                 db_session.add(unknown_pm)
                 db_session.flush()
                 payment_method_map["Unknown"] = unknown_pm.id
@@ -259,9 +241,7 @@ def bulk_upsert_line_items(db_session, line_items_data: List[Any], source: str) 
         if isinstance(date_value, (int, float)):
             li_date = datetime.fromtimestamp(float(date_value), UTC)
         else:
-            logger.warning(
-                f"Unexpected date type: {type(date_value)}, using current time"
-            )
+            logger.warning(f"Unexpected date type: {type(date_value)}, using current time")
             li_date = datetime.now(UTC)
 
         amount_value = li_dict.get("amount", 0)
@@ -287,9 +267,7 @@ def bulk_upsert_line_items(db_session, line_items_data: List[Any], source: str) 
 
     if bulk_inserts:
         db_session.bulk_insert_mappings(LineItem, bulk_inserts)
-        logger.info(
-            f"Bulk inserted {len(bulk_inserts)} {source} line items to PostgreSQL"
-        )
+        logger.info(f"Bulk inserted {len(bulk_inserts)} {source} line items to PostgreSQL")
         return len(bulk_inserts)
 
     return 0
@@ -316,9 +294,7 @@ def bulk_upsert_bank_accounts(db_session, accounts_data: List[Any]) -> int:
         return 0
 
     # Check existing accounts
-    existing = (
-        db_session.query(BankAccount.id).filter(BankAccount.id.in_(account_ids)).all()
-    )
+    existing = db_session.query(BankAccount.id).filter(BankAccount.id.in_(account_ids)).all()
     existing_ids = {row[0] for row in existing}
 
     # Prepare bulk inserts for new accounts

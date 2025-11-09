@@ -21,10 +21,26 @@ from decimal import Decimal
 import pytest
 
 # Ensure test database is set before imports
-os.environ[
-    "DATABASE_URL"
-] = "sqlite:///file:test_phase5?mode=memory&cache=shared&uri=true"
+os.environ["DATABASE_URL"] = "sqlite:///file:test_phase5?mode=memory&cache=shared&uri=true"
 
+from sqlalchemy import create_engine
+
+from dao import (
+    _pg_get_all_bank_accounts,
+    _pg_get_all_events,
+    _pg_get_all_line_items,
+    _pg_get_categorized_data,
+    _pg_get_event_by_id,
+    _pg_get_line_item_by_id,
+    _pg_get_line_items_for_event,
+    _pg_get_transactions,
+    _pg_get_user_by_email,
+    bank_accounts_collection,
+    events_collection,
+    get_all_data,
+    get_user_by_email,
+    line_items_collection,
+)
 from models.database import SessionLocal
 from models.sql_models import (
     BankAccount,
@@ -38,26 +54,6 @@ from models.sql_models import (
     User,
 )
 from utils.id_generator import generate_id
-from dao import (
-    _pg_get_all_bank_accounts,
-    _pg_get_all_events,
-    _pg_get_all_line_items,
-    _pg_get_categorized_data,
-    _pg_get_event_by_id,
-    _pg_get_line_item_by_id,
-    _pg_get_line_items_for_event,
-    _pg_get_transactions,
-    _pg_get_user_by_email,
-    bank_accounts_collection,
-    bulk_upsert,
-    events_collection,
-    get_all_data,
-    get_categorized_data,
-    get_item_by_id,
-    get_user_by_email,
-    line_items_collection,
-)
-from sqlalchemy import create_engine
 
 
 @pytest.fixture(scope="function")
@@ -155,9 +151,7 @@ def sample_transactions(pg_session):
 class TestLineItemReads:
     """Test line item read operations"""
 
-    def test_pg_get_all_line_items(
-        self, pg_session, sample_payment_methods, sample_transactions
-    ):
+    def test_pg_get_all_line_items(self, pg_session, sample_payment_methods, sample_transactions):
         """Test getting all line items from PostgreSQL"""
         # Create line items
         line_items = [
@@ -213,9 +207,7 @@ class TestLineItemReads:
         assert "amount" in result[0]
         assert "payment_method" in result[0]
 
-    def test_pg_get_line_item_by_id_postgresql_id(
-        self, pg_session, sample_payment_methods, sample_transactions
-    ):
+    def test_pg_get_line_item_by_id_postgresql_id(self, pg_session, sample_payment_methods, sample_transactions):
         """Test getting line item by PostgreSQL ID"""
         line_item = LineItem(
             id="li_001",
@@ -236,9 +228,7 @@ class TestLineItemReads:
         assert result["id"] == "507f1f77bcf86cd799439011"
         assert result["_id"] == "507f1f77bcf86cd799439011"
 
-    def test_pg_get_line_item_by_id_mongodb_id(
-        self, pg_session, sample_payment_methods, sample_transactions
-    ):
+    def test_pg_get_line_item_by_id_mongodb_id(self, pg_session, sample_payment_methods, sample_transactions):
         """Test getting line item by MongoDB ID (ID coexistence)"""
         line_item = LineItem(
             id="li_001",
@@ -259,9 +249,7 @@ class TestLineItemReads:
         assert result["id"] == "507f1f77bcf86cd799439011"
         assert result["_id"] == "507f1f77bcf86cd799439011"
 
-    def test_pg_get_line_items_with_payment_method_filter(
-        self, pg_session, sample_payment_methods, sample_transactions
-    ):
+    def test_pg_get_line_items_with_payment_method_filter(self, pg_session, sample_payment_methods, sample_transactions):
         """Test filtering line items by payment method"""
         line_items = [
             LineItem(
@@ -328,9 +316,7 @@ class TestLineItemReads:
         pg_session.add(event)
         pg_session.commit()
 
-        junction = EventLineItem(
-            id=generate_id("eli"), event_id="evt_001", line_item_id="li_002"
-        )
+        junction = EventLineItem(id=generate_id("eli"), event_id="evt_001", line_item_id="li_002")
         pg_session.add(junction)
         pg_session.commit()
 
@@ -507,12 +493,8 @@ class TestEventLineItemRelationship:
 
         # Link first two line items to event
         junctions = [
-            EventLineItem(
-                id=generate_id("eli"), event_id="evt_001", line_item_id="li_001"
-            ),
-            EventLineItem(
-                id=generate_id("eli"), event_id="evt_001", line_item_id="li_002"
-            ),
+            EventLineItem(id=generate_id("eli"), event_id="evt_001", line_item_id="li_001"),
+            EventLineItem(id=generate_id("eli"), event_id="evt_001", line_item_id="li_002"),
         ]
         for j in junctions:
             pg_session.add(j)
@@ -596,15 +578,9 @@ class TestAnalyticsAggregation:
 
         # Link line items to events
         junctions = [
-            EventLineItem(
-                id=generate_id("eli"), event_id="evt_001", line_item_id="li_001"
-            ),
-            EventLineItem(
-                id=generate_id("eli"), event_id="evt_002", line_item_id="li_002"
-            ),
-            EventLineItem(
-                id=generate_id("eli"), event_id="evt_003", line_item_id="li_003"
-            ),
+            EventLineItem(id=generate_id("eli"), event_id="evt_001", line_item_id="li_001"),
+            EventLineItem(id=generate_id("eli"), event_id="evt_002", line_item_id="li_002"),
+            EventLineItem(id=generate_id("eli"), event_id="evt_003", line_item_id="li_003"),
         ]
         for j in junctions:
             pg_session.add(j)
@@ -617,11 +593,7 @@ class TestAnalyticsAggregation:
         assert len(result) >= 2  # At least 2 categories
 
         # Find Dining category in January
-        jan_dining = [
-            r
-            for r in result
-            if r["year"] == 2024 and r["month"] == 1 and r["category"] == "Dining"
-        ]
+        jan_dining = [r for r in result if r["year"] == 2024 and r["month"] == 1 and r["category"] == "Dining"]
         assert len(jan_dining) == 1
         assert abs(jan_dining[0]["totalExpense"] - (-50.00)) < 0.01
 
@@ -629,9 +601,7 @@ class TestAnalyticsAggregation:
 class TestIDCoexistence:
     """Test that both PostgreSQL and MongoDB IDs work"""
 
-    def test_both_id_formats_work(
-        self, pg_session, sample_payment_methods, sample_transactions
-    ):
+    def test_both_id_formats_work(self, pg_session, sample_payment_methods, sample_transactions):
         """Test that both ID formats can be used to retrieve records"""
         line_item = LineItem(
             id="li_001",
@@ -871,9 +841,6 @@ class TestMongoDBIndependence:
         # Test raw data collections
         from dao import (
             venmo_raw_data_collection,
-            splitwise_raw_data_collection,
-            stripe_raw_transaction_data_collection,
-            cash_raw_data_collection,
         )
 
         result = get_all_data(venmo_raw_data_collection, None)
@@ -895,9 +862,7 @@ class TestMongoDBIndependence:
         """Test that unknown collections raise NotImplementedError"""
         monkeypatch.setattr("dao.READ_FROM_POSTGRESQL", True)
 
-        with pytest.raises(
-            NotImplementedError, match="Unknown collection.*cannot read from PostgreSQL"
-        ):
+        with pytest.raises(NotImplementedError, match="Unknown collection.*cannot read from PostgreSQL"):
             get_all_data("unknown_collection", None)
 
 

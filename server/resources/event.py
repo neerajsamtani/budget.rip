@@ -1,5 +1,4 @@
 import logging
-from datetime import UTC, datetime
 from typing import Any, Dict, List, Optional
 
 from flask import Blueprint, Response, jsonify, request
@@ -17,9 +16,8 @@ from dao import (
     upsert_with_id,
 )
 from helpers import html_date_to_posix
-from models.sql_models import Category, Event, EventLineItem, EventTag, LineItem, Tag
+from models.sql_models import Event
 from utils.dual_write import dual_write_operation
-from utils.id_generator import generate_id
 
 events_blueprint = Blueprint("events", __name__)
 
@@ -74,9 +72,7 @@ def post_event_api() -> tuple[Response, int]:
     filters: Dict[str, Any] = {}
     filters["_id"] = {"$in": new_event["line_items"]}
     line_items: List[Dict[str, Any]] = get_all_data(line_items_collection, filters)
-    earliest_line_item: Dict[str, Any] = min(
-        line_items, key=lambda line_item: line_item["date"]
-    )
+    earliest_line_item: Dict[str, Any] = min(line_items, key=lambda line_item: line_item["date"])
 
     new_event["id"] = f"event{earliest_line_item['id'][9:]}"
     if new_event["date"]:
@@ -111,15 +107,13 @@ def post_event_api() -> tuple[Response, int]:
         # Note: No explicit commit needed - dual_write_operation handles it
 
     # Execute dual-write
-    result = dual_write_operation(
+    dual_write_operation(
         operation_name="create_event",
         mongo_write_func=mongo_write,
         pg_write_func=pg_write,
     )
 
-    logging.info(
-        f"Created event: {new_event['id']} with {len(line_items)} line items (amount: ${new_event['amount']:.2f})"
-    )
+    logging.info(f"Created event: {new_event['id']} with {len(line_items)} line items (amount: ${new_event['amount']:.2f})")
     return jsonify(new_event), 201
 
 
@@ -149,9 +143,7 @@ def delete_event_api(event_id: str) -> tuple[Response, int]:
         # Unique constraint on mongo_id ensures at most one event per ID
         pg_event = db_session.query(Event).filter(Event.id == event_id).first()
         if not pg_event:
-            pg_event = (
-                db_session.query(Event).filter(Event.mongo_id == event_id).first()
-            )
+            pg_event = db_session.query(Event).filter(Event.mongo_id == event_id).first()
 
         if pg_event:
             db_session.delete(pg_event)
@@ -159,7 +151,7 @@ def delete_event_api(event_id: str) -> tuple[Response, int]:
             logging.info(f"Event {event_id} not in PostgreSQL yet")
 
     # Execute dual-write
-    result = dual_write_operation(
+    dual_write_operation(
         operation_name="delete_event",
         mongo_write_func=mongo_write,
         pg_write_func=pg_write,
@@ -184,9 +176,7 @@ def get_line_items_for_event_api(
             return jsonify({"error": "Event not found"}), 404
         line_items: List[Dict[str, Any]] = []
         for line_item_id in event["line_items"]:
-            line_item: Optional[Dict[str, Any]] = get_item_by_id(
-                line_items_collection, line_item_id
-            )
+            line_item: Optional[Dict[str, Any]] = get_item_by_id(line_items_collection, line_item_id)
             if line_item is not None:
                 line_items.append(line_item)
         logging.info(f"Retrieved {len(line_items)} line items for event: {event_id}")

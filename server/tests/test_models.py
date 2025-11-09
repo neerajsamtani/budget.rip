@@ -6,6 +6,7 @@ These tests validate model relationships, constraints, and basic behavior.
 For PostgreSQL-specific features (JSONB operators, etc.), consider
 separate integration tests in CI.
 """
+
 from datetime import UTC, datetime
 from decimal import Decimal
 
@@ -62,9 +63,7 @@ def test_create_event_with_line_items(db_session):
     db_session.add(category)
 
     # Create payment method
-    payment_method = PaymentMethod(
-        id=generate_id("pm"), name="Chase", type="credit", is_active=True
-    )
+    payment_method = PaymentMethod(id=generate_id("pm"), name="Chase", type="credit", is_active=True)
     db_session.add(payment_method)
 
     # Create transaction
@@ -102,9 +101,7 @@ def test_create_event_with_line_items(db_session):
     db_session.commit()
 
     # Link line item to event via junction table
-    event_line_item = EventLineItem(
-        id=generate_id("eli"), event_id=event.id, line_item_id=line_item.id
-    )
+    event_line_item = EventLineItem(id=generate_id("eli"), event_id=event.id, line_item_id=line_item.id)
     db_session.add(event_line_item)
     db_session.commit()
 
@@ -137,9 +134,7 @@ def test_event_total_amount_property(db_session):
     """Test that Event.total_amount property correctly sums line items"""
     # Setup category and payment method
     category = Category(id=generate_id("cat"), name="Test Category", is_active=True)
-    payment_method = PaymentMethod(
-        id=generate_id("pm"), name="Test Card", type="credit", is_active=True
-    )
+    payment_method = PaymentMethod(id=generate_id("pm"), name="Test Card", type="credit", is_active=True)
     transaction = Transaction(
         id=generate_id("txn"),
         source="manual",
@@ -176,9 +171,7 @@ def test_event_total_amount_property(db_session):
         db_session.commit()
 
         # Link to event
-        event_line_item = EventLineItem(
-            id=generate_id("eli"), event_id=event.id, line_item_id=line_item.id
-        )
+        event_line_item = EventLineItem(id=generate_id("eli"), event_id=event.id, line_item_id=line_item.id)
         db_session.add(event_line_item)
 
     db_session.commit()
@@ -193,9 +186,7 @@ def test_event_duplicate_total(db_session):
     """Test that is_duplicate flag causes total to use only first line item"""
     # Setup
     category = Category(id=generate_id("cat"), name="Test", is_active=True)
-    payment_method = PaymentMethod(
-        id=generate_id("pm"), name="Test", type="credit", is_active=True
-    )
+    payment_method = PaymentMethod(id=generate_id("pm"), name="Test", type="credit", is_active=True)
     transaction = Transaction(
         id=generate_id("txn"),
         source="manual",
@@ -231,9 +222,7 @@ def test_event_duplicate_total(db_session):
         db_session.add(line_item)
         db_session.commit()
 
-        event_line_item = EventLineItem(
-            id=generate_id("eli"), event_id=event.id, line_item_id=line_item.id
-        )
+        event_line_item = EventLineItem(id=generate_id("eli"), event_id=event.id, line_item_id=line_item.id)
         db_session.add(event_line_item)
 
     db_session.commit()
@@ -249,9 +238,7 @@ def test_cascade_delete_event_deletes_junction_records(db_session):
     """Test that deleting an event cascades to event_line_items"""
     # Setup
     category = Category(id=generate_id("cat"), name="Cascade Test", is_active=True)
-    payment_method = PaymentMethod(
-        id=generate_id("pm"), name="Test PM", type="credit", is_active=True
-    )
+    payment_method = PaymentMethod(id=generate_id("pm"), name="Test PM", type="credit", is_active=True)
     transaction = Transaction(
         id=generate_id("txn"),
         source="manual",
@@ -282,9 +269,7 @@ def test_cascade_delete_event_deletes_junction_records(db_session):
     db_session.commit()
 
     # Link them
-    event_line_item = EventLineItem(
-        id=generate_id("eli"), event_id=event.id, line_item_id=line_item.id
-    )
+    event_line_item = EventLineItem(id=generate_id("eli"), event_id=event.id, line_item_id=line_item.id)
     db_session.add(event_line_item)
     db_session.commit()
 
@@ -295,9 +280,7 @@ def test_cascade_delete_event_deletes_junction_records(db_session):
     db_session.commit()
 
     # Verify junction record was cascaded
-    junction_record = (
-        db_session.query(EventLineItem).filter_by(id=event_line_item_id).first()
-    )
+    junction_record = db_session.query(EventLineItem).filter_by(id=event_line_item_id).first()
     assert junction_record is None
 
     # Line item should still exist (no cascade from junction table)
@@ -307,9 +290,7 @@ def test_cascade_delete_event_deletes_junction_records(db_session):
 def test_cascade_delete_transaction_deletes_line_items(db_session):
     """Test that deleting a transaction cascades to line_items"""
     # Setup
-    payment_method = PaymentMethod(
-        id=generate_id("pm"), name="Test PM", type="credit", is_active=True
-    )
+    payment_method = PaymentMethod(id=generate_id("pm"), name="Test PM", type="credit", is_active=True)
     transaction = Transaction(
         id=generate_id("txn"),
         source="stripe",
@@ -345,12 +326,8 @@ def test_cascade_delete_transaction_deletes_line_items(db_session):
 def test_restrict_delete_category_with_events_fails(db_session):
     """Test that deleting a category with events raises an error (RESTRICT)"""
     # Setup
-    category = Category(
-        id=generate_id("cat"), name="Protected Category", is_active=True
-    )
-    payment_method = PaymentMethod(
-        id=generate_id("pm"), name="Test PM", type="credit", is_active=True
-    )
+    category = Category(id=generate_id("cat"), name="Protected Category", is_active=True)
+    payment_method = PaymentMethod(id=generate_id("pm"), name="Test PM", type="credit", is_active=True)
     transaction = Transaction(
         id=generate_id("txn"),
         source="cash",
@@ -381,9 +358,7 @@ def test_restrict_delete_category_with_events_fails(db_session):
 def test_restrict_delete_payment_method_with_line_items_fails(db_session):
     """Test that deleting a payment method with line items raises an error (RESTRICT)"""
     # Setup
-    payment_method = PaymentMethod(
-        id=generate_id("pm"), name="Protected PM", type="credit", is_active=True
-    )
+    payment_method = PaymentMethod(id=generate_id("pm"), name="Protected PM", type="credit", is_active=True)
     transaction = Transaction(
         id=generate_id("txn"),
         source="stripe",

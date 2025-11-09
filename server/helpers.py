@@ -65,9 +65,7 @@ def iso_8601_to_readable(date: str) -> str:
     # TODO: Don't strip time data from date
     # Check that the input is a valid ISO 8601 date string with a time component.
     if not re.match(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$", date):
-        raise ValueError(
-            "Invalid input: string must be in ISO 8601 format with a time component."
-        )
+        raise ValueError("Invalid input: string must be in ISO 8601 format with a time component.")
     date_time_obj: datetime = datetime.fromisoformat(date[:10])
     return date_time_obj.strftime("%b %d %Y")
 
@@ -106,16 +104,12 @@ def sort_by_date_descending(line_items: List[Dict[str, Any]]) -> List[Dict[str, 
     return line_items
 
 
-def get_venmo_access_token(
-    venmo_username: str, venmo_password: str, venmo_client: Any = VenmoClient
-) -> str:
+def get_venmo_access_token(venmo_username: str, venmo_password: str, venmo_client: Any = VenmoClient) -> str:
     """
     This function triggers 2FA and requires interaction
     in the command line
     """
-    return venmo_client.get_access_token(
-        username=venmo_username, password=venmo_password
-    )
+    return venmo_client.get_access_token(username=venmo_username, password=venmo_password)
 
 
 def hash_password(password: str) -> str:

@@ -23,7 +23,10 @@ venv: ## Create virtual environment and install dependencies
 install: venv ## Install/update dependencies (alias for venv)
 
 test: venv ## Run all tests
-	@$(PYTEST) tests/ -v
+	@echo "Running tests with READ_FROM_POSTGRESQL=false..."
+	@READ_FROM_POSTGRESQL=false $(PYTHON) -m pytest tests/ -v
+	@echo "Running tests with READ_FROM_POSTGRESQL=true..."
+	@READ_FROM_POSTGRESQL=true $(PYTHON) -m pytest tests/ -v
 
 test-phase3: venv ## Run Phase 3 migration tests only
 	@$(PYTEST) tests/test_phase3_migration.py -v

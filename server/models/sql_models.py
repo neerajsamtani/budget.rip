@@ -1,20 +1,21 @@
 # server/models/sql_models.py
+from datetime import UTC, datetime
+from decimal import Decimal
+
 from sqlalchemy import (
-    Column,
-    String,
     DECIMAL,
-    TIMESTAMP,
-    Text,
-    Boolean,
-    ForeignKey,
-    Enum,
-    UniqueConstraint,
     JSON,
+    TIMESTAMP,
+    Boolean,
+    Column,
+    Enum,
+    ForeignKey,
+    String,
+    Text,
+    UniqueConstraint,
 )
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import relationship, declarative_base
-from datetime import datetime, UTC
-from decimal import Decimal
+from sqlalchemy.orm import declarative_base, relationship
 
 Base = declarative_base()
 
@@ -49,9 +50,7 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(String(255), primary_key=True)  # user_xxx
-    mongo_id = Column(
-        String(255), unique=True, nullable=True, index=True
-    )  # Original MongoDB _id
+    mongo_id = Column(String(255), unique=True, nullable=True, index=True)  # Original MongoDB _id
     first_name = Column(String(255), nullable=False)
     last_name = Column(String(255), nullable=False)
     email = Column(String(255), unique=True, nullable=False, index=True)
@@ -88,9 +87,7 @@ class PaymentMethod(Base):
     id = Column(String(255), primary_key=True)  # pm_xxx
     name = Column(String(100), nullable=False, unique=True)
     type = Column(
-        Enum(
-            "bank", "credit", "venmo", "splitwise", "cash", name="payment_method_type"
-        ),
+        Enum("bank", "credit", "venmo", "splitwise", "cash", name="payment_method_type"),
         nullable=False,
     )
     external_id = Column(String(255), nullable=True)
@@ -118,21 +115,15 @@ class Tag(Base):
 
 class Transaction(Base):
     __tablename__ = "transactions"
-    __table_args__ = (
-        UniqueConstraint("source", "source_id", name="uq_transaction_source"),
-    )
+    __table_args__ = (UniqueConstraint("source", "source_id", name="uq_transaction_source"),)
 
     id = Column(String(255), primary_key=True)  # txn_xxx
     source = Column(
-        Enum(
-            "venmo", "splitwise", "stripe", "cash", "manual", name="transaction_source"
-        ),
+        Enum("venmo", "splitwise", "stripe", "cash", "manual", name="transaction_source"),
         nullable=False,
     )
     source_id = Column(String(255), nullable=False)
-    source_data = Column(
-        JSON().with_variant(JSONB, "postgresql"), nullable=False
-    )  # JSONB for PostgreSQL, JSON for others
+    source_data = Column(JSON().with_variant(JSONB, "postgresql"), nullable=False)  # JSONB for PostgreSQL, JSON for others
     transaction_date = Column(TIMESTAMP(timezone=True), nullable=False)
     imported_at = Column(TIMESTAMP(timezone=True), default=lambda: datetime.now(UTC))
     created_at = Column(TIMESTAMP(timezone=True), default=lambda: datetime.now(UTC))
@@ -142,9 +133,7 @@ class LineItem(Base):
     __tablename__ = "line_items"
 
     id = Column(String(255), primary_key=True)  # li_xxx
-    transaction_id = Column(
-        String(255), ForeignKey("transactions.id", ondelete="CASCADE"), nullable=False
-    )
+    transaction_id = Column(String(255), ForeignKey("transactions.id", ondelete="CASCADE"), nullable=False)
     mongo_id = Column(String(255), nullable=True, index=True)  # Original MongoDB _id
     date = Column(TIMESTAMP(timezone=True), nullable=False)
     amount = Column(DECIMAL(12, 2), nullable=False)
@@ -166,9 +155,7 @@ class LineItem(Base):
     # Relationships
     transaction = relationship("Transaction")
     payment_method = relationship("PaymentMethod")
-    events = relationship(
-        "Event", secondary="event_line_items", back_populates="line_items"
-    )
+    events = relationship("Event", secondary="event_line_items", back_populates="line_items")
 
 
 class Event(Base):
@@ -178,9 +165,7 @@ class Event(Base):
     mongo_id = Column(String(255), nullable=True, unique=True)  # Original MongoDB _id
     date = Column(TIMESTAMP(timezone=True), nullable=False)
     description = Column(Text, nullable=False)
-    category_id = Column(
-        String(255), ForeignKey("categories.id", ondelete="RESTRICT"), nullable=False
-    )
+    category_id = Column(String(255), ForeignKey("categories.id", ondelete="RESTRICT"), nullable=False)
     is_duplicate = Column(Boolean, default=False)
     created_at = Column(TIMESTAMP(timezone=True), default=lambda: datetime.now(UTC))
     updated_at = Column(
@@ -191,9 +176,7 @@ class Event(Base):
 
     # Relationships
     category = relationship("Category", back_populates="events")
-    line_items = relationship(
-        "LineItem", secondary="event_line_items", back_populates="events"
-    )
+    line_items = relationship("LineItem", secondary="event_line_items", back_populates="events")
     tags = relationship("Tag", secondary="event_tags")
 
     @property
@@ -208,17 +191,11 @@ class Event(Base):
 
 class EventLineItem(Base):
     __tablename__ = "event_line_items"
-    __table_args__ = (
-        UniqueConstraint("event_id", "line_item_id", name="uq_event_line_item"),
-    )
+    __table_args__ = (UniqueConstraint("event_id", "line_item_id", name="uq_event_line_item"),)
 
     id = Column(String(255), primary_key=True)  # eli_xxx
-    event_id = Column(
-        String(255), ForeignKey("events.id", ondelete="CASCADE"), nullable=False
-    )
-    line_item_id = Column(
-        String(255), ForeignKey("line_items.id", ondelete="CASCADE"), nullable=False
-    )
+    event_id = Column(String(255), ForeignKey("events.id", ondelete="CASCADE"), nullable=False)
+    line_item_id = Column(String(255), ForeignKey("line_items.id", ondelete="CASCADE"), nullable=False)
     created_at = Column(TIMESTAMP(timezone=True), default=lambda: datetime.now(UTC))
 
 
@@ -227,10 +204,6 @@ class EventTag(Base):
     __table_args__ = (UniqueConstraint("event_id", "tag_id", name="uq_event_tag"),)
 
     id = Column(String(255), primary_key=True)  # etag_xxx
-    event_id = Column(
-        String(255), ForeignKey("events.id", ondelete="CASCADE"), nullable=False
-    )
-    tag_id = Column(
-        String(255), ForeignKey("tags.id", ondelete="CASCADE"), nullable=False
-    )
+    event_id = Column(String(255), ForeignKey("events.id", ondelete="CASCADE"), nullable=False)
+    tag_id = Column(String(255), ForeignKey("tags.id", ondelete="CASCADE"), nullable=False)
     created_at = Column(TIMESTAMP(timezone=True), default=lambda: datetime.now(UTC))

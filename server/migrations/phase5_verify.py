@@ -41,12 +41,12 @@ from pymongo import MongoClient
 
 from constants import DATABASE_URL, MONGO_URI
 from dao import (
-    __pg_get_all_events,
-    __pg_get_all_line_items,
-    __pg_get_categorized_data,
-    __pg_get_event_by_id,
-    __pg_get_line_item_by_id,
-    __pg_get_line_items_for_event,
+    _pg_get_all_events,
+    _pg_get_all_line_items,
+    _pg_get_categorized_data,
+    _pg_get_event_by_id,
+    _pg_get_line_item_by_id,
+    _pg_get_line_items_for_event,
     events_collection,
     get_all_data,
     get_categorized_data,

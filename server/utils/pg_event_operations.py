@@ -31,15 +31,11 @@ def upsert_event_to_postgresql(event_dict: Dict[str, Any], db_session) -> str:
     # Look up category by name - REQUIRED, raise if missing
     category_name = event_dict.get("category")
     if not category_name:
-        raise ValueError(
-            f"Event {event_dict.get('id')} has no category - cannot write to PostgreSQL"
-        )
+        raise ValueError(f"Event {event_dict.get('id')} has no category - cannot write to PostgreSQL")
 
     category = db_session.query(Category).filter(Category.name == category_name).first()
     if not category:
-        raise ValueError(
-            f"Category '{category_name}' not found in PostgreSQL - cannot write event"
-        )
+        raise ValueError(f"Category '{category_name}' not found in PostgreSQL - cannot write event")
 
     # Convert date to datetime
     event_date = datetime.fromtimestamp(event_dict["date"], UTC)
@@ -49,9 +45,7 @@ def upsert_event_to_postgresql(event_dict: Dict[str, Any], db_session) -> str:
         id=pg_event_id,
         mongo_id=event_dict["id"],
         date=event_date,
-        description=event_dict.get(
-            "name", event_dict.get("description", "")
-        ),  # Handle both fields
+        description=event_dict.get("name", event_dict.get("description", "")),  # Handle both fields
         category_id=category.id,
         is_duplicate=event_dict.get("is_duplicate_transaction", False),
         created_at=datetime.now(UTC),
@@ -62,11 +56,7 @@ def upsert_event_to_postgresql(event_dict: Dict[str, Any], db_session) -> str:
 
     # Create EventLineItem junctions
     for line_item_mongo_id in event_dict.get("line_items", []):
-        pg_line_item = (
-            db_session.query(LineItem)
-            .filter(LineItem.mongo_id == str(line_item_mongo_id))
-            .first()
-        )
+        pg_line_item = db_session.query(LineItem).filter(LineItem.mongo_id == str(line_item_mongo_id)).first()
 
         if pg_line_item:
             event_line_item = EventLineItem(
@@ -77,9 +67,7 @@ def upsert_event_to_postgresql(event_dict: Dict[str, Any], db_session) -> str:
             )
             db_session.add(event_line_item)
         else:
-            logger.warning(
-                f"Line item {line_item_mongo_id} not in PostgreSQL yet - skipping junction"
-            )
+            logger.warning(f"Line item {line_item_mongo_id} not in PostgreSQL yet - skipping junction")
 
     # Create EventTag junctions
     for tag_name in event_dict.get("tags", []):

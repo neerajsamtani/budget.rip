@@ -63,9 +63,7 @@ class TestAuthAPI:
             assert created_user["email"] == "neerajjsamtani@gmail.com"
             assert "password_hash" in created_user  # Should have hashed password
 
-    def test_signup_user_api_user_already_exists(
-        self, test_client, flask_app, create_user_via_api
-    ):
+    def test_signup_user_api_user_already_exists(self, test_client, flask_app, create_user_via_api):
         """Test POST /api/auth/signup endpoint - user already exists"""
         # Create existing user via API
         create_user_via_api(
@@ -103,10 +101,7 @@ class TestAuthAPI:
         response = test_client.post("/api/auth/signup", json=signup_data)
 
         assert response.status_code == 403
-        assert (
-            response.get_data(as_text=True).strip()
-            == '"User Not Signed Up For Private Beta"'
-        )
+        assert response.get_data(as_text=True).strip() == '"User Not Signed Up For Private Beta"'
 
     def test_signup_user_api_missing_fields(self, test_client):
         """Test POST /api/auth/signup endpoint - missing required fields"""
@@ -129,9 +124,7 @@ class TestAuthAPI:
             "email": "neerajjsamtani@gmail.com",
         }
 
-        response = test_client.post(
-            "/api/auth/signup", json=signup_data_missing_password
-        )
+        response = test_client.post("/api/auth/signup", json=signup_data_missing_password)
         assert response.status_code == 400
         data = response.get_json()
         assert data["error"].startswith("Missing required field: password")
@@ -177,9 +170,7 @@ class TestAuthAPI:
         data = response.get_json()
         assert data["error"] == "Email or password invalid"
 
-    def test_login_user_api_invalid_password(
-        self, test_client, flask_app, create_user_via_api
-    ):
+    def test_login_user_api_invalid_password(self, test_client, flask_app, create_user_via_api):
         """Test POST /api/auth/login endpoint - invalid password"""
         # Create test user via API
         create_user_via_api(
@@ -235,10 +226,7 @@ class TestAuthAPI:
 
         # Check that JWT cookies are unset
         set_cookie_header = response.headers.get("Set-Cookie", "")
-        assert (
-            "access_token_cookie=;" in set_cookie_header
-            or "access_token_cookie=; " in set_cookie_header
-        )
+        assert "access_token_cookie=;" in set_cookie_header or "access_token_cookie=; " in set_cookie_header
 
 
 class TestAuthFunctions:

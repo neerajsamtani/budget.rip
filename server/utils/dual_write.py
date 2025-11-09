@@ -10,8 +10,6 @@ import logging
 from datetime import UTC, datetime
 from typing import Any, Callable, Dict
 
-from sqlalchemy.exc import SQLAlchemyError
-
 from models.database import SessionLocal
 
 logger = logging.getLogger(__name__)
@@ -81,10 +79,7 @@ def dual_write_operation(
 
         # Non-critical: MongoDB succeeded, PG will be reconciled
         result["success"] = True
-        logger.warning(
-            f"PostgreSQL write failed for {operation_name} but continuing "
-            "(will be reconciled later)"
-        )
+        logger.warning(f"PostgreSQL write failed for {operation_name} but continuing (will be reconciled later)")
     finally:
         if db_session:
             db_session.close()

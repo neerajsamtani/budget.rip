@@ -49,9 +49,7 @@ try:
     from test_config import TEST_DB_NAME, TEST_MONGO_URI
 except ImportError:
     # Fallback if test_config doesn't exist
-    TEST_MONGO_URI = os.getenv(
-        "TEST_MONGO_URI", "mongodb://localhost:27017/budgit_test"
-    )
+    TEST_MONGO_URI = os.getenv("TEST_MONGO_URI", "mongodb://localhost:27017/budgit_test")
     TEST_DB_NAME = "budgit_test"
 
 
@@ -65,9 +63,7 @@ def init_test_db():
     """Initialize the test database schema"""
     global test_engine, TestSession
     # Enable URI mode for SQLite to support shared memory connections
-    test_engine = create_engine(
-        TEST_DATABASE_URL, echo=False, connect_args={"uri": True}
-    )
+    test_engine = create_engine(TEST_DATABASE_URL, echo=False, connect_args={"uri": True})
 
     # Enable foreign key constraints for SQLite
     @event.listens_for(test_engine, "connect")
@@ -155,9 +151,7 @@ def flask_app():
             schedule_refresh_api,
             methods=["GET"],
         )
-        app.add_url_rule(
-            "/api/refresh/all", "refresh_all_api", refresh_all_api, methods=["GET"]
-        )
+        app.add_url_rule("/api/refresh/all", "refresh_all_api", refresh_all_api, methods=["GET"])
         app.add_url_rule(
             "/api/connected_accounts",
             "get_connected_accounts_api",

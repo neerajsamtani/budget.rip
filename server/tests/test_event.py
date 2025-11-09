@@ -4,7 +4,6 @@ import pytest
 
 from dao import events_collection, line_items_collection, upsert_with_id
 from models.sql_models import (
-    Category,
     Event,
     EventLineItem,
     EventTag,
@@ -64,12 +63,8 @@ class TestEventAPI:
     ):
         """Test GET /api/events endpoint"""
         # Create test line items via API
-        create_line_item_via_cash(
-            date="2009-02-13", person="Person1", description="Transaction 1", amount=100
-        )
-        create_line_item_via_cash(
-            date="2009-02-14", person="Person2", description="Transaction 2", amount=50
-        )
+        create_line_item_via_cash(date="2009-02-13", person="Person1", description="Transaction 1", amount=100)
+        create_line_item_via_cash(date="2009-02-14", person="Person2", description="Transaction 2", amount=50)
 
         # Get created line item IDs
         with flask_app.app_context():
@@ -124,12 +119,8 @@ class TestEventAPI:
     ):
         """Test GET /api/events with time filters"""
         # Create test line items via API
-        create_line_item_via_cash(
-            date="2009-02-13", person="Person1", description="Transaction 1", amount=100
-        )
-        create_line_item_via_cash(
-            date="2009-02-14", person="Person2", description="Transaction 2", amount=50
-        )
+        create_line_item_via_cash(date="2009-02-13", person="Person1", description="Transaction 1", amount=100)
+        create_line_item_via_cash(date="2009-02-14", person="Person2", description="Transaction 2", amount=50)
 
         # Get created line item IDs and dates (sort by date to ensure consistent ordering)
         with flask_app.app_context():
@@ -187,9 +178,7 @@ class TestEventAPI:
     ):
         """Test GET /api/events/<event_id> endpoint - success case"""
         # Create test line item via API
-        create_line_item_via_cash(
-            date="2009-02-13", person="Person1", description="Transaction 1", amount=100
-        )
+        create_line_item_via_cash(date="2009-02-13", person="Person1", description="Transaction 1", amount=100)
 
         # Get created line item ID
         with flask_app.app_context():
@@ -235,9 +224,7 @@ class TestEventAPI:
         data = response.get_json()
         assert data["error"] == "Event not found"
 
-    def test_create_event_api_success(
-        self, test_client, jwt_token, flask_app, create_line_item_via_cash
-    ):
+    def test_create_event_api_success(self, test_client, jwt_token, flask_app, create_line_item_via_cash):
         """Test POST /api/events endpoint - success case"""
         # Create test line items via API
         create_line_item_via_cash(
@@ -319,14 +306,9 @@ class TestEventAPI:
         )
 
         assert response.status_code == 400
-        assert (
-            response.get_data(as_text=True).strip()
-            == '"Failed to Create Event: No Line Items Submitted"'
-        )
+        assert response.get_data(as_text=True).strip() == '"Failed to Create Event: No Line Items Submitted"'
 
-    def test_create_event_api_duplicate_transaction(
-        self, test_client, jwt_token, flask_app, create_line_item_via_cash
-    ):
+    def test_create_event_api_duplicate_transaction(self, test_client, jwt_token, flask_app, create_line_item_via_cash):
         """Test POST /api/events endpoint - duplicate transaction"""
         # Create test line item via API
         create_line_item_via_cash(
@@ -372,9 +354,7 @@ class TestEventAPI:
             assert created_event is not None
             assert created_event["amount"] == 100  # Only the first line item amount
 
-    def test_create_event_api_no_date(
-        self, test_client, jwt_token, flask_app, create_line_item_via_cash
-    ):
+    def test_create_event_api_no_date(self, test_client, jwt_token, flask_app, create_line_item_via_cash):
         """Test POST /api/events endpoint - no date provided"""
         # Create test line item via API
         create_line_item_via_cash(
@@ -418,9 +398,7 @@ class TestEventAPI:
 
             created_event = get_item_by_id(events_collection, created_event_id)
             assert created_event is not None
-            assert (
-                created_event["date"] == all_line_items[0]["date"]
-            )  # Should use earliest line item date
+            assert created_event["date"] == all_line_items[0]["date"]  # Should use earliest line item date
 
     def test_delete_event_api_success(
         self,
@@ -605,9 +583,7 @@ class TestEventAPI:
         assert len(data["data"]) == 1  # Only the existing line item
         assert data["data"][0]["id"] == line_item_ids[0]
 
-    def test_remove_event_from_line_item_different_id_types(
-        self, flask_app, pg_session
-    ):
+    def test_remove_event_from_line_item_different_id_types(self, flask_app, pg_session):
         """Test remove_event_from_line_item function with different ID types"""
         from tests.test_helpers import setup_test_event, setup_test_line_item_with_event
 
@@ -691,9 +667,7 @@ class TestEventAPI:
             # Verify all line items have event_id
             line_item_str = get_item_by_id(line_items_collection, "line_item_str")
             line_item_int = get_item_by_id(line_items_collection, 12345)
-            line_item_str2 = get_item_by_id(
-                line_items_collection, "line_item_str2_uuid"
-            )
+            line_item_str2 = get_item_by_id(line_items_collection, "line_item_str2_uuid")
 
             assert line_item_str is not None
             assert line_item_int is not None
@@ -716,9 +690,7 @@ class TestEventAPI:
 
             # Test removing event_id with another string ID
             remove_event_from_line_item("line_item_str2_uuid")
-            line_item_str2_after = get_item_by_id(
-                line_items_collection, "line_item_str2_uuid"
-            )
+            line_item_str2_after = get_item_by_id(line_items_collection, "line_item_str2_uuid")
             assert line_item_str2_after is not None
             assert "event_id" not in line_item_str2_after
 
@@ -771,9 +743,7 @@ class TestEventDualWrite:
 
         pg_session.commit()
 
-    def test_create_event_dual_write_success(
-        self, test_client, jwt_token, flask_app, pg_session
-    ):
+    def test_create_event_dual_write_success(self, test_client, jwt_token, flask_app, pg_session):
         """Test that creating an event writes to both MongoDB and PostgreSQL"""
         # Insert test line items in MongoDB
         with flask_app.app_context():
@@ -834,17 +804,11 @@ class TestEventDualWrite:
         assert pg_event.is_duplicate is False
 
         # Verify EventLineItem junctions created
-        pg_junctions = (
-            pg_session.query(EventLineItem)
-            .filter(EventLineItem.event_id == pg_event.id)
-            .all()
-        )
+        pg_junctions = pg_session.query(EventLineItem).filter(EventLineItem.event_id == pg_event.id).all()
         assert len(pg_junctions) == 2
 
         # Verify EventTag junctions created
-        pg_event_tags = (
-            pg_session.query(EventTag).filter(EventTag.event_id == pg_event.id).all()
-        )
+        pg_event_tags = pg_session.query(EventTag).filter(EventTag.event_id == pg_event.id).all()
         assert len(pg_event_tags) == 2
 
         # Verify tags were created
@@ -853,9 +817,7 @@ class TestEventDualWrite:
         assert "test" in tag_names
         assert "event" in tag_names
 
-    def test_create_event_existing_tags(
-        self, test_client, jwt_token, flask_app, pg_session
-    ):
+    def test_create_event_existing_tags(self, test_client, jwt_token, flask_app, pg_session):
         """Test that creating an event with existing tags doesn't duplicate them"""
         # Pre-create tags in PostgreSQL
         existing_tag = Tag(
@@ -903,9 +865,7 @@ class TestEventDualWrite:
         final_tag_count = pg_session.query(Tag).count()
         assert final_tag_count == initial_tag_count + 1  # Only "new_tag" added
 
-    def test_delete_event_dual_write_success(
-        self, test_client, jwt_token, flask_app, pg_session
-    ):
+    def test_delete_event_dual_write_success(self, test_client, jwt_token, flask_app, pg_session):
         """Test that deleting an event removes from both MongoDB and PostgreSQL"""
         from dao import get_collection
         from tests.test_helpers import setup_test_event, setup_test_line_item
@@ -948,20 +908,9 @@ class TestEventDualWrite:
         pg_event_id = pg_event.id
 
         # Verify setup
-        assert (
-            pg_session.query(Event).filter(Event.mongo_id == "event_1").first()
-            is not None
-        )
-        assert (
-            pg_session.query(EventLineItem)
-            .filter(EventLineItem.event_id == pg_event_id)
-            .count()
-            == 1
-        )
-        assert (
-            pg_session.query(EventTag).filter(EventTag.event_id == pg_event_id).count()
-            == 1
-        )
+        assert pg_session.query(Event).filter(Event.mongo_id == "event_1").first() is not None
+        assert pg_session.query(EventLineItem).filter(EventLineItem.event_id == pg_event_id).count() == 1
+        assert pg_session.query(EventTag).filter(EventTag.event_id == pg_event_id).count() == 1
 
         # Delete event via API
         response = test_client.delete(
@@ -989,31 +938,19 @@ class TestEventDualWrite:
 
         fresh_session = SessionLocal()
 
-        deleted_pg_event = (
-            fresh_session.query(Event).filter(Event.mongo_id == "event_1").first()
-        )
+        deleted_pg_event = fresh_session.query(Event).filter(Event.mongo_id == "event_1").first()
         assert deleted_pg_event is None
 
         # Verify cascade deletion of junctions
-        remaining_junctions = (
-            fresh_session.query(EventLineItem)
-            .filter(EventLineItem.event_id == pg_event_id)
-            .count()
-        )
+        remaining_junctions = fresh_session.query(EventLineItem).filter(EventLineItem.event_id == pg_event_id).count()
         assert remaining_junctions == 0
 
-        remaining_event_tags = (
-            fresh_session.query(EventTag)
-            .filter(EventTag.event_id == pg_event_id)
-            .count()
-        )
+        remaining_event_tags = fresh_session.query(EventTag).filter(EventTag.event_id == pg_event_id).count()
         assert remaining_event_tags == 0
 
         fresh_session.close()
 
-    def test_delete_event_id_coexistence(
-        self, test_client, jwt_token, flask_app, pg_session
-    ):
+    def test_delete_event_id_coexistence(self, test_client, jwt_token, flask_app, pg_session):
         """Test that delete works with both MongoDB and PostgreSQL ID formats"""
         from dao import get_collection
         from tests.test_helpers import setup_test_event
@@ -1053,8 +990,5 @@ class TestEventDualWrite:
         from models.database import SessionLocal
 
         fresh_session = SessionLocal()
-        assert (
-            fresh_session.query(Event).filter(Event.mongo_id == "event_1").first()
-            is None
-        )
+        assert fresh_session.query(Event).filter(Event.mongo_id == "event_1").first() is None
         fresh_session.close()

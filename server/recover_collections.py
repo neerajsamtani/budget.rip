@@ -33,12 +33,10 @@ def check_missing_collections():
         ]
 
         existing_collections = db.list_collection_names()
-        missing_collections = [
-            coll for coll in expected_collections if coll not in existing_collections
-        ]
+        missing_collections = [coll for coll in expected_collections if coll not in existing_collections]
 
         print("📊 Database Collection Status:")
-        print(f"Database: flask_db")
+        print("Database: flask_db")
         print(f"Existing collections: {len(existing_collections)}")
         print(f"Missing collections: {len(missing_collections)}")
         print()
@@ -100,11 +98,7 @@ def check_backup_options():
     found_backups = []
     for backup_dir in backup_dirs:
         if os.path.exists(backup_dir):
-            files = [
-                f
-                for f in os.listdir(backup_dir)
-                if f.endswith((".json", ".bson", ".gz", ".csv"))
-            ]
+            files = [f for f in os.listdir(backup_dir) if f.endswith((".json", ".bson", ".gz", ".csv"))]
             if files:
                 found_backups.append((backup_dir, files))
 
@@ -123,12 +117,12 @@ def check_backup_options():
         csv_files = [f for f in os.listdir("exports/") if f.endswith(".csv")]
 
         if json_files:
-            print(f"\n📤 Found JSON export files in exports/ directory:")
+            print("\n📤 Found JSON export files in exports/ directory:")
             for file in json_files:
                 print(f"  - {file}")
 
         if csv_files:
-            print(f"\n📊 Found CSV export files in exports/ directory:")
+            print("\n📊 Found CSV export files in exports/ directory:")
             for file in csv_files:
                 print(f"  - {file}")
 
@@ -140,12 +134,8 @@ def check_backup_options():
                 missing_with_csv.append("line_items")
 
             if missing_with_csv:
-                print(
-                    f"\n✅ CSV backup data available for: {', '.join(missing_with_csv)}"
-                )
-                print(
-                    "   You can restore this data using mongoimport or a custom script."
-                )
+                print(f"\n✅ CSV backup data available for: {', '.join(missing_with_csv)}")
+                print("   You can restore this data using mongoimport or a custom script.")
 
 
 def main():
@@ -164,9 +154,7 @@ def main():
         print("3. Do you have the data in another location?")
         print()
 
-        response = input(
-            "Do you want to create empty collections to restore the database structure? (y/N): "
-        )
+        response = input("Do you want to create empty collections to restore the database structure? (y/N): ")
         if response.lower() == "y":
             create_empty_collections(missing_collections)
         else:
@@ -176,9 +164,7 @@ def main():
     check_backup_options()
 
     print("\n📋 Recovery Recommendations:")
-    print(
-        "1. If you have MongoDB dumps, restore using: mongorestore --db flask_db dump_directory/"
-    )
+    print("1. If you have MongoDB dumps, restore using: mongorestore --db flask_db dump_directory/")
     print("2. If you have JSON exports, you can import them using mongoimport")
     print(
         "3. For CSV files, use: mongoimport --db flask_db --collection collection_name --type csv --file exports/filename.csv --headerline"

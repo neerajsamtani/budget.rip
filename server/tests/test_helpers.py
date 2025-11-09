@@ -26,9 +26,7 @@ from models.sql_models import (
 from utils.id_generator import generate_id
 
 
-def setup_test_line_item(
-    pg_session, item_data: Dict[str, Any], mongo_only: bool = False
-) -> Optional[LineItem]:
+def setup_test_line_item(pg_session, item_data: Dict[str, Any], mongo_only: bool = False) -> Optional[LineItem]:
     """
     Create a line item in MongoDB and optionally PostgreSQL.
 
@@ -50,16 +48,11 @@ def setup_test_line_item(
         return None
 
     # Write to PostgreSQL
-    payment_method = (
-        pg_session.query(PaymentMethod)
-        .filter(PaymentMethod.name == item_data["payment_method"])
-        .first()
-    )
+    payment_method = pg_session.query(PaymentMethod).filter(PaymentMethod.name == item_data["payment_method"]).first()
 
     if not payment_method:
         raise ValueError(
-            f"Payment method '{item_data['payment_method']}' not found. "
-            "Ensure seed_postgresql_base_data fixture is used."
+            f"Payment method '{item_data['payment_method']}' not found. Ensure seed_postgresql_base_data fixture is used."
         )
 
     # Create transaction (required FK for line item)
@@ -122,17 +115,10 @@ def setup_test_event(
         return None
 
     # Write to PostgreSQL
-    category = (
-        pg_session.query(Category)
-        .filter(Category.name == event_data["category"])
-        .first()
-    )
+    category = pg_session.query(Category).filter(Category.name == event_data["category"]).first()
 
     if not category:
-        raise ValueError(
-            f"Category '{event_data['category']}' not found. "
-            "Ensure seed_postgresql_base_data fixture is used."
-        )
+        raise ValueError(f"Category '{event_data['category']}' not found. Ensure seed_postgresql_base_data fixture is used.")
 
     pg_event = Event(
         id=generate_id("event"),
@@ -173,18 +159,14 @@ def setup_test_event(
                 pg_session.add(tag)
                 pg_session.flush()
 
-            event_tag = EventTag(
-                id=generate_id("et"), event_id=pg_event.id, tag_id=tag.id
-            )
+            event_tag = EventTag(id=generate_id("et"), event_id=pg_event.id, tag_id=tag.id)
             pg_session.add(event_tag)
 
     pg_session.flush()
     return pg_event
 
 
-def setup_test_user(
-    pg_session, user_data: Dict[str, Any], mongo_only: bool = False
-) -> Optional[User]:
+def setup_test_user(pg_session, user_data: Dict[str, Any], mongo_only: bool = False) -> Optional[User]:
     """
     Create a user in MongoDB and optionally PostgreSQL.
 
@@ -221,9 +203,7 @@ def setup_test_user(
     return pg_user
 
 
-def setup_test_line_item_with_event(
-    pg_session, item_data: Dict[str, Any], event_id: str
-) -> LineItem:
+def setup_test_line_item_with_event(pg_session, item_data: Dict[str, Any], event_id: str) -> LineItem:
     """
     Convenience helper to create a line item and link it to an existing event.
 

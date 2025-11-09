@@ -8,10 +8,9 @@ Tests:
 - Verification checks
 """
 
-import json
 from datetime import UTC, datetime
 from decimal import Decimal
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import mongomock
 import pytest
@@ -64,9 +63,7 @@ def mongo_db():
 @pytest.fixture
 def sample_payment_method(pg_session):
     """Create a sample payment method for tests"""
-    pm = PaymentMethod(
-        id=generate_id("pm"), name="Test Card", type="credit", is_active=True
-    )
+    pm = PaymentMethod(id=generate_id("pm"), name="Test Card", type="credit", is_active=True)
     pg_session.add(pm)
     pg_session.commit()
     return pm
@@ -236,9 +233,7 @@ class TestTransactionMigration:
         pg_session.commit()
 
         # Verify transaction was created
-        saved_txn = (
-            pg_session.query(Transaction).filter_by(source_id="mongo_123").first()
-        )
+        saved_txn = pg_session.query(Transaction).filter_by(source_id="mongo_123").first()
 
         assert saved_txn is not None
         assert saved_txn.source == "venmo"
@@ -305,9 +300,7 @@ class TestLineItemMigration:
         pg_session.commit()
 
         # Verify line item was created
-        saved_item = (
-            pg_session.query(LineItem).filter_by(mongo_id="line_item_mongo_123").first()
-        )
+        saved_item = pg_session.query(LineItem).filter_by(mongo_id="line_item_mongo_123").first()
 
         assert saved_item is not None
         assert saved_item.amount == Decimal("50.00")
@@ -364,9 +357,7 @@ class TestLineItemMigration:
         pg_session.commit()
 
         # Verify line item was cascade deleted
-        saved_item = (
-            pg_session.query(LineItem).filter_by(mongo_id="line_item_mongo_123").first()
-        )
+        saved_item = pg_session.query(LineItem).filter_by(mongo_id="line_item_mongo_123").first()
 
         assert saved_item is None
 
@@ -374,9 +365,7 @@ class TestLineItemMigration:
 class TestMigrationIntegration:
     """Integration tests for complete migration flow"""
 
-    def test_end_to_end_venmo_migration(
-        self, mongo_db, pg_session, sample_payment_method
-    ):
+    def test_end_to_end_venmo_migration(self, mongo_db, pg_session, sample_payment_method):
         """Test complete Venmo transaction and line item migration"""
         # Setup MongoDB data
         venmo_collection = mongo_db["venmo_raw_data"]
@@ -436,18 +425,9 @@ class TestMigrationIntegration:
         assert saved_item.amount == Decimal("50.00")
         assert saved_item.transaction_id == txn.id
 
-    def test_orphaned_line_item_handling(
-        self, mongo_db, pg_session, sample_payment_method
-    ):
+    def test_orphaned_line_item_handling(self, mongo_db, pg_session, sample_payment_method):
         """Test creating manual transaction for orphaned line items"""
         # Create line item without corresponding transaction
-        line_item_doc = {
-            "_id": "orphaned_line_item",
-            "date": 1609459200.0,
-            "amount": 25.0,
-            "description": "Manual entry",
-            "payment_method": "Test Card",
-        }
 
         # Create manual transaction
         manual_txn = Transaction(
@@ -479,10 +459,7 @@ class TestMigrationIntegration:
 
         # Verify
         assert pg_session.query(Transaction).filter_by(source="manual").count() == 1
-        assert (
-            pg_session.query(LineItem).filter_by(mongo_id="orphaned_line_item").first()
-            is not None
-        )
+        assert pg_session.query(LineItem).filter_by(mongo_id="orphaned_line_item").first() is not None
 
 
 class TestPaymentMethodLookup:
@@ -490,9 +467,7 @@ class TestPaymentMethodLookup:
 
     def test_payment_method_lookup_by_name(self, pg_session):
         """Test looking up payment method by name"""
-        pm = PaymentMethod(
-            id=generate_id("pm"), name="Chase Sapphire", type="credit", is_active=True
-        )
+        pm = PaymentMethod(id=generate_id("pm"), name="Chase Sapphire", type="credit", is_active=True)
         pg_session.add(pm)
         pg_session.commit()
 
@@ -505,9 +480,7 @@ class TestPaymentMethodLookup:
     def test_unknown_payment_method_creation(self, pg_session):
         """Test creating Unknown payment method when needed"""
         # Create Unknown payment method
-        unknown_pm = PaymentMethod(
-            id=generate_id("pm"), name="Unknown", type="cash", is_active=True
-        )
+        unknown_pm = PaymentMethod(id=generate_id("pm"), name="Unknown", type="cash", is_active=True)
         pg_session.add(unknown_pm)
         pg_session.commit()
 

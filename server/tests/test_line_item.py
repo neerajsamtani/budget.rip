@@ -89,9 +89,7 @@ class TestLineItemClass:
 
 
 class TestLineItemAPI:
-    def test_get_all_line_items_api(
-        self, test_client, jwt_token, flask_app, create_line_item_via_cash
-    ):
+    def test_get_all_line_items_api(self, test_client, jwt_token, flask_app, create_line_item_via_cash):
         """Test GET /api/line_items endpoint"""
         # Create test line items via API
         create_line_item_via_cash(
@@ -120,9 +118,7 @@ class TestLineItemAPI:
         assert data["total"] == 150  # 100 + 50
         assert len(data["data"]) == 2
 
-    def test_get_all_line_items_with_payment_method_filter(
-        self, test_client, jwt_token, flask_app, create_line_item_via_cash
-    ):
+    def test_get_all_line_items_with_payment_method_filter(self, test_client, jwt_token, flask_app, create_line_item_via_cash):
         """Test GET /api/line_items with payment_method filter"""
         # Create test line items via API (both will be Cash payment method)
         create_line_item_via_cash(
@@ -190,9 +186,7 @@ class TestLineItemAPI:
                 "name": "Test Event",
                 "category": "Dining",
                 "date": "2009-02-14",
-                "line_items": [
-                    line_item_50["id"]
-                ],  # Only the 50-amount line item has event
+                "line_items": [line_item_50["id"]],  # Only the 50-amount line item has event
                 "tags": ["test"],
                 "is_duplicate_transaction": False,
             }
@@ -208,13 +202,9 @@ class TestLineItemAPI:
         data = response.get_json()
         assert data["total"] == 100  # Only the 100-amount line item (without event)
         assert len(data["data"]) == 1
-        assert (
-            data["data"][0]["id"] == line_item_100["id"]
-        )  # Only the one without event_id
+        assert data["data"][0]["id"] == line_item_100["id"]  # Only the one without event_id
 
-    def test_get_line_item_by_id_api_success(
-        self, test_client, flask_app, jwt_token, create_line_item_via_cash
-    ):
+    def test_get_line_item_by_id_api_success(self, test_client, flask_app, jwt_token, create_line_item_via_cash):
         """Test GET /api/line_items/<line_item_id> endpoint - success case"""
         # Create test line item via API
         create_line_item_via_cash(
@@ -442,14 +432,10 @@ class TestLineItemFunctions:
             pg_session.commit()
 
             # Test function call with both filters
-            result = all_line_items(
-                payment_method="Cash", only_line_items_to_review=True
-            )
+            result = all_line_items(payment_method="Cash", only_line_items_to_review=True)
 
             assert len(result) == 1
-            assert (
-                result[0]["id"] == "line_item_1"
-            )  # Only Cash payment method without event_id
+            assert result[0]["id"] == "line_item_1"  # Only Cash payment method without event_id
 
     def test_all_line_items_empty_result(self, flask_app):
         """Test all_line_items function with no matching data"""

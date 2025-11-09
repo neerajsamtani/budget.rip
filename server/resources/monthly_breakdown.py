@@ -46,9 +46,7 @@ def get_monthly_breakdown_api() -> tuple[Response, int]:
         category: str = row["category"]
         formatted_date: str = f"{row['month']}-{row['year']}"
         seen_dates.add(formatted_date)
-        categories[category].append(
-            {"date": formatted_date, "amount": row["totalExpense"]}
-        )
+        categories[category].append({"date": formatted_date, "amount": row["totalExpense"]})
         all_dates.append(formatted_date)
     if not all_dates:
         logging.info("No categorized data found for monthly breakdown")
@@ -64,11 +62,6 @@ def get_monthly_breakdown_api() -> tuple[Response, int]:
         info.sort(key=lambda x: datetime.strptime(x["date"], "%m-%Y").date())
 
     total_categories = len(categories)
-    total_amount = sum(
-        sum(item["amount"] for item in category_data)
-        for category_data in categories.values()
-    )
-    logging.info(
-        f"Generated monthly breakdown: {total_categories} categories, total amount: ${total_amount:.2f}"
-    )
+    total_amount = sum(sum(item["amount"] for item in category_data) for category_data in categories.values())
+    logging.info(f"Generated monthly breakdown: {total_categories} categories, total amount: ${total_amount:.2f}")
     return jsonify(categories), 200

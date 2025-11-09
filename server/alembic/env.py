@@ -1,7 +1,6 @@
 from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
+from sqlalchemy import engine_from_config, pool
 
 from alembic import context
 
@@ -9,18 +8,9 @@ from alembic import context
 from constants import DATABASE_URL
 
 # Import Base and all models for autogenerate support
-from models.sql_models import Base
-
 # Import all models to ensure they're registered with Base.metadata
 from models.sql_models import (
-    Category,
-    PaymentMethod,
-    Tag,
-    Transaction,
-    LineItem,
-    Event,
-    EventLineItem,
-    EventTag,
+    Base,
 )
 
 # this is the Alembic Config object, which provides

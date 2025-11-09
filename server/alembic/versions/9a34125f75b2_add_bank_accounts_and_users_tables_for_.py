@@ -5,11 +5,12 @@ Revises: c967c3314f9f
 Create Date: 2025-11-02 09:09:33.115271
 
 """
+
 from typing import Sequence, Union
 
-from alembic import op
 import sqlalchemy as sa
 
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "9a34125f75b2"
@@ -33,9 +34,7 @@ def upgrade() -> None:
         sa.Column("updated_at", sa.TIMESTAMP(timezone=True), nullable=True),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index(
-        op.f("ix_bank_accounts_mongo_id"), "bank_accounts", ["mongo_id"], unique=True
-    )
+    op.create_index(op.f("ix_bank_accounts_mongo_id"), "bank_accounts", ["mongo_id"], unique=True)
     op.create_table(
         "users",
         sa.Column("id", sa.String(length=255), nullable=False),
