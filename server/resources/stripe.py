@@ -61,7 +61,8 @@ def create_fc_session_api(
         url: str = "https://api.stripe.com/v1/financial_connections/sessions"
 
         headers: Dict[str, str] = {
-            "Stripe-Version": "2022-08-01; financial_connections_transactions_beta=v1; financial_connections_relink_api_beta=v1",
+            "Stripe-Version": "2022-08-01; financial_connections_transactions_beta=v1; \
+                financial_connections_relink_api_beta=v1",
             "Content-Type": "application/x-www-form-urlencoded",
         }
 
@@ -194,7 +195,8 @@ def relink_account_api(account_id: str) -> tuple[Response, int]:
 
         account: stripe.financial_connections.Account = stripe.financial_connections.Account.retrieve(account_id)
         headers: Dict[str, str] = {
-            "Stripe-Version": "2022-08-01; financial_connections_transactions_beta=v1; financial_connections_relink_api_beta=v1",
+            "Stripe-Version": "2022-08-01; financial_connections_transactions_beta=v1; \
+                financial_connections_relink_api_beta=v1",
         }
         response: requests.Response = requests.get(
             f"https://api.stripe.com/v1/financial_connections/authorizations/{account['authorization']}",

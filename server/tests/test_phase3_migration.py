@@ -17,16 +17,8 @@ import pytest
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 
-from models.sql_models import (
-    Base,
-    LineItem,
-    PaymentMethod,
-    Transaction,
-)
-from utils.dual_write import (
-    DualWriteError,
-    dual_write_operation,
-)
+from models.sql_models import Base, LineItem, PaymentMethod, Transaction
+from utils.dual_write import DualWriteError, dual_write_operation
 from utils.id_generator import generate_id
 
 

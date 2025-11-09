@@ -839,9 +839,7 @@ class TestMongoDBIndependence:
         assert result[0]["id"] == "evt_001"
 
         # Test raw data collections
-        from dao import (
-            venmo_raw_data_collection,
-        )
+        from dao import venmo_raw_data_collection
 
         result = get_all_data(venmo_raw_data_collection, None)
         assert len(result) == 1

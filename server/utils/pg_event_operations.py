@@ -15,7 +15,8 @@ def upsert_event_to_postgresql(event_dict: Dict[str, Any], db_session) -> str:
     Write event to PostgreSQL with all relationships.
 
     Args:
-        event_dict: Event dictionary with fields: id, name/description, category, date, tags, line_items, is_duplicate_transaction
+        event_dict: Event dictionary with fields: id, name/description,
+            category, date, tags, line_items, is_duplicate_transaction
         db_session: SQLAlchemy session
 
     Returns:

@@ -1,9 +1,10 @@
-.PHONY: help test test-phase3 test-watch venv clean install
+.PHONY: help test test-phase3 test-watch venv clean install lint lint-fix
 
 VENV := env
 PYTHON := $(VENV)/bin/python
 PIP := $(VENV)/bin/pip
 PYTEST := $(VENV)/bin/pytest
+RUFF := $(VENV)/bin/ruff
 
 help: ## Show this help message
 	@echo "Available commands:"
@@ -39,6 +40,18 @@ test-coverage: venv ## Run tests with coverage report
 
 test-quick: venv ## Run tests without verbose output
 	@$(PYTEST) tests/
+
+lint: venv ## Check code with ruff (linting + formatting)
+	@echo "Checking code with ruff..."
+	@$(RUFF) check .
+	@$(RUFF) format --check .
+	@echo "✓ All checks passed"
+
+lint-fix: venv ## Fix code issues with ruff (auto-fix + format)
+	@echo "Fixing code issues with ruff..."
+	@$(RUFF) check --fix .
+	@$(RUFF) format .
+	@echo "✓ Code fixed and formatted"
 
 clean: ## Remove virtual environment and cache files
 	rm -rf $(VENV)

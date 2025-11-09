@@ -62,7 +62,9 @@ select = [
     "I",   # isort
     "C90", # mccabe complexity
 ]
-ignore = []
+ignore = [
+    "C901", # function is too complex (don't block builds on complexity)
+]
 
 [tool.ruff.lint.mccabe]
 max-complexity = 10

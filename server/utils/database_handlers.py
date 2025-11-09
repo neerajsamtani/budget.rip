@@ -17,7 +17,6 @@ class DatabaseHandler(ABC):
 
 
 class LineItemHandler(DatabaseHandler):
-
     def get_all(self, filters: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
         import dao
 
@@ -38,7 +37,6 @@ class LineItemHandler(DatabaseHandler):
 
 
 class EventHandler(DatabaseHandler):
-
     def get_all(self, filters: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
         import dao
 
@@ -59,7 +57,6 @@ class EventHandler(DatabaseHandler):
 
 
 class TransactionHandler(DatabaseHandler):
-
     def __init__(self, source: str):
         self.source = source
 
@@ -101,7 +98,6 @@ class TransactionHandler(DatabaseHandler):
 
 
 class BankAccountHandler(DatabaseHandler):
-
     def get_all(self, filters: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
         import dao
 
@@ -119,7 +115,6 @@ class BankAccountHandler(DatabaseHandler):
 
 
 class MongoDBHandler(DatabaseHandler):
-
     def __init__(self, collection_name: str):
         self.collection_name = collection_name
 
@@ -128,9 +123,7 @@ class MongoDBHandler(DatabaseHandler):
 
         # If trying to read from PostgreSQL but collection is not migrated, raise error
         if dao.READ_FROM_POSTGRESQL:
-            raise NotImplementedError(
-                f"Unknown collection '{self.collection_name}' - cannot read from PostgreSQL"
-            )
+            raise NotImplementedError(f"Unknown collection '{self.collection_name}' - cannot read from PostgreSQL")
 
         cur_collection = dao.get_collection(self.collection_name)
         return list(cur_collection.find(filters).sort("date", -1))
@@ -140,9 +133,7 @@ class MongoDBHandler(DatabaseHandler):
 
         # If trying to read from PostgreSQL but collection is not migrated, raise error
         if dao.READ_FROM_POSTGRESQL:
-            raise NotImplementedError(
-                f"Unknown collection '{self.collection_name}' - cannot read from PostgreSQL"
-            )
+            raise NotImplementedError(f"Unknown collection '{self.collection_name}' - cannot read from PostgreSQL")
 
         cur_collection = dao.get_collection(self.collection_name)
         return cur_collection.find_one({"_id": id})
@@ -163,7 +154,6 @@ def get_collection_handler(collection_name: str) -> DatabaseHandler:
 
     # Test data always uses MongoDB (not migrated to PostgreSQL)
     class TestDataHandler(DatabaseHandler):
-
         def get_all(self, filters: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
             import dao
 

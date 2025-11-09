@@ -167,7 +167,8 @@ def main():
     print("1. If you have MongoDB dumps, restore using: mongorestore --db flask_db dump_directory/")
     print("2. If you have JSON exports, you can import them using mongoimport")
     print(
-        "3. For CSV files, use: mongoimport --db flask_db --collection collection_name --type csv --file exports/filename.csv --headerline"
+        "3. For CSV files, use: mongoimport --db flask_db --collection collection_name \
+            --type csv --file exports/filename.csv --headerline"
     )
     print("4. Check your application logs for any data export functionality")
     print("5. Consider setting up regular backups to prevent future data loss")

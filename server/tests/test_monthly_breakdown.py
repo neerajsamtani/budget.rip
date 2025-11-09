@@ -243,7 +243,10 @@ class TestMonthlyBreakdownAPI:
 
     @skip_if_postgres
     def test_get_monthly_breakdown_api_fills_missing_dates_multiple_categories(self, test_client, jwt_token, flask_app):
-        """Test GET /api/monthly_breakdown endpoint - fills missing dates when multiple categories have different date ranges"""
+        """
+        Test GET /api/monthly_breakdown endpoint
+        - fills missing dates when multiple categories have different date ranges
+        """
         # Insert test data where different categories have data in different months
         with flask_app.app_context():
             test_events = [
