@@ -286,6 +286,8 @@ class TestStripeAPI:
         with flask_app.app_context():
             mock_retrieve = mocker.patch("resources.stripe.stripe.financial_connections.Account.retrieve")
             mocker.patch("resources.stripe.upsert")
+            # Mock bulk_upsert_bank_accounts to avoid trying to serialize Mock objects to PostgreSQL
+            mocker.patch("resources.stripe.bulk_upsert_bank_accounts")
 
             # Mock account
             mock_account = mocker.MagicMock()
@@ -698,9 +700,11 @@ class TestStripeDualWrite:
             # Should return error status
             assert status_code == 500
 
-    def test_stripe_dual_write_pg_failure_continues(self, flask_app, mocker):
-        """Test that PostgreSQL failure in dual-write logs but continues"""
+    def test_stripe_dual_write_pg_failure_fails(self, flask_app, mocker):
+        """Test that PostgreSQL failure in dual-write causes operation to fail"""
         with flask_app.app_context():
+            from utils.dual_write import DualWriteError
+
             # Mock Stripe API
             mock_stripe_transaction_list = mocker.patch("stripe.financial_connections.Transaction.list")
 
@@ -714,22 +718,17 @@ class TestStripeDualWrite:
 
             mock_stripe_transaction_list.return_value = mock_list_obj
 
-            # Mock dual_write_operation to simulate PG failure (non-critical)
+            # Mock dual_write_operation to simulate PG failure
             mock_dual_write = mocker.patch("resources.stripe.dual_write_operation")
-            mock_dual_write.return_value = {
-                "success": True,  # Still success because MongoDB succeeded
-                "mongo_success": True,
-                "pg_success": False,
-                "pg_error": "PostgreSQL connection failed",
-            }
+            mock_dual_write.side_effect = DualWriteError("PostgreSQL write failed")
 
-            # Call refresh_transactions_api - should not raise
+            # Call refresh_transactions_api - exception caught and returns 500
             from resources.stripe import refresh_transactions_api
 
             response, status_code = refresh_transactions_api("test_account_id")
 
-            # Should succeed (200) despite PG failure
-            assert status_code == 200
+            # Should fail (500) due to PG failure
+            assert status_code == 500
 
             # Verify dual_write was called
             mock_dual_write.assert_called_once()

@@ -41,19 +41,36 @@ def upsert_event_to_postgresql(event_dict: Dict[str, Any], db_session) -> str:
     # Convert date to datetime
     event_date = datetime.fromtimestamp(event_dict["date"], UTC)
 
-    # Create Event record
-    event = Event(
-        id=pg_event_id,
-        mongo_id=event_dict["id"],
-        date=event_date,
-        description=event_dict.get("name", event_dict.get("description", "")),  # Handle both fields
-        category_id=category.id,
-        is_duplicate=event_dict.get("is_duplicate_transaction", False),
-        created_at=datetime.now(UTC),
-        updated_at=datetime.now(UTC),
-    )
-    db_session.add(event)
-    db_session.flush()  # Get the event ID
+    # Check if event already exists by mongo_id (upsert logic)
+    existing_event = db_session.query(Event).filter(Event.mongo_id == event_dict["id"]).first()
+
+    if existing_event:
+        # Update existing event
+        existing_event.date = event_date
+        existing_event.description = event_dict.get("name", event_dict.get("description", ""))
+        existing_event.category_id = category.id
+        existing_event.is_duplicate = event_dict.get("is_duplicate_transaction", False)
+        existing_event.updated_at = datetime.now(UTC)
+        event = existing_event
+        pg_event_id = existing_event.id
+
+        # Remove existing junctions (will be recreated below)
+        db_session.query(EventLineItem).filter(EventLineItem.event_id == pg_event_id).delete()
+        db_session.query(EventTag).filter(EventTag.event_id == pg_event_id).delete()
+    else:
+        # Create new Event record
+        event = Event(
+            id=pg_event_id,
+            mongo_id=event_dict["id"],
+            date=event_date,
+            description=event_dict.get("name", event_dict.get("description", "")),  # Handle both fields
+            category_id=category.id,
+            is_duplicate=event_dict.get("is_duplicate_transaction", False),
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC),
+        )
+        db_session.add(event)
+        db_session.flush()  # Get the event ID
 
     # Create EventLineItem junctions
     for line_item_mongo_id in event_dict.get("line_items", []):

@@ -564,9 +564,11 @@ class TestVenmoDualWrite:
             with pytest.raises(DualWriteError):
                 refresh_venmo()
 
-    def test_venmo_dual_write_pg_failure_continues(self, flask_app, mock_venmo_user, mocker):
-        """Test that PostgreSQL failure in dual-write logs but continues"""
+    def test_venmo_dual_write_pg_failure_fails(self, flask_app, mock_venmo_user, mocker):
+        """Test that PostgreSQL failure in dual-write causes operation to fail"""
         with flask_app.app_context():
+            from utils.dual_write import DualWriteError
+
             # Mock the get_venmo_client function
             mock_venmo_client = mocker.Mock()
             mock_venmo_client.my_profile.return_value = mock_venmo_user
@@ -586,17 +588,13 @@ class TestVenmoDualWrite:
             mock_transactions.get_next_page.return_value = None
             mock_venmo_client.user.get_user_transactions.return_value = mock_transactions
 
-            # Mock dual_write_operation to simulate PG failure (non-critical)
+            # Mock dual_write_operation to simulate PG failure
             mock_dual_write = mocker.patch("resources.venmo.dual_write_operation")
-            mock_dual_write.return_value = {
-                "success": True,  # Still success because MongoDB succeeded
-                "mongo_success": True,
-                "pg_success": False,
-                "pg_error": "PostgreSQL connection failed",
-            }
+            mock_dual_write.side_effect = DualWriteError("PostgreSQL write failed")
 
-            # Call refresh_venmo - should not raise
-            refresh_venmo()  # Should complete without exception
+            # Call refresh_venmo - should raise DualWriteError
+            with pytest.raises(DualWriteError):
+                refresh_venmo()
 
             # Verify dual_write was called
             mock_dual_write.assert_called_once()
@@ -627,7 +625,10 @@ class TestVenmoIntegration:
             mock_transactions.get_next_page.return_value = None
             mock_venmo_client.user.get_user_transactions.return_value = mock_transactions
 
-            # Call refresh function (this will store a Mock in the DB, which we don't want for the next step)
+            # Mock bulk_upsert_transactions to avoid trying to serialize Mock objects to PostgreSQL
+            mocker.patch("resources.venmo.bulk_upsert_transactions")
+
+            # Call refresh function (PostgreSQL write mocked to avoid Mock serialization issues)
             refresh_venmo()
 
             # Remove the Mock and insert a real dict for venmo_to_line_items
@@ -671,6 +672,9 @@ class TestVenmoIntegration:
             mock_venmo_client = mocker.Mock()
             mock_venmo_client.my_profile.return_value = mock_venmo_user
             mocker.patch("resources.venmo.get_venmo_client", return_value=mock_venmo_client)
+
+            # Mock bulk_upsert_transactions to avoid trying to serialize Mock objects to PostgreSQL
+            mocker.patch("resources.venmo.bulk_upsert_transactions")
 
             # Mock bulk_upsert
             mock_bulk_upsert = mocker.patch("resources.venmo.bulk_upsert")

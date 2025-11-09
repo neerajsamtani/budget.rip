@@ -221,37 +221,29 @@ class TestCashDualWrite:
             with pytest.raises(DualWriteError):
                 cash_to_line_items()
 
-    def test_cash_dual_write_pg_failure_continues(self, test_client, jwt_token, flask_app, mocker):
-        """Test that PostgreSQL failure in dual-write logs but continues"""
+    def test_cash_dual_write_pg_failure_fails(self, flask_app, mocker):
+        """Test that PostgreSQL failure in dual-write causes operation to fail"""
         with flask_app.app_context():
-            # Mock dual_write_operation to simulate PG failure (non-critical)
-            mock_dual_write = mocker.patch("resources.cash.dual_write_operation")
-            mock_dual_write.return_value = {
-                "success": True,  # Still success because MongoDB succeeded
-                "mongo_success": True,
-                "pg_success": False,
-                "pg_error": "PostgreSQL connection failed",
-            }
+            from resources.cash import cash_to_line_items
+            from utils.dual_write import DualWriteError
 
-            # Mock cash_to_line_items to prevent actual line item creation
-            mocker.patch("resources.cash.cash_to_line_items")
-
-            # Send a POST request to create cash transaction
-            mock_request_data = {
-                "date": "2023-09-15",
+            # Insert test transaction data first
+            transaction_data = {
+                "id": 1,
+                "date": 1234567890,
                 "person": "John Doe",
                 "description": "Test transaction",
                 "amount": 100,
             }
+            upsert_with_id(cash_raw_data_collection, transaction_data, transaction_data["id"])
 
-            response = test_client.post(
-                "/api/cash_transaction",
-                json=mock_request_data,
-                headers={"Authorization": "Bearer " + jwt_token},
-            )
+            # Mock dual_write_operation to simulate PG failure
+            mock_dual_write = mocker.patch("resources.cash.dual_write_operation")
+            mock_dual_write.side_effect = DualWriteError("PostgreSQL write failed")
 
-            # Should succeed (201) despite PG failure
-            assert response.status_code == 201
+            # Call cash_to_line_items - should raise DualWriteError
+            with pytest.raises(DualWriteError):
+                cash_to_line_items()
 
             # Verify dual_write was called
             mock_dual_write.assert_called_once()

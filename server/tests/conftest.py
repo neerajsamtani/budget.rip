@@ -87,6 +87,11 @@ def cleanup_test_db():
         Base.metadata.drop_all(test_engine)
         # Recreate them for the next test
         Base.metadata.create_all(test_engine)
+    else:
+        # If test_engine not initialized yet, initialize it first
+        init_test_db()
+        Base.metadata.drop_all(test_engine)
+        Base.metadata.create_all(test_engine)
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -98,6 +103,20 @@ def setup_test_database():
     if test_engine is not None:
         Base.metadata.drop_all(test_engine)
         test_engine.dispose()
+
+
+@pytest.fixture(autouse=True)
+def cleanup_databases():
+    """Clean up PostgreSQL database before each test"""
+    # Clean PostgreSQL tables
+    cleanup_test_db()
+
+    # Re-seed base data
+    seed_postgresql_base_data()
+
+    yield
+
+    # MongoDB cleanup happens per-test via mongomock's in-memory database
 
 
 @pytest.fixture

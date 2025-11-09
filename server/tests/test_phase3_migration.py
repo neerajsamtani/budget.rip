@@ -108,43 +108,20 @@ class TestDualWriteUtility:
         # PostgreSQL write should not be called
         assert not pg_write.called
 
-    def test_dual_write_pg_failure_non_critical(self):
-        """Test dual-write when PostgreSQL write fails (non-critical)"""
+    def test_dual_write_pg_failure(self):
+        """Test dual-write when PostgreSQL write fails"""
         mongo_result = {"_id": "123"}
 
         # Mock PostgreSQL failure
         mongo_write = MagicMock(return_value=mongo_result)
         pg_write = MagicMock(side_effect=Exception("PostgreSQL error"))
 
-        # Execute dual-write - should succeed despite PG failure
-        result = dual_write_operation(
-            mongo_write_func=mongo_write,
-            pg_write_func=pg_write,
-            operation_name="test_operation",
-            critical=False,
-        )
-
-        # MongoDB write should succeed
-        assert result["success"] is True
-        assert result["mongo_success"] is True
-        assert result["pg_success"] is False
-        assert result["pg_error"] is not None
-
-    def test_dual_write_pg_failure_critical(self):
-        """Test dual-write when PostgreSQL write fails (critical)"""
-        mongo_result = {"_id": "123"}
-
-        # Mock PostgreSQL failure
-        mongo_write = MagicMock(return_value=mongo_result)
-        pg_write = MagicMock(side_effect=Exception("PostgreSQL error"))
-
-        # Execute dual-write with critical=True - should raise exception
+        # Execute dual-write - should raise exception
         with pytest.raises(DualWriteError):
             dual_write_operation(
                 mongo_write_func=mongo_write,
                 pg_write_func=pg_write,
                 operation_name="test_operation",
-                critical=True,
             )
 
 

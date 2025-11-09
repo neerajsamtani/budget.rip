@@ -522,9 +522,11 @@ class TestSplitwiseDualWrite:
             with pytest.raises(DualWriteError):
                 refresh_splitwise()
 
-    def test_splitwise_dual_write_pg_failure_continues(self, flask_app, mocker):
-        """Test that PostgreSQL failure in dual-write logs but continues"""
+    def test_splitwise_dual_write_pg_failure_fails(self, flask_app, mocker):
+        """Test that PostgreSQL failure in dual-write causes operation to fail"""
         with flask_app.app_context():
+            from utils.dual_write import DualWriteError
+
             mock_splitwise_client = mocker.patch("resources.splitwise.splitwise_client")
 
             # Mock expense
@@ -535,17 +537,13 @@ class TestSplitwiseDualWrite:
             # Mock client response
             mock_splitwise_client.getExpenses.return_value = [mock_expense]
 
-            # Mock dual_write_operation to simulate PG failure (non-critical)
+            # Mock dual_write_operation to simulate PG failure
             mock_dual_write = mocker.patch("resources.splitwise.dual_write_operation")
-            mock_dual_write.return_value = {
-                "success": True,  # Still success because MongoDB succeeded
-                "mongo_success": True,
-                "pg_success": False,
-                "pg_error": "PostgreSQL connection failed",
-            }
+            mock_dual_write.side_effect = DualWriteError("PostgreSQL write failed")
 
-            # Call refresh_splitwise - should not raise
-            refresh_splitwise()  # Should complete without exception
+            # Call refresh_splitwise - should raise DualWriteError
+            with pytest.raises(DualWriteError):
+                refresh_splitwise()
 
             # Verify dual_write was called
             mock_dual_write.assert_called_once()
