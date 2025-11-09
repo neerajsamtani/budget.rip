@@ -63,6 +63,7 @@ jobs:
         make lint
     - name: Test with pytest
       run: |
+        cd server
         make test
       env:
         DATABASE_URL: postgresql://postgres:test_password@localhost:5432/budgit_test
