@@ -35,6 +35,7 @@ from dao import (
     _pg_get_line_items_for_event,
     _pg_get_transactions,
     _pg_get_user_by_email,
+    _pg_get_user_by_id,
     bank_accounts_collection,
     events_collection,
     get_all_data,
@@ -845,17 +846,6 @@ class TestMongoDBIndependence:
         assert len(result) == 1
         assert result[0]["_id"] == "venmo_test_123"
 
-    def test_unmigrated_collections_raise_error(self, monkeypatch):
-        """Test that users collection via get_all_data raises NotImplementedError"""
-        monkeypatch.setattr("dao.READ_FROM_POSTGRESQL", True)
-
-        from dao import users_collection
-
-        # users collection should raise error when accessed via get_all_data
-        # (users should be accessed via get_user_by_email instead)
-        with pytest.raises(NotImplementedError, match="Use get_user_by_email"):
-            get_all_data(users_collection, None)
-
     def test_unknown_collections_raise_error(self, monkeypatch):
         """Test that unknown collections raise NotImplementedError"""
         monkeypatch.setattr("dao.READ_FROM_POSTGRESQL", True)
@@ -999,3 +989,57 @@ class TestUserReads:
         assert result is not None
         assert result["id"] == "user_001"
         assert result["email"] == "jane@example.com"
+
+    def test_pg_get_user_by_id_postgresql_id(self, pg_session):
+        """Test getting user by PostgreSQL ID"""
+        user = User(
+            id="user_001",
+            mongo_id="507f1f77bcf86cd799439031",
+            first_name="John",
+            last_name="Doe",
+            email="john@example.com",
+            password_hash="hashed_password",
+        )
+        pg_session.add(user)
+        pg_session.commit()
+
+        result = _pg_get_user_by_id("user_001")
+
+        assert result is not None
+        # id field returns mongo_id for MongoDB compatibility
+        assert result["id"] == "507f1f77bcf86cd799439031"
+        assert result["_id"] == "507f1f77bcf86cd799439031"
+        assert result["first_name"] == "John"
+        assert result["last_name"] == "Doe"
+        assert result["email"] == "john@example.com"
+
+    def test_pg_get_user_by_id_mongodb_id(self, pg_session):
+        """Test getting user by MongoDB ID (ID coexistence)"""
+        user = User(
+            id="user_001",
+            mongo_id="507f1f77bcf86cd799439031",
+            first_name="Jane",
+            last_name="Smith",
+            email="jane@example.com",
+            password_hash="hashed_password",
+        )
+        pg_session.add(user)
+        pg_session.commit()
+
+        result = _pg_get_user_by_id("507f1f77bcf86cd799439031")
+
+        assert result is not None
+        # Should return MongoDB ID (application transparency)
+        assert result["id"] == "507f1f77bcf86cd799439031"
+        assert result["_id"] == "507f1f77bcf86cd799439031"
+        assert result["first_name"] == "Jane"
+        assert result["last_name"] == "Smith"
+        assert result["email"] == "jane@example.com"
+
+    def test_pg_get_user_by_id_not_found(self, pg_session):
+        """Test getting non-existent user by ID returns None"""
+        result = _pg_get_user_by_id("nonexistent_user_id")
+        assert result is None
+
+        result_mongo_id = _pg_get_user_by_id("507f1f77bcf86cd799439999")
+        assert result_mongo_id is None
