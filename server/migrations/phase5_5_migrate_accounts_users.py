@@ -20,8 +20,8 @@ from sqlalchemy.exc import IntegrityError
 
 from constants import MONGO_URI
 from dao import bank_accounts_collection, users_collection
-from models.database import SessionLocal
-from models.sql_models import BankAccount, User
+from models.database import SessionLocal, engine
+from models.sql_models import BankAccount, Base, User
 from utils.id_generator import generate_id
 
 logging.basicConfig(
@@ -149,6 +149,13 @@ def main():
     logger.info("=" * 60)
     logger.info("Phase 5.5: Migrate Bank Accounts and Users")
     logger.info("=" * 60)
+
+    # Create tables if they don't exist
+    logger.info("Creating tables if they don't exist...")
+    Base.metadata.create_all(
+        engine, tables=[BankAccount.__table__, User.__table__]
+    )
+    logger.info("✅ Tables ready")
 
     # Connect to MongoDB
     mongo_client = MongoClient(MONGO_URI)

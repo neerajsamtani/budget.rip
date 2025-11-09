@@ -15,6 +15,18 @@ class DatabaseHandler(ABC):
     def get_by_id(self, id: Union[str, int, ObjectId]) -> Optional[Dict[str, Any]]:
         pass
 
+class UserHandler(DatabaseHandler):
+    def get_all(self, filters: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
+        raise NotImplementedError("UserHandler does not support get_all")
+
+    def get_by_id(self, id: Union[str, int, ObjectId]) -> Optional[Dict[str, Any]]:
+        import dao
+
+        if dao.READ_FROM_POSTGRESQL:
+            return dao._pg_get_user_by_id(str(id))
+
+        cur_collection = dao.get_collection(dao.users_collection)
+        return cur_collection.find_one({"_id": id})
 
 class LineItemHandler(DatabaseHandler):
     def get_all(self, filters: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
@@ -175,12 +187,9 @@ def get_collection_handler(collection_name: str) -> DatabaseHandler:
         stripe_raw_transaction_data_collection: TransactionHandler("stripe"),
         cash_raw_data_collection: TransactionHandler("cash"),
         bank_accounts_collection: BankAccountHandler(),
+        users_collection: UserHandler(),
         "test_data": TestDataHandler(),  # Test collection always uses MongoDB
     }
-
-    # Special handling for users collection
-    if collection_name == users_collection:
-        raise NotImplementedError("Use get_user_by_email() instead of get_all_data() for users")
 
     # Return registered handler or fallback to MongoDB-only handler
     return _COLLECTION_HANDLERS.get(collection_name, MongoDBHandler(collection_name))
