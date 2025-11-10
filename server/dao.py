@@ -286,6 +286,7 @@ def _pg_serialize_line_item(li: Any) -> Dict[str, Any]:
         data["event_id"] = li.events[0].mongo_id or li.events[0].id
     return data
 
+
 def _pg_serialize_user(user: Any) -> Dict[str, Any]:
     """Convert User ORM to dict matching MongoDB format"""
     id = user.mongo_id or user.id
@@ -371,6 +372,7 @@ def _pg_get_line_item_by_id(id: str) -> Optional[Dict[str, Any]]:
     finally:
         db_session.close()
 
+
 def _pg_get_user_by_id(id: str) -> Optional[Dict[str, Any]]:
     """Get user from PostgreSQL by PostgreSQL or MongoDB ID"""
     from models.database import SessionLocal
@@ -380,13 +382,12 @@ def _pg_get_user_by_id(id: str) -> Optional[Dict[str, Any]]:
     try:
         query = db_session.query(User)
 
-        user = (
-            query.filter(User.id == id).first() if id.startswith("user_") else query.filter(User.mongo_id == id).first()
-        )
+        user = query.filter(User.id == id).first() if id.startswith("user_") else query.filter(User.mongo_id == id).first()
 
         return _pg_serialize_user(user) if user else None
     finally:
         db_session.close()
+
 
 def _pg_get_all_events(filters: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """Get events from PostgreSQL"""

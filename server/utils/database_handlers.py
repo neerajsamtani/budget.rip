@@ -15,6 +15,7 @@ class DatabaseHandler(ABC):
     def get_by_id(self, id: Union[str, int, ObjectId]) -> Optional[Dict[str, Any]]:
         pass
 
+
 class UserHandler(DatabaseHandler):
     def get_all(self, filters: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
         raise NotImplementedError("UserHandler does not support get_all")
@@ -27,6 +28,7 @@ class UserHandler(DatabaseHandler):
 
         cur_collection = dao.get_collection(dao.users_collection)
         return cur_collection.find_one({"_id": id})
+
 
 class LineItemHandler(DatabaseHandler):
     def get_all(self, filters: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
