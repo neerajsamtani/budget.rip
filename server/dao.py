@@ -416,7 +416,7 @@ def _pg_get_all_events(filters: Optional[Dict[str, Any]]) -> List[Dict[str, Any]
                 if "$lte" in date_filter:
                     query = query.filter(Event.date <= datetime.fromtimestamp(date_filter["$lte"], UTC))
 
-        events = query.all()
+        events = query.order_by(Event.date.desc()).all()
         return [_pg_serialize_event(event) for event in events]
     finally:
         db_session.close()

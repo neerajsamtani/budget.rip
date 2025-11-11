@@ -220,6 +220,7 @@ def migrate_line_items(
             description=doc.get("description", ""),
             payment_method_id=payment_method_id,
             notes=doc.get("notes"),
+            responsible_party=doc.get("responsible_party"),
         )
 
         try:
