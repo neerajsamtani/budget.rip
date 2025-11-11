@@ -90,7 +90,8 @@ class PaymentMethod(Base):
         Enum("bank", "credit", "venmo", "splitwise", "cash", name="payment_method_type"),
         nullable=False,
     )
-    external_id = Column(String(255), nullable=True)
+    external_id = Column(String(255), nullable=True)  # Primary/current external ID
+    aliases = Column(JSON, nullable=True)  # List of historical external IDs (e.g., old fca_ IDs)
     is_active = Column(Boolean, default=True)
     created_at = Column(TIMESTAMP(timezone=True), default=lambda: datetime.now(UTC))
     updated_at = Column(

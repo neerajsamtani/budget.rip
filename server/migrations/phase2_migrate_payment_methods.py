@@ -96,25 +96,30 @@ def migrate_payment_methods():
         name = acc.get("display_name", acc.get("name", "Unknown"))
         by_name[name].append(acc)
 
-    # For duplicates, prefer active accounts
+    # For duplicates, prefer active accounts but collect ALL fca_ IDs as aliases
     accounts = []
+    account_aliases = {}  # name -> list of all fca_ IDs
     duplicates_resolved = 0
     for name, accs in by_name.items():
         if len(accs) > 1:
+            # Collect all fca_ IDs for this account name
+            all_fca_ids = [a.get("id") for a in accs if a.get("id")]
+            account_aliases[name] = all_fca_ids
+
             # Prefer active accounts
             active = [a for a in accs if a.get("status") == "active"]
             if active:
                 accounts.append(active[0])
                 duplicates_resolved += 1
                 logger.info(
-                    f"  Resolved duplicate '{name}': Using active account (id: {active[0]['id']})"
+                    f"  Resolved duplicate '{name}': Using active account with {len(all_fca_ids)} aliases"
                 )
             else:
                 # All inactive, use first one
                 accounts.append(accs[0])
                 duplicates_resolved += 1
                 logger.info(
-                    f"  Resolved duplicate '{name}': Using first inactive account (id: {accs[0]['id']})"
+                    f"  Resolved duplicate '{name}': Using first inactive account with {len(all_fca_ids)} aliases"
                 )
         else:
             accounts.append(accs[0])
@@ -137,15 +142,21 @@ def migrate_payment_methods():
                 payment_type = determine_payment_type(account)
                 is_active = account.get("status", "active") == "active"
 
+                # Get aliases for this account (if it had duplicates)
+                aliases = account_aliases.get(name)
+
                 # Check if payment method already exists
                 existing = (
                     db.query(PaymentMethod).filter(PaymentMethod.name == name).first()
                 )
 
                 if existing:
-                    logger.info(
-                        f"  ⊙ Payment method already exists: {name} -> {existing.id}"
-                    )
+                    # Update aliases if we found new ones
+                    if aliases and not existing.aliases:
+                        existing.aliases = aliases
+                        logger.info(f"  ⊙ {name} already exists, updated with {len(aliases)} aliases")
+                    else:
+                        logger.info(f"  ⊙ {name} already exists")
                     payment_method_map[name] = existing.id
                     skipped_count += 1
                     continue
@@ -156,6 +167,7 @@ def migrate_payment_methods():
                     name=name,
                     type=payment_type,
                     external_id=external_id,
+                    aliases=aliases,
                     is_active=is_active,
                 )
 
@@ -163,9 +175,10 @@ def migrate_payment_methods():
                 db.flush()
 
                 payment_method_map[name] = payment_method.id
+                alias_info = f" with {len(aliases)} aliases" if aliases else ""
                 logger.info(
                     f"  ✓ Migrated: {name} ({payment_type}) -> {payment_method.id} "
-                    f"[active: {is_active}]"
+                    f"[active: {is_active}]{alias_info}"
                 )
                 migrated_count += 1
 
@@ -272,6 +285,61 @@ def create_standard_payment_methods():
         db.close()
 
 
+def discover_payment_methods_from_line_items():
+    """
+    Create payment methods found in line items that don't exist in PostgreSQL yet.
+    Ensures Phase 3 migration can proceed without missing payment method warnings.
+    """
+    mongo_client = MongoClient(MONGO_URI)
+    mongo_db = mongo_client["flask_db"]
+    db = SessionLocal()
+
+    try:
+        logger.info("\nDiscovering payment methods from line items...")
+
+        unique_methods = mongo_db.line_items.distinct("payment_method")
+        existing_pms = db.query(PaymentMethod).all()
+        existing_names = {pm.name for pm in existing_pms}
+        missing_methods = [pm for pm in unique_methods if pm and pm not in existing_names]
+
+        if not missing_methods:
+            logger.info("All payment methods already exist")
+            return {pm.name: pm.id for pm in existing_pms}
+
+        logger.info(f"Creating {len(missing_methods)} missing payment methods")
+
+        for method_name in missing_methods:
+            # Infer type from name
+            payment_type = "bank"
+            is_active = False
+            if "credit" in method_name.lower() or "card" in method_name.lower():
+                payment_type = "credit"
+            elif method_name.lower() in ["cash", "venmo", "splitwise"]:
+                payment_type = method_name.lower()
+                is_active = True
+
+            pm = PaymentMethod(
+                id=generate_id("pm"),
+                name=method_name,
+                type=payment_type,
+                is_active=is_active,
+            )
+            db.add(pm)
+
+        db.commit()
+        logger.info(f"Created {len(missing_methods)} payment methods")
+
+        return {pm.name: pm.id for pm in db.query(PaymentMethod).all()}
+
+    except Exception as e:
+        logger.error(f"Payment method discovery failed: {e}")
+        db.rollback()
+        raise
+    finally:
+        db.close()
+        mongo_client.close()
+
+
 def verify_migration():
     """Verify that all payment methods were migrated correctly."""
     # Connect to MongoDB
@@ -348,6 +416,9 @@ if __name__ == "__main__":
 
     # Create standard payment methods (Splitwise, Venmo, Cash)
     standard_method_map = create_standard_payment_methods()
+
+    # Discover and create any payment methods used in line items but not yet in PostgreSQL
+    discovered_method_map = discover_payment_methods_from_line_items()
 
     # Verify
     success = verify_migration()

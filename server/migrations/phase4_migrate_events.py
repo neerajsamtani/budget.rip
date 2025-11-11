@@ -214,7 +214,7 @@ def migrate_events(
                 id=event_id,
                 mongo_id=mongo_id,
                 date=event_date,
-                description=event_data.get("description", ""),
+                description=event_data.get("name", ""),  # MongoDB uses 'name', PostgreSQL uses 'description'
                 category_id=category_id,
                 is_duplicate=is_duplicate,
                 created_at=datetime.now(UTC),
