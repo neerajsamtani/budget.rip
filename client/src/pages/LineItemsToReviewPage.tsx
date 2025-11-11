@@ -58,7 +58,7 @@ export default function LineItemsToReviewPage() {
                         <TableBody>
                             {lineItems.length > 0 && lineItems.map(lineItem =>
                                 <LineItem
-                                    key={lineItem._id}
+                                    key={lineItem.id}
                                     lineItem={lineItem}
                                     showCheckBox={true}
                                 />

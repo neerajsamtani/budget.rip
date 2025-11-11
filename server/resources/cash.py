@@ -14,6 +14,7 @@ from dao import (
 from helpers import html_date_to_posix
 from resources.line_item import LineItem
 from utils.dual_write import dual_write_operation
+from utils.id_generator import generate_id
 from utils.pg_bulk_ops import bulk_upsert_line_items, bulk_upsert_transactions
 
 cash_blueprint = Blueprint("cash", __name__)
@@ -25,18 +26,15 @@ cash_blueprint = Blueprint("cash", __name__)
 @jwt_required()
 def create_cash_transaction_api() -> tuple[Response, int]:
     transaction: Dict[str, Any] = request.get_json()
+    transaction["id"] = generate_id("cash")
     transaction["date"] = html_date_to_posix(transaction["date"])
     transaction["amount"] = float(transaction["amount"])
     dual_write_operation(
         mongo_write_func=lambda: insert(cash_raw_data_collection, transaction),
-        pg_write_func=lambda db: bulk_upsert_transactions(
-            db, [transaction], source="cash"
-        ),
+        pg_write_func=lambda db: bulk_upsert_transactions(db, [transaction], source="cash"),
         operation_name="cash_create_transaction",
     )
-    logging.info(
-        f"Cash transaction created: {transaction['description']} - ${transaction['amount']}"
-    )
+    logging.info(f"Cash transaction created: {transaction['description']} - ${transaction['amount']}")
     cash_to_line_items()
     return jsonify("Created Cash Transaction"), 201
 
@@ -58,7 +56,7 @@ def cash_to_line_items() -> None:
 
     for transaction in cash_raw_data:
         line_item = LineItem(
-            f'line_item_{transaction["_id"]}',
+            f"line_item_{transaction['_id']}",
             transaction["date"],
             transaction["person"],
             payment_method,
@@ -71,9 +69,7 @@ def cash_to_line_items() -> None:
     if all_line_items:
         dual_write_operation(
             mongo_write_func=lambda: bulk_upsert(line_items_collection, all_line_items),
-            pg_write_func=lambda db: bulk_upsert_line_items(
-                db, all_line_items, source="cash"
-            ),
+            pg_write_func=lambda db: bulk_upsert_line_items(db, all_line_items, source="cash"),
             operation_name="cash_create_line_items",
         )
         logging.info(f"Converted {len(all_line_items)} cash transactions to line items")

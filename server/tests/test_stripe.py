@@ -3,9 +3,9 @@ import stripe
 
 from dao import (
     bank_accounts_collection,
-    get_collection,
     line_items_collection,
     stripe_raw_transaction_data_collection,
+    upsert_with_id,
 )
 from resources.stripe import refresh_stripe, stripe_to_line_items
 
@@ -76,9 +76,7 @@ def mock_bank_account():
 
 
 class TestStripeAPI:
-    def test_refresh_stripe_api_success(
-        self, test_client, jwt_token, flask_app, mocker
-    ):
+    def test_refresh_stripe_api_success(self, test_client, jwt_token, flask_app, mocker):
         """Test GET /api/refresh/stripe endpoint - success case"""
         mocker.patch("resources.stripe.STRIPE_API_KEY", "test_api_key")
         mocker.patch("resources.stripe.STRIPE_CUSTOMER_ID", "test_customer_id")
@@ -91,9 +89,7 @@ class TestStripeAPI:
         )
 
         assert response.status_code == 200
-        assert (
-            response.get_data(as_text=True).strip() == '"Refreshed Stripe Connection"'
-        )
+        assert response.get_data(as_text=True).strip() == '"Refreshed Stripe Connection"'
         mock_refresh.assert_called_once()
 
     def test_refresh_stripe_api_unauthorized(self, test_client):
@@ -101,9 +97,7 @@ class TestStripeAPI:
         response = test_client.get("/api/refresh/stripe")
         assert response.status_code == 401
 
-    def test_create_fc_session_api_success(
-        self, test_client, jwt_token, flask_app, mocker
-    ):
+    def test_create_fc_session_api_success(self, test_client, jwt_token, flask_app, mocker):
         """Test POST /api/create-fc-session endpoint - success case"""
         mocker.patch("resources.stripe.STRIPE_API_KEY", "test_api_key")
         mocker.patch("resources.stripe.STRIPE_CUSTOMER_ID", "test_customer_id")
@@ -133,9 +127,7 @@ class TestStripeAPI:
             assert "clientSecret" in data
             assert data["clientSecret"] == "fcsess_test123_secret"
 
-    def test_create_fc_session_api_customer_not_found(
-        self, test_client, jwt_token, flask_app, mocker
-    ):
+    def test_create_fc_session_api_customer_not_found(self, test_client, jwt_token, flask_app, mocker):
         """Test POST /api/create-fc-session endpoint - customer not found"""
         mocker.patch("resources.stripe.STRIPE_API_KEY", "test_api_key")
         mocker.patch("resources.stripe.STRIPE_CUSTOMER_ID", "test_customer_id")
@@ -146,9 +138,7 @@ class TestStripeAPI:
             mock_post = mocker.patch("resources.stripe.requests.post")
 
             # Mock customer not found, then creation
-            mock_retrieve.side_effect = stripe.InvalidRequestError(
-                message="Customer not found", param=None
-            )
+            mock_retrieve.side_effect = stripe.InvalidRequestError(message="Customer not found", param=None)
             mock_customer = mocker.MagicMock()
             mock_customer.id = "cus_new123"
             mock_customer.__getitem__.side_effect = lambda k: getattr(mock_customer, k)
@@ -215,20 +205,16 @@ class TestStripeAPI:
                 "last4": "1234",
                 "status": "active",
             }
-            get_collection(bank_accounts_collection).insert_one(test_account)
+            upsert_with_id(bank_accounts_collection, test_account, test_account["id"])
 
             response = test_client.get(
                 "/api/accounts",
                 headers={"Authorization": "Bearer " + jwt_token},
             )
 
-            assert (
-                response.status_code == 404
-            )  # This endpoint doesn't exist in the current API
+            assert response.status_code == 404  # This endpoint doesn't exist in the current API
 
-    def test_get_accounts_and_balances_api_success(
-        self, test_client, jwt_token, flask_app, mocker
-    ):
+    def test_get_accounts_and_balances_api_success(self, test_client, jwt_token, flask_app, mocker):
         """Test GET /api/accounts-and-balances endpoint - success case"""
         mocker.patch("resources.stripe.STRIPE_API_KEY", "test_api_key")
         mocker.patch("resources.stripe.STRIPE_CUSTOMER_ID", "test_customer_id")
@@ -238,14 +224,14 @@ class TestStripeAPI:
 
             # Insert test account
             test_account = {
-                "_id": "fca_test123",  # For lookup in stripe_to_line_items
-                "id": "fca_test123",  # For refresh_stripe function
+                "id": "fca_test123",
+                "_id": "fca_test123",  # For refresh_stripe function
                 "institution_name": "Test Bank",
                 "display_name": "Checking Account",
                 "last4": "1234",
                 "status": "active",
             }
-            get_collection(bank_accounts_collection).insert_one(test_account)
+            upsert_with_id(bank_accounts_collection, test_account, test_account["id"])
 
             # Mock balance response
             mock_response = mocker.Mock()
@@ -271,9 +257,7 @@ class TestStripeAPI:
             assert account_data["balance"] == 100.0
             assert account_data["name"] == "Test Bank Checking Account 1234"
 
-    def test_subscribe_to_account_api_success(
-        self, test_client, jwt_token, flask_app, mocker
-    ):
+    def test_subscribe_to_account_api_success(self, test_client, jwt_token, flask_app, mocker):
         """Test POST /api/subscribe-to-account endpoint - success case"""
         mocker.patch("resources.stripe.STRIPE_API_KEY", "test_api_key")
         mocker.patch("resources.stripe.STRIPE_CUSTOMER_ID", "test_customer_id")
@@ -300,10 +284,10 @@ class TestStripeAPI:
         mocker.patch("resources.stripe.STRIPE_CUSTOMER_ID", "test_customer_id")
 
         with flask_app.app_context():
-            mock_retrieve = mocker.patch(
-                "resources.stripe.stripe.financial_connections.Account.retrieve"
-            )
-            mock_upsert = mocker.patch("resources.stripe.upsert")
+            mock_retrieve = mocker.patch("resources.stripe.stripe.financial_connections.Account.retrieve")
+            mocker.patch("resources.stripe.upsert")
+            # Mock bulk_upsert_bank_accounts to avoid trying to serialize Mock objects to PostgreSQL
+            mocker.patch("resources.stripe.bulk_upsert_bank_accounts")
 
             # Mock account
             mock_account = mocker.MagicMock()
@@ -317,17 +301,13 @@ class TestStripeAPI:
             data = response.get_json()
             assert data["data"] == "success"
 
-    def test_relink_account_api_success(
-        self, test_client, jwt_token, flask_app, mocker
-    ):
+    def test_relink_account_api_success(self, test_client, jwt_token, flask_app, mocker):
         """Test POST /api/relink-account endpoint - success case"""
         mocker.patch("resources.stripe.STRIPE_API_KEY", "test_api_key")
         mocker.patch("resources.stripe.STRIPE_CUSTOMER_ID", "test_customer_id")
 
         with flask_app.app_context():
-            mock_retrieve = mocker.patch(
-                "resources.stripe.stripe.financial_connections.Account.retrieve"
-            )
+            mock_retrieve = mocker.patch("resources.stripe.stripe.financial_connections.Account.retrieve")
             mock_get = mocker.patch("resources.stripe.requests.get")
             mock_create_session = mocker.patch("resources.stripe.create_fc_session_api")
 
@@ -340,9 +320,7 @@ class TestStripeAPI:
 
             # Mock authorization response indicating relink required
             mock_auth_response = mocker.Mock()
-            mock_auth_response.json.return_value = {
-                "status_details": {"inactive": {"action": "relink_required"}}
-            }
+            mock_auth_response.json.return_value = {"status_details": {"inactive": {"action": "relink_required"}}}
             mock_get.return_value = mock_auth_response
 
             # Mock session creation
@@ -359,17 +337,13 @@ class TestStripeAPI:
             data = response.get_json()
             assert "client_secret" in data
 
-    def test_relink_account_api_not_required(
-        self, test_client, jwt_token, flask_app, mocker
-    ):
+    def test_relink_account_api_not_required(self, test_client, jwt_token, flask_app, mocker):
         """Test POST /api/relink-account endpoint - relink not required"""
         mocker.patch("resources.stripe.STRIPE_API_KEY", "test_api_key")
         mocker.patch("resources.stripe.STRIPE_CUSTOMER_ID", "test_customer_id")
 
         with flask_app.app_context():
-            mock_retrieve = mocker.patch(
-                "resources.stripe.stripe.financial_connections.Account.retrieve"
-            )
+            mock_retrieve = mocker.patch("resources.stripe.stripe.financial_connections.Account.retrieve")
             mock_get = mocker.patch("resources.stripe.requests.get")
 
             # Mock account
@@ -381,9 +355,7 @@ class TestStripeAPI:
 
             # Mock authorization response indicating relink not required
             mock_auth_response = mocker.Mock()
-            mock_auth_response.json.return_value = {
-                "status_details": {"inactive": {"action": "other_action"}}
-            }
+            mock_auth_response.json.return_value = {"status_details": {"inactive": {"action": "other_action"}}}
             mock_get.return_value = mock_auth_response
 
             response = test_client.get(
@@ -393,7 +365,7 @@ class TestStripeAPI:
 
             assert response.status_code == 200
             data = response.get_json()
-            assert data["relink_required"] == False
+            assert not data["relink_required"]
 
     def test_refresh_transactions_api_success(self, flask_app, mocker):
         """Test POST /api/refresh-transactions endpoint - success case"""
@@ -402,9 +374,7 @@ class TestStripeAPI:
 
         with flask_app.app_context():
             # Mock Stripe SDK call
-            mock_list = mocker.patch(
-                "resources.stripe.stripe.financial_connections.Transaction.list"
-            )
+            mock_list = mocker.patch("resources.stripe.stripe.financial_connections.Transaction.list")
 
             # Create a mocked list object with the expected attributes
             mocked_transaction = mocker.MagicMock()
@@ -420,14 +390,10 @@ class TestStripeAPI:
             mocked_list_object.has_more = False
             mock_list.return_value = mocked_list_object
 
-            response = flask_app.test_client().get(
-                "/api/refresh_transactions/fca_test123"
-            )
+            response = flask_app.test_client().get("/api/refresh_transactions/fca_test123")
 
             assert response.status_code == 200
-            assert "Refreshed Stripe Connection for Given Account" in response.get_data(
-                as_text=True
-            )
+            assert "Refreshed Stripe Connection for Given Account" in response.get_data(as_text=True)
 
 
 class TestStripeFunctions:
@@ -435,20 +401,18 @@ class TestStripeFunctions:
         """Test refresh_stripe function - success case"""
         with flask_app.app_context():
             mock_refresh_account = mocker.patch("resources.stripe.refresh_account_api")
-            mock_refresh_transactions = mocker.patch(
-                "resources.stripe.refresh_transactions_api"
-            )
+            mock_refresh_transactions = mocker.patch("resources.stripe.refresh_transactions_api")
             mock_convert = mocker.patch("resources.stripe.stripe_to_line_items")
 
             # Insert test account data
             test_account = {
-                "_id": "fca_test123",  # For lookup in stripe_to_line_items
-                "id": "fca_test123",  # For refresh_stripe function
+                "id": "fca_test123",
+                "_id": "fca_test123",  # For refresh_stripe function
                 "institution_name": "Test Bank",
                 "display_name": "Checking Account",
                 "last4": "1234",
             }
-            get_collection(bank_accounts_collection).insert_one(test_account)
+            upsert_with_id(bank_accounts_collection, test_account, test_account["id"])
 
             # Call the function
             refresh_stripe()
@@ -462,9 +426,7 @@ class TestStripeFunctions:
         """Test refresh_stripe function - no accounts to refresh"""
         with flask_app.app_context():
             mock_refresh_account = mocker.patch("resources.stripe.refresh_account_api")
-            mock_refresh_transactions = mocker.patch(
-                "resources.stripe.refresh_transactions_api"
-            )
+            mock_refresh_transactions = mocker.patch("resources.stripe.refresh_transactions_api")
             mock_convert = mocker.patch("resources.stripe.stripe_to_line_items")
 
             # Call the function with no accounts
@@ -475,26 +437,35 @@ class TestStripeFunctions:
             mock_refresh_transactions.assert_not_called()
             mock_convert.assert_called_once()
 
-    def test_stripe_to_line_items_success(
-        self, flask_app, mock_stripe_transaction, mocker
-    ):
+    def test_stripe_to_line_items_success(self, flask_app, mock_stripe_transaction, mocker):
         """Test stripe_to_line_items function - success case"""
         with flask_app.app_context():
             # Insert test data
             test_account = {
+                "id": "fca_test123",
                 "_id": "fca_test123",
                 "institution_name": "Test Bank",
                 "display_name": "Checking Account",
                 "last4": "1234",
             }
-            get_collection(bank_accounts_collection).insert_one(test_account)
+            upsert_with_id(bank_accounts_collection, test_account, test_account["id"])
 
             test_transaction = mock_stripe_transaction
-            get_collection(stripe_raw_transaction_data_collection).insert_one(
-                test_transaction
+            upsert_with_id(
+                stripe_raw_transaction_data_collection,
+                test_transaction,
+                test_transaction["id"],
             )
 
+            # Mock bulk_upsert (MongoDB)
+            # Mock bulk_upsert (MongoDB)
             mock_bulk_upsert = mocker.patch("resources.stripe.bulk_upsert")
+
+            # Mock bulk_upsert_line_items (PostgreSQL)
+            mocker.patch("resources.stripe.bulk_upsert_line_items")
+
+            # Mock bulk_upsert_transactions (PostgreSQL)
+            mocker.patch("resources.stripe.bulk_upsert_transactions")
 
             # Call the function
             stripe_to_line_items()
@@ -519,7 +490,11 @@ class TestStripeFunctions:
     def test_stripe_to_line_items_no_transactions(self, flask_app, mocker):
         """Test stripe_to_line_items function - no transactions to process"""
         with flask_app.app_context():
+            # Mock bulk_upsert (MongoDB)
             mock_bulk_upsert = mocker.patch("resources.stripe.bulk_upsert")
+
+            # Mock bulk_upsert_line_items (PostgreSQL)
+            mocker.patch("resources.stripe.bulk_upsert_line_items")
 
             # Call the function with no transactions
             stripe_to_line_items()
@@ -527,18 +502,22 @@ class TestStripeFunctions:
             # Verify bulk_upsert was not called
             mock_bulk_upsert.assert_not_called()
 
-    def test_stripe_to_line_items_account_not_found(
-        self, flask_app, mock_stripe_transaction, mocker
-    ):
+    def test_stripe_to_line_items_account_not_found(self, flask_app, mock_stripe_transaction, mocker):
         """Test stripe_to_line_items function - account not found"""
         with flask_app.app_context():
             # Insert transaction without corresponding account
             test_transaction = mock_stripe_transaction
-            get_collection(stripe_raw_transaction_data_collection).insert_one(
-                test_transaction
+            upsert_with_id(
+                stripe_raw_transaction_data_collection,
+                test_transaction,
+                test_transaction["id"],
             )
 
+            # Mock bulk_upsert (MongoDB)
             mock_bulk_upsert = mocker.patch("resources.stripe.bulk_upsert")
+
+            # Mock bulk_upsert_line_items (PostgreSQL)
+            mocker.patch("resources.stripe.bulk_upsert_line_items")
 
             # Call the function
             stripe_to_line_items()
@@ -555,12 +534,13 @@ class TestStripeFunctions:
         with flask_app.app_context():
             # Insert test account
             test_account = {
+                "id": "fca_test123",
                 "_id": "fca_test123",
                 "institution_name": "Test Bank",
                 "display_name": "Checking Account",
                 "last4": "1234",
             }
-            get_collection(bank_accounts_collection).insert_one(test_account)
+            upsert_with_id(bank_accounts_collection, test_account, test_account["id"])
 
             # Insert multiple transactions
             transactions = []
@@ -574,11 +554,17 @@ class TestStripeFunctions:
                     "transacted_at": 1673778600 + i,
                 }
                 transactions.append(transaction)
-                get_collection(stripe_raw_transaction_data_collection).insert_one(
-                    transaction
+                upsert_with_id(
+                    stripe_raw_transaction_data_collection,
+                    transaction,
+                    transaction["id"],
                 )
 
+            # Mock bulk_upsert (MongoDB)
             mock_bulk_upsert = mocker.patch("resources.stripe.bulk_upsert")
+
+            # Mock bulk_upsert_line_items (PostgreSQL)
+            mocker.patch("resources.stripe.bulk_upsert_line_items")
 
             # Call the function
             stripe_to_line_items()
@@ -601,9 +587,7 @@ class TestStripeDualWrite:
         """Test that refresh_transactions_api uses dual_write_operation"""
         with flask_app.app_context():
             # Mock Stripe API
-            mock_stripe_transaction_list = mocker.patch(
-                "stripe.financial_connections.Transaction.list"
-            )
+            mock_stripe_transaction_list = mocker.patch("stripe.financial_connections.Transaction.list")
 
             # Create mock transaction list object
             mock_list_obj = mocker.Mock()
@@ -690,9 +674,7 @@ class TestStripeDualWrite:
         """Test error handling in dual-write for Stripe"""
         with flask_app.app_context():
             # Mock Stripe API
-            mock_stripe_transaction_list = mocker.patch(
-                "stripe.financial_connections.Transaction.list"
-            )
+            mock_stripe_transaction_list = mocker.patch("stripe.financial_connections.Transaction.list")
 
             # Create mock transaction list object
             mock_list_obj = mocker.Mock()
@@ -718,13 +700,13 @@ class TestStripeDualWrite:
             # Should return error status
             assert status_code == 500
 
-    def test_stripe_dual_write_pg_failure_continues(self, flask_app, mocker):
-        """Test that PostgreSQL failure in dual-write logs but continues"""
+    def test_stripe_dual_write_pg_failure_fails(self, flask_app, mocker):
+        """Test that PostgreSQL failure in dual-write causes operation to fail"""
         with flask_app.app_context():
+            from utils.dual_write import DualWriteError
+
             # Mock Stripe API
-            mock_stripe_transaction_list = mocker.patch(
-                "stripe.financial_connections.Transaction.list"
-            )
+            mock_stripe_transaction_list = mocker.patch("stripe.financial_connections.Transaction.list")
 
             # Create mock transaction list object
             mock_list_obj = mocker.Mock()
@@ -736,22 +718,17 @@ class TestStripeDualWrite:
 
             mock_stripe_transaction_list.return_value = mock_list_obj
 
-            # Mock dual_write_operation to simulate PG failure (non-critical)
+            # Mock dual_write_operation to simulate PG failure
             mock_dual_write = mocker.patch("resources.stripe.dual_write_operation")
-            mock_dual_write.return_value = {
-                "success": True,  # Still success because MongoDB succeeded
-                "mongo_success": True,
-                "pg_success": False,
-                "pg_error": "PostgreSQL connection failed",
-            }
+            mock_dual_write.side_effect = DualWriteError("PostgreSQL write failed")
 
-            # Call refresh_transactions_api - should not raise
+            # Call refresh_transactions_api - exception caught and returns 500
             from resources.stripe import refresh_transactions_api
 
             response, status_code = refresh_transactions_api("test_account_id")
 
-            # Should succeed (200) despite PG failure
-            assert status_code == 200
+            # Should fail (500) due to PG failure
+            assert status_code == 500
 
             # Verify dual_write was called
             mock_dual_write.assert_called_once()
@@ -762,20 +739,22 @@ class TestStripeIntegration:
         """Test the complete refresh workflow from API to database"""
         with flask_app.app_context():
             mock_refresh_account = mocker.patch("resources.stripe.refresh_account_api")
-            mock_refresh_transactions = mocker.patch(
-                "resources.stripe.refresh_transactions_api"
-            )
+            mock_refresh_transactions = mocker.patch("resources.stripe.refresh_transactions_api")
+            # Mock bulk_upsert (MongoDB)
             mock_bulk_upsert = mocker.patch("resources.stripe.bulk_upsert")
+
+            # Mock bulk_upsert_line_items (PostgreSQL)
+            mocker.patch("resources.stripe.bulk_upsert_line_items")
 
             # Insert test account
             test_account = {
-                "_id": "fca_test123",  # For lookup in stripe_to_line_items
-                "id": "fca_test123",  # For refresh_stripe function
+                "id": "fca_test123",
+                "_id": "fca_test123",  # For refresh_stripe function
                 "institution_name": "Test Bank",
                 "display_name": "Checking Account",
                 "last4": "1234",
             }
-            get_collection(bank_accounts_collection).insert_one(test_account)
+            upsert_with_id(bank_accounts_collection, test_account, test_account["id"])
 
             # Insert test transaction
             test_transaction = {
@@ -786,8 +765,10 @@ class TestStripeIntegration:
                 "status": "posted",
                 "transacted_at": 1673778600,
             }
-            get_collection(stripe_raw_transaction_data_collection).insert_one(
-                test_transaction
+            upsert_with_id(
+                stripe_raw_transaction_data_collection,
+                test_transaction,
+                test_transaction["id"],
             )
 
             # Call refresh function

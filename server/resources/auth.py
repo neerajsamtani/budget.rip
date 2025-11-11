@@ -12,6 +12,9 @@ from flask_jwt_extended import (
 from constants import GATED_USERS
 from dao import get_user_by_email, insert, users_collection
 from helpers import check_password, hash_password
+from utils.dual_write import dual_write_operation
+from utils.id_generator import generate_id
+from utils.pg_bulk_ops import upsert_user
 
 auth_blueprint = Blueprint("auth", __name__)
 
@@ -35,11 +38,16 @@ def signup_user_api() -> tuple[Response, int]:
         logging.warning(f"Signup attempt by non-gated user: {body['email']}")
         return jsonify("User Not Signed Up For Private Beta"), 403
     else:
+        user["id"] = generate_id("user")
         user["first_name"] = body["first_name"]
         user["last_name"] = body["last_name"]
         user["email"] = body["email"]
         user["password_hash"] = hash_password(body["password"])
-        insert(users_collection, user)
+        dual_write_operation(
+            mongo_write_func=lambda: insert(users_collection, user),
+            pg_write_func=lambda db: upsert_user(db, user),
+            operation_name="create_user",
+        )
         logging.info(f"New user created: {body['email']}")
         return jsonify("Created User"), 201
 
@@ -62,9 +70,7 @@ def login_user_api() -> tuple[Response, int]:
         return jsonify({"error": "Email or password invalid"}), 401
 
     expires: timedelta = timedelta(days=3)
-    access_token: str = create_access_token(
-        identity=str(user["_id"]), expires_delta=expires
-    )
+    access_token: str = create_access_token(identity=str(user["_id"]), expires_delta=expires)
 
     # Set the JWT cookies in the response
     resp: Response = jsonify({"login": True})

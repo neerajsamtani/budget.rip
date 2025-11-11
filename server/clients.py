@@ -24,7 +24,5 @@ def get_venmo_client():
     return _venmo_client
 
 
-splitwise_client = Splitwise(
-    SPLITWISE_CONSUMER_KEY, SPLITWISE_CONSUMER_SECRET, api_key=SPLITWISE_API_KEY
-)
+splitwise_client = Splitwise(SPLITWISE_CONSUMER_KEY, SPLITWISE_CONSUMER_SECRET, api_key=SPLITWISE_API_KEY)
 stripe.api_key = STRIPE_API_KEY

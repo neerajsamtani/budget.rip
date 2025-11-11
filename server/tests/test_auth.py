@@ -1,7 +1,6 @@
 import pytest
 
 from constants import GATED_USERS
-from dao import upsert_with_id, users_collection
 
 
 @pytest.fixture
@@ -64,18 +63,17 @@ class TestAuthAPI:
             assert created_user["email"] == "neerajjsamtani@gmail.com"
             assert "password_hash" in created_user  # Should have hashed password
 
-    def test_signup_user_api_user_already_exists(self, test_client, flask_app):
+    def test_signup_user_api_user_already_exists(self, test_client, flask_app, create_user_via_api):
         """Test POST /api/auth/signup endpoint - user already exists"""
-        # Insert existing user first
-        with flask_app.app_context():
-            existing_user = {
-                "id": "existing_user",
+        # Create existing user via API
+        create_user_via_api(
+            {
                 "first_name": "Neeraj",
                 "last_name": "Samtani",
                 "email": "neerajjsamtani@gmail.com",
-                "password_hash": "existing_hash",
+                "password": "existingpassword",
             }
-            upsert_with_id(users_collection, existing_user, existing_user["id"])
+        )
 
         # Test API call with same email
         signup_data = {
@@ -103,10 +101,7 @@ class TestAuthAPI:
         response = test_client.post("/api/auth/signup", json=signup_data)
 
         assert response.status_code == 403
-        assert (
-            response.get_data(as_text=True).strip()
-            == '"User Not Signed Up For Private Beta"'
-        )
+        assert response.get_data(as_text=True).strip() == '"User Not Signed Up For Private Beta"'
 
     def test_signup_user_api_missing_fields(self, test_client):
         """Test POST /api/auth/signup endpoint - missing required fields"""
@@ -129,31 +124,26 @@ class TestAuthAPI:
             "email": "neerajjsamtani@gmail.com",
         }
 
-        response = test_client.post(
-            "/api/auth/signup", json=signup_data_missing_password
-        )
+        response = test_client.post("/api/auth/signup", json=signup_data_missing_password)
         assert response.status_code == 400
         data = response.get_json()
         assert data["error"].startswith("Missing required field: password")
 
-    def test_login_user_api_success(self, test_client, flask_app):
+    def test_login_user_api_success(self, test_client, flask_app, create_user_via_api):
         """Test POST /api/auth/login endpoint - success case"""
-        # Insert test user with known password hash
-        with flask_app.app_context():
-            from helpers import hash_password
-
-            test_user = {
-                "id": "test_user",
-                "first_name": "Test",
-                "last_name": "User",
-                "email": "test@example.com",
-                "password_hash": hash_password("testpassword123"),
+        # Create test user via API (but use a gated email for signup)
+        create_user_via_api(
+            {
+                "first_name": "Neeraj",
+                "last_name": "Samtani",
+                "email": "neerajjsamtani@gmail.com",  # Gated user
+                "password": "testpassword123",
             }
-            upsert_with_id(users_collection, test_user, test_user["id"])
+        )
 
         # Test API call with correct credentials
         login_data = {
-            "email": "test@example.com",
+            "email": "neerajjsamtani@gmail.com",
             "password": "testpassword123",
         }
 
@@ -180,24 +170,21 @@ class TestAuthAPI:
         data = response.get_json()
         assert data["error"] == "Email or password invalid"
 
-    def test_login_user_api_invalid_password(self, test_client, flask_app):
+    def test_login_user_api_invalid_password(self, test_client, flask_app, create_user_via_api):
         """Test POST /api/auth/login endpoint - invalid password"""
-        # Insert test user
-        with flask_app.app_context():
-            from helpers import hash_password
-
-            test_user = {
-                "id": "test_user",
-                "first_name": "Test",
-                "last_name": "User",
-                "email": "test@example.com",
-                "password_hash": hash_password("correctpassword"),
+        # Create test user via API
+        create_user_via_api(
+            {
+                "first_name": "Neeraj",
+                "last_name": "Samtani",
+                "email": "neerajjsamtani@gmail.com",  # Gated user
+                "password": "correctpassword",
             }
-            upsert_with_id(users_collection, test_user, test_user["id"])
+        )
 
         # Test API call with wrong password
         login_data = {
-            "email": "test@example.com",
+            "email": "neerajjsamtani@gmail.com",
             "password": "wrongpassword",
         }
 
@@ -239,19 +226,17 @@ class TestAuthAPI:
 
         # Check that JWT cookies are unset
         set_cookie_header = response.headers.get("Set-Cookie", "")
-        assert (
-            "access_token_cookie=;" in set_cookie_header
-            or "access_token_cookie=; " in set_cookie_header
-        )
+        assert "access_token_cookie=;" in set_cookie_header or "access_token_cookie=; " in set_cookie_header
 
 
 class TestAuthFunctions:
-    def test_get_user_by_email_success(self, flask_app):
+    def test_get_user_by_email_success(self, flask_app, pg_session):
         """Test get_user_by_email function - success case"""
+        from tests.test_helpers import setup_test_user
+
         with flask_app.app_context():
             from dao import get_user_by_email
 
-            # Insert test user
             test_user = {
                 "id": "test_user",
                 "first_name": "Test",
@@ -259,7 +244,8 @@ class TestAuthFunctions:
                 "email": "test@example.com",
                 "password_hash": "test_hash",
             }
-            upsert_with_id(users_collection, test_user, test_user["id"])
+            setup_test_user(pg_session, test_user)
+            pg_session.commit()
 
             # Test function call
             found_user = get_user_by_email("test@example.com")

@@ -18,6 +18,8 @@ os.environ["DATABASE_URL"] = "sqlite:///file:memdb1?mode=memory&cache=shared&uri
 import mongomock
 from flask import Flask
 from flask_jwt_extended import JWTManager, create_access_token
+from sqlalchemy import create_engine, event
+from sqlalchemy.orm import sessionmaker
 
 from constants import JWT_SECRET_KEY
 from dao import (
@@ -32,6 +34,7 @@ from dao import (
     users_collection,
     venmo_raw_data_collection,
 )
+from models.sql_models import Base
 from resources.auth import auth_blueprint
 from resources.cash import cash_blueprint
 from resources.event import events_blueprint
@@ -40,18 +43,13 @@ from resources.monthly_breakdown import monthly_breakdown_blueprint
 from resources.splitwise import splitwise_blueprint
 from resources.stripe import stripe_blueprint
 from resources.venmo import venmo_blueprint
-from models.sql_models import Base
-from sqlalchemy import create_engine, event
-from sqlalchemy.orm import sessionmaker
 
 # Import test configuration
 try:
     from test_config import TEST_DB_NAME, TEST_MONGO_URI
 except ImportError:
     # Fallback if test_config doesn't exist
-    TEST_MONGO_URI = os.getenv(
-        "TEST_MONGO_URI", "mongodb://localhost:27017/budgit_test"
-    )
+    TEST_MONGO_URI = os.getenv("TEST_MONGO_URI", "mongodb://localhost:27017/budgit_test")
     TEST_DB_NAME = "budgit_test"
 
 
@@ -65,9 +63,15 @@ def init_test_db():
     """Initialize the test database schema"""
     global test_engine, TestSession
     # Enable URI mode for SQLite to support shared memory connections
-    test_engine = create_engine(
-        TEST_DATABASE_URL, echo=False, connect_args={"uri": True}
-    )
+    test_engine = create_engine(TEST_DATABASE_URL, echo=False, connect_args={"uri": True})
+
+    # Enable foreign key constraints for SQLite
+    @event.listens_for(test_engine, "connect")
+    def set_sqlite_pragma(dbapi_conn, connection_record):
+        cursor = dbapi_conn.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
+
     TestSession = sessionmaker(bind=test_engine)
 
     # Create all tables
@@ -83,6 +87,11 @@ def cleanup_test_db():
         Base.metadata.drop_all(test_engine)
         # Recreate them for the next test
         Base.metadata.create_all(test_engine)
+    else:
+        # If test_engine not initialized yet, initialize it first
+        init_test_db()
+        Base.metadata.drop_all(test_engine)
+        Base.metadata.create_all(test_engine)
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -94,6 +103,20 @@ def setup_test_database():
     if test_engine is not None:
         Base.metadata.drop_all(test_engine)
         test_engine.dispose()
+
+
+@pytest.fixture(autouse=True)
+def cleanup_databases():
+    """Clean up PostgreSQL database before each test"""
+    # Clean PostgreSQL tables
+    cleanup_test_db()
+
+    # Re-seed base data
+    seed_postgresql_base_data()
+
+    yield
+
+    # MongoDB cleanup happens per-test via mongomock's in-memory database
 
 
 @pytest.fixture
@@ -147,9 +170,7 @@ def flask_app():
             schedule_refresh_api,
             methods=["GET"],
         )
-        app.add_url_rule(
-            "/api/refresh/all", "refresh_all_api", refresh_all_api, methods=["GET"]
-        )
+        app.add_url_rule("/api/refresh/all", "refresh_all_api", refresh_all_api, methods=["GET"])
         app.add_url_rule(
             "/api/connected_accounts",
             "get_connected_accounts_api",
@@ -191,6 +212,70 @@ def pg_session():
     session.close()
 
 
+def seed_postgresql_base_data():
+    """Seed PostgreSQL with required base data (categories, payment methods)"""
+    from models.sql_models import Category, PaymentMethod
+
+    session = TestSession()
+    try:
+        categories = [
+            {"id": "cat_all", "name": "All"},
+            {"id": "cat_alcohol", "name": "Alcohol"},
+            {"id": "cat_dining", "name": "Dining"},
+            {"id": "cat_entertainment", "name": "Entertainment"},
+            {"id": "cat_forma", "name": "Forma"},
+            {"id": "cat_groceries", "name": "Groceries"},
+            {"id": "cat_hobbies", "name": "Hobbies"},
+            {"id": "cat_income", "name": "Income"},
+            {"id": "cat_investment", "name": "Investment"},
+            {"id": "cat_medical", "name": "Medical"},
+            {"id": "cat_rent", "name": "Rent"},
+            {"id": "cat_shopping", "name": "Shopping"},
+            {"id": "cat_subscription", "name": "Subscription"},
+            {"id": "cat_transfer", "name": "Transfer"},
+            {"id": "cat_transit", "name": "Transit"},
+            {"id": "cat_travel", "name": "Travel"},
+            {"id": "cat_food", "name": "Food"},
+            {"id": "cat_transportation", "name": "Transportation"},
+        ]
+        for cat_data in categories:
+            if not session.query(Category).filter_by(name=cat_data["name"]).first():
+                session.add(Category(**cat_data))
+
+        payment_methods = [
+            {"id": "pm_cash", "name": "Cash", "type": "cash", "is_active": True},
+            {"id": "pm_venmo", "name": "Venmo", "type": "venmo", "is_active": True},
+            {
+                "id": "pm_splitwise",
+                "name": "Splitwise",
+                "type": "splitwise",
+                "is_active": True,
+            },
+            {
+                "id": "pm_credit_card",
+                "name": "Credit Card",
+                "type": "credit",
+                "is_active": True,
+            },
+            {
+                "id": "pm_debit_card",
+                "name": "Debit Card",
+                "type": "bank",
+                "is_active": True,
+            },
+        ]
+        for pm_data in payment_methods:
+            if not session.query(PaymentMethod).filter_by(name=pm_data["name"]).first():
+                session.add(PaymentMethod(**pm_data))
+
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+
+
 @pytest.fixture(autouse=True)
 def setup_teardown(flask_app, request):
     # This fixture will be used for setup and teardown
@@ -211,6 +296,11 @@ def setup_teardown(flask_app, request):
         # Clean up PostgreSQL tables before each test
         cleanup_test_db()
 
+        # Seed PostgreSQL with base data if READ_FROM_POSTGRESQL=true
+        # Skip for phase5 tests as they have their own fixtures
+        if "test_phase5" not in request.node.fspath.basename:
+            seed_postgresql_base_data()
+
     def teardown():
         with flask_app.app_context():
             # Clean up MongoDB collections after each test
@@ -230,3 +320,56 @@ def setup_teardown(flask_app, request):
             cleanup_test_db()
 
     request.addfinalizer(teardown)
+
+
+@pytest.fixture
+def create_line_item_via_cash(test_client, jwt_token):
+    """Helper to create line items via cash transaction API"""
+
+    def _create(**kwargs):
+        transaction_data = {
+            "date": kwargs.get("date", "2009-02-13"),
+            "person": kwargs.get("person", "Test Person"),
+            "description": kwargs.get("description", "Test Transaction"),
+            "amount": kwargs.get("amount", 100.0),
+        }
+        response = test_client.post(
+            "/api/cash_transaction",
+            json=transaction_data,
+            headers={"Authorization": f"Bearer {jwt_token}"},
+        )
+        assert response.status_code == 201
+        return transaction_data
+
+    return _create
+
+
+@pytest.fixture
+def create_event_via_api(test_client, jwt_token):
+    """Helper to create events via API"""
+
+    def _create(event_data):
+        response = test_client.post(
+            "/api/events",
+            json=event_data,
+            headers={"Authorization": f"Bearer {jwt_token}"},
+        )
+        assert response.status_code == 201
+        return response.get_json()
+
+    return _create
+
+
+@pytest.fixture
+def create_user_via_api(test_client):
+    """Helper to create users via signup API"""
+
+    def _create(user_data):
+        response = test_client.post(
+            "/api/auth/signup",
+            json=user_data,
+        )
+        assert response.status_code == 201
+        return response.get_json()
+
+    return _create

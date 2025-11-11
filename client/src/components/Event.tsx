@@ -6,11 +6,12 @@ import { StatusBadge } from "../components/ui/status-badge";
 import { LineItemInterface } from "../contexts/LineItemsContext";
 import axiosInstance from "../utils/axiosInstance";
 import { CurrencyFormatter, DateFormatter } from "../utils/formatters";
-import EventDetailsModal from "./EventDetailsModal";
 import { showErrorToast } from "../utils/toast-helpers";
+import EventDetailsModal from "./EventDetailsModal";
 
 export interface EventInterface {
     _id: string;
+    id: string;
     name: string;
     category: string;
     amount: number;
@@ -26,7 +27,7 @@ export default function Event({ event }: { event: EventInterface }) {
     const [lineItemsForEvent, setLineItemsForEvent] = useState<LineItemInterface[]>([])
 
     const showEventDetails = () => {
-        axiosInstance.get(`api/events/${event._id}/line_items_for_event`)
+        axiosInstance.get(`api/events/${event.id}/line_items_for_event`)
             .then(response => {
                 setLineItemsForEvent(response.data.data)
             })

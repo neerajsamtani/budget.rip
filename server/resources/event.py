@@ -1,5 +1,4 @@
 import logging
-from datetime import UTC, datetime
 from typing import Any, Dict, List, Optional
 
 from flask import Blueprint, Response, jsonify, request
@@ -17,9 +16,8 @@ from dao import (
     upsert_with_id,
 )
 from helpers import html_date_to_posix
-from models.sql_models import Category, Event, EventLineItem, EventTag, LineItem, Tag
+from models.sql_models import Event
 from utils.dual_write import dual_write_operation
-from utils.id_generator import generate_id
 
 events_blueprint = Blueprint("events", __name__)
 
@@ -74,9 +72,7 @@ def post_event_api() -> tuple[Response, int]:
     filters: Dict[str, Any] = {}
     filters["_id"] = {"$in": new_event["line_items"]}
     line_items: List[Dict[str, Any]] = get_all_data(line_items_collection, filters)
-    earliest_line_item: Dict[str, Any] = min(
-        line_items, key=lambda line_item: line_item["date"]
-    )
+    earliest_line_item: Dict[str, Any] = min(line_items, key=lambda line_item: line_item["date"])
 
     new_event["id"] = f"event{earliest_line_item['id'][9:]}"
     if new_event["date"]:
@@ -102,98 +98,22 @@ def post_event_api() -> tuple[Response, int]:
 
     # PostgreSQL write function
     def pg_write(db_session):
-        # Generate PostgreSQL ID with event_ prefix
-        pg_event_id = generate_id("event")
+        from utils.pg_event_operations import upsert_event_to_postgresql
 
-        # Look up category by name
-        # Frontend sends 'name' but we store as 'description'
-        # MongoDB stores 'category' as string, PostgreSQL needs category_id
-        category_name = new_event.get("category")
-        if not category_name:
-            logging.warning(
-                f"Event creation without category, skipping PostgreSQL write"
-            )
-            return
-
-        category = (
-            db_session.query(Category).filter(Category.name == category_name).first()
-        )
-        if not category:
-            logging.warning(
-                f"Category not found: {category_name}, skipping PostgreSQL write"
-            )
-            return
-
-        # Convert date to datetime
-        event_date = datetime.fromtimestamp(new_event["date"], UTC)
-
-        # Create Event record
-        event = Event(
-            id=pg_event_id,
-            mongo_id=new_event["id"],
-            date=event_date,
-            description=new_event.get("name", ""),  # Frontend sends 'name'
-            category_id=category.id,
-            is_duplicate=new_event.get("is_duplicate_transaction", False),
-            created_at=datetime.now(UTC),
-            updated_at=datetime.now(UTC),
-        )
-        db_session.add(event)
-
-        # Create EventLineItem junctions
-        for line_item_mongo_id in new_event["line_items"]:
-            pg_line_item = (
-                db_session.query(LineItem)
-                .filter(LineItem.mongo_id == str(line_item_mongo_id))
-                .first()
-            )
-
-            if not pg_line_item:
-                logging.warning(f"Line item {line_item_mongo_id} not in PostgreSQL yet")
-                continue
-
-            event_line_item = EventLineItem(
-                id=generate_id("eli"),
-                event_id=pg_event_id,
-                line_item_id=pg_line_item.id,
-                created_at=datetime.now(UTC),
-            )
-            db_session.add(event_line_item)
-
-        # Create EventTag junction records
-        for tag_name in new_event.get("tags", []):
-            # Look up or create tag
-            tag = db_session.query(Tag).filter(Tag.name == tag_name).first()
-            if not tag:
-                tag = Tag(
-                    id=generate_id("tag"),
-                    name=tag_name,
-                    created_at=datetime.now(UTC),
-                    updated_at=datetime.now(UTC),
-                )
-                db_session.add(tag)
-                db_session.flush()  # Get the tag ID
-
-            event_tag = EventTag(
-                id=generate_id("etag"),
-                event_id=pg_event_id,
-                tag_id=tag.id,
-                created_at=datetime.now(UTC),
-            )
-            db_session.add(event_tag)
-
-        db_session.commit()
+        # Use extracted helper function
+        # This will raise ValueError if category missing/not found
+        # The dual_write_operation will catch and handle appropriately
+        upsert_event_to_postgresql(new_event, db_session)
+        # Note: No explicit commit needed - dual_write_operation handles it
 
     # Execute dual-write
-    result = dual_write_operation(
+    dual_write_operation(
         operation_name="create_event",
         mongo_write_func=mongo_write,
         pg_write_func=pg_write,
     )
 
-    logging.info(
-        f"Created event: {new_event['id']} with {len(line_items)} line items (amount: ${new_event['amount']:.2f})"
-    )
+    logging.info(f"Created event: {new_event['id']} with {len(line_items)} line items (amount: ${new_event['amount']:.2f})")
     return jsonify(new_event), 201
 
 
@@ -219,20 +139,19 @@ def delete_event_api(event_id: str) -> tuple[Response, int]:
 
     # PostgreSQL write function
     def pg_write(db_session):
+        # Find event by exact ID first, then by mongo_id
+        # Unique constraint on mongo_id ensures at most one event per ID
         pg_event = db_session.query(Event).filter(Event.id == event_id).first()
         if not pg_event:
-            pg_event = (
-                db_session.query(Event).filter(Event.mongo_id == event_id).first()
-            )
+            pg_event = db_session.query(Event).filter(Event.mongo_id == event_id).first()
 
         if pg_event:
             db_session.delete(pg_event)
-            db_session.commit()
         else:
             logging.info(f"Event {event_id} not in PostgreSQL yet")
 
     # Execute dual-write
-    result = dual_write_operation(
+    dual_write_operation(
         operation_name="delete_event",
         mongo_write_func=mongo_write,
         pg_write_func=pg_write,
@@ -257,9 +176,7 @@ def get_line_items_for_event_api(
             return jsonify({"error": "Event not found"}), 404
         line_items: List[Dict[str, Any]] = []
         for line_item_id in event["line_items"]:
-            line_item: Optional[Dict[str, Any]] = get_item_by_id(
-                line_items_collection, line_item_id
-            )
+            line_item: Optional[Dict[str, Any]] = get_item_by_id(line_items_collection, line_item_id)
             if line_item is not None:
                 line_items.append(line_item)
         logging.info(f"Retrieved {len(line_items)} line items for event: {event_id}")

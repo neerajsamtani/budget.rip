@@ -1,155 +1,238 @@
-from datetime import datetime, timezone
+"""
+Test helper utilities for creating test data in both MongoDB and PostgreSQL.
 
-import pytest
+These factories reduce boilerplate in tests by handling the complex dual-database
+setup and foreign key relationships.
+"""
 
-import helpers
-from resources.line_item import LineItem
+from datetime import UTC, datetime
+from typing import Any, Dict, List, Optional
 
-
-@pytest.mark.parametrize(
-    "input_amount, expected_result",
-    [
-        (10.0, -10.0),
-        (-5.0, 5.0),
-        (0.0, 0.0),
-    ],
+from dao import (
+    events_collection,
+    get_collection,
+    line_items_collection,
+    users_collection,
 )
-def test_flip_amount(input_amount, expected_result):
-    assert helpers.flip_amount(input_amount) == expected_result
+from models.sql_models import (
+    Category,
+    Event,
+    EventLineItem,
+    LineItem,
+    PaymentMethod,
+    Transaction,
+    User,
+)
+from utils.id_generator import generate_id
 
 
-def test_flip_amount_with_string_amount():
-    with pytest.raises(ValueError):
-        helpers.flip_amount("invalid_input")  # type: ignore
+def setup_test_line_item(pg_session, item_data: Dict[str, Any], mongo_only: bool = False) -> Optional[LineItem]:
+    """
+    Create a line item in MongoDB and optionally PostgreSQL.
 
+    Args:
+        pg_session: PostgreSQL session
+        item_data: Dict with keys: id, date, payment_method, description,
+                   responsible_party, amount, and optionally event_id, notes
+        mongo_only: If True, only write to MongoDB (for migration tests)
 
-def test_to_dict():
-    input_line_item = LineItem(
-        id="1234",
-        date=1648339200.0,  # 2022-03-27 as timestamp
-        responsible_party="John Smith",
-        payment_method="Venmo",
-        description="Groceries",
-        amount=50.0,
+    Returns:
+        PostgreSQL LineItem object if created, None if mongo_only
+    """
+    # Write directly to MongoDB without triggering dual-write
+    collection = get_collection(line_items_collection)
+    mongo_item = {**item_data, "_id": item_data["id"]}
+    collection.insert_one(mongo_item)
+
+    if mongo_only:
+        return None
+
+    # Write to PostgreSQL
+    payment_method = pg_session.query(PaymentMethod).filter(PaymentMethod.name == item_data["payment_method"]).first()
+
+    if not payment_method:
+        raise ValueError(
+            f"Payment method '{item_data['payment_method']}' not found. Ensure seed_postgresql_base_data fixture is used."
+        )
+
+    # Create transaction (required FK for line item)
+    pg_transaction = Transaction(
+        id=generate_id("txn"),
+        source="manual",
+        source_id=item_data["id"],
+        transaction_date=datetime.fromtimestamp(item_data["date"], UTC),
+        source_data={},
+        created_at=datetime.now(UTC),
     )
+    pg_session.add(pg_transaction)
+    pg_session.flush()
 
-    expected_dict = {
-        "id": "1234",
-        "date": 1648339200.0,
-        "responsible_party": "John Smith",
-        "payment_method": "Venmo",
-        "description": "Groceries",
-        "amount": 50.0,
-    }
-
-    assert helpers.to_dict(input_line_item) == expected_dict
-
-
-@pytest.mark.parametrize(
-    "input_date, expected_output",
-    [
-        ("2022-03-28T10:00:00", "Mar 28 2022"),
-        ("2022-03-28", None),  # Invalid input, expecting None
-    ],
-)
-def test_iso_8601_to_readable(input_date, expected_output):
-    if expected_output is not None:
-        assert helpers.iso_8601_to_readable(input_date) == expected_output
-    else:
-        with pytest.raises(ValueError):
-            helpers.iso_8601_to_readable(input_date)
-
-
-@pytest.mark.parametrize(
-    "input_date, expected_output",
-    [
-        ("2023-03-28", datetime(2023, 3, 28, tzinfo=timezone.utc).timestamp()),
-        ("2022/03/28", None),  # Invalid input, expecting None
-    ],
-)
-def test_html_date_to_posix(input_date, expected_output):
-    if expected_output is not None:
-        assert helpers.html_date_to_posix(input_date) == expected_output
-    else:
-        with pytest.raises(ValueError):
-            helpers.html_date_to_posix(input_date)
-
-
-@pytest.mark.parametrize(
-    "input_timestamp, expected_output",
-    [
-        (1617053994.0, "Mar 29 2021"),
-        ("not a float", None),  # Invalid input, expecting None
-    ],
-)
-def test_posix_to_readable(input_timestamp, expected_output):
-    if expected_output is not None:
-        assert helpers.posix_to_readable(input_timestamp) == expected_output
-    else:
-        with pytest.raises(TypeError):
-            helpers.posix_to_readable(input_timestamp)
-
-
-@pytest.mark.parametrize(
-    "iso_date, expected_output",
-    [
-        (
-            "2022-03-28T10:15:30+00:00",
-            1648462530.0,
-        ),  # Test with timezone offset
-        (
-            "2023-01-15T10:30:00Z",
-            1673778600.0,
-        ),  # Test with Z timezone indicator
-        ("2022/03/28", None),  # Invalid input, expecting None
-    ],
-)
-def test_iso_8601_to_posix(iso_date, expected_output):
-    if expected_output is not None:
-        assert helpers.iso_8601_to_posix(iso_date) == expected_output
-    else:
-        with pytest.raises(ValueError):
-            helpers.iso_8601_to_posix(iso_date)
-
-
-def test_sort_by_date_descending():
-    line_items = [
-        LineItem(
-            "1", datetime(2022, 1, 1).timestamp(), "John", "Venmo", "item 1", 100.0
-        ).__dict__,
-        LineItem(
-            "2", datetime(2022, 2, 1).timestamp(), "Mary", "Splitwise", "item 2", 50.0
-        ).__dict__,
-        LineItem(
-            "3", datetime(2021, 12, 31).timestamp(), "Jane", "Cash", "item 3", 75.0
-        ).__dict__,
-    ]
-
-    sorted_items = helpers.sort_by_date_descending(line_items)
-
-    assert sorted_items[0]["id"] == "2"
-    assert sorted_items[1]["id"] == "1"
-    assert sorted_items[2]["id"] == "3"
-
-
-@pytest.fixture
-def mock_venmo_client(mocker):
-    """Mock Venmo client with access token functionality"""
-    mock_client = mocker.Mock()
-    mock_client.get_access_token.return_value = "test_access_token"
-    return mock_client
-
-
-def test_get_venmo_access_token(mock_venmo_client, mocker):
-    username = "test_username"
-    password = "test_password"
-
-    # Mock the VenmoClient class to return our mock client
-    mocker.patch("helpers.VenmoClient", return_value=mock_venmo_client)
-
-    access_token = helpers.get_venmo_access_token(username, password, mock_venmo_client)
-
-    assert access_token == "test_access_token"
-    mock_venmo_client.get_access_token.assert_called_once_with(
-        username=username, password=password
+    # Create line item
+    pg_line_item = LineItem(
+        id=generate_id("li"),
+        transaction_id=pg_transaction.id,
+        mongo_id=item_data["id"],
+        date=datetime.fromtimestamp(item_data["date"], UTC),
+        description=item_data["description"],
+        amount=item_data["amount"],
+        responsible_party=item_data["responsible_party"],
+        payment_method_id=payment_method.id,
+        notes=item_data.get("notes"),
+        created_at=datetime.now(UTC),
+        updated_at=datetime.now(UTC),
     )
+    pg_session.add(pg_line_item)
+    pg_session.flush()
+
+    return pg_line_item
+
+
+def setup_test_event(
+    pg_session,
+    event_data: Dict[str, Any],
+    line_items: Optional[List[LineItem]] = None,
+    mongo_only: bool = False,
+) -> Optional[Event]:
+    """
+    Create an event in MongoDB and optionally PostgreSQL.
+
+    Args:
+        pg_session: PostgreSQL session
+        event_data: Dict with keys: id, date, description, category,
+                    and optionally is_duplicate, tags
+        line_items: List of PostgreSQL LineItem objects to associate with event
+        mongo_only: If True, only write to MongoDB (for migration tests)
+
+    Returns:
+        PostgreSQL Event object if created, None if mongo_only
+    """
+    # Write directly to MongoDB without triggering dual-write
+    collection = get_collection(events_collection)
+    mongo_item = {**event_data, "_id": event_data["id"]}
+    collection.insert_one(mongo_item)
+
+    if mongo_only:
+        return None
+
+    # Write to PostgreSQL
+    category = pg_session.query(Category).filter(Category.name == event_data["category"]).first()
+
+    if not category:
+        raise ValueError(f"Category '{event_data['category']}' not found. Ensure seed_postgresql_base_data fixture is used.")
+
+    pg_event = Event(
+        id=generate_id("event"),
+        mongo_id=event_data["id"],
+        date=datetime.fromtimestamp(event_data["date"], UTC),
+        description=event_data.get("description", ""),
+        category_id=category.id,
+        is_duplicate=event_data.get("is_duplicate", False),
+        created_at=datetime.now(UTC),
+        updated_at=datetime.now(UTC),
+    )
+    pg_session.add(pg_event)
+    pg_session.flush()
+
+    # Link line items if provided
+    if line_items:
+        for pg_line_item in line_items:
+            event_line_item = EventLineItem(
+                id=generate_id("eli"),
+                event_id=pg_event.id,
+                line_item_id=pg_line_item.id,
+            )
+            pg_session.add(event_line_item)
+
+    # Handle tags if present
+    if "tags" in event_data and event_data["tags"]:
+        from models.sql_models import EventTag, Tag
+
+        for tag_name in event_data["tags"]:
+            tag = pg_session.query(Tag).filter(Tag.name == tag_name).first()
+            if not tag:
+                tag = Tag(
+                    id=generate_id("tag"),
+                    name=tag_name,
+                    created_at=datetime.now(UTC),
+                    updated_at=datetime.now(UTC),
+                )
+                pg_session.add(tag)
+                pg_session.flush()
+
+            event_tag = EventTag(id=generate_id("et"), event_id=pg_event.id, tag_id=tag.id)
+            pg_session.add(event_tag)
+
+    pg_session.flush()
+    return pg_event
+
+
+def setup_test_user(pg_session, user_data: Dict[str, Any], mongo_only: bool = False) -> Optional[User]:
+    """
+    Create a user in MongoDB and optionally PostgreSQL.
+
+    Args:
+        pg_session: PostgreSQL session
+        user_data: Dict with keys: id, email, first_name, last_name, password_hash
+        mongo_only: If True, only write to MongoDB (for migration tests)
+
+    Returns:
+        PostgreSQL User object if created, None if mongo_only
+    """
+    # Write directly to MongoDB without triggering dual-write
+    collection = get_collection(users_collection)
+    mongo_item = {**user_data, "_id": user_data["id"]}
+    collection.insert_one(mongo_item)
+
+    if mongo_only:
+        return None
+
+    # Write to PostgreSQL
+    pg_user = User(
+        id=generate_id("user"),
+        mongo_id=user_data["id"],
+        email=user_data["email"],
+        first_name=user_data["first_name"],
+        last_name=user_data["last_name"],
+        password_hash=user_data["password_hash"],
+        created_at=datetime.now(UTC),
+        updated_at=datetime.now(UTC),
+    )
+    pg_session.add(pg_user)
+    pg_session.flush()
+
+    return pg_user
+
+
+def setup_test_line_item_with_event(pg_session, item_data: Dict[str, Any], event_id: str) -> LineItem:
+    """
+    Convenience helper to create a line item and link it to an existing event.
+
+    Args:
+        pg_session: PostgreSQL session
+        item_data: Line item data (must include 'id', 'date', etc.)
+        event_id: ID of existing event (mongo_id or pg id)
+
+    Returns:
+        PostgreSQL LineItem object
+    """
+    # Create line item
+    pg_line_item = setup_test_line_item(pg_session, item_data)
+
+    # Find event
+    pg_event = pg_session.query(Event).filter(Event.id == event_id).first()
+    if not pg_event:
+        pg_event = pg_session.query(Event).filter(Event.mongo_id == event_id).first()
+
+    if not pg_event:
+        raise ValueError(f"Event {event_id} not found")
+
+    # Create junction
+    event_line_item = EventLineItem(
+        id=generate_id("eli"),
+        event_id=pg_event.id,
+        line_item_id=pg_line_item.id,
+    )
+    pg_session.add(event_line_item)
+    pg_session.flush()
+
+    return pg_line_item

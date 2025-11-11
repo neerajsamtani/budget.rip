@@ -11,7 +11,6 @@ Run this script to:
 3. Set up the test database
 """
 
-import os
 import sys
 from pathlib import Path
 
@@ -50,9 +49,7 @@ def verify_mongodb_connection():
         from pymongo.errors import ConnectionFailure
 
         # Try to connect to MongoDB
-        client = MongoClient(
-            "mongodb://localhost:27017/", serverSelectionTimeoutMS=5000
-        )
+        client = MongoClient("mongodb://localhost:27017/", serverSelectionTimeoutMS=5000)
         client.admin.command("ping")
         print("✅ MongoDB connection successful")
 
@@ -86,9 +83,7 @@ def main():
     # Verify MongoDB connection
     if not verify_mongodb_connection():
         print()
-        print(
-            "❌ Test environment setup failed. Please fix the MongoDB connection and try again."
-        )
+        print("❌ Test environment setup failed. Please fix the MongoDB connection and try again.")
         sys.exit(1)
 
     print()
@@ -96,9 +91,7 @@ def main():
     print()
     print("Next steps:")
     print("1. Run your tests with: python -m pytest tests/ -v")
-    print(
-        "2. The tests will now use the 'budgit_test' database instead of your production database"
-    )
+    print("2. The tests will now use the 'budgit_test' database instead of your production database")
     print("3. Collections will be automatically cleaned up between tests")
 
 

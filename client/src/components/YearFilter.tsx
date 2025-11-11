@@ -11,7 +11,7 @@ const YEARS = [
 ] as const;
 
 // Infer the Year type from the YEARS array
-type Year = typeof YEARS[number];
+export type Year = typeof YEARS[number];
 
 interface YearFilterProps {
   year: Year;

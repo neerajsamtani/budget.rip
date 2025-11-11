@@ -41,3 +41,41 @@ show_missing = true
 
 [tool.coverage.html]
 directory = "htmlcov"
+
+[tool.ruff]
+line-length = 127
+exclude = [
+    "env",
+    "venv",
+    ".venv",
+    "__pycache__",
+    ".git",
+    "migrations/venv",
+    "migration_examples",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "C90", # mccabe complexity
+]
+ignore = [
+    "C901", # function is too complex (don't block builds on complexity)
+]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.lint.per-file-ignores]
+# Tests and migrations need to set env vars before imports
+"tests/conftest.py" = ["E402"]
+"migrations/phase3_*.py" = ["E402"]
+"migrations/supabase_inserts.py" = ["E402"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"

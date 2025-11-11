@@ -51,11 +51,11 @@ python migrations/phase3_migrate_line_items.py
 A robust dual-write utility for the migration period (Phases 3-5):
 
 **Features**:
-- Writes to MongoDB first (primary)
-- Then writes to PostgreSQL (secondary)
-- Non-blocking: PostgreSQL failures don't fail the operation
-- Comprehensive error logging for reconciliation
-- Supports critical mode for important operations
+- Writes to MongoDB first
+- Then writes to PostgreSQL
+- **Strong consistency**: Both writes must succeed or operation fails
+- Comprehensive error logging with `DUAL_WRITE_FAILURE:` marker
+- Ensures MongoDB and PostgreSQL stay in sync
 
 **Example Usage**:
 ```python
@@ -99,7 +99,9 @@ python migrations/phase3_verify.py
 
 ### 4. Reconciliation Script (`phase3_reconcile.py`)
 
-Automated reconciliation for dual-write failures:
+Historical data reconciliation utility:
+
+**Note**: With strong consistency dual-write (both writes must succeed), this script is primarily for verifying historical migration data rather than syncing ongoing dual-write failures.
 
 **Features**:
 - Finds records in MongoDB missing from PostgreSQL
@@ -118,16 +120,11 @@ python migrations/phase3_reconcile.py --dry-run
 python migrations/phase3_reconcile.py
 ```
 
-**Recommended Schedule**:
-- Run hourly as cron job during dual-write period (Phases 3-5)
-- Run before verification checks
-- Run before Phase 5 (switching reads to PostgreSQL)
-
-**Cron Example**:
-```bash
-# Run every hour
-0 * * * * cd /path/to/server && python migrations/phase3_reconcile.py >> /var/log/reconcile.log 2>&1
-```
+**When to Use**:
+- After historical data migration to verify completeness
+- If PostgreSQL database was restored from backup
+- Periodic verification (e.g., weekly) for peace of mind
+- **Not needed for ongoing operations** since dual-write enforces consistency
 
 ### 5. Unit Tests (`tests/test_phase3_migration.py`)
 
@@ -137,7 +134,7 @@ Comprehensive test suite covering:
 1. `TestDualWriteUtility`: Tests dual-write functions
    - Successful dual-write
    - MongoDB failure handling
-   - PostgreSQL failure (critical and non-critical)
+   - PostgreSQL failure handling
 
 2. `TestTransactionMigration`: Tests transaction migration logic
    - Date extraction for all sources (Venmo, Splitwise, Stripe, Cash)
@@ -304,13 +301,14 @@ Original MongoDB `_id` stored in `mongo_id` column on line_items.
 - Enables verification between databases
 - Supports gradual frontend migration
 
-### 4. Non-Blocking Dual-Write
-PostgreSQL write failures don't fail the operation.
+### 4. Strong Consistency Dual-Write
+Both MongoDB and PostgreSQL writes must succeed or the operation fails.
 
 **Why**:
-- MongoDB remains source of truth during migration
-- No user-facing impact from PostgreSQL issues
-- Reconciliation handles eventual consistency
+- Guarantees both databases stay in sync
+- Immediate visibility of PostgreSQL issues
+- No data inconsistencies or reconciliation needed
+- Simpler debugging - errors surface immediately
 
 ### 5. Idempotent Scripts
 All migration scripts can be safely re-run.
@@ -366,10 +364,14 @@ Now that Phase 3 is complete:
 4. Review error logs
 
 ### Dual-Write Failures
-1. Check `DUAL_WRITE_FAILURE` entries in logs
-2. Run reconciliation script
-3. Verify PostgreSQL connection and schema
-4. Check for constraint violations
+**Note**: With strong consistency, dual-write failures cause API operations to fail immediately with DualWriteError.
+
+1. Check application logs for `DUAL_WRITE_FAILURE` entries
+2. Verify PostgreSQL is running and accessible
+3. Check PostgreSQL connection: `DATABASE_URL` in `.env`
+4. Verify PostgreSQL schema is up to date (run Alembic migrations)
+5. Check for constraint violations in error messages
+6. Ensure PostgreSQL has sufficient resources (disk space, connections)
 
 ## Success Criteria
 

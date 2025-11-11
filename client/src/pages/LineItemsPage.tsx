@@ -52,7 +52,7 @@ export default function LineItemsPage() {
                     <TableBody>
                         {lineItems.length > 0 ? (
                             lineItems.map(lineItem => (
-                                <LineItem key={lineItem._id} lineItem={lineItem} />
+                                <LineItem key={lineItem.id} lineItem={lineItem} />
                             ))
                         ) : (
                             <TableRow>

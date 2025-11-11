@@ -1,6 +1,6 @@
 import pytest
 
-from dao import line_items_collection, upsert_with_id
+from dao import line_items_collection
 from resources.line_item import LineItem, all_line_items
 
 
@@ -89,31 +89,21 @@ class TestLineItemClass:
 
 
 class TestLineItemAPI:
-    def test_get_all_line_items_api(self, test_client, jwt_token, flask_app):
+    def test_get_all_line_items_api(self, test_client, jwt_token, flask_app, create_line_item_via_cash):
         """Test GET /api/line_items endpoint"""
-        # Insert test data
-        with flask_app.app_context():
-            test_line_items = [
-                {
-                    "id": "line_item_1",
-                    "date": 1234567890,
-                    "responsible_party": "John Doe",
-                    "payment_method": "Cash",
-                    "description": "Test transaction 1",
-                    "amount": 100,
-                },
-                {
-                    "id": "line_item_2",
-                    "date": 1234567891,
-                    "responsible_party": "Jane Smith",
-                    "payment_method": "Venmo",
-                    "description": "Test transaction 2",
-                    "amount": 50,
-                },
-            ]
-
-            for item in test_line_items:
-                upsert_with_id(line_items_collection, item, item["id"])
+        # Create test line items via API
+        create_line_item_via_cash(
+            date="2009-02-13",
+            person="John Doe",
+            description="Transaction 1",
+            amount=100,
+        )
+        create_line_item_via_cash(
+            date="2009-02-14",
+            person="Jane Smith",
+            description="Transaction 2",
+            amount=50,
+        )
 
         # Test API call
         response = test_client.get(
@@ -128,33 +118,21 @@ class TestLineItemAPI:
         assert data["total"] == 150  # 100 + 50
         assert len(data["data"]) == 2
 
-    def test_get_all_line_items_with_payment_method_filter(
-        self, test_client, jwt_token, flask_app
-    ):
+    def test_get_all_line_items_with_payment_method_filter(self, test_client, jwt_token, flask_app, create_line_item_via_cash):
         """Test GET /api/line_items with payment_method filter"""
-        # Insert test data
-        with flask_app.app_context():
-            test_line_items = [
-                {
-                    "id": "line_item_1",
-                    "date": 1234567890,
-                    "responsible_party": "John Doe",
-                    "payment_method": "Cash",
-                    "description": "Test transaction 1",
-                    "amount": 100,
-                },
-                {
-                    "id": "line_item_2",
-                    "date": 1234567891,
-                    "responsible_party": "Jane Smith",
-                    "payment_method": "Venmo",
-                    "description": "Test transaction 2",
-                    "amount": 50,
-                },
-            ]
-
-            for item in test_line_items:
-                upsert_with_id(line_items_collection, item, item["id"])
+        # Create test line items via API (both will be Cash payment method)
+        create_line_item_via_cash(
+            date="2009-02-13",
+            person="John Doe",
+            description="Transaction 1",
+            amount=100,
+        )
+        create_line_item_via_cash(
+            date="2009-02-14",
+            person="Jane Smith",
+            description="Transaction 2",
+            amount=50,
+        )
 
         # Test API call with payment_method filter
         response = test_client.get(
@@ -164,39 +142,55 @@ class TestLineItemAPI:
 
         assert response.status_code == 200
         data = response.get_json()
-        assert data["total"] == 100
-        assert len(data["data"]) == 1
-        assert data["data"][0]["payment_method"] == "Cash"
+        # Both line items are Cash since they're created via cash API
+        assert data["total"] == 150  # 100 + 50
+        assert len(data["data"]) == 2
+        assert all(item["payment_method"] == "Cash" for item in data["data"])
 
     def test_get_all_line_items_with_review_filter(
-        self, test_client, jwt_token, flask_app
+        self,
+        test_client,
+        jwt_token,
+        flask_app,
+        create_line_item_via_cash,
+        create_event_via_api,
     ):
         """Test GET /api/line_items with only_line_items_to_review filter"""
-        # Insert test data - one with event_id, one without
-        with flask_app.app_context():
-            test_line_items = [
-                {
-                    "id": "line_item_1",
-                    "date": 1234567890,
-                    "responsible_party": "John Doe",
-                    "payment_method": "Cash",
-                    "description": "Test transaction 1",
-                    "amount": 100,
-                    # No event_id - should be included in review
-                },
-                {
-                    "id": "line_item_2",
-                    "date": 1234567891,
-                    "responsible_party": "Jane Smith",
-                    "payment_method": "Venmo",
-                    "description": "Test transaction 2",
-                    "amount": 50,
-                    "event_id": "event_1",  # Has event_id - should be excluded
-                },
-            ]
+        # Create two line items via API
+        create_line_item_via_cash(
+            date="2009-02-13",
+            person="John Doe",
+            description="Transaction 1",
+            amount=100,
+        )
+        create_line_item_via_cash(
+            date="2009-02-14",
+            person="Jane Smith",
+            description="Transaction 2",
+            amount=50,
+        )
 
-            for item in test_line_items:
-                upsert_with_id(line_items_collection, item, item["id"])
+        # Get created line item IDs (sort by amount to ensure consistent ordering)
+        with flask_app.app_context():
+            from dao import get_all_data
+
+            all_line_items = get_all_data(line_items_collection)
+            all_line_items_sorted = sorted(all_line_items, key=lambda x: x["amount"])
+            assert len(all_line_items_sorted) == 2
+            line_item_100 = all_line_items_sorted[1]  # amount=100
+            line_item_50 = all_line_items_sorted[0]  # amount=50
+
+        # Create event with the 50-amount line item (this will set event_id on that line item)
+        create_event_via_api(
+            {
+                "name": "Test Event",
+                "category": "Dining",
+                "date": "2009-02-14",
+                "line_items": [line_item_50["id"]],  # Only the 50-amount line item has event
+                "tags": ["test"],
+                "is_duplicate_transaction": False,
+            }
+        )
 
         # Test API call with review filter
         response = test_client.get(
@@ -206,30 +200,34 @@ class TestLineItemAPI:
 
         assert response.status_code == 200
         data = response.get_json()
-        assert data["total"] == 100
+        assert data["total"] == 100  # Only the 100-amount line item (without event)
         assert len(data["data"]) == 1
-        assert data["data"][0]["id"] == "line_item_1"  # Only the one without event_id
+        assert data["data"][0]["id"] == line_item_100["id"]  # Only the one without event_id
 
-    def test_get_line_item_by_id_api_success(self, test_client, flask_app):
+    def test_get_line_item_by_id_api_success(self, test_client, flask_app, jwt_token, create_line_item_via_cash):
         """Test GET /api/line_items/<line_item_id> endpoint - success case"""
-        # Insert test data
+        # Create test line item via API
+        create_line_item_via_cash(
+            date="2009-02-13",
+            person="John Doe",
+            description="Test transaction",
+            amount=100,
+        )
+
+        # Get created line item ID
         with flask_app.app_context():
-            test_line_item = {
-                "id": "line_item_1",
-                "date": 1234567890,
-                "responsible_party": "John Doe",
-                "payment_method": "Cash",
-                "description": "Test transaction",
-                "amount": 100,
-            }
-            upsert_with_id(line_items_collection, test_line_item, test_line_item["id"])
+            from dao import get_all_data
+
+            all_line_items = get_all_data(line_items_collection)
+            assert len(all_line_items) == 1
+            line_item_id = all_line_items[0]["id"]
 
         # Test API call
-        response = test_client.get("/api/line_items/line_item_1")
+        response = test_client.get(f"/api/line_items/{line_item_id}")
 
         assert response.status_code == 200
         data = response.get_json()
-        assert data["id"] == "line_item_1"
+        assert data["id"] == line_item_id
         assert data["responsible_party"] == "John Doe"
         assert data["payment_method"] == "Cash"
         assert data["description"] == "Test transaction"
@@ -245,10 +243,11 @@ class TestLineItemAPI:
 
 
 class TestLineItemFunctions:
-    def test_all_line_items_no_filters(self, flask_app):
+    def test_all_line_items_no_filters(self, flask_app, pg_session):
         """Test all_line_items function with no filters"""
+        from tests.test_helpers import setup_test_line_item
+
         with flask_app.app_context():
-            # Insert test data
             test_line_items = [
                 {
                     "id": "line_item_1",
@@ -269,7 +268,8 @@ class TestLineItemFunctions:
             ]
 
             for item in test_line_items:
-                upsert_with_id(line_items_collection, item, item["id"])
+                setup_test_line_item(pg_session, item)
+            pg_session.commit()
 
             # Test function call
             result = all_line_items()
@@ -279,10 +279,11 @@ class TestLineItemFunctions:
             assert result[0]["id"] == "line_item_2"  # Newer date (1234567891)
             assert result[1]["id"] == "line_item_1"  # Older date (1234567890)
 
-    def test_all_line_items_with_payment_method_filter(self, flask_app):
+    def test_all_line_items_with_payment_method_filter(self, flask_app, pg_session):
         """Test all_line_items function with payment_method filter"""
+        from tests.test_helpers import setup_test_line_item
+
         with flask_app.app_context():
-            # Insert test data
             test_line_items = [
                 {
                     "id": "line_item_1",
@@ -303,7 +304,8 @@ class TestLineItemFunctions:
             ]
 
             for item in test_line_items:
-                upsert_with_id(line_items_collection, item, item["id"])
+                setup_test_line_item(pg_session, item)
+            pg_session.commit()
 
             # Test function call with payment_method filter
             result = all_line_items(payment_method="Cash")
@@ -312,11 +314,18 @@ class TestLineItemFunctions:
             assert result[0]["payment_method"] == "Cash"
             assert result[0]["id"] == "line_item_1"
 
-    def test_all_line_items_with_review_filter(self, flask_app):
+    def test_all_line_items_with_review_filter(self, flask_app, pg_session):
         """Test all_line_items function with only_line_items_to_review filter"""
+        from tests.test_helpers import (
+            setup_test_event,
+            setup_test_line_item,
+            setup_test_line_item_with_event,
+        )
+
         with flask_app.app_context():
-            # Insert test data - one with event_id, one without
-            test_line_items = [
+            # Line item without event - should be included in review
+            setup_test_line_item(
+                pg_session,
                 {
                     "id": "line_item_1",
                     "date": 1234567890,
@@ -324,8 +333,22 @@ class TestLineItemFunctions:
                     "payment_method": "Cash",
                     "description": "Test transaction 1",
                     "amount": 100,
-                    # No event_id - should be included
                 },
+            )
+
+            # Create event first, then line item with event - should be excluded
+            event = setup_test_event(
+                pg_session,
+                {
+                    "id": "event_1",
+                    "date": 1234567891,
+                    "description": "Test Event",
+                    "category": "Dining",
+                },
+            )
+
+            setup_test_line_item_with_event(
+                pg_session,
                 {
                     "id": "line_item_2",
                     "date": 1234567891,
@@ -333,12 +356,12 @@ class TestLineItemFunctions:
                     "payment_method": "Venmo",
                     "description": "Test transaction 2",
                     "amount": 50,
-                    "event_id": "event_1",  # Has event_id - should be excluded
+                    "event_id": "event_1",
                 },
-            ]
+                event.id,
+            )
 
-            for item in test_line_items:
-                upsert_with_id(line_items_collection, item, item["id"])
+            pg_session.commit()
 
             # Test function call with review filter
             result = all_line_items(only_line_items_to_review=True)
@@ -346,11 +369,18 @@ class TestLineItemFunctions:
             assert len(result) == 1
             assert result[0]["id"] == "line_item_1"  # Only the one without event_id
 
-    def test_all_line_items_with_both_filters(self, flask_app):
+    def test_all_line_items_with_both_filters(self, flask_app, pg_session):
         """Test all_line_items function with both payment_method and review filters"""
+        from tests.test_helpers import (
+            setup_test_event,
+            setup_test_line_item,
+            setup_test_line_item_with_event,
+        )
+
         with flask_app.app_context():
-            # Insert test data
-            test_line_items = [
+            # Cash without event - should be included
+            setup_test_line_item(
+                pg_session,
                 {
                     "id": "line_item_1",
                     "date": 1234567890,
@@ -358,8 +388,12 @@ class TestLineItemFunctions:
                     "payment_method": "Cash",
                     "description": "Test transaction 1",
                     "amount": 100,
-                    # No event_id - should be included
                 },
+            )
+
+            # Venmo without event - should be excluded (payment_method filter)
+            setup_test_line_item(
+                pg_session,
                 {
                     "id": "line_item_2",
                     "date": 1234567891,
@@ -367,8 +401,22 @@ class TestLineItemFunctions:
                     "payment_method": "Venmo",
                     "description": "Test transaction 2",
                     "amount": 50,
-                    # No event_id - should be included
                 },
+            )
+
+            # Cash with event - should be excluded (review filter)
+            event = setup_test_event(
+                pg_session,
+                {
+                    "id": "event_1",
+                    "date": 1234567892,
+                    "description": "Test Event",
+                    "category": "Dining",
+                },
+            )
+
+            setup_test_line_item_with_event(
+                pg_session,
                 {
                     "id": "line_item_3",
                     "date": 1234567892,
@@ -376,22 +424,18 @@ class TestLineItemFunctions:
                     "payment_method": "Cash",
                     "description": "Test transaction 3",
                     "amount": 75,
-                    "event_id": "event_1",  # Has event_id - should be excluded
+                    "event_id": "event_1",
                 },
-            ]
-
-            for item in test_line_items:
-                upsert_with_id(line_items_collection, item, item["id"])
-
-            # Test function call with both filters
-            result = all_line_items(
-                payment_method="Cash", only_line_items_to_review=True
+                event.id,
             )
 
+            pg_session.commit()
+
+            # Test function call with both filters
+            result = all_line_items(payment_method="Cash", only_line_items_to_review=True)
+
             assert len(result) == 1
-            assert (
-                result[0]["id"] == "line_item_1"
-            )  # Only Cash payment method without event_id
+            assert result[0]["id"] == "line_item_1"  # Only Cash payment method without event_id
 
     def test_all_line_items_empty_result(self, flask_app):
         """Test all_line_items function with no matching data"""
@@ -401,10 +445,11 @@ class TestLineItemFunctions:
 
             assert len(result) == 0
 
-    def test_all_line_items_payment_method_all(self, flask_app):
+    def test_all_line_items_payment_method_all(self, flask_app, pg_session):
         """Test all_line_items function with payment_method='All'"""
+        from tests.test_helpers import setup_test_line_item
+
         with flask_app.app_context():
-            # Insert test data
             test_line_items = [
                 {
                     "id": "line_item_1",
@@ -425,7 +470,8 @@ class TestLineItemFunctions:
             ]
 
             for item in test_line_items:
-                upsert_with_id(line_items_collection, item, item["id"])
+                setup_test_line_item(pg_session, item)
+            pg_session.commit()
 
             # Test function call with payment_method='All'
             result = all_line_items(payment_method="All")

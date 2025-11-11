@@ -38,9 +38,7 @@ def refresh_splitwise_api() -> tuple[Response, int]:
 
 def refresh_splitwise() -> None:
     logging.info("Refreshing Splitwise Data")
-    expenses: List[Any] = splitwise_client.getExpenses(
-        limit=LIMIT, dated_after=MOVING_DATE
-    )
+    expenses: List[Any] = splitwise_client.getExpenses(limit=LIMIT, dated_after=MOVING_DATE)
 
     # Collect all non-deleted expenses for bulk upsert
     all_expenses: List[Any] = []
@@ -56,17 +54,11 @@ def refresh_splitwise() -> None:
     # Bulk upsert all collected expenses at once
     if all_expenses:
         dual_write_operation(
-            mongo_write_func=lambda: bulk_upsert(
-                splitwise_raw_data_collection, all_expenses
-            ),
-            pg_write_func=lambda db: bulk_upsert_transactions(
-                db, all_expenses, source="splitwise"
-            ),
+            mongo_write_func=lambda: bulk_upsert(splitwise_raw_data_collection, all_expenses),
+            pg_write_func=lambda db: bulk_upsert_transactions(db, all_expenses, source="splitwise"),
             operation_name="splitwise_refresh_transactions",
         )
-        logging.info(
-            f"Refreshed {len(all_expenses)} Splitwise expenses (skipped {deleted_count} deleted)"
-        )
+        logging.info(f"Refreshed {len(all_expenses)} Splitwise expenses (skipped {deleted_count} deleted)")
     else:
         logging.info("No new Splitwise expenses to refresh")
 
@@ -93,7 +85,7 @@ def splitwise_to_line_items() -> None:
         for user in expense["users"]:
             if user["first_name"] != USER_FIRST_NAME:
                 # TODO: Set up comma separated list of responsible parties
-                responsible_party += f'{user["first_name"]} '
+                responsible_party += f"{user['first_name']} "
 
         # Skip if responsible party is in ignore list
         if responsible_party.strip() in PARTIES_TO_IGNORE:
@@ -108,7 +100,7 @@ def splitwise_to_line_items() -> None:
                 continue
 
             line_item = LineItem(
-                f'line_item_{expense["_id"]}',
+                f"line_item_{expense['_id']}",
                 posix_date,
                 responsible_party,
                 payment_method,
@@ -122,13 +114,9 @@ def splitwise_to_line_items() -> None:
     if all_line_items:
         dual_write_operation(
             mongo_write_func=lambda: bulk_upsert(line_items_collection, all_line_items),
-            pg_write_func=lambda db: bulk_upsert_line_items(
-                db, all_line_items, source="splitwise"
-            ),
+            pg_write_func=lambda db: bulk_upsert_line_items(db, all_line_items, source="splitwise"),
             operation_name="splitwise_create_line_items",
         )
-        logging.info(
-            f"Converted {len(all_line_items)} Splitwise expenses to line items (ignored {ignored_count})"
-        )
+        logging.info(f"Converted {len(all_line_items)} Splitwise expenses to line items (ignored {ignored_count})")
     else:
         logging.info("No Splitwise expenses to convert to line items")

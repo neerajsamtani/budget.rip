@@ -85,9 +85,7 @@ class TestVenmoAPI:
         """Test GET /api/refresh/venmo endpoint - success case"""
         with flask_app.app_context():
             mock_refresh = mocker.patch("resources.venmo.refresh_venmo")
-            mock_venmo_to_line_items = mocker.patch(
-                "resources.venmo.venmo_to_line_items"
-            )
+            mock_venmo_to_line_items = mocker.patch("resources.venmo.venmo_to_line_items")
             response = test_client.get(
                 "/api/refresh/venmo",
                 headers={"Authorization": "Bearer " + jwt_token},
@@ -111,19 +109,18 @@ class TestVenmoFunctions:
             # Mock the get_venmo_client function
             mock_venmo_client = mocker.Mock()
             mock_venmo_client.my_profile.return_value = mock_venmo_user
-            mocker.patch(
-                "resources.venmo.get_venmo_client", return_value=mock_venmo_client
-            )
+            mocker.patch("resources.venmo.get_venmo_client", return_value=mock_venmo_client)
 
-            # Mock bulk_upsert
+            # Mock bulk_upsert (MongoDB)
             mock_bulk_upsert = mocker.patch("resources.venmo.bulk_upsert")
+
+            # Mock bulk_upsert_transactions (PostgreSQL)
+            mocker.patch("resources.venmo.bulk_upsert_transactions")
 
             # Mock transactions
             mock_transactions = mocker.Mock()
             mock_transaction1 = mocker.Mock()
-            mock_transaction1.date_created = (
-                1673778600.0  # After moving date (1659510000.0)
-            )
+            mock_transaction1.date_created = 1673778600.0  # After moving date (1659510000.0)
             mock_transaction1.actor.first_name = "Neeraj"
             mock_transaction1.target.first_name = "John"
             mock_transaction1.payment_type = "pay"
@@ -133,9 +130,7 @@ class TestVenmoFunctions:
             mock_transactions.__iter__ = lambda self: iter([mock_transaction1])
             mock_transactions.get_next_page.return_value = None
 
-            mock_venmo_client.user.get_user_transactions.return_value = (
-                mock_transactions
-            )
+            mock_venmo_client.user.get_user_transactions.return_value = mock_transactions
 
             # Call the function
             refresh_venmo()
@@ -149,20 +144,19 @@ class TestVenmoFunctions:
             assert len(transactions) == 1
             assert transactions[0].note == "Test payment"
 
-    def test_refresh_venmo_ignores_old_transactions(
-        self, flask_app, mock_venmo_user, mocker
-    ):
+    def test_refresh_venmo_ignores_old_transactions(self, flask_app, mock_venmo_user, mocker):
         """Test refresh_venmo function - ignores transactions before moving date"""
         with flask_app.app_context():
             # Mock the get_venmo_client function
             mock_venmo_client = mocker.Mock()
             mock_venmo_client.my_profile.return_value = mock_venmo_user
-            mocker.patch(
-                "resources.venmo.get_venmo_client", return_value=mock_venmo_client
-            )
+            mocker.patch("resources.venmo.get_venmo_client", return_value=mock_venmo_client)
 
-            # Mock bulk_upsert
+            # Mock bulk_upsert (MongoDB)
             mock_bulk_upsert = mocker.patch("resources.venmo.bulk_upsert")
+
+            # Mock bulk_upsert_transactions (PostgreSQL)
+            mocker.patch("resources.venmo.bulk_upsert_transactions")
 
             # Mock transactions - all before moving date (1659510000.0)
             mock_transactions = mocker.Mock()
@@ -177,9 +171,7 @@ class TestVenmoFunctions:
             mock_transactions.__iter__ = lambda self: iter([mock_transaction])
             mock_transactions.get_next_page.return_value = None
 
-            mock_venmo_client.user.get_user_transactions.return_value = (
-                mock_transactions
-            )
+            mock_venmo_client.user.get_user_transactions.return_value = mock_transactions
 
             # Call the function
             refresh_venmo()
@@ -187,20 +179,19 @@ class TestVenmoFunctions:
             # Verify bulk_upsert was not called (no transactions after moving date)
             mock_bulk_upsert.assert_not_called()
 
-    def test_refresh_venmo_ignores_parties_to_ignore(
-        self, flask_app, mock_venmo_user, mocker
-    ):
+    def test_refresh_venmo_ignores_parties_to_ignore(self, flask_app, mock_venmo_user, mocker):
         """Test refresh_venmo function - ignores transactions with parties to ignore"""
         with flask_app.app_context():
             # Mock the get_venmo_client function
             mock_venmo_client = mocker.Mock()
             mock_venmo_client.my_profile.return_value = mock_venmo_user
-            mocker.patch(
-                "resources.venmo.get_venmo_client", return_value=mock_venmo_client
-            )
+            mocker.patch("resources.venmo.get_venmo_client", return_value=mock_venmo_client)
 
-            # Mock bulk_upsert
+            # Mock bulk_upsert (MongoDB)
             mock_bulk_upsert = mocker.patch("resources.venmo.bulk_upsert")
+
+            # Mock bulk_upsert_transactions (PostgreSQL)
+            mocker.patch("resources.venmo.bulk_upsert_transactions")
 
             # Mock transactions - one with ignored party
             mock_transactions = mocker.Mock()
@@ -215,9 +206,7 @@ class TestVenmoFunctions:
             mock_transactions.__iter__ = lambda self: iter([mock_transaction])
             mock_transactions.get_next_page.return_value = None
 
-            mock_venmo_client.user.get_user_transactions.return_value = (
-                mock_transactions
-            )
+            mock_venmo_client.user.get_user_transactions.return_value = mock_transactions
 
             # Call the function
             refresh_venmo()
@@ -231,12 +220,13 @@ class TestVenmoFunctions:
             # Mock the get_venmo_client function
             mock_venmo_client = mocker.Mock()
             mock_venmo_client.my_profile.return_value = mock_venmo_user
-            mocker.patch(
-                "resources.venmo.get_venmo_client", return_value=mock_venmo_client
-            )
+            mocker.patch("resources.venmo.get_venmo_client", return_value=mock_venmo_client)
 
-            # Mock bulk_upsert
+            # Mock bulk_upsert (MongoDB)
             mock_bulk_upsert = mocker.patch("resources.venmo.bulk_upsert")
+
+            # Mock bulk_upsert_transactions (PostgreSQL)
+            mocker.patch("resources.venmo.bulk_upsert_transactions")
 
             # Mock first page of transactions
             mock_transactions_page1 = mocker.Mock()
@@ -270,9 +260,7 @@ class TestVenmoFunctions:
                 None,
             ]
 
-            mock_venmo_client.user.get_user_transactions.return_value = (
-                mock_transactions_page1
-            )
+            mock_venmo_client.user.get_user_transactions.return_value = mock_transactions_page1
 
             # Call the function
             refresh_venmo()
@@ -289,26 +277,24 @@ class TestVenmoFunctions:
             # Mock the get_venmo_client function
             mock_venmo_client = mocker.Mock()
             mock_venmo_client.my_profile.return_value = None
-            mocker.patch(
-                "resources.venmo.get_venmo_client", return_value=mock_venmo_client
-            )
+            mocker.patch("resources.venmo.get_venmo_client", return_value=mock_venmo_client)
 
             # Call the function and expect exception
             with pytest.raises(Exception, match="Failed to get Venmo profile"):
                 refresh_venmo()
 
-    def test_venmo_to_line_items_success(
-        self, flask_app, mock_venmo_transaction, mocker
-    ):
+    def test_venmo_to_line_items_success(self, flask_app, mock_venmo_transaction, mocker):
         """Test venmo_to_line_items function - success case"""
         with flask_app.app_context():
             # Insert test transaction data
             test_transaction = mock_venmo_transaction
-            upsert_with_id(
-                venmo_raw_data_collection, test_transaction, test_transaction["id"]
-            )
+            upsert_with_id(venmo_raw_data_collection, test_transaction, test_transaction["id"])
 
+            # Mock bulk_upsert (MongoDB)
             mock_bulk_upsert = mocker.patch("resources.venmo.bulk_upsert")
+
+            # Mock bulk_upsert_line_items (PostgreSQL)
+            mocker.patch("resources.venmo.bulk_upsert_line_items")
 
             # Call the function
             venmo_to_line_items()
@@ -329,18 +315,18 @@ class TestVenmoFunctions:
             assert line_item.description == "Test payment"
             assert line_item.amount == 25.0
 
-    def test_venmo_to_line_items_charge_transaction(
-        self, flask_app, mock_venmo_transaction_charge, mocker
-    ):
+    def test_venmo_to_line_items_charge_transaction(self, flask_app, mock_venmo_transaction_charge, mocker):
         """Test venmo_to_line_items function - charge transaction"""
         with flask_app.app_context():
             # Insert test transaction data
             test_transaction = mock_venmo_transaction_charge
-            upsert_with_id(
-                venmo_raw_data_collection, test_transaction, test_transaction["id"]
-            )
+            upsert_with_id(venmo_raw_data_collection, test_transaction, test_transaction["id"])
 
+            # Mock bulk_upsert (MongoDB)
             mock_bulk_upsert = mocker.patch("resources.venmo.bulk_upsert")
+
+            # Mock bulk_upsert_line_items (PostgreSQL)
+            mocker.patch("resources.venmo.bulk_upsert_line_items")
 
             # Call the function
             venmo_to_line_items()
@@ -358,18 +344,18 @@ class TestVenmoFunctions:
             assert line_item.description == "Test charge"
             assert line_item.amount == 15.0
 
-    def test_venmo_to_line_items_received_transaction(
-        self, flask_app, mock_venmo_transaction_received, mocker
-    ):
+    def test_venmo_to_line_items_received_transaction(self, flask_app, mock_venmo_transaction_received, mocker):
         """Test venmo_to_line_items function - received transaction"""
         with flask_app.app_context():
             # Insert test transaction data
             test_transaction = mock_venmo_transaction_received
-            upsert_with_id(
-                venmo_raw_data_collection, test_transaction, test_transaction["id"]
-            )
+            upsert_with_id(venmo_raw_data_collection, test_transaction, test_transaction["id"])
 
+            # Mock bulk_upsert (MongoDB)
             mock_bulk_upsert = mocker.patch("resources.venmo.bulk_upsert")
+
+            # Mock bulk_upsert_line_items (PostgreSQL)
+            mocker.patch("resources.venmo.bulk_upsert_line_items")
 
             # Call the function
             venmo_to_line_items()
@@ -390,7 +376,11 @@ class TestVenmoFunctions:
     def test_venmo_to_line_items_no_transactions(self, flask_app, mocker):
         """Test venmo_to_line_items function - no transactions to process"""
         with flask_app.app_context():
+            # Mock bulk_upsert (MongoDB)
             mock_bulk_upsert = mocker.patch("resources.venmo.bulk_upsert")
+
+            # Mock bulk_upsert_line_items (PostgreSQL)
+            mocker.patch("resources.venmo.bulk_upsert_line_items")
 
             # Call the function with no transactions
             venmo_to_line_items()
@@ -436,11 +426,13 @@ class TestVenmoFunctions:
             ]
 
             for transaction in transactions:
-                upsert_with_id(
-                    venmo_raw_data_collection, transaction, transaction["id"]
-                )
+                upsert_with_id(venmo_raw_data_collection, transaction, transaction["id"])
 
+            # Mock bulk_upsert (MongoDB)
             mock_bulk_upsert = mocker.patch("resources.venmo.bulk_upsert")
+
+            # Mock bulk_upsert_line_items (PostgreSQL)
+            mocker.patch("resources.venmo.bulk_upsert_line_items")
 
             # Call the function
             venmo_to_line_items()
@@ -467,17 +459,13 @@ class TestVenmoFunctions:
 class TestVenmoDualWrite:
     """Test dual-write functionality for Venmo endpoints"""
 
-    def test_refresh_venmo_calls_dual_write_for_transactions(
-        self, flask_app, mock_venmo_user, mocker
-    ):
+    def test_refresh_venmo_calls_dual_write_for_transactions(self, flask_app, mock_venmo_user, mocker):
         """Test that refresh_venmo uses dual_write_operation for transactions"""
         with flask_app.app_context():
             # Mock the get_venmo_client function
             mock_venmo_client = mocker.Mock()
             mock_venmo_client.my_profile.return_value = mock_venmo_user
-            mocker.patch(
-                "resources.venmo.get_venmo_client", return_value=mock_venmo_client
-            )
+            mocker.patch("resources.venmo.get_venmo_client", return_value=mock_venmo_client)
 
             # Mock transaction
             mock_transaction = mocker.Mock()
@@ -491,9 +479,7 @@ class TestVenmoDualWrite:
             mock_transactions = mocker.Mock()
             mock_transactions.__iter__ = lambda self: iter([mock_transaction])
             mock_transactions.get_next_page.return_value = None
-            mock_venmo_client.user.get_user_transactions.return_value = (
-                mock_transactions
-            )
+            mock_venmo_client.user.get_user_transactions.return_value = mock_transactions
 
             # Mock dual_write_operation
             mock_dual_write = mocker.patch("resources.venmo.dual_write_operation")
@@ -517,16 +503,12 @@ class TestVenmoDualWrite:
             assert callable(call_kwargs["mongo_write_func"])
             assert callable(call_kwargs["pg_write_func"])
 
-    def test_venmo_to_line_items_calls_dual_write(
-        self, flask_app, mock_venmo_transaction, mocker
-    ):
+    def test_venmo_to_line_items_calls_dual_write(self, flask_app, mock_venmo_transaction, mocker):
         """Test that venmo_to_line_items uses dual_write_operation"""
         with flask_app.app_context():
             # Insert test transaction data
             test_transaction = mock_venmo_transaction
-            upsert_with_id(
-                venmo_raw_data_collection, test_transaction, test_transaction["id"]
-            )
+            upsert_with_id(venmo_raw_data_collection, test_transaction, test_transaction["id"])
 
             # Mock dual_write_operation
             mock_dual_write = mocker.patch("resources.venmo.dual_write_operation")
@@ -550,17 +532,13 @@ class TestVenmoDualWrite:
             assert callable(call_kwargs["mongo_write_func"])
             assert callable(call_kwargs["pg_write_func"])
 
-    def test_venmo_dual_write_mongo_failure_propagates(
-        self, flask_app, mock_venmo_user, mocker
-    ):
+    def test_venmo_dual_write_mongo_failure_propagates(self, flask_app, mock_venmo_user, mocker):
         """Test that MongoDB failure in dual-write raises exception"""
         with flask_app.app_context():
             # Mock the get_venmo_client function
             mock_venmo_client = mocker.Mock()
             mock_venmo_client.my_profile.return_value = mock_venmo_user
-            mocker.patch(
-                "resources.venmo.get_venmo_client", return_value=mock_venmo_client
-            )
+            mocker.patch("resources.venmo.get_venmo_client", return_value=mock_venmo_client)
 
             # Mock transaction
             mock_transaction = mocker.Mock()
@@ -574,9 +552,7 @@ class TestVenmoDualWrite:
             mock_transactions = mocker.Mock()
             mock_transactions.__iter__ = lambda self: iter([mock_transaction])
             mock_transactions.get_next_page.return_value = None
-            mock_venmo_client.user.get_user_transactions.return_value = (
-                mock_transactions
-            )
+            mock_venmo_client.user.get_user_transactions.return_value = mock_transactions
 
             # Mock dual_write_operation to simulate MongoDB failure
             from utils.dual_write import DualWriteError
@@ -588,17 +564,15 @@ class TestVenmoDualWrite:
             with pytest.raises(DualWriteError):
                 refresh_venmo()
 
-    def test_venmo_dual_write_pg_failure_continues(
-        self, flask_app, mock_venmo_user, mocker
-    ):
-        """Test that PostgreSQL failure in dual-write logs but continues"""
+    def test_venmo_dual_write_pg_failure_fails(self, flask_app, mock_venmo_user, mocker):
+        """Test that PostgreSQL failure in dual-write causes operation to fail"""
         with flask_app.app_context():
+            from utils.dual_write import DualWriteError
+
             # Mock the get_venmo_client function
             mock_venmo_client = mocker.Mock()
             mock_venmo_client.my_profile.return_value = mock_venmo_user
-            mocker.patch(
-                "resources.venmo.get_venmo_client", return_value=mock_venmo_client
-            )
+            mocker.patch("resources.venmo.get_venmo_client", return_value=mock_venmo_client)
 
             # Mock transaction
             mock_transaction = mocker.Mock()
@@ -612,21 +586,15 @@ class TestVenmoDualWrite:
             mock_transactions = mocker.Mock()
             mock_transactions.__iter__ = lambda self: iter([mock_transaction])
             mock_transactions.get_next_page.return_value = None
-            mock_venmo_client.user.get_user_transactions.return_value = (
-                mock_transactions
-            )
+            mock_venmo_client.user.get_user_transactions.return_value = mock_transactions
 
-            # Mock dual_write_operation to simulate PG failure (non-critical)
+            # Mock dual_write_operation to simulate PG failure
             mock_dual_write = mocker.patch("resources.venmo.dual_write_operation")
-            mock_dual_write.return_value = {
-                "success": True,  # Still success because MongoDB succeeded
-                "mongo_success": True,
-                "pg_success": False,
-                "pg_error": "PostgreSQL connection failed",
-            }
+            mock_dual_write.side_effect = DualWriteError("PostgreSQL write failed")
 
-            # Call refresh_venmo - should not raise
-            refresh_venmo()  # Should complete without exception
+            # Call refresh_venmo - should raise DualWriteError
+            with pytest.raises(DualWriteError):
+                refresh_venmo()
 
             # Verify dual_write was called
             mock_dual_write.assert_called_once()
@@ -639,9 +607,7 @@ class TestVenmoIntegration:
             # Mock the get_venmo_client function
             mock_venmo_client = mocker.Mock()
             mock_venmo_client.my_profile.return_value = mock_venmo_user
-            mocker.patch(
-                "resources.venmo.get_venmo_client", return_value=mock_venmo_client
-            )
+            mocker.patch("resources.venmo.get_venmo_client", return_value=mock_venmo_client)
 
             # Use a Mock for the transaction for refresh_venmo
             mock_transaction = mocker.Mock()
@@ -657,11 +623,12 @@ class TestVenmoIntegration:
             mock_transactions = mocker.Mock()
             mock_transactions.__iter__ = lambda self: iter([mock_transaction])
             mock_transactions.get_next_page.return_value = None
-            mock_venmo_client.user.get_user_transactions.return_value = (
-                mock_transactions
-            )
+            mock_venmo_client.user.get_user_transactions.return_value = mock_transactions
 
-            # Call refresh function (this will store a Mock in the DB, which we don't want for the next step)
+            # Mock bulk_upsert_transactions to avoid trying to serialize Mock objects to PostgreSQL
+            mocker.patch("resources.venmo.bulk_upsert_transactions")
+
+            # Call refresh function (PostgreSQL write mocked to avoid Mock serialization issues)
             refresh_venmo()
 
             # Remove the Mock and insert a real dict for venmo_to_line_items
@@ -677,7 +644,11 @@ class TestVenmoIntegration:
                 "note": "Integration test payment",
                 "amount": 25.0,
             }
-            coll.insert_one(transaction_dict)
+            upsert_with_id(
+                venmo_raw_data_collection,
+                transaction_dict,
+                transaction_dict["id"],
+            )
 
             # Now call line items conversion with the stored data
             mock_bulk_upsert = mocker.patch("resources.venmo.bulk_upsert")
@@ -700,9 +671,10 @@ class TestVenmoIntegration:
             # Mock the get_venmo_client function
             mock_venmo_client = mocker.Mock()
             mock_venmo_client.my_profile.return_value = mock_venmo_user
-            mocker.patch(
-                "resources.venmo.get_venmo_client", return_value=mock_venmo_client
-            )
+            mocker.patch("resources.venmo.get_venmo_client", return_value=mock_venmo_client)
+
+            # Mock bulk_upsert_transactions to avoid trying to serialize Mock objects to PostgreSQL
+            mocker.patch("resources.venmo.bulk_upsert_transactions")
 
             # Mock bulk_upsert
             mock_bulk_upsert = mocker.patch("resources.venmo.bulk_upsert")
@@ -728,14 +700,10 @@ class TestVenmoIntegration:
             mock_transaction2.note = "Zero amount"
             mock_transaction2.amount = 0.0
 
-            mock_transactions.__iter__ = lambda self: iter(
-                [mock_transaction1, mock_transaction2]
-            )
+            mock_transactions.__iter__ = lambda self: iter([mock_transaction1, mock_transaction2])
             mock_transactions.get_next_page.return_value = None
 
-            mock_venmo_client.user.get_user_transactions.return_value = (
-                mock_transactions
-            )
+            mock_venmo_client.user.get_user_transactions.return_value = mock_transactions
 
             # Call the function
             refresh_venmo()

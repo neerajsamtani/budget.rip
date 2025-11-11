@@ -37,9 +37,7 @@ from resources.venmo import refresh_venmo, venmo_blueprint, venmo_to_line_items
 
 # Flask constructor takes the name of
 # current module (__name__) as argument.
-application: Flask = Flask(
-    __name__, static_folder="public", static_url_path="", template_folder="public"
-)
+application: Flask = Flask(__name__, static_folder="public", static_url_path="", template_folder="public")
 
 cors: CORS = CORS(application, supports_credentials=True)
 bcrypt: Bcrypt = Bcrypt(application)
@@ -89,9 +87,7 @@ load_dotenv()
 # successful lookup, or None if the lookup failed for any reason (for example
 # if the user has been deleted from the database).
 @jwt.user_lookup_loader
-def user_lookup_callback(
-    _jwt_header: Dict[str, Any], jwt_data: Dict[str, Any]
-) -> Optional[Dict[str, Any]]:
+def user_lookup_callback(_jwt_header: Dict[str, Any], jwt_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     id: ObjectId = ObjectId(jwt_data["sub"])
     return get_item_by_id(users_collection, id)
 

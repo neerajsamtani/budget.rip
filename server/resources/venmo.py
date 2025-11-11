@@ -52,10 +52,7 @@ def refresh_venmo() -> None:
             if transaction.date_created < MOVING_DATE_POSIX:
                 transactions_after_moving_date = False
                 break
-            elif (
-                transaction.actor.first_name in PARTIES_TO_IGNORE
-                or transaction.target.first_name in PARTIES_TO_IGNORE
-            ):
+            elif transaction.actor.first_name in PARTIES_TO_IGNORE or transaction.target.first_name in PARTIES_TO_IGNORE:
                 continue
             all_transactions.append(transaction)
         transactions = (
@@ -65,12 +62,8 @@ def refresh_venmo() -> None:
     # Bulk upsert all collected transactions at once
     if all_transactions:
         dual_write_operation(
-            mongo_write_func=lambda: bulk_upsert(
-                venmo_raw_data_collection, all_transactions
-            ),
-            pg_write_func=lambda db: bulk_upsert_transactions(
-                db, all_transactions, source="venmo"
-            ),
+            mongo_write_func=lambda: bulk_upsert(venmo_raw_data_collection, all_transactions),
+            pg_write_func=lambda db: bulk_upsert_transactions(db, all_transactions, source="venmo"),
             operation_name="venmo_refresh_transactions",
         )
         logging.info(f"Refreshed {len(all_transactions)} Venmo transactions")
@@ -96,26 +89,20 @@ def venmo_to_line_items() -> None:
     for transaction in venmo_raw_data:
         posix_date: float = float(transaction["date_created"])
 
-        if (
-            transaction["actor"]["first_name"] == USER_FIRST_NAME
-            and transaction["payment_type"] == "pay"
-        ):
+        if transaction["actor"]["first_name"] == USER_FIRST_NAME and transaction["payment_type"] == "pay":
             # current user paid money
             line_item = LineItem(
-                f'line_item_{transaction["_id"]}',
+                f"line_item_{transaction['_id']}",
                 posix_date,
                 transaction["target"]["first_name"],
                 payment_method,
                 transaction["note"],
                 transaction["amount"],
             )
-        elif (
-            transaction["target"]["first_name"] == USER_FIRST_NAME
-            and transaction["payment_type"] == "charge"
-        ):
+        elif transaction["target"]["first_name"] == USER_FIRST_NAME and transaction["payment_type"] == "charge":
             # current user paid money
             line_item = LineItem(
-                f'line_item_{transaction["_id"]}',
+                f"line_item_{transaction['_id']}",
                 posix_date,
                 transaction["actor"]["first_name"],
                 payment_method,
@@ -129,7 +116,7 @@ def venmo_to_line_items() -> None:
             else:
                 other_name: str = transaction["target"]["first_name"]
             line_item = LineItem(
-                f'line_item_{transaction["_id"]}',
+                f"line_item_{transaction['_id']}",
                 posix_date,
                 other_name,
                 payment_method,
@@ -143,13 +130,9 @@ def venmo_to_line_items() -> None:
     if all_line_items:
         dual_write_operation(
             mongo_write_func=lambda: bulk_upsert(line_items_collection, all_line_items),
-            pg_write_func=lambda db: bulk_upsert_line_items(
-                db, all_line_items, source="venmo"
-            ),
+            pg_write_func=lambda db: bulk_upsert_line_items(db, all_line_items, source="venmo"),
             operation_name="venmo_create_line_items",
         )
-        logging.info(
-            f"Converted {len(all_line_items)} Venmo transactions to line items"
-        )
+        logging.info(f"Converted {len(all_line_items)} Venmo transactions to line items")
     else:
         logging.info("No Venmo transactions to convert to line items")

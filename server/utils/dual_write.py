@@ -1,16 +1,14 @@
 """
 Dual-Write Utility for MongoDB to PostgreSQL Migration (Phase 3-5)
 
-Provides utilities for dual-writing to both MongoDB (primary) and PostgreSQL
-(secondary) during the migration period. MongoDB write failures cause the
-operation to fail, PostgreSQL failures are logged for reconciliation.
+Provides utilities for dual-writing to both MongoDB and PostgreSQL during the
+migration period. Both writes must succeed or the operation fails, ensuring
+strong consistency between databases.
 """
 
 import logging
 from datetime import UTC, datetime
 from typing import Any, Callable, Dict
-
-from sqlalchemy.exc import SQLAlchemyError
 
 from models.database import SessionLocal
 
@@ -18,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 class DualWriteError(Exception):
-    """Raised when MongoDB write fails or critical PostgreSQL write fails"""
+    """Raised when either MongoDB or PostgreSQL write fails"""
 
     pass
 
@@ -27,13 +25,12 @@ def dual_write_operation(
     mongo_write_func: Callable[[], Any],
     pg_write_func: Callable[[Any], Any],
     operation_name: str,
-    critical: bool = False,
 ) -> Dict[str, Any]:
     """
-    Execute dual-write to MongoDB (primary) then PostgreSQL (secondary).
+    Execute dual-write to MongoDB then PostgreSQL.
 
-    MongoDB failure raises DualWriteError. PostgreSQL failure is logged
-    for reconciliation unless critical=True.
+    Both writes must succeed or DualWriteError is raised. This ensures
+    strong consistency between databases during the migration period.
 
     Returns dict with success status and any errors.
     """
@@ -75,16 +72,7 @@ def dual_write_operation(
         logger.error(error_msg, exc_info=True)
         log_dual_write_failure(operation_name, str(e), result.get("mongo_result"))
         result["pg_error"] = str(e)
-
-        if critical:
-            raise DualWriteError(error_msg) from e
-
-        # Non-critical: MongoDB succeeded, PG will be reconciled
-        result["success"] = True
-        logger.warning(
-            f"PostgreSQL write failed for {operation_name} but continuing "
-            "(will be reconciled later)"
-        )
+        raise DualWriteError(error_msg) from e
     finally:
         if db_session:
             db_session.close()

@@ -19,9 +19,10 @@ STRIPE_CUSTOMER_ID = os.getenv("STRIPE_CUSTOMER_ID")
 MONGO_URI = os.getenv(
     "MONGO_URI", "mongodb://localhost:27017/test_db"
 )  # Change to LIVE_MONGO_URI if you want to use the live database
-DATABASE_URL = os.getenv(
-    "DATABASE_URL", "postgresql://budgit_user:password@localhost:5432/budgit"
-)
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://budgit_user:password@localhost:5432/budgit")
+# Phase 5 migration flag: switch read operations from MongoDB to PostgreSQL
+# Default: False (reads from MongoDB), Set to True to read from PostgreSQL
+READ_FROM_POSTGRESQL = os.getenv("READ_FROM_POSTGRESQL", "false").lower() == "true"
 VENMO_ACCESS_TOKEN = os.getenv("VENMO_ACCESS_TOKEN")
 SPLITWISE_CONSUMER_KEY = os.getenv("SPLITWISE_CONSUMER_KEY")
 SPLITWISE_CONSUMER_SECRET = os.getenv("SPLITWISE_CONSUMER_SECRET")

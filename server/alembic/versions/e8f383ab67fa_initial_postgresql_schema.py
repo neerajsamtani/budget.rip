@@ -1,15 +1,17 @@
 """Initial PostgreSQL schema
 
 Revision ID: e8f383ab67fa
-Revises: 
+Revises:
 Create Date: 2025-10-21 21:11:52.516292
 
 """
+
 from typing import Sequence, Union
 
-from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
+
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "e8f383ab67fa"
@@ -32,9 +34,7 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("name"),
     )
-    op.create_index(
-        op.f("ix_categories_mongo_id"), "categories", ["mongo_id"], unique=False
-    )
+    op.create_index(op.f("ix_categories_mongo_id"), "categories", ["mongo_id"], unique=False)
     op.create_table(
         "parties",
         sa.Column("id", sa.String(length=255), nullable=False),
@@ -93,9 +93,7 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.Column("source_id", sa.String(length=255), nullable=False),
-        sa.Column(
-            "source_data", postgresql.JSONB(astext_type=sa.Text()), nullable=False
-        ),
+        sa.Column("source_data", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
         sa.Column("transaction_date", sa.TIMESTAMP(timezone=True), nullable=False),
         sa.Column("imported_at", sa.TIMESTAMP(timezone=True), nullable=True),
         sa.Column("created_at", sa.TIMESTAMP(timezone=True), nullable=True),
@@ -112,9 +110,7 @@ def upgrade() -> None:
         sa.Column("is_duplicate", sa.Boolean(), nullable=True),
         sa.Column("created_at", sa.TIMESTAMP(timezone=True), nullable=True),
         sa.Column("updated_at", sa.TIMESTAMP(timezone=True), nullable=True),
-        sa.ForeignKeyConstraint(
-            ["category_id"], ["categories.id"], ondelete="RESTRICT"
-        ),
+        sa.ForeignKeyConstraint(["category_id"], ["categories.id"], ondelete="RESTRICT"),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(op.f("ix_events_mongo_id"), "events", ["mongo_id"], unique=False)
@@ -132,17 +128,11 @@ def upgrade() -> None:
         sa.Column("created_at", sa.TIMESTAMP(timezone=True), nullable=True),
         sa.Column("updated_at", sa.TIMESTAMP(timezone=True), nullable=True),
         sa.ForeignKeyConstraint(["party_id"], ["parties.id"], ondelete="SET NULL"),
-        sa.ForeignKeyConstraint(
-            ["payment_method_id"], ["payment_methods.id"], ondelete="RESTRICT"
-        ),
-        sa.ForeignKeyConstraint(
-            ["transaction_id"], ["transactions.id"], ondelete="CASCADE"
-        ),
+        sa.ForeignKeyConstraint(["payment_method_id"], ["payment_methods.id"], ondelete="RESTRICT"),
+        sa.ForeignKeyConstraint(["transaction_id"], ["transactions.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index(
-        op.f("ix_line_items_mongo_id"), "line_items", ["mongo_id"], unique=False
-    )
+    op.create_index(op.f("ix_line_items_mongo_id"), "line_items", ["mongo_id"], unique=False)
     op.create_table(
         "event_line_items",
         sa.Column("id", sa.String(length=255), nullable=False),
@@ -150,9 +140,7 @@ def upgrade() -> None:
         sa.Column("line_item_id", sa.String(length=255), nullable=False),
         sa.Column("created_at", sa.TIMESTAMP(timezone=True), nullable=True),
         sa.ForeignKeyConstraint(["event_id"], ["events.id"], ondelete="CASCADE"),
-        sa.ForeignKeyConstraint(
-            ["line_item_id"], ["line_items.id"], ondelete="CASCADE"
-        ),
+        sa.ForeignKeyConstraint(["line_item_id"], ["line_items.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("event_id", "line_item_id", name="uq_event_line_item"),
     )

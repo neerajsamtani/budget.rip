@@ -1,9 +1,10 @@
-.PHONY: help test test-phase3 test-watch venv clean install
+.PHONY: help test test-phase3 test-watch venv clean install lint lint-fix
 
 VENV := env
 PYTHON := $(VENV)/bin/python
 PIP := $(VENV)/bin/pip
 PYTEST := $(VENV)/bin/pytest
+RUFF := $(VENV)/bin/ruff
 
 help: ## Show this help message
 	@echo "Available commands:"
@@ -23,7 +24,10 @@ venv: ## Create virtual environment and install dependencies
 install: venv ## Install/update dependencies (alias for venv)
 
 test: venv ## Run all tests
-	@$(PYTEST) tests/ -v
+	@echo "Running tests with READ_FROM_POSTGRESQL=false..."
+	@READ_FROM_POSTGRESQL=false $(PYTHON) -m pytest tests/ -v
+	@echo "Running tests with READ_FROM_POSTGRESQL=true..."
+	@READ_FROM_POSTGRESQL=true $(PYTHON) -m pytest tests/ -v
 
 test-phase3: venv ## Run Phase 3 migration tests only
 	@$(PYTEST) tests/test_phase3_migration.py -v
@@ -36,6 +40,18 @@ test-coverage: venv ## Run tests with coverage report
 
 test-quick: venv ## Run tests without verbose output
 	@$(PYTEST) tests/
+
+lint: venv ## Check code with ruff (linting + formatting)
+	@echo "Checking code with ruff..."
+	@$(RUFF) check .
+	@$(RUFF) format --check .
+	@echo "✓ All checks passed"
+
+lint-fix: venv ## Fix code issues with ruff (auto-fix + format)
+	@echo "Fixing code issues with ruff..."
+	@$(RUFF) check --fix .
+	@$(RUFF) format .
+	@echo "✓ Code fixed and formatted"
 
 clean: ## Remove virtual environment and cache files
 	rm -rf $(VENV)
