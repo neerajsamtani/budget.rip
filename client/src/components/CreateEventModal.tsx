@@ -11,10 +11,10 @@ import { getPrefillFromLineItems } from '.././data/EventHints';
 import { Body } from "../components/ui/typography";
 import { useLineItems, useLineItemsDispatch } from "../contexts/LineItemsContext";
 import { FormField, useField } from '../hooks/useField';
-import axiosInstance from '../utils/axiosInstance';
 import { CurrencyFormatter } from '../utils/formatters';
 import defaultNameCleanup from '../utils/stringHelpers';
-import { showErrorToast, showSuccessToast } from '../utils/toast-helpers';
+import { showSuccessToast, showErrorToast } from '../utils/toast-helpers';
+import { useCreateEvent } from '../hooks/useApi';
 
 interface Tag {
   id: string;
@@ -25,6 +25,7 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
 
   const lineItems = useLineItems();
   const lineItemsDispatch = useLineItemsDispatch();
+  const createEventMutation = useCreateEvent();
 
   const selectedLineItems = lineItems.filter(lineItem => lineItem.isSelected);
   const selectedLineItemIds = selectedLineItems.map(lineItem => lineItem.id);
@@ -100,16 +101,19 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
       "is_duplicate_transaction": isDuplicateTransaction.value,
       "tags": tags.map(tag => tag.text)
     }
-    axiosInstance.post(`api/events`, newEvent)
-      .then(response => {
+    createEventMutation.mutate(newEvent as any, {
+      onSuccess: (response) => {
         closeModal()
         lineItemsDispatch({
           type: 'remove_line_items',
           lineItemIds: selectedLineItemIds
         })
-        showSuccessToast(response.data.name, "Created Event");
-      })
-      .catch(showErrorToast);
+        showSuccessToast(response.name, "Created Event");
+      },
+      onError: (error) => {
+        showErrorToast(error);
+      }
+    });
   }
 
   return (

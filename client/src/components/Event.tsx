@@ -1,13 +1,12 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TableCell } from "@/components/ui/table";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { StatusBadge } from "../components/ui/status-badge";
-import { LineItemInterface } from "../contexts/LineItemsContext";
-import axiosInstance from "../utils/axiosInstance";
 import { CurrencyFormatter, DateFormatter } from "../utils/formatters";
-import { showErrorToast } from "../utils/toast-helpers";
 import EventDetailsModal from "./EventDetailsModal";
+import { useEventLineItems } from "../hooks/useApi";
+import { showErrorToast } from "../utils/toast-helpers";
 
 export interface EventInterface {
     _id: string;
@@ -24,17 +23,19 @@ export default function Event({ event }: { event: EventInterface }) {
     const readableDate = DateFormatter.format(event.date * 1000);
 
     const [eventDetailsModalShow, setEventDetailsModalShow] = useState(false);
-    const [lineItemsForEvent, setLineItemsForEvent] = useState<LineItemInterface[]>([])
+    const [shouldFetch, setShouldFetch] = useState(false);
+
+    const { data: lineItemsForEvent = [], error } = useEventLineItems(shouldFetch ? event.id : '');
+
+    useEffect(() => {
+        if (error) {
+            showErrorToast(error);
+        }
+    }, [error]);
 
     const showEventDetails = () => {
-        axiosInstance.get(`api/events/${event.id}/line_items_for_event`)
-            .then(response => {
-                setLineItemsForEvent(response.data.data)
-            })
-            .then(() => {
-                setEventDetailsModalShow(true)
-            })
-            .catch(showErrorToast);
+        setShouldFetch(true);
+        setEventDetailsModalShow(true);
     }
 
     return (

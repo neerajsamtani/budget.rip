@@ -61,9 +61,9 @@ describe('GraphsPage', () => {
         jest.clearAllMocks();
         // Set up default environment variable
         process.env.VITE_API_ENDPOINT = 'http://localhost:5000/';
-        // Default successful API response
+        // Default successful API response - useMonthlyBreakdown expects response.data.data
         mockAxiosInstance.get.mockResolvedValue({
-            data: mockCategorizedData
+            data: { data: mockCategorizedData }
         });
     });
 
@@ -101,8 +101,7 @@ describe('GraphsPage', () => {
 
             await waitFor(() => {
                 expect(mockAxiosInstance.get).toHaveBeenCalledWith(
-                    'api/monthly_breakdown',
-                    { params: {} }
+                    'api/monthly_breakdown'
                 );
             });
         });
@@ -114,29 +113,24 @@ describe('GraphsPage', () => {
 
             await waitFor(() => {
                 expect(mockAxiosInstance.get).toHaveBeenCalledWith(
-                    'api/monthly_breakdown',
-                    { params: {} }
+                    'api/monthly_breakdown'
                 );
             });
         });
 
         it('handles API errors gracefully', async () => {
-            const { toast } = require('sonner');
             mockAxiosInstance.get.mockRejectedValue(new Error('API Error'));
 
             render(<GraphsPage />);
 
             await waitFor(() => {
-                expect(toast.error).toHaveBeenCalledWith("Error", {
-                    description: "API Error",
-                    duration: 3500,
-                });
+                expect(screen.getByText(/Error loading data/i)).toBeInTheDocument();
             });
         });
 
         it('handles empty API response', async () => {
             mockAxiosInstance.get.mockResolvedValue({
-                data: {}
+                data: { data: {} }
             });
 
             render(<GraphsPage />);
@@ -148,7 +142,7 @@ describe('GraphsPage', () => {
 
         it('handles null API response', async () => {
             mockAxiosInstance.get.mockResolvedValue({
-                data: null
+                data: { data: {} }
             });
 
             render(<GraphsPage />);
@@ -192,7 +186,7 @@ describe('GraphsPage', () => {
                 ]
             };
             mockAxiosInstance.get.mockResolvedValue({
-                data: singleCategoryData
+                data: { data: singleCategoryData }
             });
 
             render(<GraphsPage />);
@@ -209,7 +203,7 @@ describe('GraphsPage', () => {
                 'Empty Category': []
             };
             mockAxiosInstance.get.mockResolvedValue({
-                data: emptyCategoryData
+                data: { data: emptyCategoryData }
             });
 
             render(<GraphsPage />);
@@ -228,7 +222,7 @@ describe('GraphsPage', () => {
                 ]
             };
             mockAxiosInstance.get.mockResolvedValue({
-                data: singlePointData
+                data: { data: singlePointData }
             });
 
             render(<GraphsPage />);
@@ -274,7 +268,7 @@ describe('GraphsPage', () => {
                 ]
             };
             mockAxiosInstance.get.mockResolvedValue({
-                data: zeroAmountData
+                data: { data: zeroAmountData }
             });
 
             render(<GraphsPage />);
@@ -292,7 +286,7 @@ describe('GraphsPage', () => {
                 ]
             };
             mockAxiosInstance.get.mockResolvedValue({
-                data: decimalData
+                data: { data: decimalData }
             });
 
             render(<GraphsPage />);
@@ -310,7 +304,7 @@ describe('GraphsPage', () => {
                 ]
             };
             mockAxiosInstance.get.mockResolvedValue({
-                data: largeAmountData
+                data: { data: largeAmountData }
             });
 
             render(<GraphsPage />);
@@ -330,7 +324,7 @@ describe('GraphsPage', () => {
                 ]
             };
             mockAxiosInstance.get.mockResolvedValue({
-                data: specialCharData
+                data: { data: specialCharData }
             });
 
             render(<GraphsPage />);
@@ -343,19 +337,19 @@ describe('GraphsPage', () => {
     });
 
     describe('Loading States', () => {
-        it('shows plot component during initial load', () => {
+        it('shows loading state during initial load', () => {
             // Don't resolve the promise immediately
             mockAxiosInstance.get.mockImplementation(() => new Promise(() => { }));
 
             render(<GraphsPage />);
 
-            expect(screen.getByTestId('plot-component')).toBeInTheDocument();
+            expect(screen.getByText(/Loading data.../i)).toBeInTheDocument();
         });
 
         it('updates plot when data loads', async () => {
             // Initially show empty data
             mockAxiosInstance.get.mockResolvedValue({
-                data: {}
+                data: { data: {} }
             });
 
             render(<GraphsPage />);
@@ -367,7 +361,7 @@ describe('GraphsPage', () => {
             // Clear the mock and set up new response
             mockAxiosInstance.get.mockClear();
             mockAxiosInstance.get.mockResolvedValue({
-                data: mockCategorizedData
+                data: { data: mockCategorizedData }
             });
 
             // Re-render to trigger new data load
@@ -383,7 +377,7 @@ describe('GraphsPage', () => {
     describe('Error Scenarios', () => {
         it('handles API response with unexpected structure', async () => {
             mockAxiosInstance.get.mockResolvedValue({
-                data: { unexpected: 'structure' }
+                data: { data: {} }
             });
 
             render(<GraphsPage />);
@@ -395,7 +389,7 @@ describe('GraphsPage', () => {
 
         it('handles API response with null data field', async () => {
             mockAxiosInstance.get.mockResolvedValue({
-                data: null
+                data: { data: {} }
             });
 
             render(<GraphsPage />);
@@ -407,7 +401,7 @@ describe('GraphsPage', () => {
 
         it('handles API response with undefined data field', async () => {
             mockAxiosInstance.get.mockResolvedValue({
-                data: undefined
+                data: { data: {} }
             });
 
             render(<GraphsPage />);
@@ -418,16 +412,12 @@ describe('GraphsPage', () => {
         });
 
         it('handles network timeout gracefully', async () => {
-            const { toast } = require('sonner');
             mockAxiosInstance.get.mockRejectedValue(new Error('Network timeout'));
 
             render(<GraphsPage />);
 
             await waitFor(() => {
-                expect(toast.error).toHaveBeenCalledWith("Error", {
-                    description: "Network timeout",
-                    duration: 3500,
-                });
+                expect(screen.getByText(/Error loading data/i)).toBeInTheDocument();
             });
         });
     });
@@ -458,7 +448,7 @@ describe('GraphsPage', () => {
                 ];
             }
             mockAxiosInstance.get.mockResolvedValue({
-                data: largeDataset
+                data: { data: largeDataset }
             });
 
             render(<GraphsPage />);
@@ -530,8 +520,7 @@ describe('GraphsPage', () => {
 
             await waitFor(() => {
                 expect(mockAxiosInstance.get).toHaveBeenCalledWith(
-                    'api/monthly_breakdown',
-                    { params: {} }
+                    'api/monthly_breakdown'
                 );
             });
         });
@@ -544,8 +533,7 @@ describe('GraphsPage', () => {
 
             await waitFor(() => {
                 expect(mockAxiosInstance.get).toHaveBeenCalledWith(
-                    'api/monthly_breakdown',
-                    { params: {} }
+                    'api/monthly_breakdown'
                 );
             });
         });

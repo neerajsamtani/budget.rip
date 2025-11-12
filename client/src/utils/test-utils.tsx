@@ -1,6 +1,7 @@
 import { render, RenderOptions } from '@testing-library/react';
 import React, { ReactElement } from 'react';
 import { BrowserRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Polyfill for hasPointerCapture - needed for Radix UI components in tests
 if (!Element.prototype.hasPointerCapture) {
@@ -44,12 +45,28 @@ jest.mock('../utils/axiosInstance', () => ({
     default: mockAxiosInstance,
 }));
 
+// Create a custom query client for tests with no retries
+const createTestQueryClient = () => new QueryClient({
+    defaultOptions: {
+        queries: {
+            retry: false,
+            gcTime: 0,
+        },
+        mutations: {
+            retry: false,
+        },
+    },
+});
+
 // Custom render function that includes basic providers
 const AllTheProviders = ({ children }: { children: React.ReactNode }) => {
+    const queryClient = createTestQueryClient();
     return (
-        <BrowserRouter>
-            {children}
-        </BrowserRouter>
+        <QueryClientProvider client={queryClient}>
+            <BrowserRouter>
+                {children}
+            </BrowserRouter>
+        </QueryClientProvider>
     );
 };
 

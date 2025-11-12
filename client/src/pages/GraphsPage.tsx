@@ -1,9 +1,8 @@
-import React, { lazy, Suspense, useEffect, useState } from "react";
+import React, { lazy, Suspense } from "react";
 import { PageContainer, PageHeader } from "../components/ui/layout";
 import { Body, H1 } from "../components/ui/typography";
 import { chartColorSequence } from '../lib/chart-colors';
-import axiosInstance from "../utils/axiosInstance";
-import { showErrorToast } from "../utils/toast-helpers";
+import { useMonthlyBreakdown } from "../hooks/useApi";
 
 const Plot = lazy(() => import('react-plotly.js'));
 
@@ -17,16 +16,7 @@ interface CategoryExpense {
 }
 
 export default function GraphsPage() {
-
-  const [categorizedData, setCategorizedData] = useState<CategoryExpense>({})
-
-  useEffect(() => {
-    axiosInstance.get(`api/monthly_breakdown`, { params: {} })
-      .then(response => {
-        setCategorizedData(response.data)
-      })
-      .catch(showErrorToast);
-  }, [])
+  const { data: categorizedData = {}, isLoading, error } = useMonthlyBreakdown()
 
   const data = Object.keys(categorizedData).map((category, index) => {
     const amounts = categorizedData[category].map((item) => item.amount);
@@ -77,23 +67,33 @@ export default function GraphsPage() {
 
       <div className="space-y-6">
         <div className="bg-white rounded-xl border p-4 md:p-6 shadow-sm">
-          <Suspense fallback={
+          {isLoading ? (
             <div className="flex items-center justify-center h-96">
-              <Body className="text-muted-foreground">Loading chart...</Body>
+              <Body className="text-muted-foreground">Loading data...</Body>
             </div>
-          }>
-            <Plot
-              data={data}
-              layout={layout}
-              config={{
-                displayModeBar: false,
-                responsive: true
-              }}
-              style={{ width: '100%', height: 'auto', minHeight: '400px' }}
-              useResizeHandler={true}
-              className="w-full"
-            />
-          </Suspense>
+          ) : error ? (
+            <div className="flex items-center justify-center h-96">
+              <Body className="text-destructive">Error loading data. Please try again.</Body>
+            </div>
+          ) : (
+            <Suspense fallback={
+              <div className="flex items-center justify-center h-96">
+                <Body className="text-muted-foreground">Loading chart...</Body>
+              </div>
+            }>
+              <Plot
+                data={data}
+                layout={layout}
+                config={{
+                  displayModeBar: false,
+                  responsive: true
+                }}
+                style={{ width: '100%', height: 'auto', minHeight: '400px' }}
+                useResizeHandler={true}
+                className="w-full"
+              />
+            </Suspense>
+          )}
         </div>
       </div>
     </PageContainer>

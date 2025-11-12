@@ -1,5 +1,5 @@
 import React, { createContext, ReactNode, useContext, useEffect, useReducer } from 'react';
-import axiosInstance from '../utils/axiosInstance';
+import { useLineItems as useLineItemsQuery } from '../hooks/useApi';
 import { showErrorToast } from '../utils/toast-helpers';
 
 // Define TypeScript interfaces for the line item and props
@@ -62,20 +62,22 @@ export function LineItemsProvider({ children }: { children: ReactNode }) {
     const initialLineItems: LineItemInterface[] = []
     const [lineItems, lineItemsDispatch] = useReducer(lineItemsReducer, initialLineItems);
 
+    const { data: fetchedLineItems, error } = useLineItemsQuery({ onlyLineItemsToReview: true });
+
     useEffect(() => {
-        axiosInstance.get(`api/line_items`, {
-            params: {
-                "only_line_items_to_review": true,
-            }
-        })
-            .then(response => {
-                lineItemsDispatch({
-                    type: "populate_line_items",
-                    fetchedLineItems: response.data.data
-                })
+        if (fetchedLineItems) {
+            lineItemsDispatch({
+                type: "populate_line_items",
+                fetchedLineItems: fetchedLineItems
             })
-            .catch(showErrorToast);
-    }, [])
+        }
+    }, [fetchedLineItems])
+
+    useEffect(() => {
+        if (error) {
+            showErrorToast(error);
+        }
+    }, [error])
 
     return (
         <LineItemsContext.Provider value={lineItems}>

@@ -2,7 +2,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Category } from "@/constants/categories";
 import { CurrencyFormatter } from "@/utils/formatters";
 import { DateTime } from "luxon";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import CategoryFilter from "../components/CategoryFilter";
 import Event, { EventInterface } from "../components/Event";
 import MonthFilter from "../components/MonthFilter";
@@ -11,42 +11,29 @@ import { PageContainer, PageHeader } from "../components/ui/layout";
 import { StatusBadge } from "../components/ui/status-badge";
 import { Body, H1 } from "../components/ui/typography";
 import YearFilter, { type Year } from "../components/YearFilter";
-import axiosInstance from "../utils/axiosInstance";
-import { showErrorToast } from "../utils/toast-helpers";
+import { useEvents } from "../hooks/useApi";
 
 export default function EventsPage() {
-
-    // Events for the selected month and year are fetched from the DB
-    // Category filtering is done on the frontend
-
     const now = DateTime.utc()
 
-    const [events, setEvents] = useState<EventInterface[]>([])
     const [category, setCategory] = useState("All")
     const [month, setMonth] = useState(now.monthLong)
     const [year, setYear] = useState(String(now.year))
     const [tagFilter, setTagFilter] = useState<string>('');
 
-    useEffect(() => {
-        let start_time, end_time;
-        if (month !== "All") {
-            start_time = DateTime.fromFormat(`${month} ${year}`, "LLLL yyyy", { zone: 'utc' })
-            end_time = start_time.endOf("month")
-        } else {
-            start_time = DateTime.fromFormat(`${year}`, "yyyy", { zone: 'utc' })
-            end_time = start_time.endOf("year")
-        }
-        axiosInstance.get('api/events', {
-            params: {
-                "start_time": start_time.toUnixInteger(),
-                "end_time": end_time.toUnixInteger()
-            }
-        })
-            .then(response => {
-                setEvents(response.data.data)
-            })
-            .catch(showErrorToast);
-    }, [month, year])
+    // Calculate time range for API query
+    let startTime, endTime;
+    if (month !== "All") {
+        const start = DateTime.fromFormat(`${month} ${year}`, "LLLL yyyy", { zone: 'utc' })
+        startTime = start.toUnixInteger()
+        endTime = start.endOf("month").toUnixInteger()
+    } else {
+        const start = DateTime.fromFormat(`${year}`, "yyyy", { zone: 'utc' })
+        startTime = start.toUnixInteger()
+        endTime = start.endOf("year").toUnixInteger()
+    }
+
+    const { data: events = [], isLoading, error } = useEvents(startTime, endTime)
 
     const matchCategory = (event: EventInterface) => category === "All" || category === event.category
 
@@ -128,7 +115,19 @@ export default function EventsPage() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {events.length > 0 ? (
+                        {isLoading ? (
+                            <TableRow>
+                                <TableCell colSpan={6} className="text-center text-muted-foreground">
+                                    Loading events...
+                                </TableCell>
+                            </TableRow>
+                        ) : error ? (
+                            <TableRow>
+                                <TableCell colSpan={6} className="text-center text-destructive">
+                                    Error loading events. Please try again.
+                                </TableCell>
+                            </TableRow>
+                        ) : events.length > 0 ? (
                             events
                                 .filter(event => matchCategory(event) && matchTags(event))
                                 .map(event => (

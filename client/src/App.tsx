@@ -12,7 +12,7 @@ import {
   Routes
 } from "react-router-dom";
 import { useLineItemsDispatch } from "./contexts/LineItemsContext";
-import { showErrorToast, showSuccessToast } from "./utils/toast-helpers";
+import { showSuccessToast, showErrorToast } from "./utils/toast-helpers";
 import ConnectedAccountsPage from "./pages/ConnectedAccountsPage";
 import EventsPage from "./pages/EventsPage";
 import GraphsPage from "./pages/GraphsPage";
@@ -20,7 +20,7 @@ import LineItemsPage from "./pages/LineItemsPage";
 import LineItemsToReviewPage from "./pages/LineItemsToReviewPage";
 import LoginPage from "./pages/LoginPage";
 import ShadcnTestPage from "./pages/ShadcnTestPage";
-import axiosInstance from "./utils/axiosInstance";
+import { useRefreshAllData } from "./hooks/useApi";
 
 // Make sure to call loadStripe outside of a component's render to avoid
 // recreating the Stripe object on every render.
@@ -33,24 +33,22 @@ const stripePromise = loadStripe(STRIPE_PUBLIC_KEY);
 export default function App() {
 
   const lineItemsDispatch = useLineItemsDispatch();
-  const [loading, setLoading] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const refreshMutation = useRefreshAllData();
 
   const handleRefreshData = () => {
-    setLoading(true);
-    axiosInstance.get(`api/refresh/all`)
-      .then(response => {
+    refreshMutation.mutate(undefined, {
+      onSuccess: (data) => {
         showSuccessToast("Refreshed data", "Notification");
-        setLoading(false);
         lineItemsDispatch({
           type: "populate_line_items",
-          fetchedLineItems: response.data.data
+          fetchedLineItems: data
         })
-      })
-      .catch((error) => {
-        showErrorToast(new Error("Error refreshing data"), "Notification");
-        setLoading(false);
-      })
+      },
+      onError: (error) => {
+        showErrorToast(error);
+      }
+    });
   }
 
 
@@ -110,15 +108,15 @@ export default function App() {
                   Login
                 </Link>
               </div>
-              <Button onClick={handleRefreshData} variant="default" size="sm">
-                {loading ? <Spinner size="sm" /> : "Refresh Data"}
+              <Button onClick={handleRefreshData} variant="default" size="sm" disabled={refreshMutation.isPending}>
+                {refreshMutation.isPending ? <Spinner size="sm" /> : "Refresh Data"}
               </Button>
             </div>
 
             {/* Mobile Navigation */}
             <div className="md:hidden flex items-center gap-2">
-              <Button onClick={handleRefreshData} variant="default" size="sm">
-                {loading ? <Spinner size="sm" /> : "Refresh"}
+              <Button onClick={handleRefreshData} variant="default" size="sm" disabled={refreshMutation.isPending}>
+                {refreshMutation.isPending ? <Spinner size="sm" /> : "Refresh"}
               </Button>
               <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                 <SheetTrigger asChild>
