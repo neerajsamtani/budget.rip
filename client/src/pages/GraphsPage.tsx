@@ -18,18 +18,20 @@ interface CategoryExpense {
 export default function GraphsPage() {
   const { data: categorizedData = {}, isLoading, error } = useMonthlyBreakdown()
 
-  const data = Object.keys(categorizedData).map((category, index) => {
-    const amounts = categorizedData[category].map((item) => item.amount);
-    return {
-      x: categorizedData[category].map((item) => item.date),
-      y: amounts,
-      type: 'bar',
-      name: category,
-      marker: {
-        color: chartColorSequence[index % chartColorSequence.length]
-      }
-    };
-  });
+  const data = Object.keys(categorizedData)
+    .filter(category => Array.isArray(categorizedData[category]))
+    .map((category, index) => {
+      const amounts = categorizedData[category].map((item) => item.amount);
+      return {
+        x: categorizedData[category].map((item) => item.date),
+        y: amounts,
+        type: 'bar',
+        name: category,
+        marker: {
+          color: chartColorSequence[index % chartColorSequence.length]
+        }
+      };
+    });
 
   const layout = {
     barmode: 'relative',

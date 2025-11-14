@@ -61,9 +61,9 @@ describe('GraphsPage', () => {
         jest.clearAllMocks();
         // Set up default environment variable
         process.env.VITE_API_ENDPOINT = 'http://localhost:5000/';
-        // Default successful API response - useMonthlyBreakdown expects response.data.data
+        // Default successful API response - useMonthlyBreakdown expects response.data
         mockAxiosInstance.get.mockResolvedValue({
-            data: { data: mockCategorizedData }
+            data: mockCategorizedData
         });
     });
 
@@ -130,7 +130,7 @@ describe('GraphsPage', () => {
 
         it('handles empty API response', async () => {
             mockAxiosInstance.get.mockResolvedValue({
-                data: { data: {} }
+                data: {}
             });
 
             render(<GraphsPage />);
@@ -142,7 +142,7 @@ describe('GraphsPage', () => {
 
         it('handles null API response', async () => {
             mockAxiosInstance.get.mockResolvedValue({
-                data: { data: {} }
+                data: {}
             });
 
             render(<GraphsPage />);
@@ -186,7 +186,7 @@ describe('GraphsPage', () => {
                 ]
             };
             mockAxiosInstance.get.mockResolvedValue({
-                data: { data: singleCategoryData }
+                data: singleCategoryData
             });
 
             render(<GraphsPage />);
@@ -203,7 +203,7 @@ describe('GraphsPage', () => {
                 'Empty Category': []
             };
             mockAxiosInstance.get.mockResolvedValue({
-                data: { data: emptyCategoryData }
+                data: emptyCategoryData
             });
 
             render(<GraphsPage />);
@@ -222,7 +222,7 @@ describe('GraphsPage', () => {
                 ]
             };
             mockAxiosInstance.get.mockResolvedValue({
-                data: { data: singlePointData }
+                data: singlePointData
             });
 
             render(<GraphsPage />);
@@ -268,7 +268,7 @@ describe('GraphsPage', () => {
                 ]
             };
             mockAxiosInstance.get.mockResolvedValue({
-                data: { data: zeroAmountData }
+                data: zeroAmountData
             });
 
             render(<GraphsPage />);
@@ -286,7 +286,7 @@ describe('GraphsPage', () => {
                 ]
             };
             mockAxiosInstance.get.mockResolvedValue({
-                data: { data: decimalData }
+                data: decimalData
             });
 
             render(<GraphsPage />);
@@ -304,7 +304,7 @@ describe('GraphsPage', () => {
                 ]
             };
             mockAxiosInstance.get.mockResolvedValue({
-                data: { data: largeAmountData }
+                data: largeAmountData
             });
 
             render(<GraphsPage />);
@@ -324,7 +324,7 @@ describe('GraphsPage', () => {
                 ]
             };
             mockAxiosInstance.get.mockResolvedValue({
-                data: { data: specialCharData }
+                data: specialCharData
             });
 
             render(<GraphsPage />);
@@ -349,7 +349,7 @@ describe('GraphsPage', () => {
         it('updates plot when data loads', async () => {
             // Initially show empty data
             mockAxiosInstance.get.mockResolvedValue({
-                data: { data: {} }
+                data: {}
             });
 
             render(<GraphsPage />);
@@ -361,7 +361,7 @@ describe('GraphsPage', () => {
             // Clear the mock and set up new response
             mockAxiosInstance.get.mockClear();
             mockAxiosInstance.get.mockResolvedValue({
-                data: { data: mockCategorizedData }
+                data: mockCategorizedData
             });
 
             // Re-render to trigger new data load
@@ -377,7 +377,7 @@ describe('GraphsPage', () => {
     describe('Error Scenarios', () => {
         it('handles API response with unexpected structure', async () => {
             mockAxiosInstance.get.mockResolvedValue({
-                data: { data: {} }
+                data: {}
             });
 
             render(<GraphsPage />);
@@ -389,7 +389,7 @@ describe('GraphsPage', () => {
 
         it('handles API response with null data field', async () => {
             mockAxiosInstance.get.mockResolvedValue({
-                data: { data: {} }
+                data: {}
             });
 
             render(<GraphsPage />);
@@ -401,7 +401,7 @@ describe('GraphsPage', () => {
 
         it('handles API response with undefined data field', async () => {
             mockAxiosInstance.get.mockResolvedValue({
-                data: { data: {} }
+                data: {}
             });
 
             render(<GraphsPage />);
@@ -448,7 +448,7 @@ describe('GraphsPage', () => {
                 ];
             }
             mockAxiosInstance.get.mockResolvedValue({
-                data: { data: largeDataset }
+                data: largeDataset
             });
 
             render(<GraphsPage />);
