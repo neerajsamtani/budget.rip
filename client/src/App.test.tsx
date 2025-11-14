@@ -24,21 +24,8 @@ jest.mock('./utils/axiosInstance', () => {
 import { render } from '@testing-library/react';
 import React from 'react';
 import App from './App';
-import { fireEvent, screen, waitFor } from './utils/test-utils';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-
-// Create a test query client
-const createTestQueryClient = () => new QueryClient({
-    defaultOptions: {
-        queries: {
-            retry: false,
-            gcTime: 0,
-        },
-        mutations: {
-            retry: false,
-        },
-    },
-});
+import { fireEvent, screen, waitFor, createTestQueryClient } from './utils/test-utils';
+import { QueryClientProvider } from '@tanstack/react-query';
 
 // Wrapper for rendering App component with QueryClientProvider
 const renderApp = () => {
@@ -197,7 +184,7 @@ describe('App', () => {
         it('shows loading spinner when refresh button is clicked', async () => {
             const mockAxiosInstance = require('./utils/axiosInstance').default;
             // Create a promise that resolves after a delay to keep spinner visible
-            mockAxiosInstance.get.mockImplementation(() =>
+            mockAxiosInstance.post.mockImplementation(() =>
                 new Promise(resolve => setTimeout(() => resolve({ data: { data: [] } }), 100))
             );
 
@@ -226,7 +213,7 @@ describe('App', () => {
             ];
 
             const mockAxiosInstance = require('./utils/axiosInstance').default;
-            mockAxiosInstance.get.mockResolvedValueOnce({ data: { data: mockLineItems } });
+            mockAxiosInstance.post.mockResolvedValueOnce({ data: { data: mockLineItems } });
 
             renderApp();
 
@@ -234,7 +221,7 @@ describe('App', () => {
             fireEvent.click(refreshButton);
 
             await waitFor(() => {
-                expect(mockAxiosInstance.get).toHaveBeenCalledWith(
+                expect(mockAxiosInstance.post).toHaveBeenCalledWith(
                     expect.stringContaining('api/refresh/all')
                 );
             });
@@ -248,7 +235,7 @@ describe('App', () => {
         it('shows toast notification after successful refresh', async () => {
             const mockAxiosInstance = require('./utils/axiosInstance').default;
             const { toast } = require('sonner');
-            mockAxiosInstance.get.mockResolvedValueOnce({ data: { data: [] } });
+            mockAxiosInstance.post.mockResolvedValueOnce({ data: { data: [] } });
 
             renderApp();
 
@@ -265,7 +252,7 @@ describe('App', () => {
 
         it('hides loading spinner after successful refresh', async () => {
             const mockAxiosInstance = require('./utils/axiosInstance').default;
-            mockAxiosInstance.get.mockImplementation(() =>
+            mockAxiosInstance.post.mockImplementation(() =>
                 new Promise(resolve => setTimeout(() => resolve({ data: { data: [] } }), 50))
             );
 
@@ -287,7 +274,7 @@ describe('App', () => {
 
         it('handles API error gracefully', async () => {
             const mockAxiosInstance = require('./utils/axiosInstance').default;
-            mockAxiosInstance.get.mockRejectedValueOnce(new Error('API Error'));
+            mockAxiosInstance.post.mockRejectedValueOnce(new Error('API Error'));
 
             renderApp();
 
@@ -302,7 +289,7 @@ describe('App', () => {
 
         it('hides loading spinner after API error', async () => {
             const mockAxiosInstance = require('./utils/axiosInstance').default;
-            mockAxiosInstance.get.mockImplementation(() =>
+            mockAxiosInstance.post.mockImplementation(() =>
                 new Promise((_, reject) => setTimeout(() => reject(new Error('API Error')), 50))
             );
 
@@ -363,7 +350,7 @@ describe('App', () => {
 
         it('has proper spinner accessibility attributes', async () => {
             const mockAxiosInstance = require('./utils/axiosInstance').default;
-            mockAxiosInstance.get.mockImplementation(() =>
+            mockAxiosInstance.post.mockImplementation(() =>
                 new Promise(resolve => setTimeout(() => resolve({ data: { data: [] } }), 100))
             );
 
@@ -391,7 +378,7 @@ describe('App', () => {
 
         it('updates loading state correctly', async () => {
             const mockAxiosInstance = require('./utils/axiosInstance').default;
-            mockAxiosInstance.get.mockImplementation(() =>
+            mockAxiosInstance.post.mockImplementation(() =>
                 new Promise(resolve => setTimeout(() => resolve({ data: { data: [] } }), 50))
             );
 
@@ -418,7 +405,7 @@ describe('App', () => {
         it('calls toast correctly', async () => {
             const mockAxiosInstance = require('./utils/axiosInstance').default;
             const { toast } = require('sonner');
-            mockAxiosInstance.get.mockResolvedValueOnce({ data: { data: [] } });
+            mockAxiosInstance.post.mockResolvedValueOnce({ data: { data: [] } });
 
             renderApp();
 
@@ -440,7 +427,7 @@ describe('App', () => {
         it('calls error toast on error', async () => {
             const mockAxiosInstance = require('./utils/axiosInstance').default;
             const { toast } = require('sonner');
-            mockAxiosInstance.get.mockRejectedValueOnce(new Error('API Error'));
+            mockAxiosInstance.post.mockRejectedValueOnce(new Error('API Error'));
 
             renderApp();
 

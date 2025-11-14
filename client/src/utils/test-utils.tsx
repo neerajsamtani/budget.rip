@@ -46,7 +46,7 @@ jest.mock('../utils/axiosInstance', () => ({
 }));
 
 // Create a custom query client for tests with no retries
-const createTestQueryClient = () => new QueryClient({
+export const createTestQueryClient = () => new QueryClient({
     defaultOptions: {
         queries: {
             retry: false,

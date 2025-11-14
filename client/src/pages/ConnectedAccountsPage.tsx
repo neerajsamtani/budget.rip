@@ -10,7 +10,7 @@ import { PageContainer, PageHeader } from "../components/ui/layout";
 import { StatusBadge } from "../components/ui/status-badge";
 import { Body, H1, H4 } from "../components/ui/typography";
 import { CurrencyFormatter, DateFormatter } from "../utils/formatters";
-import { useConnectedAccounts, useAccountsAndBalances, useCreateFinancialConnectionsSession, useSubscribeToAccountMutation, useRelinkAccount } from "../hooks/useApi";
+import { useConnectedAccounts, useAccountsAndBalances, useCreateFinancialConnectionsSession, useSubscribeToAccount, useRelinkAccount } from "../hooks/useApi";
 
 export default function ConnectedAccountsPage({ stripePromise }: { stripePromise: Promise<Stripe | null> }) {
     const [clientSecret, setClientSecret] = useState("");
@@ -19,7 +19,7 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
     const { data: connectedAccounts = [] } = useConnectedAccounts()
     const { data: accountsAndBalances = {} } = useAccountsAndBalances()
     const createSessionMutation = useCreateFinancialConnectionsSession()
-    const subscribeToAccountMutation = useSubscribeToAccountMutation()
+    const subscribeToAccountMutation = useSubscribeToAccount()
     const relinkAccountMutation = useRelinkAccount()
 
     const formatDate = (unixTime: number) => DateFormatter.format(new Date(unixTime * 1000))
@@ -35,6 +35,12 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
     const createSession = () => {
         createSessionMutation.mutate(undefined, {
             onSuccess: (secret) => setClientSecret(secret),
+            onError: (error: Error) => {
+                toast.error("Error", {
+                    description: error.message || "Failed to create session",
+                    duration: 3500,
+                });
+            }
         })
     }
 
@@ -45,7 +51,13 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
                     onSuccess: () => toast.info("Notification", {
                         description: `Subscribed to the account ${account.id}`,
                         duration: 3500,
-                    })
+                    }),
+                    onError: (error: Error) => {
+                        toast.error("Error", {
+                            description: error.message || `Failed to subscribe to account ${account.id}`,
+                            duration: 3500,
+                        });
+                    }
                 })
             }
         }
@@ -60,6 +72,12 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
     const relinkAccount = (accountId: string) => {
         relinkAccountMutation.mutate(accountId, {
             onSuccess: (secret) => setClientSecret(secret),
+            onError: (error: Error) => {
+                toast.error("Error", {
+                    description: error.message || "Failed to relink account",
+                    duration: 3500,
+                });
+            }
         })
     }
 

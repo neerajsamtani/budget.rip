@@ -94,21 +94,21 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
 
   const createEvent = (name: FormField<string>, category: FormField<string>) => {
     const newEvent = {
-      "name": name.value,
-      "category": category.value,
-      "date": date.value,
-      "line_items": selectedLineItemIds,
-      "is_duplicate_transaction": isDuplicateTransaction.value,
-      "tags": tags.map(tag => tag.text)
+      name: name.value,
+      category: category.value,
+      date: date.value || undefined,
+      line_items: selectedLineItemIds,
+      is_duplicate_transaction: isDuplicateTransaction.value,
+      tags: tags.map(tag => tag.text)
     }
-    createEventMutation.mutate(newEvent as any, {
-      onSuccess: (response) => {
+    createEventMutation.mutate(newEvent, {
+      onSuccess: (response: { name?: string }) => {
         closeModal()
         lineItemsDispatch({
           type: 'remove_line_items',
           lineItemIds: selectedLineItemIds
         })
-        showSuccessToast(response.name, "Created Event");
+        showSuccessToast(response.name || newEvent.name, "Created Event");
       },
       onError: (error) => {
         showErrorToast(error);

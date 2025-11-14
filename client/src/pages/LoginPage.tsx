@@ -57,6 +57,12 @@ export default function LoginPage() {
                     description: "Logged out",
                     duration: 3500,
                 });
+            },
+            onError: (error: Error) => {
+                toast.error("Error", {
+                    description: error.message || "Failed to log out",
+                    duration: 3500,
+                });
             }
         });
     }

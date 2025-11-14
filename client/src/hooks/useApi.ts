@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient, UseMutationResult, UseQueryResult } from '@tanstack/react-query';
 import axiosInstance from '../utils/axiosInstance';
 import { EventInterface } from '../components/Event';
 import { LineItemInterface } from '../contexts/LineItemsContext';
@@ -8,6 +8,7 @@ export const queryKeys = {
   events: (startTime?: number, endTime?: number) => ['events', startTime, endTime] as const,
   lineItems: (params?: { reviewed?: boolean; paymentMethod?: string; eventId?: string }) =>
     ['lineItems', params] as const,
+  eventLineItems: (eventId: string) => ['eventLineItems', eventId] as const,
   monthlyBreakdown: () => ['monthlyBreakdown'] as const,
   accounts: () => ['accounts'] as const,
   financialConnectionsAccounts: () => ['financialConnectionsAccounts'] as const,
@@ -16,7 +17,7 @@ export const queryKeys = {
 };
 
 // Query Hooks
-export function useEvents(startTime?: number, endTime?: number) {
+export function useEvents(startTime?: number, endTime?: number): UseQueryResult<EventInterface[]> {
   return useQuery({
     queryKey: queryKeys.events(startTime, endTime),
     queryFn: async () => {
@@ -32,11 +33,11 @@ export function useEvents(startTime?: number, endTime?: number) {
   });
 }
 
-export function useLineItems(params?: { reviewed?: boolean; paymentMethod?: string; eventId?: string; onlyLineItemsToReview?: boolean }) {
+export function useLineItems(params?: { reviewed?: boolean; paymentMethod?: string; eventId?: string; onlyLineItemsToReview?: boolean }): UseQueryResult<LineItemInterface[]> {
   return useQuery({
     queryKey: queryKeys.lineItems(params),
     queryFn: async () => {
-      const queryParams: Record<string, any> = {};
+      const queryParams: Record<string, string | boolean> = {};
 
       if (params?.reviewed !== undefined) {
         queryParams.reviewed = params.reviewed;
@@ -57,9 +58,9 @@ export function useLineItems(params?: { reviewed?: boolean; paymentMethod?: stri
   });
 }
 
-export function useEventLineItems(eventId: string) {
+export function useEventLineItems(eventId: string): UseQueryResult<LineItemInterface[]> {
   return useQuery({
-    queryKey: ['eventLineItems', eventId],
+    queryKey: queryKeys.eventLineItems(eventId),
     queryFn: async () => {
       const response = await axiosInstance.get(`api/events/${eventId}/line_items_for_event`);
       return response.data.data as LineItemInterface[];
@@ -68,7 +69,11 @@ export function useEventLineItems(eventId: string) {
   });
 }
 
-export function useMonthlyBreakdown() {
+interface MonthlyBreakdownData {
+  [category: string]: Array<{ amount: number; date: string }>;
+}
+
+export function useMonthlyBreakdown(): UseQueryResult<MonthlyBreakdownData> {
   return useQuery({
     queryKey: queryKeys.monthlyBreakdown(),
     queryFn: async () => {
@@ -78,7 +83,7 @@ export function useMonthlyBreakdown() {
   });
 }
 
-export function useAccounts() {
+export function useAccounts(): UseQueryResult<unknown> {
   return useQuery({
     queryKey: queryKeys.accounts(),
     queryFn: async () => {
@@ -88,7 +93,7 @@ export function useAccounts() {
   });
 }
 
-export function useFinancialConnectionsAccounts() {
+export function useFinancialConnectionsAccounts(): UseQueryResult<unknown> {
   return useQuery({
     queryKey: queryKeys.financialConnectionsAccounts(),
     queryFn: async () => {
@@ -98,7 +103,7 @@ export function useFinancialConnectionsAccounts() {
   });
 }
 
-export function useConnectedAccounts() {
+export function useConnectedAccounts(): UseQueryResult<unknown> {
   return useQuery({
     queryKey: queryKeys.connectedAccounts(),
     queryFn: async () => {
@@ -108,7 +113,7 @@ export function useConnectedAccounts() {
   });
 }
 
-export function useAccountsAndBalances() {
+export function useAccountsAndBalances(): UseQueryResult<unknown> {
   return useQuery({
     queryKey: queryKeys.accountsAndBalances(),
     queryFn: async () => {
@@ -119,16 +124,20 @@ export function useAccountsAndBalances() {
 }
 
 // Mutation Hooks
-export function useCreateEvent() {
+interface CreateEventData {
+  name: string;
+  category: string;
+  line_items: string[];
+  date?: string;
+  is_duplicate_transaction?: boolean;
+  tags?: string[];
+}
+
+export function useCreateEvent(): UseMutationResult<unknown, Error, CreateEventData> {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (eventData: {
-      name: string;
-      category: string;
-      line_items: string[];
-      tags?: string[];
-    }) => {
+    mutationFn: async (eventData: CreateEventData) => {
       const response = await axiosInstance.post('api/events', eventData);
       return response.data;
     },
@@ -140,17 +149,19 @@ export function useCreateEvent() {
   });
 }
 
-export function useCreateCashTransaction() {
+interface CreateCashTransactionData {
+  name: string;
+  category: string;
+  amount: number;
+  date: number;
+  tags?: string[];
+}
+
+export function useCreateCashTransaction(): UseMutationResult<unknown, Error, CreateCashTransactionData> {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (transactionData: {
-      name: string;
-      category: string;
-      amount: number;
-      date: number;
-      tags?: string[];
-    }) => {
+    mutationFn: async (transactionData: CreateCashTransactionData) => {
       const response = await axiosInstance.post('api/cash_transaction', transactionData);
       return response.data;
     },
@@ -162,7 +173,7 @@ export function useCreateCashTransaction() {
   });
 }
 
-export function useDeleteEvent() {
+export function useDeleteEvent(): UseMutationResult<void, Error, string> {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -177,16 +188,21 @@ export function useDeleteEvent() {
   });
 }
 
-export function useLogin() {
+interface LoginCredentials {
+  email: string;
+  password: string;
+}
+
+export function useLogin(): UseMutationResult<unknown, Error, LoginCredentials> {
   return useMutation({
-    mutationFn: async (credentials: { email: string; password: string }) => {
+    mutationFn: async (credentials: LoginCredentials) => {
       const response = await axiosInstance.post('api/auth/login', credentials);
       return response.data;
     },
   });
 }
 
-export function useLogout() {
+export function useLogout(): UseMutationResult<void, Error, void> {
   return useMutation({
     mutationFn: async () => {
       await axiosInstance.post('api/auth/logout');
@@ -194,12 +210,12 @@ export function useLogout() {
   });
 }
 
-export function useRefreshAllData() {
+export function useRefreshAllData(): UseMutationResult<LineItemInterface[], Error, void> {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async () => {
-      const response = await axiosInstance.get('api/refresh/all');
+      const response = await axiosInstance.post('api/refresh/all');
       return response.data.data as LineItemInterface[];
     },
     onSuccess: () => {
@@ -212,50 +228,36 @@ export function useRefreshAllData() {
   });
 }
 
-export function useSubscribeToAccount() {
+export function useSubscribeToAccount(): UseMutationResult<void, Error, string> {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (accountId: string) => {
-      await axiosInstance.get('api/subscribe_to_account', {
-        params: { account_id: accountId },
-      });
+      await axiosInstance.post('api/subscribe_to_account', { account_id: accountId });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
       queryClient.invalidateQueries({ queryKey: ['financialConnectionsAccounts'] });
+      queryClient.invalidateQueries({ queryKey: ['connectedAccounts'] });
+      queryClient.invalidateQueries({ queryKey: ['accountsAndBalances'] });
     },
   });
 }
 
-export function useRelinkAccount() {
+export function useRelinkAccount(): UseMutationResult<string, Error, string> {
   return useMutation({
     mutationFn: async (accountId: string) => {
-      const response = await axiosInstance.get(`api/relink_account/${accountId}`);
+      const response = await axiosInstance.post(`api/relink_account/${accountId}`);
       return response.data.clientSecret;
     },
   });
 }
 
-export function useCreateFinancialConnectionsSession() {
+export function useCreateFinancialConnectionsSession(): UseMutationResult<string, Error, void> {
   return useMutation({
     mutationFn: async () => {
       const response = await axiosInstance.post('api/create-fc-session');
       return response.data.clientSecret;
-    },
-  });
-}
-
-export function useSubscribeToAccountMutation() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (accountId: string) => {
-      await axiosInstance.get(`api/subscribe_to_account/${accountId}`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['connectedAccounts'] });
-      queryClient.invalidateQueries({ queryKey: ['accountsAndBalances'] });
     },
   });
 }

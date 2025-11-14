@@ -155,7 +155,7 @@ describe('ConnectedAccountsPage', () => {
                 fireEvent.click(reactivateBtn);
             });
             await waitFor(() => {
-                expect(mockAxiosInstance.get).toHaveBeenCalledWith(
+                expect(mockAxiosInstance.post).toHaveBeenCalledWith(
                     expect.stringContaining('relink_account')
                 );
             });
