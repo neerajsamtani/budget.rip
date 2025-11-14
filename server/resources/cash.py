@@ -26,6 +26,14 @@ cash_blueprint = Blueprint("cash", __name__)
 @jwt_required()
 def create_cash_transaction_api() -> tuple[Response, int]:
     transaction: Dict[str, Any] = request.get_json()
+
+    # Validate required fields
+    required_fields = ["date", "amount"]
+    missing_fields = [field for field in required_fields if field not in transaction]
+    if missing_fields:
+        logging.warning(f"Cash transaction creation attempt missing required fields: {missing_fields}")
+        return jsonify({"error": f"Missing required fields: {', '.join(missing_fields)}"}), 400
+
     transaction["id"] = generate_id("cash")
     transaction["date"] = html_date_to_posix(transaction["date"])
     transaction["amount"] = float(transaction["amount"])

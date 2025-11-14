@@ -10,8 +10,6 @@ export const queryKeys = {
     ['lineItems', params] as const,
   eventLineItems: (eventId: string) => ['eventLineItems', eventId] as const,
   monthlyBreakdown: () => ['monthlyBreakdown'] as const,
-  accounts: () => ['accounts'] as const,
-  financialConnectionsAccounts: () => ['financialConnectionsAccounts'] as const,
   connectedAccounts: () => ['connectedAccounts'] as const,
   accountsAndBalances: () => ['accountsAndBalances'] as const,
 };
@@ -78,27 +76,7 @@ export function useMonthlyBreakdown(): UseQueryResult<MonthlyBreakdownData> {
     queryKey: queryKeys.monthlyBreakdown(),
     queryFn: async () => {
       const response = await axiosInstance.get('api/monthly_breakdown');
-      return response.data.data;
-    },
-  });
-}
-
-export function useAccounts(): UseQueryResult<unknown> {
-  return useQuery({
-    queryKey: queryKeys.accounts(),
-    queryFn: async () => {
-      const response = await axiosInstance.get('api/accounts');
-      return response.data.data;
-    },
-  });
-}
-
-export function useFinancialConnectionsAccounts(): UseQueryResult<unknown> {
-  return useQuery({
-    queryKey: queryKeys.financialConnectionsAccounts(),
-    queryFn: async () => {
-      const response = await axiosInstance.get('api/financial_connections/accounts');
-      return response.data.data;
+      return response.data;
     },
   });
 }
@@ -221,8 +199,6 @@ export function useRefreshAllData(): UseMutationResult<LineItemInterface[], Erro
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['events'] });
       queryClient.invalidateQueries({ queryKey: ['lineItems'] });
-      queryClient.invalidateQueries({ queryKey: ['accounts'] });
-      queryClient.invalidateQueries({ queryKey: ['financialConnectionsAccounts'] });
       queryClient.invalidateQueries({ queryKey: ['monthlyBreakdown'] });
     },
   });
@@ -236,8 +212,6 @@ export function useSubscribeToAccount(): UseMutationResult<void, Error, string> 
       await axiosInstance.post('api/subscribe_to_account', { account_id: accountId });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['accounts'] });
-      queryClient.invalidateQueries({ queryKey: ['financialConnectionsAccounts'] });
       queryClient.invalidateQueries({ queryKey: ['connectedAccounts'] });
       queryClient.invalidateQueries({ queryKey: ['accountsAndBalances'] });
     },
