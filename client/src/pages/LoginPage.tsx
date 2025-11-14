@@ -7,14 +7,16 @@ import { toast } from "sonner";
 import { PageContainer, PageHeader } from "../components/ui/layout";
 import { Body, H1 } from "../components/ui/typography";
 import { FormField, useField } from '../hooks/useField';
-import axiosInstance from "../utils/axiosInstance";
-import { showErrorToast } from "../utils/toast-helpers";
+import { useLogin, useLogout } from '../hooks/useApi';
 
 export default function LoginPage() {
     const email = useField("text", "" as string)
     const password = useField("password", "" as string)
     const navigate = useNavigate()
     const [error, setError] = useState<string | null>(null);
+
+    const loginMutation = useLogin();
+    const logoutMutation = useLogout();
 
     const validateEmail = (email: string) => {
         // Simple email regex
@@ -31,32 +33,38 @@ export default function LoginPage() {
             setError('Please enter a valid email address.');
             return;
         }
-        const newUser = {
+        const credentials = {
             "email": email.value,
             "password": password.value
         }
-        axiosInstance.post(`api/auth/login`, newUser)
-            .then(() => {
+        loginMutation.mutate(credentials, {
+            onSuccess: () => {
                 email.setEmpty()
                 password.setEmpty()
                 setError(null);
                 navigate('/')
-            })
-            .catch(error => {
+            },
+            onError: (error: any) => {
                 setError(error.message || 'Login failed');
-                showErrorToast(error);
-            });
+            }
+        });
     }
 
     const handleLogout = () => {
-        axiosInstance.post(`api/auth/logout`)
-            .then(() => {
+        logoutMutation.mutate(undefined, {
+            onSuccess: () => {
                 toast.info("Notification", {
                     description: "Logged out",
                     duration: 3500,
                 });
-            })
-            .catch(showErrorToast);
+            },
+            onError: (error: Error) => {
+                toast.error("Error", {
+                    description: error.message || "Failed to log out",
+                    duration: 3500,
+                });
+            }
+        });
     }
 
     return (

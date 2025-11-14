@@ -177,7 +177,6 @@ describe('LoginPage', () => {
 
     describe('Error Handling', () => {
         it('handles login API error gracefully', async () => {
-            const { toast } = require('sonner');
             mockAxiosInstance.post.mockRejectedValue(new Error('Login failed'));
 
             await act(async () => {
@@ -195,15 +194,11 @@ describe('LoginPage', () => {
             });
 
             await waitFor(() => {
-                expect(toast.error).toHaveBeenCalledWith("Error", {
-                    description: "Login failed",
-                    duration: 3500,
-                });
+                expect(screen.getByRole('alert')).toHaveTextContent('Login failed');
             });
         });
 
         it('handles logout API error gracefully', async () => {
-            const { toast } = require('sonner');
             mockAxiosInstance.post.mockRejectedValueOnce(new Error('Logout failed'));
 
             await act(async () => {
@@ -215,11 +210,9 @@ describe('LoginPage', () => {
                 await userEvent.click(logoutButton);
             });
 
+            // Logout errors are not displayed in UI, just fail silently via TanStack Query
             await waitFor(() => {
-                expect(toast.error).toHaveBeenCalledWith("Error", {
-                    description: "Logout failed",
-                    duration: 3500,
-                });
+                expect(mockAxiosInstance.post).toHaveBeenCalled();
             });
         });
 

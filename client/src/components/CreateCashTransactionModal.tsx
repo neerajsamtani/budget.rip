@@ -5,8 +5,8 @@ import { Label } from "@/components/ui/label";
 import React, { Fragment } from 'react';
 import { Body, H3 } from "../components/ui/typography";
 import { useField } from '../hooks/useField';
-import axiosInstance from '../utils/axiosInstance';
-import { showErrorToast, showSuccessToast } from '../utils/toast-helpers';
+import { showSuccessToast, showErrorToast } from '../utils/toast-helpers';
+import { useCreateCashTransaction } from '../hooks/useApi';
 
 export default function CreateCashTransactionModal({ show, onHide }: { show: boolean, onHide: () => void }) {
 
@@ -15,6 +15,8 @@ export default function CreateCashTransactionModal({ show, onHide }: { show: boo
   const description = useField<string>("text", "" as string)
   const amount = useField<number>("number", 0 as number)
 
+  const createCashTransactionMutation = useCreateCashTransaction();
+
   const createCashTransaction = () => {
     const newCashTransaction = {
       "date": date.value,
@@ -22,16 +24,19 @@ export default function CreateCashTransactionModal({ show, onHide }: { show: boo
       "description": description.value,
       "amount": amount.value
     }
-    axiosInstance.post(`api/cash_transaction`, newCashTransaction)
-      .then(() => {
+    createCashTransactionMutation.mutate(newCashTransaction as any, {
+      onSuccess: () => {
         date.setEmpty()
         person.setEmpty()
         description.setEmpty()
         amount.setEmpty()
         showSuccessToast("Created Cash Transaction", "Notification");
         onHide();
-      })
-      .catch(showErrorToast);
+      },
+      onError: (error) => {
+        showErrorToast(error);
+      }
+    });
   }
 
   return (

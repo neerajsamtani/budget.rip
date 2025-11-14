@@ -5,22 +5,26 @@ import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components
 import React, { Fragment } from 'react';
 import { Body, H3 } from "../components/ui/typography";
 import { LineItemInterface } from '../contexts/LineItemsContext';
-import axiosInstance from '../utils/axiosInstance';
-import { showErrorToast, showSuccessToast } from '../utils/toast-helpers';
+import { showSuccessToast, showErrorToast } from '../utils/toast-helpers';
 import { EventInterface } from './Event';
 import LineItem from './LineItem';
+import { useDeleteEvent } from '../hooks/useApi';
 
 export default function EventDetailsModal({ show, event, lineItemsForEvent, onHide }:
   { show: boolean, event: EventInterface, lineItemsForEvent: LineItemInterface[], onHide: () => void }) {
 
+  const deleteEventMutation = useDeleteEvent();
 
   const deleteEvent = () => {
-    axiosInstance.delete(`api/events/${event.id}`)
-      .then(() => {
+    deleteEventMutation.mutate(event.id, {
+      onSuccess: () => {
         showSuccessToast(event.name, "Deleted Event");
         onHide();
-      })
-      .catch(showErrorToast);
+      },
+      onError: (error) => {
+        showErrorToast(error);
+      }
+    });
   }
 
   return (

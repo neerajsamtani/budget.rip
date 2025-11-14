@@ -3,22 +3,24 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Elements } from "@stripe/react-stripe-js";
 import { FinancialConnectionsSession } from "@stripe/stripe-js/types/api";
 import { Stripe } from "@stripe/stripe-js/types/stripe-js";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { toast } from "sonner";
 import FinancialConnectionsForm from "../components/FinancialConnectionsForm";
 import { PageContainer, PageHeader } from "../components/ui/layout";
 import { StatusBadge } from "../components/ui/status-badge";
 import { Body, H1, H4 } from "../components/ui/typography";
-import axiosInstance from "../utils/axiosInstance";
 import { CurrencyFormatter, DateFormatter } from "../utils/formatters";
-import { showErrorToast } from "../utils/toast-helpers";
+import { useConnectedAccounts, useAccountsAndBalances, useCreateFinancialConnectionsSession, useSubscribeToAccount, useRelinkAccount } from "../hooks/useApi";
 
 export default function ConnectedAccountsPage({ stripePromise }: { stripePromise: Promise<Stripe | null> }) {
-
-    const [connectedAccounts, setConnectedAccounts] = useState([])
-    const [accountsAndBalances, setAccountsAndBalances] = useState({})
     const [clientSecret, setClientSecret] = useState("");
     const [stripeAccounts, setStripeAccounts] = useState<FinancialConnectionsSession.Account[]>([])
+
+    const { data: connectedAccounts = [] } = useConnectedAccounts()
+    const { data: accountsAndBalances = {} } = useAccountsAndBalances()
+    const createSessionMutation = useCreateFinancialConnectionsSession()
+    const subscribeToAccountMutation = useSubscribeToAccount()
+    const relinkAccountMutation = useRelinkAccount()
 
     const formatDate = (unixTime: number) => DateFormatter.format(new Date(unixTime * 1000))
 
@@ -30,49 +32,53 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
         }
     })
 
-
-    useEffect(() => {
-        axiosInstance.get(`api/connected_accounts`)
-            .then(response => {
-                setConnectedAccounts(response.data)
-            })
-            .catch(showErrorToast);
-        axiosInstance.get(`api/accounts_and_balances`)
-            .then(response => {
-                setAccountsAndBalances(response.data)
-            })
-            .catch(showErrorToast);
-    }, [])
-
     const createSession = () => {
-        axiosInstance.post(`api/create-fc-session`)
-            .then(response => setClientSecret(response.data.clientSecret))
-            .catch(showErrorToast);
+        createSessionMutation.mutate(undefined, {
+            onSuccess: (secret) => setClientSecret(secret),
+            onError: (error: Error) => {
+                toast.error("Error", {
+                    description: error.message || "Failed to create session",
+                    duration: 3500,
+                });
+            }
+        })
     }
 
     const subscribeToAccounts = () => {
         if (stripeAccounts) {
             for (const account of stripeAccounts) {
-                axiosInstance.get(`api/subscribe_to_account/${account.id}`)
-                    .then(() => toast.info("Notification", {
+                subscribeToAccountMutation.mutate(account.id, {
+                    onSuccess: () => toast.info("Notification", {
                         description: `Subscribed to the account ${account.id}`,
                         duration: 3500,
-                    }))
-                    .catch(showErrorToast);
+                    }),
+                    onError: (error: Error) => {
+                        toast.error("Error", {
+                            description: error.message || `Failed to subscribe to account ${account.id}`,
+                            duration: 3500,
+                        });
+                    }
+                })
             }
         }
         setClientSecret("")
         setStripeAccounts([])
         toast.info("Notification", {
-            description: "Subscribing to the accounts provided. Please refresh the page.",
+            description: "Subscribing to the accounts provided. Data will refresh automatically.",
             duration: 3500,
         });
     }
 
-    const relinkAccount = (accountId) => {
-        axiosInstance.get(`api/relink_account/${accountId}`)
-            .then(response => setClientSecret(response.data.clientSecret))
-            .catch(showErrorToast);
+    const relinkAccount = (accountId: string) => {
+        relinkAccountMutation.mutate(accountId, {
+            onSuccess: (secret) => setClientSecret(secret),
+            onError: (error: Error) => {
+                toast.error("Error", {
+                    description: error.message || "Failed to relink account",
+                    duration: 3500,
+                });
+            }
+        })
     }
 
     const appearance = {

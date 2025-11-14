@@ -1,29 +1,15 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import LineItem from "../components/LineItem";
 import PaymentMethodFilter from "../components/PaymentMethodFilter";
 import { PageContainer, PageHeader } from "../components/ui/layout";
 import { Body, H1 } from "../components/ui/typography";
-import { LineItemInterface } from "../contexts/LineItemsContext";
-import axiosInstance from "../utils/axiosInstance";
-import { showErrorToast } from "../utils/toast-helpers";
+import { useLineItems } from "../hooks/useApi";
 
 export default function LineItemsPage() {
-
-    const [lineItems, setLineItems] = useState<LineItemInterface[]>([]);
     const [paymentMethod, setPaymentMethod] = useState("All")
 
-    useEffect(() => {
-        axiosInstance.get(`api/line_items`, {
-            params: {
-                "payment_method": paymentMethod,
-            }
-        })
-            .then(response => {
-                setLineItems(response.data.data)
-            })
-            .catch(showErrorToast);
-    }, [paymentMethod])
+    const { data: lineItems = [], isLoading, error } = useLineItems({ paymentMethod })
 
     return (
         <PageContainer>
@@ -50,7 +36,19 @@ export default function LineItemsPage() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {lineItems.length > 0 ? (
+                        {isLoading ? (
+                            <TableRow>
+                                <TableCell colSpan={5} className="text-center text-muted-foreground">
+                                    Loading line items...
+                                </TableCell>
+                            </TableRow>
+                        ) : error ? (
+                            <TableRow>
+                                <TableCell colSpan={5} className="text-center text-destructive">
+                                    Error loading line items. Please try again.
+                                </TableCell>
+                            </TableRow>
+                        ) : lineItems.length > 0 ? (
                             lineItems.map(lineItem => (
                                 <LineItem key={lineItem.id} lineItem={lineItem} />
                             ))

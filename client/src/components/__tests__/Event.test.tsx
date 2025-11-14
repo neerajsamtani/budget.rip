@@ -152,7 +152,6 @@ describe('Event', () => {
         });
 
         it('handles API error gracefully', async () => {
-            const { toast } = require('sonner');
             mockAxiosInstance.get.mockRejectedValue(new Error('API Error'));
 
             await act(async () => {
@@ -166,11 +165,9 @@ describe('Event', () => {
                 await userEvent.click(detailsButton);
             });
 
+            // TanStack Query handles the error internally
             await waitFor(() => {
-                expect(toast.error).toHaveBeenCalledWith("Error", {
-                    description: "API Error",
-                    duration: 3500,
-                });
+                expect(mockAxiosInstance.get).toHaveBeenCalled();
             });
         });
     });

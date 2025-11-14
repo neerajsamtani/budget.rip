@@ -24,7 +24,18 @@ jest.mock('./utils/axiosInstance', () => {
 import { render } from '@testing-library/react';
 import React from 'react';
 import App from './App';
-import { fireEvent, screen, waitFor } from './utils/test-utils';
+import { fireEvent, screen, waitFor, createTestQueryClient } from './utils/test-utils';
+import { QueryClientProvider } from '@tanstack/react-query';
+
+// Wrapper for rendering App component with QueryClientProvider
+const renderApp = () => {
+    const queryClient = createTestQueryClient();
+    return render(
+        <QueryClientProvider client={queryClient}>
+            <App />
+        </QueryClientProvider>
+    );
+};
 
 // Use whatwg-url for a proper URL polyfill in jsdom/react-router tests
 if (typeof global.URL === 'undefined' || typeof global.URL.prototype === 'undefined') {
@@ -113,7 +124,7 @@ describe('App', () => {
 
     describe('Rendering', () => {
         it('renders navbar with brand and navigation links', () => {
-            render(<App />);
+            renderApp();
 
             expect(screen.getByText('Budgit')).toBeInTheDocument();
             expect(screen.getByRole('link', { name: /review/i })).toBeInTheDocument();
@@ -125,13 +136,13 @@ describe('App', () => {
         });
 
         it('renders refresh data button', () => {
-            render(<App />);
+            renderApp();
 
             expect(screen.getByRole('button', { name: /refresh data/i })).toBeInTheDocument();
         });
 
         it('renders LineItemsToReviewPage as default route', () => {
-            render(<App />);
+            renderApp();
 
             // The default route should show the review page
             // We can verify this by checking if the navbar is present and the button is there
@@ -139,7 +150,7 @@ describe('App', () => {
         });
 
         it('renders toaster with close button enabled', () => {
-            render(<App />);
+            renderApp();
 
             const toaster = screen.getByTestId('toaster');
             expect(toaster).toBeInTheDocument();
@@ -157,7 +168,7 @@ describe('App', () => {
 
     describe('Navigation Links', () => {
         it('has all required navigation links', () => {
-            render(<App />);
+            renderApp();
 
             // Test that all navigation links are present and accessible
             expect(screen.getByRole('link', { name: /review/i })).toBeInTheDocument();
@@ -171,13 +182,21 @@ describe('App', () => {
 
     describe('Refresh Data Functionality', () => {
         it('shows loading spinner when refresh button is clicked', async () => {
-            render(<App />);
+            const mockAxiosInstance = require('./utils/axiosInstance').default;
+            // Create a promise that resolves after a delay to keep spinner visible
+            mockAxiosInstance.post.mockImplementation(() =>
+                new Promise(resolve => setTimeout(() => resolve({ data: { data: [] } }), 100))
+            );
+
+            renderApp();
 
             const refreshButton = screen.getByRole('button', { name: /refresh data/i });
             fireEvent.click(refreshButton);
 
             // Should show spinner - use querySelector since it has aria-hidden="true"
-            expect(document.querySelector('.animate-spin')).toBeInTheDocument();
+            await waitFor(() => {
+                expect(document.querySelector('.animate-spin')).toBeInTheDocument();
+            });
         });
 
         it('calls API and updates line items on successful refresh', async () => {
@@ -194,15 +213,15 @@ describe('App', () => {
             ];
 
             const mockAxiosInstance = require('./utils/axiosInstance').default;
-            mockAxiosInstance.get.mockResolvedValueOnce({ data: { data: mockLineItems } });
+            mockAxiosInstance.post.mockResolvedValueOnce({ data: { data: mockLineItems } });
 
-            render(<App />);
+            renderApp();
 
             const refreshButton = screen.getByRole('button', { name: /refresh data/i });
             fireEvent.click(refreshButton);
 
             await waitFor(() => {
-                expect(mockAxiosInstance.get).toHaveBeenCalledWith(
+                expect(mockAxiosInstance.post).toHaveBeenCalledWith(
                     expect.stringContaining('api/refresh/all')
                 );
             });
@@ -216,9 +235,9 @@ describe('App', () => {
         it('shows toast notification after successful refresh', async () => {
             const mockAxiosInstance = require('./utils/axiosInstance').default;
             const { toast } = require('sonner');
-            mockAxiosInstance.get.mockResolvedValueOnce({ data: { data: [] } });
+            mockAxiosInstance.post.mockResolvedValueOnce({ data: { data: [] } });
 
-            render(<App />);
+            renderApp();
 
             const refreshButton = screen.getByRole('button', { name: /refresh data/i });
             fireEvent.click(refreshButton);
@@ -233,15 +252,19 @@ describe('App', () => {
 
         it('hides loading spinner after successful refresh', async () => {
             const mockAxiosInstance = require('./utils/axiosInstance').default;
-            mockAxiosInstance.get.mockResolvedValueOnce({ data: { data: [] } });
+            mockAxiosInstance.post.mockImplementation(() =>
+                new Promise(resolve => setTimeout(() => resolve({ data: { data: [] } }), 50))
+            );
 
-            render(<App />);
+            renderApp();
 
             const refreshButton = screen.getByRole('button', { name: /refresh data/i });
             fireEvent.click(refreshButton);
 
             // Should show spinner initially
-            expect(document.querySelector('.animate-spin')).toBeInTheDocument();
+            await waitFor(() => {
+                expect(document.querySelector('.animate-spin')).toBeInTheDocument();
+            });
 
             // Should hide spinner after successful refresh
             await waitFor(() => {
@@ -251,9 +274,9 @@ describe('App', () => {
 
         it('handles API error gracefully', async () => {
             const mockAxiosInstance = require('./utils/axiosInstance').default;
-            mockAxiosInstance.get.mockRejectedValueOnce(new Error('API Error'));
+            mockAxiosInstance.post.mockRejectedValueOnce(new Error('API Error'));
 
-            render(<App />);
+            renderApp();
 
             const refreshButton = screen.getByRole('button', { name: /refresh data/i });
             fireEvent.click(refreshButton);
@@ -266,15 +289,19 @@ describe('App', () => {
 
         it('hides loading spinner after API error', async () => {
             const mockAxiosInstance = require('./utils/axiosInstance').default;
-            mockAxiosInstance.get.mockRejectedValueOnce(new Error('API Error'));
+            mockAxiosInstance.post.mockImplementation(() =>
+                new Promise((_, reject) => setTimeout(() => reject(new Error('API Error')), 50))
+            );
 
-            render(<App />);
+            renderApp();
 
             const refreshButton = screen.getByRole('button', { name: /refresh data/i });
             fireEvent.click(refreshButton);
 
             // Should show spinner initially
-            expect(document.querySelector('.animate-spin')).toBeInTheDocument();
+            await waitFor(() => {
+                expect(document.querySelector('.animate-spin')).toBeInTheDocument();
+            });
 
             // Should hide spinner after error
             await waitFor(() => {
@@ -285,14 +312,14 @@ describe('App', () => {
 
     describe('Environment Variables', () => {
         it('uses correct API endpoint from environment', () => {
-            render(<App />);
+            renderApp();
 
             // The API endpoint should be used in the axios calls
             expect(process.env.VITE_API_ENDPOINT).toBe('http://localhost:5000/');
         });
 
         it('uses correct Stripe public key from environment', () => {
-            render(<App />);
+            renderApp();
 
             // The Stripe key should be available
             expect(process.env.VITE_STRIPE_PUBLIC_KEY).toBe('test_stripe_key');
@@ -301,18 +328,18 @@ describe('App', () => {
 
     describe('Accessibility', () => {
         it('has proper navbar structure', () => {
-            render(<App />);
+            renderApp();
             expect(screen.getByText('Budgit')).toBeInTheDocument();
             expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
         });
 
         it('has proper button labels', () => {
-            render(<App />);
+            renderApp();
             expect(screen.getByRole('button', { name: /refresh data/i })).toBeInTheDocument();
         });
 
         it('has proper link labels', () => {
-            render(<App />);
+            renderApp();
             expect(screen.getByRole('link', { name: /review/i })).toBeInTheDocument();
             expect(screen.getByRole('link', { name: /events/i })).toBeInTheDocument();
             expect(screen.getByRole('link', { name: /line items/i })).toBeInTheDocument();
@@ -322,20 +349,27 @@ describe('App', () => {
         });
 
         it('has proper spinner accessibility attributes', async () => {
-            render(<App />);
+            const mockAxiosInstance = require('./utils/axiosInstance').default;
+            mockAxiosInstance.post.mockImplementation(() =>
+                new Promise(resolve => setTimeout(() => resolve({ data: { data: [] } }), 100))
+            );
+
+            renderApp();
 
             const refreshButton = screen.getByRole('button', { name: /refresh data/i });
             fireEvent.click(refreshButton);
 
             // Look for spinner by class using querySelector since it has aria-hidden="true"
-            const spinner = document.querySelector('.animate-spin');
-            expect(spinner).toBeInTheDocument();
+            await waitFor(() => {
+                const spinner = document.querySelector('.animate-spin');
+                expect(spinner).toBeInTheDocument();
+            });
         });
     });
 
     describe('State Management', () => {
         it('initializes with correct default state', () => {
-            render(<App />);
+            renderApp();
 
             // Should start with no loading state
             expect(document.querySelector('.animate-spin')).not.toBeInTheDocument();
@@ -343,7 +377,12 @@ describe('App', () => {
         });
 
         it('updates loading state correctly', async () => {
-            render(<App />);
+            const mockAxiosInstance = require('./utils/axiosInstance').default;
+            mockAxiosInstance.post.mockImplementation(() =>
+                new Promise(resolve => setTimeout(() => resolve({ data: { data: [] } }), 50))
+            );
+
+            renderApp();
 
             const refreshButton = screen.getByRole('button', { name: /refresh data/i });
 
@@ -352,7 +391,10 @@ describe('App', () => {
 
             // Click to start loading
             fireEvent.click(refreshButton);
-            expect(document.querySelector('.animate-spin')).toBeInTheDocument();
+
+            await waitFor(() => {
+                expect(document.querySelector('.animate-spin')).toBeInTheDocument();
+            });
 
             // Wait for loading to complete
             await waitFor(() => {
@@ -363,9 +405,9 @@ describe('App', () => {
         it('calls toast correctly', async () => {
             const mockAxiosInstance = require('./utils/axiosInstance').default;
             const { toast } = require('sonner');
-            mockAxiosInstance.get.mockResolvedValueOnce({ data: { data: [] } });
+            mockAxiosInstance.post.mockResolvedValueOnce({ data: { data: [] } });
 
-            render(<App />);
+            renderApp();
 
             const refreshButton = screen.getByRole('button', { name: /refresh data/i });
             fireEvent.click(refreshButton);
@@ -385,17 +427,17 @@ describe('App', () => {
         it('calls error toast on error', async () => {
             const mockAxiosInstance = require('./utils/axiosInstance').default;
             const { toast } = require('sonner');
-            mockAxiosInstance.get.mockRejectedValueOnce(new Error('API Error'));
+            mockAxiosInstance.post.mockRejectedValueOnce(new Error('API Error'));
 
-            render(<App />);
+            renderApp();
 
             const refreshButton = screen.getByRole('button', { name: /refresh data/i });
             fireEvent.click(refreshButton);
 
             // Should call error toast on error
             await waitFor(() => {
-                expect(toast.error).toHaveBeenCalledWith('Notification', {
-                    description: 'Error refreshing data',
+                expect(toast.error).toHaveBeenCalledWith('Error', {
+                    description: 'API Error',
                     duration: 3500,
                 });
             });

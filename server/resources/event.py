@@ -65,6 +65,12 @@ def post_event_api() -> tuple[Response, int]:
     Create An Event (with dual-write to PostgreSQL)
     """
     new_event: Dict[str, Any] = request.get_json()
+
+    # Validate required fields
+    if "line_items" not in new_event:
+        logging.warning("Event creation attempt without line_items field")
+        return jsonify({"error": "Missing required field: line_items"}), 400
+
     if len(new_event["line_items"]) == 0:
         logging.warning("Event creation attempt with no line items")
         return jsonify("Failed to Create Event: No Line Items Submitted"), 400
@@ -75,12 +81,12 @@ def post_event_api() -> tuple[Response, int]:
     earliest_line_item: Dict[str, Any] = min(line_items, key=lambda line_item: line_item["date"])
 
     new_event["id"] = f"event{earliest_line_item['id'][9:]}"
-    if new_event["date"]:
+    if new_event.get("date"):
         new_event["date"] = html_date_to_posix(new_event["date"])
     else:
         new_event["date"] = earliest_line_item["date"]
 
-    if new_event["is_duplicate_transaction"]:
+    if new_event.get("is_duplicate_transaction"):
         new_event["amount"] = line_items[0]["amount"]
     else:
         new_event["amount"] = sum(line_item["amount"] for line_item in line_items)
