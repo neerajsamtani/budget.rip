@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional
 
 from bson import ObjectId
 from dotenv import load_dotenv
-from flask import Flask, Response, jsonify
+from flask import Flask, Response, jsonify, request
 from flask_bcrypt import Bcrypt
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager, jwt_required
@@ -32,7 +32,12 @@ from resources.splitwise import (
     splitwise_blueprint,
     splitwise_to_line_items,
 )
-from resources.stripe import refresh_stripe, stripe_blueprint, stripe_to_line_items
+from resources.stripe import (
+    refresh_stripe,
+    refresh_transactions_api,
+    stripe_blueprint,
+    stripe_to_line_items,
+)
 from resources.venmo import refresh_venmo, venmo_blueprint, venmo_to_line_items
 
 # Flask constructor takes the name of
@@ -121,6 +126,43 @@ def refresh_all_api() -> tuple[Response, int]:
     create_consistent_line_items()
     line_items: List[Dict[str, Any]] = all_line_items(only_line_items_to_review=True)
     return jsonify({"data": line_items}), 200
+
+
+@application.route("/api/refresh/account", methods=["POST"])
+@jwt_required()
+def refresh_single_account_api() -> tuple[Response, int]:
+    """
+    Refresh data for a single connected account.
+
+    For Stripe accounts: refreshes transactions for the specific account.
+    For Venmo/Splitwise: refreshes all data (user-level integrations).
+    """
+    try:
+        data = request.get_json()
+        account_id = data.get("accountId")
+        source = data.get("source")
+
+        if not account_id or not source:
+            return jsonify({"error": "accountId and source are required"}), 400
+
+        if source == "stripe":
+            refresh_transactions_api(account_id)
+            stripe_to_line_items()
+        elif source == "venmo":
+            refresh_venmo()
+            venmo_to_line_items()
+        elif source == "splitwise":
+            refresh_splitwise()
+            splitwise_to_line_items()
+        else:
+            return jsonify({"error": f"Invalid source: {source}"}), 400
+
+        add_event_ids_to_line_items()
+        return jsonify({"message": "success"}), 200
+
+    except Exception as e:
+        logging.error(f"Error refreshing account {account_id}: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 
 @application.route("/api/connected_accounts", methods=["GET"])

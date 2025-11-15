@@ -31,6 +31,7 @@ const mockConnectedAccounts = [
                 display_name: 'Checking',
                 last4: '1234',
                 _id: 'stripe-1',
+                id: 'stripe-1',
                 status: 'active',
             },
             {
@@ -38,6 +39,7 @@ const mockConnectedAccounts = [
                 display_name: 'Savings',
                 last4: '5678',
                 _id: 'stripe-2',
+                id: 'stripe-2',
                 status: 'inactive',
             },
         ],
@@ -159,6 +161,121 @@ describe('ConnectedAccountsPage', () => {
                     expect.stringContaining('relink_account')
                 );
             });
+        });
+
+        it('refreshes a stripe account when refresh button is clicked', async () => {
+            const { toast } = require('sonner');
+            render(<ConnectedAccountsPage stripePromise={mockStripePromise} />);
+
+            await waitFor(() => {
+                expect(screen.getByText(/Bank Checking 1234/)).toBeInTheDocument();
+            });
+
+            const refreshButtons = screen.getAllByRole('button');
+            const stripeRefreshBtn = refreshButtons.find(btn =>
+                btn.querySelector('svg') &&
+                btn.closest('tr')?.textContent?.includes('Bank Checking 1234')
+            );
+
+            expect(stripeRefreshBtn).toBeDefined();
+            fireEvent.click(stripeRefreshBtn!);
+
+            await waitFor(() => {
+                expect(mockAxiosInstance.post).toHaveBeenCalledWith(
+                    expect.stringContaining('refresh/account'),
+                    expect.objectContaining({
+                        accountId: 'stripe-1',
+                        source: 'stripe'
+                    })
+                );
+            });
+
+            await waitFor(() => {
+                expect(toast.success).toHaveBeenCalledWith(
+                    'Success',
+                    expect.objectContaining({
+                        description: 'Account data refreshed successfully'
+                    })
+                );
+            });
+        });
+
+        it('refreshes a venmo account when refresh button is clicked', async () => {
+            const { toast } = require('sonner');
+            render(<ConnectedAccountsPage stripePromise={mockStripePromise} />);
+
+            await waitFor(() => {
+                expect(screen.getByText(/Venmo - user1/)).toBeInTheDocument();
+            });
+
+            const refreshButtons = screen.getAllByRole('button');
+            const venmoRefreshBtn = refreshButtons.find(btn =>
+                btn.querySelector('svg') &&
+                btn.closest('tr')?.textContent?.includes('Venmo - user1')
+            );
+
+            expect(venmoRefreshBtn).toBeDefined();
+            fireEvent.click(venmoRefreshBtn!);
+
+            await waitFor(() => {
+                expect(mockAxiosInstance.post).toHaveBeenCalledWith(
+                    expect.stringContaining('refresh/account'),
+                    expect.objectContaining({
+                        accountId: 'venmo-user1',
+                        source: 'venmo'
+                    })
+                );
+            });
+        });
+
+        it('shows error toast when refresh fails', async () => {
+            const { toast } = require('sonner');
+            mockAxiosInstance.post.mockImplementation((url: string) => {
+                if (url.includes('refresh/account')) {
+                    return Promise.reject(new Error('Refresh failed'));
+                }
+                return Promise.resolve({ data: { clientSecret: 'secret' } });
+            });
+
+            render(<ConnectedAccountsPage stripePromise={mockStripePromise} />);
+
+            await waitFor(() => {
+                expect(screen.getByText(/Bank Checking 1234/)).toBeInTheDocument();
+            });
+
+            const refreshButtons = screen.getAllByRole('button');
+            const stripeRefreshBtn = refreshButtons.find(btn =>
+                btn.querySelector('svg') &&
+                btn.closest('tr')?.textContent?.includes('Bank Checking 1234')
+            );
+
+            fireEvent.click(stripeRefreshBtn!);
+
+            await waitFor(() => {
+                expect(toast.error).toHaveBeenCalledWith(
+                    'Error',
+                    expect.objectContaining({
+                        description: 'Refresh failed'
+                    })
+                );
+            });
+        });
+
+        it('disables refresh button for inactive stripe accounts', async () => {
+            render(<ConnectedAccountsPage stripePromise={mockStripePromise} />);
+
+            await waitFor(() => {
+                expect(screen.getByText(/Bank Savings 5678/)).toBeInTheDocument();
+            });
+
+            const refreshButtons = screen.getAllByRole('button');
+            const inactiveAccountRefreshBtn = refreshButtons.find(btn =>
+                btn.querySelector('svg') &&
+                btn.closest('tr')?.textContent?.includes('Bank Savings 5678')
+            );
+
+            expect(inactiveAccountRefreshBtn).toBeDefined();
+            expect(inactiveAccountRefreshBtn).toBeDisabled();
         });
     });
 
