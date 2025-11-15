@@ -116,6 +116,103 @@ class TestApplicationRoutes:
         response = test_client.get("/api/refresh/all")
         assert response.status_code == 401
 
+    def test_refresh_single_account_stripe_success(self, test_client, jwt_token, mocker):
+        """Test POST /api/refresh/account endpoint - Stripe account success"""
+        mock_refresh_transactions = mocker.patch("application.refresh_transactions_api")
+        mock_stripe_to_line_items = mocker.patch("application.stripe_to_line_items")
+        mock_add_event_ids = mocker.patch("application.add_event_ids_to_line_items")
+
+        response = test_client.post(
+            "/api/refresh/account",
+            json={"accountId": "fca_test123", "source": "stripe"},
+            headers={"Authorization": "Bearer " + jwt_token},
+        )
+
+        assert response.status_code == 200
+        assert response.get_json()["message"] == "success"
+        mock_refresh_transactions.assert_called_once_with("fca_test123")
+        mock_stripe_to_line_items.assert_called_once()
+        mock_add_event_ids.assert_called_once()
+
+    def test_refresh_single_account_venmo_success(self, test_client, jwt_token, mocker):
+        """Test POST /api/refresh/account endpoint - Venmo account success"""
+        mock_refresh_venmo = mocker.patch("application.refresh_venmo")
+        mock_venmo_to_line_items = mocker.patch("application.venmo_to_line_items")
+        mock_add_event_ids = mocker.patch("application.add_event_ids_to_line_items")
+
+        response = test_client.post(
+            "/api/refresh/account",
+            json={"accountId": "venmo-testuser", "source": "venmo"},
+            headers={"Authorization": "Bearer " + jwt_token},
+        )
+
+        assert response.status_code == 200
+        assert response.get_json()["message"] == "success"
+        mock_refresh_venmo.assert_called_once()
+        mock_venmo_to_line_items.assert_called_once()
+        mock_add_event_ids.assert_called_once()
+
+    def test_refresh_single_account_splitwise_success(self, test_client, jwt_token, mocker):
+        """Test POST /api/refresh/account endpoint - Splitwise account success"""
+        mock_refresh_splitwise = mocker.patch("application.refresh_splitwise")
+        mock_splitwise_to_line_items = mocker.patch("application.splitwise_to_line_items")
+        mock_add_event_ids = mocker.patch("application.add_event_ids_to_line_items")
+
+        response = test_client.post(
+            "/api/refresh/account",
+            json={"accountId": "splitwise-testuser", "source": "splitwise"},
+            headers={"Authorization": "Bearer " + jwt_token},
+        )
+
+        assert response.status_code == 200
+        assert response.get_json()["message"] == "success"
+        mock_refresh_splitwise.assert_called_once()
+        mock_splitwise_to_line_items.assert_called_once()
+        mock_add_event_ids.assert_called_once()
+
+    def test_refresh_single_account_missing_params(self, test_client, jwt_token):
+        """Test POST /api/refresh/account endpoint - missing parameters"""
+        response = test_client.post(
+            "/api/refresh/account",
+            json={"accountId": "fca_test123"},
+            headers={"Authorization": "Bearer " + jwt_token},
+        )
+
+        assert response.status_code == 400
+        assert "accountId and source are required" in response.get_json()["error"]
+
+    def test_refresh_single_account_invalid_source(self, test_client, jwt_token):
+        """Test POST /api/refresh/account endpoint - invalid source"""
+        response = test_client.post(
+            "/api/refresh/account",
+            json={"accountId": "test123", "source": "invalid"},
+            headers={"Authorization": "Bearer " + jwt_token},
+        )
+
+        assert response.status_code == 400
+        assert "Invalid source" in response.get_json()["error"]
+
+    def test_refresh_single_account_error(self, test_client, jwt_token, mocker):
+        """Test POST /api/refresh/account endpoint - error during refresh"""
+        mocker.patch("application.refresh_transactions_api", side_effect=Exception("Test error"))
+
+        response = test_client.post(
+            "/api/refresh/account",
+            json={"accountId": "fca_test123", "source": "stripe"},
+            headers={"Authorization": "Bearer " + jwt_token},
+        )
+
+        assert response.status_code == 500
+        assert "Test error" in response.get_json()["error"]
+
+    def test_refresh_single_account_unauthorized(self, test_client):
+        """Test POST /api/refresh/account endpoint - unauthorized"""
+        response = test_client.post(
+            "/api/refresh/account",
+            json={"accountId": "fca_test123", "source": "stripe"},
+        )
+        assert response.status_code == 401
+
     def test_get_connected_accounts_api_success(
         self,
         test_client,

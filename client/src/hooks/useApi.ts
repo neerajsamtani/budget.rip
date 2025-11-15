@@ -204,6 +204,28 @@ export function useRefreshAllData(): UseMutationResult<LineItemInterface[], Erro
   });
 }
 
+interface RefreshAccountData {
+  accountId: string;
+  source: 'stripe' | 'venmo' | 'splitwise';
+}
+
+export function useRefreshAccount(): UseMutationResult<void, Error, RefreshAccountData> {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ accountId, source }: RefreshAccountData) => {
+      await axiosInstance.post('api/refresh/account', { accountId, source });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['connectedAccounts'] });
+      queryClient.invalidateQueries({ queryKey: ['accountsAndBalances'] });
+      queryClient.invalidateQueries({ queryKey: ['events'] });
+      queryClient.invalidateQueries({ queryKey: ['lineItems'] });
+      queryClient.invalidateQueries({ queryKey: ['monthlyBreakdown'] });
+    },
+  });
+}
+
 export function useSubscribeToAccount(): UseMutationResult<void, Error, string> {
   const queryClient = useQueryClient();
 

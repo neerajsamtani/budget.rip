@@ -160,6 +160,7 @@ def flask_app():
             get_payment_methods_api,
             index_api,
             refresh_all_api,
+            refresh_single_account_api,
             schedule_refresh_api,
         )
 
@@ -171,6 +172,12 @@ def flask_app():
             methods=["GET"],
         )
         app.add_url_rule("/api/refresh/all", "refresh_all_api", refresh_all_api, methods=["GET"])
+        app.add_url_rule(
+            "/api/refresh/account",
+            "refresh_single_account_api",
+            refresh_single_account_api,
+            methods=["POST"],
+        )
         app.add_url_rule(
             "/api/connected_accounts",
             "get_connected_accounts_api",

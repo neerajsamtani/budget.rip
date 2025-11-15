@@ -5,22 +5,25 @@ import { FinancialConnectionsSession } from "@stripe/stripe-js/types/api";
 import { Stripe } from "@stripe/stripe-js/types/stripe-js";
 import React, { useState } from "react";
 import { toast } from "sonner";
+import { RefreshCw } from "lucide-react";
 import FinancialConnectionsForm from "../components/FinancialConnectionsForm";
 import { PageContainer, PageHeader } from "../components/ui/layout";
 import { StatusBadge } from "../components/ui/status-badge";
 import { Body, H1, H4 } from "../components/ui/typography";
 import { CurrencyFormatter, DateFormatter } from "../utils/formatters";
-import { useConnectedAccounts, useAccountsAndBalances, useCreateFinancialConnectionsSession, useSubscribeToAccount, useRelinkAccount } from "../hooks/useApi";
+import { useConnectedAccounts, useAccountsAndBalances, useCreateFinancialConnectionsSession, useSubscribeToAccount, useRelinkAccount, useRefreshAccount } from "../hooks/useApi";
 
 export default function ConnectedAccountsPage({ stripePromise }: { stripePromise: Promise<Stripe | null> }) {
     const [clientSecret, setClientSecret] = useState("");
     const [stripeAccounts, setStripeAccounts] = useState<FinancialConnectionsSession.Account[]>([])
+    const [refreshingAccountId, setRefreshingAccountId] = useState<string | null>(null)
 
     const { data: connectedAccounts = [] } = useConnectedAccounts()
     const { data: accountsAndBalances = {} } = useAccountsAndBalances()
     const createSessionMutation = useCreateFinancialConnectionsSession()
     const subscribeToAccountMutation = useSubscribeToAccount()
     const relinkAccountMutation = useRelinkAccount()
+    const refreshAccountMutation = useRefreshAccount()
 
     const formatDate = (unixTime: number) => DateFormatter.format(new Date(unixTime * 1000))
 
@@ -81,6 +84,26 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
         })
     }
 
+    const refreshAccount = (accountId: string, source: 'stripe' | 'venmo' | 'splitwise') => {
+        setRefreshingAccountId(accountId)
+        refreshAccountMutation.mutate({ accountId, source }, {
+            onSuccess: () => {
+                toast.success("Success", {
+                    description: "Account data refreshed successfully",
+                    duration: 3500,
+                });
+                setRefreshingAccountId(null)
+            },
+            onError: (error: Error) => {
+                toast.error("Error", {
+                    description: error.message || "Failed to refresh account",
+                    duration: 3500,
+                });
+                setRefreshingAccountId(null)
+            }
+        })
+    }
+
     const appearance = {
         theme: 'stripe' as const,
     };
@@ -92,26 +115,52 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
     const renderConnectedAccount = (connectedAccount) => {
         // Handle Venmo data (array)
         if (connectedAccount.venmo) {
-            return connectedAccount.venmo.map((venmoUser, index) => (
-                <TableRow key={`venmo-${venmoUser}-${index}`}>
-                    <TableCell>Venmo - {venmoUser}</TableCell>
-                    <TableCell></TableCell>
-                    <TableCell></TableCell>
-                    <TableCell></TableCell>
-                </TableRow>
-            ));
+            return connectedAccount.venmo.map((venmoUser, index) => {
+                const accountKey = `venmo-${venmoUser}`;
+                return (
+                    <TableRow key={`${accountKey}-${index}`}>
+                        <TableCell>Venmo - {venmoUser}</TableCell>
+                        <TableCell></TableCell>
+                        <TableCell></TableCell>
+                        <TableCell></TableCell>
+                        <TableCell>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => refreshAccount(accountKey, 'venmo')}
+                                disabled={refreshingAccountId === accountKey}
+                            >
+                                <RefreshCw className={`h-4 w-4 ${refreshingAccountId === accountKey ? 'animate-spin' : ''}`} />
+                            </Button>
+                        </TableCell>
+                    </TableRow>
+                );
+            });
         }
 
         // Handle Splitwise data (array)
         if (connectedAccount.splitwise) {
-            return connectedAccount.splitwise.map((splitwiseUser, index) => (
-                <TableRow key={`splitwise-${splitwiseUser}-${index}`}>
-                    <TableCell>Splitwise - {splitwiseUser}</TableCell>
-                    <TableCell></TableCell>
-                    <TableCell></TableCell>
-                    <TableCell></TableCell>
-                </TableRow>
-            ));
+            return connectedAccount.splitwise.map((splitwiseUser, index) => {
+                const accountKey = `splitwise-${splitwiseUser}`;
+                return (
+                    <TableRow key={`${accountKey}-${index}`}>
+                        <TableCell>Splitwise - {splitwiseUser}</TableCell>
+                        <TableCell></TableCell>
+                        <TableCell></TableCell>
+                        <TableCell></TableCell>
+                        <TableCell>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => refreshAccount(accountKey, 'splitwise')}
+                                disabled={refreshingAccountId === accountKey}
+                            >
+                                <RefreshCw className={`h-4 w-4 ${refreshingAccountId === accountKey ? 'animate-spin' : ''}`} />
+                            </Button>
+                        </TableCell>
+                    </TableRow>
+                );
+            });
         }
 
         // Handle Stripe data (array of objects)
@@ -132,6 +181,16 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
                             )}
                         </TableCell>
                         <TableCell>{accountsAndBalances[id] && formatDate(accountsAndBalances[id]["as_of"])}</TableCell>
+                        <TableCell>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => refreshAccount(id, 'stripe')}
+                                disabled={refreshingAccountId === id || status === 'inactive'}
+                            >
+                                <RefreshCw className={`h-4 w-4 ${refreshingAccountId === id ? 'animate-spin' : ''}`} />
+                            </Button>
+                        </TableCell>
                     </TableRow>
                 );
             });
@@ -204,6 +263,7 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
                                 <TableHead>Status</TableHead>
                                 <TableHead>Balance</TableHead>
                                 <TableHead>Last Updated</TableHead>
+                                <TableHead>Refresh</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -211,7 +271,7 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
                                 connectedAccounts.flatMap(renderConnectedAccount)
                             ) : (
                                 <TableRow>
-                                    <TableCell colSpan={4} className="text-center text-muted-foreground">
+                                    <TableCell colSpan={5} className="text-center text-muted-foreground">
                                         No connected accounts found
                                     </TableCell>
                                 </TableRow>

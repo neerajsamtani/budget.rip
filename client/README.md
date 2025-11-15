@@ -2,6 +2,14 @@
 
 A simple personal budgeting app.
 
+## Features
+
+### Connected Accounts
+- View all connected financial accounts (Stripe, Venmo, Splitwise)
+- Refresh individual accounts without refreshing all data
+- Real-time balance and status information
+- Reactivate inactive accounts
+
 ## Setting up the client
 
 1. Build the server
