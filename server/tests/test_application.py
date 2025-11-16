@@ -95,14 +95,14 @@ class TestApplicationRoutes:
         mock_create_consistent.assert_not_called()
 
     def test_refresh_all_api_success(self, test_client, jwt_token, mocker):
-        """Test GET /api/refresh/all endpoint - success case"""
+        """Test POST /api/refresh/all endpoint - success case"""
         mock_refresh_all = mocker.patch("application.refresh_all")
         mock_create_consistent = mocker.patch("application.create_consistent_line_items")
         mock_all_line_items = mocker.patch("application.all_line_items")
 
         mock_all_line_items.return_value = []
 
-        response = test_client.get(
+        response = test_client.post(
             "/api/refresh/all",
             headers={"Authorization": "Bearer " + jwt_token},
         )
@@ -112,8 +112,8 @@ class TestApplicationRoutes:
         mock_create_consistent.assert_called_once()
 
     def test_refresh_all_api_unauthorized(self, test_client):
-        """Test GET /api/refresh/all endpoint - unauthorized"""
-        response = test_client.get("/api/refresh/all")
+        """Test POST /api/refresh/all endpoint - unauthorized"""
+        response = test_client.post("/api/refresh/all")
         assert response.status_code == 401
 
     def test_refresh_single_account_stripe_success(self, test_client, jwt_token, mocker):

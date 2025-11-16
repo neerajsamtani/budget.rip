@@ -119,7 +119,7 @@ def schedule_refresh_api() -> tuple[Response, int]:
     return jsonify({"message": "success"}), 200
 
 
-@application.route("/api/refresh/all")
+@application.route("/api/refresh/all", methods=["POST"])
 @jwt_required()
 def refresh_all_api() -> tuple[Response, int]:
     refresh_all()

@@ -258,7 +258,7 @@ class TestStripeAPI:
             assert account_data["name"] == "Test Bank Checking Account 1234"
 
     def test_subscribe_to_account_api_success(self, test_client, jwt_token, flask_app, mocker):
-        """Test POST /api/subscribe-to-account endpoint - success case"""
+        """Test POST /api/subscribe_to_account endpoint - success case"""
         mocker.patch("resources.stripe.STRIPE_API_KEY", "test_api_key")
         mocker.patch("resources.stripe.STRIPE_CUSTOMER_ID", "test_customer_id")
 
@@ -270,9 +270,10 @@ class TestStripeAPI:
             mock_response.text = '{"transaction_refresh": {"status": "succeeded"}}'
             mock_post.return_value = mock_response
 
-            response = test_client.get(
-                "/api/subscribe_to_account/fca_test123",
+            response = test_client.post(
+                "/api/subscribe_to_account",
                 headers={"Authorization": "Bearer " + jwt_token},
+                json={"account_id": "fca_test123"},
             )
 
             assert response.status_code == 200
@@ -328,7 +329,7 @@ class TestStripeAPI:
             mock_session_response.json = {"client_secret": "fcsess_test123_secret"}
             mock_create_session.return_value = (mock_session_response, 200)
 
-            response = test_client.get(
+            response = test_client.post(
                 "/api/relink_account/fca_test123",
                 headers={"Authorization": "Bearer " + jwt_token},
             )
@@ -358,7 +359,7 @@ class TestStripeAPI:
             mock_auth_response.json.return_value = {"status_details": {"inactive": {"action": "other_action"}}}
             mock_get.return_value = mock_auth_response
 
-            response = test_client.get(
+            response = test_client.post(
                 "/api/relink_account/fca_test123",
                 headers={"Authorization": "Bearer " + jwt_token},
             )

@@ -148,10 +148,14 @@ def get_accounts_and_balances_api() -> tuple[Response, int]:
     return jsonify(accounts_and_balances), 200
 
 
-@stripe_blueprint.route("/api/subscribe_to_account/<account_id>")
+@stripe_blueprint.route("/api/subscribe_to_account", methods=["POST"])
 @jwt_required()
-def subscribe_to_account_api(account_id: str) -> tuple[Response, int]:
+def subscribe_to_account_api() -> tuple[Response, int]:
     try:
+        account_id: str = request.json.get("account_id")
+        if not account_id:
+            return jsonify({"error": "account_id is required"}), 400
+
         # Use requests since we cannot subscribe to an account with the Stripe Python client
         headers: Dict[str, str] = {
             "Stripe-Version": "2022-08-01; financial_connections_transactions_beta=v1",
@@ -187,7 +191,7 @@ def refresh_account_api(account_id: str) -> tuple[Response, int]:
         return jsonify(error=str(e)), 500
 
 
-@stripe_blueprint.route("/api/relink_account/<account_id>")
+@stripe_blueprint.route("/api/relink_account/<account_id>", methods=["POST"])
 @jwt_required()
 def relink_account_api(account_id: str) -> tuple[Response, int]:
     try:
