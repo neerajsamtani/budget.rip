@@ -119,22 +119,31 @@ def verify_payment_methods():
 
         mongo_count = len(unique_accounts)
         mongo_total = len(all_accounts)
-        pg_count = db.query(PaymentMethod).count()
+
+        # Get PostgreSQL payment methods, separate MongoDB-sourced from PostgreSQL-only
+        payment_methods = db.query(PaymentMethod).all()
+        pg_total = len(payment_methods)
+
+        # PostgreSQL-only payment methods (not from MongoDB accounts)
+        pg_only_methods = ["Cash", "Checking Account", "Splitwise", "Venmo"]
+        pg_only_count = sum(1 for pm in payment_methods if pm.name in pg_only_methods)
+        pg_from_mongo_count = pg_total - pg_only_count
 
         logger.info(f"\n📊 Payment Method Counts:")
         logger.info(f"   MongoDB accounts (total): {mongo_total}")
         logger.info(f"   MongoDB accounts (unique): {mongo_count}")
-        logger.info(f"   PostgreSQL payment methods: {pg_count}")
+        logger.info(f"   PostgreSQL payment methods (total): {pg_total}")
+        logger.info(f"   PostgreSQL from MongoDB: {pg_from_mongo_count}")
+        logger.info(f"   PostgreSQL-only methods: {pg_only_count} ({', '.join(pg_only_methods)})")
 
-        # Check if counts match
-        if pg_count != mongo_count:
-            logger.error(f"   ✗ Count mismatch!")
+        # Check if MongoDB-sourced counts match
+        if pg_from_mongo_count != mongo_count:
+            logger.error(f"   ✗ Count mismatch for MongoDB-sourced payment methods!")
             return False
 
-        logger.info(f"   ✓ Counts match")
+        logger.info(f"   ✓ MongoDB-sourced payment method counts match")
 
-        # Get all payment methods and group by type
-        payment_methods = db.query(PaymentMethod).all()
+        # Group payment methods by type
         by_type = {}
         active_count = 0
         inactive_count = 0

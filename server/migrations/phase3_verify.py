@@ -127,11 +127,21 @@ def verify_transaction_counts(mongo_db, db_session, result: VerificationResult):
     total_mongo = sum(mongo_db[coll].count_documents({}) for coll in collections.keys())
     total_pg = db_session.query(Transaction).count()
 
-    if total_mongo == total_pg:
-        result.add_pass(f"Total transactions: {total_mongo} = {total_pg}")
+    # PostgreSQL may have additional "manual" transactions created during migration
+    # for orphaned line items
+    manual_count = db_session.query(Transaction).filter_by(source="manual").count()
+    pg_from_mongo = total_pg - manual_count
+
+    if total_mongo == pg_from_mongo:
+        result.add_pass(f"Total transactions from MongoDB: {total_mongo} = {pg_from_mongo}")
+        if manual_count > 0:
+            result.add_pass(
+                f"PostgreSQL has {manual_count} additional 'manual' transactions "
+                f"(created for orphaned line items during migration)"
+            )
     else:
         result.add_fail(
-            f"Total transactions: {total_mongo} MongoDB ≠ {total_pg} PostgreSQL"
+            f"Total transactions: {total_mongo} MongoDB ≠ {pg_from_mongo} PostgreSQL (excluding {manual_count} manual)"
         )
 
 

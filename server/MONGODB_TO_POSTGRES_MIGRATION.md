@@ -395,25 +395,23 @@ Run with confirmation prompt. Re-run audit script after cleanup to verify.
 
 **Deliverable**: All reads from PostgreSQL, writes to both databases
 
-#### Verification Script: Dual-Write Consistency Checker
+#### Verify Database Sync
 
-**Use the reusable verification template** for automated consistency checks:
-
+Run all verifications:
 ```bash
-# Run after Phase 3 (transactions/line items)
-python migration_examples/templates/verification_template.py --phase 3
-
-# Run after Phase 4 (events)
-python migration_examples/templates/verification_template.py --phase 4
+python migrations/verify_all.py          # Thorough (5-10 min)
+python migrations/verify_all.py --quick  # Quick (1-2 min)
 ```
 
-The template provides:
-- Count verification across all entities
-- Spot checks comparing field values via `mongo_id`
-- Foreign key integrity checks
-- Detailed error reporting
+Runs Phase 2, 3, 4, and 5.5 verifications. Run weekly during dual-write period and before Phase 6.
 
-**Schedule periodic runs** during Phases 3-5 (e.g., weekly) for verification. With strong consistency dual-write, sync issues cause immediate operation failures.
+Individual phase scripts:
+```bash
+python migrations/phase2_verify.py
+python migrations/phase3_verify.py --thorough
+python migrations/phase4_verify.py --thorough
+python migrations/phase5_5_verify.py
+```
 
 ---
 

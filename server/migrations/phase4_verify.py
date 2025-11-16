@@ -217,8 +217,8 @@ def verify_event_spot_checks(
             mismatches += 1
             continue
 
-        # Verify description field
-        mongo_description = mongo_event.get("description", "")
+        # Verify description field (MongoDB uses 'name', PostgreSQL uses 'description')
+        mongo_description = mongo_event.get("name", mongo_event.get("description", ""))
         if mongo_description != pg_event.description:
             result.add_fail(
                 f"Event {mongo_id}: description mismatch: '{mongo_description}' ≠ '{pg_event.description}'"
@@ -299,8 +299,8 @@ def verify_event_thorough(mongo_db, db_session, result: VerificationResult):
             mismatches += 1
             continue
 
-        # Verify all fields
-        mongo_description = mongo_event.get("description", "")
+        # Verify all fields (MongoDB uses 'name', PostgreSQL uses 'description')
+        mongo_description = mongo_event.get("name", mongo_event.get("description", ""))
         if mongo_description != pg_event.description:
             result.add_fail(f"Event {mongo_id}: description mismatch")
             mismatches += 1
