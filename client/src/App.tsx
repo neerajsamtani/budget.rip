@@ -19,7 +19,6 @@ import GraphsPage from "./pages/GraphsPage";
 import LineItemsPage from "./pages/LineItemsPage";
 import LineItemsToReviewPage from "./pages/LineItemsToReviewPage";
 import LoginPage from "./pages/LoginPage";
-import ShadcnTestPage from "./pages/ShadcnTestPage";
 import { useRefreshAllData } from "./hooks/useApi";
 
 // Make sure to call loadStripe outside of a component's render to avoid
@@ -97,12 +96,6 @@ export default function App() {
                 </Link>
                 <Link
                   className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150"
-                  to="/test"
-                >
-                  Test Shadcn
-                </Link>
-                <Link
-                  className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150"
                   to="/login"
                 >
                   Login
@@ -163,13 +156,6 @@ export default function App() {
                     </Link>
                     <Link
                       className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150 rounded-md hover:bg-muted"
-                      to="/test"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      Test Shadcn
-                    </Link>
-                    <Link
-                      className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150 rounded-md hover:bg-muted"
                       to="/login"
                       onClick={() => setMobileMenuOpen(false)}
                     >
@@ -188,7 +174,6 @@ export default function App() {
           <Route path="/line_items" element={<LineItemsPage />} />
           <Route path="/connected_accounts" element={<ConnectedAccountsPage stripePromise={stripePromise} />} />
           <Route path="/graphs" element={<GraphsPage />} />
-          <Route path="/test" element={<ShadcnTestPage />} />
           <Route path="/login" element={<LoginPage />} />
         </Routes>
       </Router>
