@@ -25,6 +25,45 @@ def is_git_commit_command(command: str) -> bool:
     ]
     return any(re.search(pattern, command) for pattern in patterns)
 
+def extract_test_summary(stdout: str, stderr: str, test_type: str) -> str:
+    """
+    Extract a concise summary from test output to avoid prompt length issues.
+
+    Returns a brief summary with failure counts and first few errors.
+    """
+    combined = stdout + "\n" + stderr
+    lines = combined.split('\n')
+
+    # Look for common test summary patterns
+    summary_lines = []
+
+    if test_type == "Jest":
+        # Extract Jest summary
+        for line in lines:
+            if 'FAIL' in line or 'failed' in line.lower():
+                summary_lines.append(line.strip())
+            if 'Tests:' in line or 'Test Suites:' in line:
+                summary_lines.append(line.strip())
+
+        # If we found summary lines, use them
+        if summary_lines:
+            return '\n'.join(summary_lines[:10])  # Limit to 10 lines
+
+    elif test_type == "pytest":
+        # Extract pytest summary
+        for line in lines:
+            if 'FAILED' in line or 'ERROR' in line:
+                summary_lines.append(line.strip())
+            if 'failed' in line.lower() and ('passed' in line.lower() or 'error' in line.lower()):
+                summary_lines.append(line.strip())
+
+        # If we found summary lines, use them
+        if summary_lines:
+            return '\n'.join(summary_lines[:10])  # Limit to 10 lines
+
+    # Fallback: return last 500 chars as a summary
+    return combined[-500:] if len(combined) > 500 else combined
+
 def run_client_tests(project_dir: str) -> tuple[bool, str]:
     """Run Jest tests for the client."""
     client_dir = os.path.join(project_dir, 'client')
@@ -44,7 +83,9 @@ def run_client_tests(project_dir: str) -> tuple[bool, str]:
         if result.returncode == 0:
             return True, "Client tests passed"
         else:
-            return False, f"Client tests failed:\n{result.stdout}\n{result.stderr}"
+            # Extract summary instead of full output to avoid prompt length issues
+            summary = extract_test_summary(result.stdout, result.stderr, "Jest")
+            return False, f"Client tests failed. {summary}"
     except subprocess.TimeoutExpired:
         return False, "Client tests timed out after 2 minutes"
     except Exception as e:
@@ -70,7 +111,9 @@ def run_server_tests(project_dir: str) -> tuple[bool, str]:
         if result.returncode == 0:
             return True, "Server tests passed"
         else:
-            return False, f"Server tests failed:\n{result.stdout}\n{result.stderr}"
+            # Extract summary instead of full output to avoid prompt length issues
+            summary = extract_test_summary(result.stdout, result.stderr, "pytest")
+            return False, f"Server tests failed. {summary}"
     except subprocess.TimeoutExpired:
         return False, "Server tests timed out after 2 minutes"
     except Exception as e:
