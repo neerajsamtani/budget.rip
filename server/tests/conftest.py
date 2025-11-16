@@ -171,7 +171,7 @@ def flask_app():
             schedule_refresh_api,
             methods=["GET"],
         )
-        app.add_url_rule("/api/refresh/all", "refresh_all_api", refresh_all_api, methods=["GET"])
+        app.add_url_rule("/api/refresh/all", "refresh_all_api", refresh_all_api, methods=["POST"])
         app.add_url_rule(
             "/api/refresh/account",
             "refresh_single_account_api",
