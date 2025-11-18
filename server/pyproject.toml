@@ -1,3 +1,7 @@
+[project]
+name = "budgit-server"
+version = "1.0.0"
+
 [project.scripts]
 app = "application:application"
 
