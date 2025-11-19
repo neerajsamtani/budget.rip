@@ -12,7 +12,18 @@ from flask_pymongo import PyMongo
 from venmo_api.models.user import User
 
 from clients import get_venmo_client, splitwise_client
-from constants import CORS_ALLOWED_ORIGINS, JWT_COOKIE_DOMAIN, JWT_SECRET_KEY, MONGO_URI
+from constants import (
+    CORS_ALLOWED_ORIGINS,
+    JWT_COOKIE_DOMAIN,
+    JWT_SECRET_KEY,
+    MONGO_URI,
+    SPLITWISE_API_KEY,
+    SPLITWISE_CONSUMER_KEY,
+    SPLITWISE_CONSUMER_SECRET,
+    STRIPE_API_KEY,
+    STRIPE_CUSTOMER_ID,
+    VENMO_ACCESS_TOKEN,
+)
 from dao import (
     bank_accounts_collection,
     bulk_upsert,
@@ -39,6 +50,21 @@ from resources.stripe import (
     stripe_to_line_items,
 )
 from resources.venmo import refresh_venmo, venmo_blueprint, venmo_to_line_items
+
+# Validate required environment variables before starting app
+required_vars = {
+    "JWT_SECRET_KEY": JWT_SECRET_KEY,
+    "JWT_COOKIE_DOMAIN": JWT_COOKIE_DOMAIN,
+    "VENMO_ACCESS_TOKEN": VENMO_ACCESS_TOKEN,
+    "SPLITWISE_CONSUMER_KEY": SPLITWISE_CONSUMER_KEY,
+    "SPLITWISE_CONSUMER_SECRET": SPLITWISE_CONSUMER_SECRET,
+    "SPLITWISE_API_KEY": SPLITWISE_API_KEY,
+    "STRIPE_LIVE_API_SECRET_KEY": STRIPE_API_KEY,
+    "STRIPE_CUSTOMER_ID": STRIPE_CUSTOMER_ID,
+}
+missing = [name for name, value in required_vars.items() if not value]
+if missing:
+    raise RuntimeError(f"Required environment variables not set: {', '.join(missing)}")
 
 # Flask constructor takes the name of
 # current module (__name__) as argument.

@@ -29,21 +29,6 @@ SPLITWISE_CONSUMER_SECRET = os.getenv("SPLITWISE_CONSUMER_SECRET")
 SPLITWISE_API_KEY = os.getenv("SPLITWISE_API_KEY")
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 JWT_COOKIE_DOMAIN = os.getenv("JWT_COOKIE_DOMAIN")
-
-# Validate required environment variables
-required_vars = {
-    "JWT_SECRET_KEY": JWT_SECRET_KEY,
-    "JWT_COOKIE_DOMAIN": JWT_COOKIE_DOMAIN,
-    "VENMO_ACCESS_TOKEN": VENMO_ACCESS_TOKEN,
-    "SPLITWISE_CONSUMER_KEY": SPLITWISE_CONSUMER_KEY,
-    "SPLITWISE_CONSUMER_SECRET": SPLITWISE_CONSUMER_SECRET,
-    "SPLITWISE_API_KEY": SPLITWISE_API_KEY,
-    "STRIPE_LIVE_API_SECRET_KEY": STRIPE_API_KEY,
-    "STRIPE_CUSTOMER_ID": STRIPE_CUSTOMER_ID,
-}
-missing = [name for name, value in required_vars.items() if not value]
-if missing:
-    raise RuntimeError(f"Required environment variables not set: {', '.join(missing)}")
 # CORS configuration - comma-separated list of allowed origins
 CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", "http://dev.localhost:5173").split(",")
 SMALLEST_EPOCH_TIME = float(0)
