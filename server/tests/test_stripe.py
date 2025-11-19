@@ -104,7 +104,7 @@ class TestStripeAPI:
 
         with flask_app.app_context():
             mock_retrieve = mocker.patch("resources.stripe.stripe.Customer.retrieve")
-            mock_post = mocker.patch("resources.stripe.requests.post")
+            mock_session_create = mocker.patch("resources.stripe.stripe.financial_connections.Session.create")
 
             # Mock customer retrieval
             mock_customer = mocker.MagicMock()
@@ -112,10 +112,10 @@ class TestStripeAPI:
             mock_customer.__getitem__.side_effect = lambda k: getattr(mock_customer, k)
             mock_retrieve.return_value = mock_customer
 
-            # Mock successful response
-            mock_response = mocker.Mock()
-            mock_response.json.return_value = {"client_secret": "fcsess_test123_secret"}
-            mock_post.return_value = mock_response
+            # Mock successful session creation
+            mock_session = mocker.MagicMock()
+            mock_session.__getitem__.return_value = "fcsess_test123_secret"
+            mock_session_create.return_value = mock_session
 
             response = test_client.post(
                 "/api/create-fc-session",
@@ -135,7 +135,7 @@ class TestStripeAPI:
         with flask_app.app_context():
             mock_retrieve = mocker.patch("resources.stripe.stripe.Customer.retrieve")
             mock_create = mocker.patch("resources.stripe.stripe.Customer.create")
-            mock_post = mocker.patch("resources.stripe.requests.post")
+            mock_session_create = mocker.patch("resources.stripe.stripe.financial_connections.Session.create")
 
             # Mock customer not found, then creation
             mock_retrieve.side_effect = stripe.InvalidRequestError(message="Customer not found", param=None)
@@ -144,10 +144,10 @@ class TestStripeAPI:
             mock_customer.__getitem__.side_effect = lambda k: getattr(mock_customer, k)
             mock_create.return_value = mock_customer
 
-            # Mock successful response
-            mock_response = mocker.Mock()
-            mock_response.json.return_value = {"client_secret": "fcsess_test123_secret"}
-            mock_post.return_value = mock_response
+            # Mock successful session creation
+            mock_session = mocker.MagicMock()
+            mock_session.__getitem__.return_value = "fcsess_test123_secret"
+            mock_session_create.return_value = mock_session
 
             response = test_client.post(
                 "/api/create-fc-session",
@@ -220,7 +220,7 @@ class TestStripeAPI:
         mocker.patch("resources.stripe.STRIPE_CUSTOMER_ID", "test_customer_id")
 
         with flask_app.app_context():
-            mock_get = mocker.patch("resources.stripe.requests.get")
+            mock_list_balances = mocker.patch("resources.stripe.stripe.financial_connections.Account.list_inferred_balances", create=True)
 
             # Insert test account
             test_account = {
@@ -233,9 +233,8 @@ class TestStripeAPI:
             }
             upsert_with_id(bank_accounts_collection, test_account, test_account["id"])
 
-            # Mock balance response
-            mock_response = mocker.Mock()
-            mock_response.json.return_value = {
+            # Mock balance response - return dict-like object
+            mock_balances = {
                 "data": [
                     {
                         "current": {"usd": 10000},  # $100.00 in cents
@@ -243,7 +242,7 @@ class TestStripeAPI:
                     }
                 ]
             }
-            mock_get.return_value = mock_response
+            mock_list_balances.return_value = mock_balances
 
             response = test_client.get(
                 "/api/accounts_and_balances",
@@ -263,12 +262,12 @@ class TestStripeAPI:
         mocker.patch("resources.stripe.STRIPE_CUSTOMER_ID", "test_customer_id")
 
         with flask_app.app_context():
-            mock_post = mocker.patch("resources.stripe.requests.post")
+            mock_subscribe = mocker.patch("resources.stripe.stripe.financial_connections.Account.subscribe")
 
             # Mock successful response
-            mock_response = mocker.Mock()
-            mock_response.text = '{"transaction_refresh": {"status": "succeeded"}}'
-            mock_post.return_value = mock_response
+            mock_response = mocker.MagicMock()
+            mock_response.get.return_value = {"status": "succeeded"}
+            mock_subscribe.return_value = mock_response
 
             response = test_client.post(
                 "/api/subscribe_to_account",
@@ -309,7 +308,7 @@ class TestStripeAPI:
 
         with flask_app.app_context():
             mock_retrieve = mocker.patch("resources.stripe.stripe.financial_connections.Account.retrieve")
-            mock_get = mocker.patch("resources.stripe.requests.get")
+            mock_check_can_relink = mocker.patch("resources.stripe.check_can_relink")
             mock_create_session = mocker.patch("resources.stripe.create_fc_session_api")
 
             # Mock account
@@ -319,10 +318,8 @@ class TestStripeAPI:
             mock_account.__getitem__.side_effect = lambda k: getattr(mock_account, k)
             mock_retrieve.return_value = mock_account
 
-            # Mock authorization response indicating relink required
-            mock_auth_response = mocker.Mock()
-            mock_auth_response.json.return_value = {"status_details": {"inactive": {"action": "relink_required"}}}
-            mock_get.return_value = mock_auth_response
+            # Mock check_can_relink to return True (relink required)
+            mock_check_can_relink.return_value = True
 
             # Mock session creation
             mock_session_response = mocker.Mock()
@@ -345,7 +342,7 @@ class TestStripeAPI:
 
         with flask_app.app_context():
             mock_retrieve = mocker.patch("resources.stripe.stripe.financial_connections.Account.retrieve")
-            mock_get = mocker.patch("resources.stripe.requests.get")
+            mock_check_can_relink = mocker.patch("resources.stripe.check_can_relink")
 
             # Mock account
             mock_account = mocker.MagicMock()
@@ -354,10 +351,8 @@ class TestStripeAPI:
             mock_account.__getitem__.side_effect = lambda k: getattr(mock_account, k)
             mock_retrieve.return_value = mock_account
 
-            # Mock authorization response indicating relink not required
-            mock_auth_response = mocker.Mock()
-            mock_auth_response.json.return_value = {"status_details": {"inactive": {"action": "other_action"}}}
-            mock_get.return_value = mock_auth_response
+            # Mock check_can_relink to return False (relink not required)
+            mock_check_can_relink.return_value = False
 
             response = test_client.post(
                 "/api/relink_account/fca_test123",
