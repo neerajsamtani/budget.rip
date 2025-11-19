@@ -220,7 +220,18 @@ class TestStripeAPI:
         mocker.patch("resources.stripe.STRIPE_CUSTOMER_ID", "test_customer_id")
 
         with flask_app.app_context():
-            mock_requests_get = mocker.patch("requests.get")
+            # Mock Stripe SDK inferred_balances.list method
+            mock_balance_data = mocker.MagicMock()
+            mock_balance_data.current.usd = 10000  # $100.00 in cents
+            mock_balance_data.as_of = "2023-01-15T10:30:00Z"
+
+            mock_balances_response = mocker.MagicMock()
+            mock_balances_response.data = [mock_balance_data]
+
+            mock_inferred_balances_list = mocker.patch(
+                "resources.stripe.stripe_client.v1.financial_connections.accounts.inferred_balances.list"
+            )
+            mock_inferred_balances_list.return_value = mock_balances_response
 
             # Insert test account
             test_account = {
@@ -232,18 +243,6 @@ class TestStripeAPI:
                 "status": "active",
             }
             upsert_with_id(bank_accounts_collection, test_account, test_account["id"])
-
-            # Mock balance response
-            mock_response = mocker.MagicMock()
-            mock_response.json.return_value = {
-                "data": [
-                    {
-                        "current": {"usd": 10000},  # $100.00 in cents
-                        "as_of": "2023-01-15T10:30:00Z",
-                    }
-                ]
-            }
-            mock_requests_get.return_value = mock_response
 
             response = test_client.get(
                 "/api/accounts_and_balances",

@@ -2,7 +2,7 @@ import datetime
 import logging
 from typing import Any, Dict, List, Optional
 
-import requests
+import requests  # Still needed for Authorization endpoint (not yet in SDK)
 import stripe
 from flask import Blueprint, Response, jsonify, request
 from flask_jwt_extended import jwt_required
@@ -34,6 +34,9 @@ if STRIPE_CUSTOMER_ID is None:
     raise Exception("Stripe Customer ID is not set")
 
 stripe.api_version = "2022-08-01; financial_connections_transactions_beta=v1; financial_connections_relink_api_beta=v1"
+
+# Initialize StripeClient for service-based API access
+stripe_client = stripe.StripeClient(api_key=STRIPE_API_KEY)
 
 
 def check_can_relink(account: stripe.financial_connections.Account) -> bool:
@@ -155,17 +158,15 @@ def get_accounts_and_balances_api() -> tuple[Response, int]:
             account["can_relink"] = check_can_relink(account)
 
         try:
-            response = requests.get(
-                f"https://api.stripe.com/v1/financial_connections/accounts/{account_id}/inferred_balances",
-                headers={"Stripe-Version": "2022-08-01"},
+            # Use Stripe SDK to fetch inferred balances
+            balances = stripe_client.v1.financial_connections.accounts.inferred_balances.list(
+                account=account_id,
                 params={"limit": 1},
-                auth=(STRIPE_API_KEY, ""),
             )
-            balances = response.json()
 
-            balance_data = balances["data"][0] if balances.get("data") else None
-            balance_usd = balance_data["current"]["usd"] / 100 if balance_data else 0
-            as_of = balance_data["as_of"] if balance_data else None
+            balance_data = balances.data[0] if balances.data else None
+            balance_usd = balance_data.current.usd / 100 if balance_data else 0
+            as_of = balance_data.as_of if balance_data else None
 
             accounts_and_balances[account_id] = {
                 "id": account_id,
