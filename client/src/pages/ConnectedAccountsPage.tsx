@@ -169,12 +169,12 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
                 // Filter: only show active accounts OR inactive accounts that can be relinked
                 .filter((stripeAccount) => {
                     const { status } = stripeAccount;
-                    const canRelink = accountsAndBalances[stripeAccount.id]?.can_relink ?? true;
+                    const canRelink = accountsAndBalances[stripeAccount.id]?.can_relink ?? false;
                     return status === 'active' || (status === 'inactive' && canRelink);
                 })
                 .map((stripeAccount) => {
                     const { institution_name, display_name, last4, id, status } = stripeAccount;
-                    const canRelink = accountsAndBalances[id]?.can_relink ?? true;
+                    const canRelink = accountsAndBalances[id]?.can_relink ?? false;
                     return (
                         <TableRow key={`stripe-${id}`}>
                             <TableCell>{institution_name} {display_name} {last4}</TableCell>
@@ -208,7 +208,7 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
     };
 
     const renderStripeAccount = (stripeAccount) => {
-        const canRelink = accountsAndBalances[stripeAccount.id]?.can_relink ?? true;
+        const canRelink = accountsAndBalances[stripeAccount.id]?.can_relink ?? false;
         return (
             <TableRow key={stripeAccount.id}>
                 <TableCell>{stripeAccount.institution_name} {stripeAccount.subcategory} ({stripeAccount.id})</TableCell>

@@ -305,15 +305,19 @@ def bulk_upsert_bank_accounts(db_session, accounts_data: List[Any]) -> int:
         if not account_id:
             continue
 
+        mongo_id = acc_dict.get("_id")
         account_data = {
             "id": account_id,
-            "mongo_id": str(acc_dict.get("_id", "")),
             "institution_name": acc_dict.get("institution_name", ""),
             "display_name": acc_dict.get("display_name", ""),
             "last4": acc_dict.get("last4", ""),
             "status": acc_dict.get("status", "active"),
             "can_relink": acc_dict.get("can_relink", True),
         }
+
+        # Only include mongo_id if it exists (for inserts or when updating from MongoDB)
+        if mongo_id:
+            account_data["mongo_id"] = str(mongo_id)
 
         if account_id in existing_ids:
             bulk_updates.append(account_data)
