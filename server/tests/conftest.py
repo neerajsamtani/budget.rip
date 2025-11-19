@@ -3,12 +3,19 @@ import os
 import pytest
 
 # Set up fake environment variables for testing before any imports
-if "VENMO_ACCESS_TOKEN" not in os.environ:
-    os.environ["VENMO_ACCESS_TOKEN"] = "fake_token_for_testing"
-if "STRIPE_LIVE_API_SECRET_KEY" not in os.environ:
-    os.environ["STRIPE_LIVE_API_SECRET_KEY"] = "fake_stripe_key_for_testing"
-if "STRIPE_CUSTOMER_ID" not in os.environ:
-    os.environ["STRIPE_CUSTOMER_ID"] = "fake_customer_id_for_testing"
+test_env_vars = {
+    "JWT_SECRET_KEY": "testSecretKey123",
+    "JWT_COOKIE_DOMAIN": "localhost",
+    "VENMO_ACCESS_TOKEN": "fake_token_for_testing",
+    "STRIPE_LIVE_API_SECRET_KEY": "fake_stripe_key_for_testing",
+    "STRIPE_CUSTOMER_ID": "fake_customer_id_for_testing",
+    "SPLITWISE_CONSUMER_KEY": "fake_splitwise_key",
+    "SPLITWISE_CONSUMER_SECRET": "fake_splitwise_secret",
+    "SPLITWISE_API_KEY": "fake_splitwise_api_key",
+}
+for key, value in test_env_vars.items():
+    if key not in os.environ:
+        os.environ[key] = value
 
 # CRITICAL: Set test database URL to SQLite shared in-memory BEFORE any imports
 # This prevents test data from polluting the production PostgreSQL database
