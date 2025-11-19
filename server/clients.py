@@ -10,10 +10,6 @@ from constants import (
     VENMO_ACCESS_TOKEN,
 )
 
-if VENMO_ACCESS_TOKEN is None:
-    raise Exception("VENMO_ACCESS_TOKEN is not set")
-
-# Lazy initialization to prevent API calls during module import
 _venmo_client = None
 
 
