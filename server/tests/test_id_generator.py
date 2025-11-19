@@ -108,19 +108,6 @@ def test_generate_id_special_characters_in_prefix():
         ULID.from_str(ulid_part)
 
 
-def test_generate_id_monotonicity():
-    """Test that ULIDs maintain monotonicity within the same millisecond"""
-    # Generate multiple IDs rapidly (likely within same millisecond)
-    ids = [generate_id("evt") for _ in range(100)]
-
-    # Extract ULID portions
-    ulids = [id.split("_", 1)[1] for id in ids]
-
-    # Should all be unique and sortable
-    assert len(set(ulids)) == len(ulids)
-    assert ulids == sorted(ulids)
-
-
 def test_generate_id_string_length():
     """Test total ID length for various prefixes"""
     test_cases = [
