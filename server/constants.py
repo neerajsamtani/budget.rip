@@ -29,6 +29,8 @@ SPLITWISE_CONSUMER_SECRET = os.getenv("SPLITWISE_CONSUMER_SECRET")
 SPLITWISE_API_KEY = os.getenv("SPLITWISE_API_KEY")
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "testSecretKey123")
 JWT_COOKIE_DOMAIN = os.getenv("JWT_COOKIE_DOMAIN")
+# CORS configuration - comma-separated list of allowed origins
+CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", "http://dev.localhost:5173").split(",")
 SMALLEST_EPOCH_TIME = float(0)
 LARGEST_EPOCH_TIME = float(9999999999)
 # Keep this in sync with the categories on the frontend
