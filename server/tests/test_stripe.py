@@ -220,7 +220,7 @@ class TestStripeAPI:
         mocker.patch("resources.stripe.STRIPE_CUSTOMER_ID", "test_customer_id")
 
         with flask_app.app_context():
-            mock_list_balances = mocker.patch("resources.stripe.stripe.financial_connections.Account.list_inferred_balances", create=True)
+            mock_requests_get = mocker.patch("requests.get")
 
             # Insert test account
             test_account = {
@@ -233,8 +233,9 @@ class TestStripeAPI:
             }
             upsert_with_id(bank_accounts_collection, test_account, test_account["id"])
 
-            # Mock balance response - return dict-like object
-            mock_balances = {
+            # Mock balance response
+            mock_response = mocker.MagicMock()
+            mock_response.json.return_value = {
                 "data": [
                     {
                         "current": {"usd": 10000},  # $100.00 in cents
@@ -242,7 +243,7 @@ class TestStripeAPI:
                     }
                 ]
             }
-            mock_list_balances.return_value = mock_balances
+            mock_requests_get.return_value = mock_response
 
             response = test_client.get(
                 "/api/accounts_and_balances",
@@ -728,6 +729,145 @@ class TestStripeDualWrite:
 
             # Verify dual_write was called
             mock_dual_write.assert_called_once()
+
+
+class TestCheckCanRelink:
+    """Direct unit tests for check_can_relink function"""
+
+    def test_active_account_can_relink(self, flask_app):
+        """Active accounts don't need relinking"""
+        with flask_app.app_context():
+            from resources.stripe import check_can_relink
+
+            account = {"id": "fca_test123", "status": "active"}
+            result = check_can_relink(account)
+
+            assert result is False
+
+    def test_inactive_account_with_relink_required(self, flask_app, mocker):
+        """Inactive account with relink_required action can relink"""
+        with flask_app.app_context():
+            from resources.stripe import check_can_relink
+
+            mock_requests_get = mocker.patch("requests.get")
+            mock_response = mocker.MagicMock()
+            mock_response.json.return_value = {
+                "status": "inactive",
+                "status_details": {
+                    "inactive": {
+                        "action": "relink_required"
+                    }
+                }
+            }
+            mock_requests_get.return_value = mock_response
+
+            account = {
+                "id": "fca_test123",
+                "status": "inactive",
+                "authorization": "fcauth_test123"
+            }
+            result = check_can_relink(account)
+
+            assert result is True
+
+    def test_inactive_account_closed_at_bank(self, flask_app, mocker):
+        """Account closed at bank (auth active, account inactive) cannot relink"""
+        with flask_app.app_context():
+            from resources.stripe import check_can_relink
+
+            mock_requests_get = mocker.patch("requests.get")
+            mock_response = mocker.MagicMock()
+            mock_response.json.return_value = {
+                "status": "active"
+            }
+            mock_requests_get.return_value = mock_response
+
+            account = {
+                "id": "fca_test123",
+                "status": "inactive",
+                "authorization": "fcauth_test123"
+            }
+            result = check_can_relink(account)
+
+            assert result is False
+
+    def test_inactive_account_action_none(self, flask_app, mocker):
+        """Inactive account with action=none cannot relink"""
+        with flask_app.app_context():
+            from resources.stripe import check_can_relink
+
+            mock_requests_get = mocker.patch("requests.get")
+            mock_response = mocker.MagicMock()
+            mock_response.json.return_value = {
+                "status": "inactive",
+                "status_details": {
+                    "inactive": {
+                        "action": "none"
+                    }
+                }
+            }
+            mock_requests_get.return_value = mock_response
+
+            account = {
+                "id": "fca_test123",
+                "status": "inactive",
+                "authorization": "fcauth_test123"
+            }
+            result = check_can_relink(account)
+
+            assert result is False
+
+    def test_error_retrieving_authorization(self, flask_app, mocker):
+        """Errors default to False (safer than allowing broken relinks)"""
+        with flask_app.app_context():
+            from resources.stripe import check_can_relink
+
+            mock_requests_get = mocker.patch("requests.get")
+            mock_requests_get.side_effect = Exception("API error")
+
+            account = {
+                "id": "fca_test123",
+                "status": "inactive",
+                "authorization": "fcauth_test123"
+            }
+            result = check_can_relink(account)
+
+            assert result is False
+
+    def test_missing_authorization_id(self, flask_app):
+        """Inactive account without auth ID cannot relink"""
+        with flask_app.app_context():
+            from resources.stripe import check_can_relink
+
+            account = {
+                "id": "fca_test123",
+                "status": "inactive",
+                "authorization": None
+            }
+            result = check_can_relink(account)
+
+            assert result is False
+
+    def test_inactive_account_with_unknown_auth_status(self, flask_app, mocker):
+        """Inactive account with unknown auth status returns False"""
+        with flask_app.app_context():
+            from resources.stripe import check_can_relink
+
+            mock_requests_get = mocker.patch("requests.get")
+            mock_response = mocker.MagicMock()
+            mock_response.json.return_value = {
+                "status": "unknown_status"
+            }
+            mock_requests_get.return_value = mock_response
+
+            account = {
+                "id": "fca_test123",
+                "status": "inactive",
+                "authorization": "fcauth_test123"
+            }
+            result = check_can_relink(account)
+
+            assert result is False
 
 
 class TestStripeIntegration:
