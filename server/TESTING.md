@@ -21,7 +21,7 @@ make help
 ```
 
 The Makefile will:
-- ✅ Create a virtual environment (if needed)
+- ✅ Use uv to manage dependencies
 - ✅ Install/update dependencies automatically
 - ✅ Run tests in an isolated environment
 - ✅ Avoid system package conflicts
@@ -33,41 +33,37 @@ The tests are configured to use:
 - **SQLite shared in-memory** for PostgreSQL/SQLAlchemy tests (no PostgreSQL server needed)
   - Uses `sqlite:///file:memdb1?mode=memory&cache=shared&uri=true` to allow multiple connections to share the same database
   - This ensures dual-write operations and test fixtures access the same database instance
-- **Virtual environment** to avoid dependency conflicts
-- **pyproject.toml** for pytest and coverage configuration
+- **uv** for dependency management and virtual environment isolation
+- **pyproject.toml** for project dependencies, pytest and coverage configuration
 
 ### Prerequisites
 
-- Python 3.11+
+- Python 3.13+
+- uv (fast Python package manager)
 - Make (for convenience commands)
 - No external databases required (uses mocks)
 
 ### Configuration
 
 Test configuration is defined in `pyproject.toml`:
+- **[project] section**: Production and development dependencies
 - **pytest settings**: Test discovery, markers, output options
 - **coverage settings**: Source paths, exclusions, reporting format
 
-This follows modern Python best practices (PEP 518/621) while keeping dependencies in `requirements.txt` for this legacy Flask app.
+This follows modern Python best practices (PEP 518/621/735) with uv managing dependencies via pyproject.toml.
 
 ### Manual Setup (Advanced)
 
-If you prefer to set up the environment manually:
+If you prefer to run tests manually with uv:
 
-1. **Create virtual environment**:
+1. **Install dependencies**:
    ```bash
-   python3 -m venv env
-   source env/bin/activate
+   uv sync
    ```
 
-2. **Install dependencies**:
+2. **Run tests**:
    ```bash
-   pip install -r requirements.txt
-   ```
-
-3. **Run tests**:
-   ```bash
-   python -m pytest tests/ -v
+   uv run pytest tests/ -v
    ```
 
 ## Running Tests
@@ -83,21 +79,18 @@ make help                         # See all available commands
 
 ### Using pytest directly (advanced):
 ```bash
-# Activate virtual environment first
-source env/bin/activate
-
 # Run all tests
-pytest tests/ -v
+uv run pytest tests/ -v
 
 # Run specific test files
-pytest tests/test_cash.py -v
-pytest tests/test_phase3_migration.py -v
+uv run pytest tests/test_cash.py -v
+uv run pytest tests/test_phase3_migration.py -v
 
 # Run specific test functions
-pytest tests/test_cash.py::test_create_cash_transaction_api -v
+uv run pytest tests/test_cash.py::test_create_cash_transaction_api -v
 
 # Run with custom options
-pytest tests/ -v -k "venmo" --maxfail=1
+uv run pytest tests/ -v -k "venmo" --maxfail=1
 ```
 
 ## Test Database Isolation
@@ -155,23 +148,19 @@ If pytest can't find tests or modules:
 # Ensure you're in the server directory
 cd server
 
-# Activate virtual environment
-source env/bin/activate
-
-# Reinstall dependencies
-pip install -r requirements.txt
+# Sync dependencies with uv
+uv sync
 
 # Run tests
-python -m pytest tests/ -v
+uv run pytest tests/ -v
 ```
 
 ### Import Errors
 If you see import errors for `models.sql_models`:
 ```bash
-# Make sure you're running from server directory with virtualenv active
+# Make sure you're running from server directory
 cd server
-source env/bin/activate
-python -m pytest tests/ -v
+uv run pytest tests/ -v
 ```
 
 ### Test Data Pollution (FIXED)
@@ -180,13 +169,11 @@ python -m pytest tests/ -v
 2. Check that this line executes **before** any imports of application code
 3. Confirm tests are using the `flask_app` fixture (which uses the test config)
 
-### Virtual Environment Issues
+### Dependency Issues
 ```bash
-# Remove and recreate virtual environment
-rm -rf env
-python3 -m venv env
-source env/bin/activate
-pip install -r requirements.txt
+# Remove virtual environment and reinstall
+rm -rf .venv
+uv sync
 ```
 
 ## Test Structure

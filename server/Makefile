@@ -1,60 +1,46 @@
-.PHONY: help test test-phase3 test-watch venv clean install lint lint-fix
-
-VENV := env
-PYTHON := $(VENV)/bin/python
-PIP := $(VENV)/bin/pip
-PYTEST := $(VENV)/bin/pytest
-RUFF := $(VENV)/bin/ruff
+.PHONY: help test test-phase3 test-watch test-coverage test-quick install lint lint-fix clean dev-setup
 
 help: ## Show this help message
 	@echo "Available commands:"
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}'
 
-venv: ## Create virtual environment and install dependencies
-	@if [ ! -d "$(VENV)" ]; then \
-		echo "Creating virtual environment..."; \
-		python3 -m venv $(VENV); \
-	fi
-	@echo "Installing dependencies..."
-	@$(PIP) install --upgrade pip setuptools wheel -q
-	@$(PIP) install -r requirements.txt -q
-	@touch $(VENV)/.deps_installed
-	@echo "✓ Virtual environment ready"
+install: ## Install/update dependencies
+	@echo "Installing dependencies with uv..."
+	@uv sync
+	@echo "✓ Dependencies installed"
 
-install: venv ## Install/update dependencies (alias for venv)
-
-test: venv ## Run all tests
+test: ## Run all tests (dual-run: MongoDB then PostgreSQL)
 	@echo "Running tests with READ_FROM_POSTGRESQL=false..."
-	@READ_FROM_POSTGRESQL=false $(PYTHON) -m pytest tests/ -v
+	@READ_FROM_POSTGRESQL=false uv run pytest tests/ -v
 	@echo "Running tests with READ_FROM_POSTGRESQL=true..."
-	@READ_FROM_POSTGRESQL=true $(PYTHON) -m pytest tests/ -v
+	@READ_FROM_POSTGRESQL=true uv run pytest tests/ -v
 
-test-phase3: venv ## Run Phase 3 migration tests only
-	@$(PYTEST) tests/test_phase3_migration.py -v
+test-phase3: ## Run Phase 3 migration tests only
+	@uv run pytest tests/test_phase3_migration.py -v
 
-test-watch: venv ## Run tests in watch mode
-	@$(PYTEST) tests/ -v --looponfail
+test-watch: ## Run tests in watch mode
+	@uv run pytest tests/ -v --looponfail
 
-test-coverage: venv ## Run tests with coverage report
-	@$(PYTEST) tests/ -v --cov=. --cov-report=html --cov-report=term
+test-coverage: ## Run tests with coverage report
+	@uv run pytest tests/ -v --cov=. --cov-report=html --cov-report=term
 
-test-quick: venv ## Run tests without verbose output
-	@$(PYTEST) tests/
+test-quick: ## Run tests without verbose output
+	@uv run pytest tests/
 
-lint: venv ## Check code with ruff (linting + formatting)
+lint: ## Check code with ruff (linting + formatting)
 	@echo "Checking code with ruff..."
-	@$(RUFF) check .
-	@$(RUFF) format --check .
+	@uv run ruff check .
+	@uv run ruff format --check .
 	@echo "✓ All checks passed"
 
-lint-fix: venv ## Fix code issues with ruff (auto-fix + format)
+lint-fix: ## Fix code issues with ruff (auto-fix + format)
 	@echo "Fixing code issues with ruff..."
-	@$(RUFF) check --fix .
-	@$(RUFF) format .
+	@uv run ruff check --fix .
+	@uv run ruff format .
 	@echo "✓ Code fixed and formatted"
 
 clean: ## Remove virtual environment and cache files
-	rm -rf $(VENV)
+	rm -rf .venv
 	rm -rf .pytest_cache
 	rm -rf __pycache__
 	rm -rf .coverage
@@ -63,13 +49,18 @@ clean: ## Remove virtual environment and cache files
 	find . -type f -name "*.pyc" -delete
 	@echo "✓ Cleaned up"
 
-# Development shortcuts
-.PHONY: dev-setup
-dev-setup: venv ## Set up development environment
+dev-setup: install ## Set up development environment
 	@echo "✓ Development environment ready"
 	@echo ""
-	@echo "To activate the virtual environment:"
-	@echo "  source $(VENV)/bin/activate"
+	@echo "Dependencies are managed by uv:"
+	@echo "  uv sync                    # Install/update dependencies"
+	@echo "  uv run <command>           # Run commands in the uv environment"
+	@echo "  uv add <package>           # Add a production dependency"
+	@echo "  uv add --dev <package>     # Add a development dependency"
 	@echo ""
 	@echo "To run tests:"
-	@echo "  make test"
+	@echo "  make test                  # Run all tests (dual-run)"
+	@echo "  make test-quick            # Run tests without verbose output"
+	@echo ""
+	@echo "To run the server:"
+	@echo "  uv run python application.py"
