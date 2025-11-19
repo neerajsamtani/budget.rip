@@ -3,6 +3,8 @@ import os
 import pytest
 
 # Set up fake environment variables for testing before any imports
+if "JWT_SECRET_KEY" not in os.environ:
+    os.environ["JWT_SECRET_KEY"] = "testSecretKey123"
 if "VENMO_ACCESS_TOKEN" not in os.environ:
     os.environ["VENMO_ACCESS_TOKEN"] = "fake_token_for_testing"
 if "STRIPE_LIVE_API_SECRET_KEY" not in os.environ:

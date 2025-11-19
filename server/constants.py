@@ -27,7 +27,9 @@ VENMO_ACCESS_TOKEN = os.getenv("VENMO_ACCESS_TOKEN")
 SPLITWISE_CONSUMER_KEY = os.getenv("SPLITWISE_CONSUMER_KEY")
 SPLITWISE_CONSUMER_SECRET = os.getenv("SPLITWISE_CONSUMER_SECRET")
 SPLITWISE_API_KEY = os.getenv("SPLITWISE_API_KEY")
-JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "testSecretKey123")
+JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+if not JWT_SECRET_KEY:
+    raise RuntimeError("JWT_SECRET_KEY must be set in environment")
 JWT_COOKIE_DOMAIN = os.getenv("JWT_COOKIE_DOMAIN")
 # CORS configuration - comma-separated list of allowed origins
 CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", "http://dev.localhost:5173").split(",")
