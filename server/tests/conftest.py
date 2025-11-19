@@ -5,6 +5,7 @@ import pytest
 # Set up fake environment variables for testing before any imports
 test_env_vars = {
     "JWT_SECRET_KEY": "testSecretKey123",
+    "JWT_COOKIE_DOMAIN": "localhost",
     "VENMO_ACCESS_TOKEN": "fake_token_for_testing",
     "STRIPE_LIVE_API_SECRET_KEY": "fake_stripe_key_for_testing",
     "STRIPE_CUSTOMER_ID": "fake_customer_id_for_testing",
