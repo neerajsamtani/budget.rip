@@ -42,7 +42,7 @@ from resources.venmo import refresh_venmo, venmo_blueprint, venmo_to_line_items
 
 # Flask constructor takes the name of
 # current module (__name__) as argument.
-application: Flask = Flask(__name__, static_folder="public", static_url_path="", template_folder="public")
+application: Flask = Flask(__name__)
 
 cors: CORS = CORS(application, supports_credentials=True)
 bcrypt: Bcrypt = Bcrypt(application)
