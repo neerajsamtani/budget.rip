@@ -165,45 +165,60 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
 
         // Handle Stripe data (array of objects)
         if (connectedAccount.stripe) {
-            return connectedAccount.stripe.map((stripeAccount) => {
-                const { institution_name, display_name, last4, id, status } = stripeAccount;
-                return (
-                    <TableRow key={`stripe-${id}`}>
-                        <TableCell>{institution_name} {display_name} {last4}</TableCell>
-                        {status === 'inactive' ?
-                            <TableCell><Button onClick={() => { relinkAccount(id) }} variant="secondary">Reactivate</Button></TableCell>
-                            : <TableCell>Active</TableCell>}
-                        <TableCell>
-                            {accountsAndBalances[id] && (
-                                <StatusBadge status={accountsAndBalances[id]["balance"] >= 0 ? 'success' : 'error'}>
-                                    {CurrencyFormatter.format(accountsAndBalances[id]["balance"])}
-                                </StatusBadge>
-                            )}
-                        </TableCell>
-                        <TableCell>{accountsAndBalances[id] && formatDate(accountsAndBalances[id]["as_of"])}</TableCell>
-                        <TableCell>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => refreshAccount(id, 'stripe')}
-                                disabled={refreshingAccountId === id || status === 'inactive'}
-                            >
-                                <RefreshCw className={`h-4 w-4 ${refreshingAccountId === id ? 'animate-spin' : ''}`} />
-                            </Button>
-                        </TableCell>
-                    </TableRow>
-                );
-            });
+            return connectedAccount.stripe
+                // Filter: only show active accounts OR inactive accounts that can be relinked
+                .filter((stripeAccount) => {
+                    const { status } = stripeAccount;
+                    const canRelink = accountsAndBalances[stripeAccount.id]?.can_relink ?? true;
+                    return status === 'active' || (status === 'inactive' && canRelink);
+                })
+                .map((stripeAccount) => {
+                    const { institution_name, display_name, last4, id, status } = stripeAccount;
+                    const canRelink = accountsAndBalances[id]?.can_relink ?? true;
+                    return (
+                        <TableRow key={`stripe-${id}`}>
+                            <TableCell>{institution_name} {display_name} {last4}</TableCell>
+                            {status === 'inactive' && canRelink ?
+                                <TableCell><Button onClick={() => { relinkAccount(id) }} variant="secondary">Reactivate</Button></TableCell>
+                                : <TableCell>Active</TableCell>}
+                            <TableCell>
+                                {accountsAndBalances[id] && (
+                                    <StatusBadge status={accountsAndBalances[id]["balance"] >= 0 ? 'success' : 'error'}>
+                                        {CurrencyFormatter.format(accountsAndBalances[id]["balance"])}
+                                    </StatusBadge>
+                                )}
+                            </TableCell>
+                            <TableCell>{accountsAndBalances[id] && formatDate(accountsAndBalances[id]["as_of"])}</TableCell>
+                            <TableCell>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => refreshAccount(id, 'stripe')}
+                                    disabled={refreshingAccountId === id || status === 'inactive'}
+                                >
+                                    <RefreshCw className={`h-4 w-4 ${refreshingAccountId === id ? 'animate-spin' : ''}`} />
+                                </Button>
+                            </TableCell>
+                        </TableRow>
+                    );
+                });
         }
 
         return null;
     };
 
     const renderStripeAccount = (stripeAccount) => {
+        const canRelink = accountsAndBalances[stripeAccount.id]?.can_relink ?? true;
         return (
             <TableRow key={stripeAccount.id}>
                 <TableCell>{stripeAccount.institution_name} {stripeAccount.subcategory} ({stripeAccount.id})</TableCell>
-                <TableCell><Button onClick={() => { relinkAccount(stripeAccount.id) }} variant="secondary">Reactivate</Button></TableCell>
+                <TableCell>
+                    {canRelink ? (
+                        <Button onClick={() => { relinkAccount(stripeAccount.id) }} variant="secondary">Reactivate</Button>
+                    ) : (
+                        <span className="text-muted-foreground text-sm">Cannot relink</span>
+                    )}
+                </TableCell>
                 <TableCell>{accountsAndBalances[stripeAccount.id] && formatDate(accountsAndBalances[stripeAccount.id]["as_of"])}</TableCell>
             </TableRow>
         )

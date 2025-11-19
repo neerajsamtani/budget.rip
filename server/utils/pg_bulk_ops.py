@@ -297,30 +297,41 @@ def bulk_upsert_bank_accounts(db_session, accounts_data: List[Any]) -> int:
     existing = db_session.query(BankAccount.id).filter(BankAccount.id.in_(account_ids)).all()
     existing_ids = {row[0] for row in existing}
 
-    # Prepare bulk inserts for new accounts
+    # Prepare bulk inserts for new accounts and updates for existing ones
     bulk_inserts = []
+    bulk_updates = []
     for acc_dict in account_dicts:
         account_id = acc_dict.get("id")
-        if not account_id or account_id in existing_ids:
+        if not account_id:
             continue
 
-        bulk_inserts.append(
-            {
-                "id": account_id,
-                "mongo_id": str(acc_dict.get("_id", "")),
-                "institution_name": acc_dict.get("institution_name", ""),
-                "display_name": acc_dict.get("display_name", ""),
-                "last4": acc_dict.get("last4", ""),
-                "status": acc_dict.get("status", "active"),
-            }
-        )
+        account_data = {
+            "id": account_id,
+            "mongo_id": str(acc_dict.get("_id", "")),
+            "institution_name": acc_dict.get("institution_name", ""),
+            "display_name": acc_dict.get("display_name", ""),
+            "last4": acc_dict.get("last4", ""),
+            "status": acc_dict.get("status", "active"),
+            "can_relink": acc_dict.get("can_relink", True),
+        }
 
+        if account_id in existing_ids:
+            bulk_updates.append(account_data)
+        else:
+            bulk_inserts.append(account_data)
+
+    count = 0
     if bulk_inserts:
         db_session.bulk_insert_mappings(BankAccount, bulk_inserts)
         logger.info(f"Bulk inserted {len(bulk_inserts)} bank accounts to PostgreSQL")
-        return len(bulk_inserts)
+        count += len(bulk_inserts)
 
-    return 0
+    if bulk_updates:
+        db_session.bulk_update_mappings(BankAccount, bulk_updates)
+        logger.info(f"Bulk updated {len(bulk_updates)} bank accounts to PostgreSQL")
+        count += len(bulk_updates)
+
+    return count
 
 
 def upsert_user(db_session, user_data: Dict[str, Any]) -> bool:

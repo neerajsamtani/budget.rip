@@ -37,6 +37,60 @@ if STRIPE_CUSTOMER_ID is None:
 stripe.api_version = "2022-08-01; financial_connections_transactions_beta=v1; financial_connections_relink_api_beta=v1"
 
 
+def check_can_relink(account: stripe.financial_connections.Account) -> bool:
+    """
+    Check if an inactive account can be relinked based on authorization status.
+
+    Returns True if:
+    - Account is active, OR
+    - Account is inactive AND authorization.status_details.inactive.action == 'relink_required'
+
+    Returns False if:
+    - Account is inactive AND authorization.status_details.inactive.action == 'none'
+    - Account is inactive but authorization is active (e.g., account closed at institution)
+    """
+    # If account is active, it can always be "relinked" (refreshed)
+    if account.get("status") == "active":
+        return True
+
+    # If account is inactive, check authorization status
+    if account.get("status") == "inactive":
+        try:
+            headers: Dict[str, str] = {
+                "Stripe-Version": "2022-08-01; financial_connections_transactions_beta=v1; financial_connections_relink_api_beta=v1",
+            }
+            auth_id = account.get("authorization")
+            if not auth_id:
+                return False
+
+            response: requests.Response = requests.get(
+                f"https://api.stripe.com/v1/financial_connections/authorizations/{auth_id}",
+                headers=headers,
+                auth=(STRIPE_API_KEY, ""),
+            )
+
+            auth_data = response.json()
+
+            # If authorization is active but account is inactive, account cannot be relinked
+            # (e.g., account closed at institution)
+            if auth_data.get("status") == "active":
+                return False
+
+            # If authorization is inactive, check if relink is required
+            if auth_data.get("status") == "inactive":
+                action = auth_data.get("status_details", {}).get("inactive", {}).get("action")
+                return action == "relink_required"
+
+            return False
+        except Exception as e:
+            logging.error(f"Error checking relink status for account {account.get('id')}: {e}")
+            # Default to True to be safe - let user try to relink
+            return True
+
+    # Default case
+    return True
+
+
 @stripe_blueprint.route("/api/refresh/stripe")
 @jwt_required()
 def refresh_stripe_api() -> tuple[Response, int]:
@@ -143,6 +197,7 @@ def get_accounts_and_balances_api() -> tuple[Response, int]:
             "balance": (response_data[0]["current"]["usd"] / 100 if len(response_data) > 0 else 0),
             "as_of": response_data[0]["as_of"] if len(response_data) > 0 else None,
             "status": account["status"],
+            "can_relink": account.get("can_relink", True),  # Default to True for backwards compatibility
         }
 
     return jsonify(accounts_and_balances), 200
@@ -181,9 +236,15 @@ def refresh_account_api(account_id: str) -> tuple[Response, int]:
     try:
         logging.info(f"Refreshing {account_id}")
         account: stripe.financial_connections.Account = stripe.financial_connections.Account.retrieve(account_id)
+
+        # Check if account can be relinked and add to account data
+        can_relink = check_can_relink(account)
+        account_dict = dict(account)
+        account_dict["can_relink"] = can_relink
+
         dual_write_operation(
-            mongo_write_func=lambda: upsert(bank_accounts_collection, account),
-            pg_write_func=lambda db: bulk_upsert_bank_accounts(db, [account]),
+            mongo_write_func=lambda: upsert(bank_accounts_collection, account_dict),
+            pg_write_func=lambda db: bulk_upsert_bank_accounts(db, [account_dict]),
             operation_name="refresh_bank_account",
         )
         return jsonify({"data": "success"}), 200

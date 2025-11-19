@@ -38,6 +38,7 @@ class BankAccount(Base):
     display_name = Column(String(255), nullable=False)
     last4 = Column(String(4), nullable=False)
     status = Column(String(50), nullable=False)
+    can_relink = Column(Boolean, nullable=False, default=True)  # Whether inactive account can be relinked
     created_at = Column(TIMESTAMP(timezone=True), default=lambda: datetime.now(UTC))
     updated_at = Column(
         TIMESTAMP(timezone=True),
