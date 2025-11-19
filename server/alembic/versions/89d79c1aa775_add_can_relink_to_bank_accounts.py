@@ -1,7 +1,7 @@
 """add_can_relink_to_bank_accounts
 
 Revision ID: 89d79c1aa775
-Revises: 261fbe964e53
+Revises: e4695b82356b
 Create Date: 2025-11-19 14:02:33.829257
 
 """
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = '89d79c1aa775'
-down_revision: Union[str, Sequence[str], None] = '261fbe964e53'
+down_revision: Union[str, Sequence[str], None] = 'e4695b82356b'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
