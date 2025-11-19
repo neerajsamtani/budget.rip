@@ -12,7 +12,7 @@ from flask_pymongo import PyMongo
 from venmo_api.models.user import User
 
 from clients import get_venmo_client, splitwise_client
-from constants import JWT_COOKIE_DOMAIN, JWT_SECRET_KEY, MONGO_URI
+from constants import CORS_ALLOWED_ORIGINS, JWT_COOKIE_DOMAIN, JWT_SECRET_KEY, MONGO_URI
 from dao import (
     bank_accounts_collection,
     bulk_upsert,
@@ -44,7 +44,13 @@ from resources.venmo import refresh_venmo, venmo_blueprint, venmo_to_line_items
 # current module (__name__) as argument.
 application: Flask = Flask(__name__)
 
-cors: CORS = CORS(application, supports_credentials=True)
+cors: CORS = CORS(
+    application,
+    supports_credentials=True,
+    origins=CORS_ALLOWED_ORIGINS,
+    allow_headers=["Content-Type", "Authorization"],
+    methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+)
 bcrypt: Bcrypt = Bcrypt(application)
 jwt: JWTManager = JWTManager(application)
 # JWT Config Links
