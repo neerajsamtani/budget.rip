@@ -57,7 +57,9 @@ def check_can_relink(account: stripe.financial_connections.Account) -> bool:
     if account.get("status") == "inactive":
         try:
             headers: Dict[str, str] = {
-                "Stripe-Version": "2022-08-01; financial_connections_transactions_beta=v1; financial_connections_relink_api_beta=v1",
+                "Stripe-Version": (
+                    "2022-08-01; financial_connections_transactions_beta=v1; financial_connections_relink_api_beta=v1"
+                ),
             }
             auth_id = account.get("authorization")
             if not auth_id:
