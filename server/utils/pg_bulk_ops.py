@@ -386,5 +386,3 @@ def upsert_user(db_session, user_data: Dict[str, Any]) -> bool:
     db_session.add(user)
     logger.info(f"Inserted user {user_id} to PostgreSQL")
     return True
-
-

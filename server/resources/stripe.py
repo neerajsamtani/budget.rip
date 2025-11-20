@@ -91,6 +91,7 @@ def refresh_account_balances(account_ids: Optional[List[str]] = None) -> int:
         Count of accounts updated with balance info
     """
     from datetime import datetime, timezone
+
     from dao import upsert_with_id
 
     # Get accounts to refresh

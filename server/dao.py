@@ -591,5 +591,3 @@ def _pg_get_user_by_email(email: str) -> Optional[Dict[str, Any]]:
         }
     finally:
         db_session.close()
-
-
