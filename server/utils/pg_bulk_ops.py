@@ -319,6 +319,18 @@ def bulk_upsert_bank_accounts(db_session, accounts_data: List[Any]) -> int:
         if mongo_id:
             account_data["mongo_id"] = str(mongo_id)
 
+        # Include balance fields if present
+        if "currency" in acc_dict:
+            account_data["currency"] = acc_dict["currency"]
+        if "latest_balance" in acc_dict:
+            account_data["latest_balance"] = Decimal(str(acc_dict["latest_balance"]))
+        if "balance_as_of" in acc_dict:
+            balance_as_of = acc_dict["balance_as_of"]
+            # Convert to datetime if needed
+            if isinstance(balance_as_of, (int, float)):
+                balance_as_of = datetime.fromtimestamp(balance_as_of, UTC)
+            account_data["balance_as_of"] = balance_as_of
+
         if account_id in existing_ids:
             bulk_updates.append(account_data)
         else:
@@ -374,3 +386,5 @@ def upsert_user(db_session, user_data: Dict[str, Any]) -> bool:
     db_session.add(user)
     logger.info(f"Inserted user {user_id} to PostgreSQL")
     return True
+
+

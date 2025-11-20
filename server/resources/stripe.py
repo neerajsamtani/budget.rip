@@ -74,6 +74,74 @@ def check_can_relink(account: stripe.financial_connections.Account) -> bool:
     return False
 
 
+def refresh_account_balances(account_ids: Optional[List[str]] = None) -> int:
+    """
+    Fetch and store latest balance for Stripe accounts (best-effort operation).
+
+    Solves N+1 problem: Previously fetched balances via N individual Stripe API
+    calls during page load. Now pre-fetches and stores on account records.
+
+    Best-effort: Balance refresh failures are logged but don't break parent operations
+    (account/transaction refresh). Balances are supplementary data.
+
+    Args:
+        account_ids: Optional list of specific account IDs to refresh. If None, refreshes all accounts.
+
+    Returns:
+        Count of accounts updated with balance info
+    """
+    from datetime import datetime, timezone
+    from dao import upsert_with_id
+
+    # Get accounts to refresh
+    if account_ids:
+        all_accounts = get_all_data(bank_accounts_collection)
+        accounts = [acc for acc in all_accounts if acc["id"] in account_ids]
+    else:
+        accounts = get_all_data(bank_accounts_collection)
+
+    updated_count = 0
+
+    for account in accounts:
+        account_id = account["id"]
+
+        try:
+            logging.info(f"Fetching latest balance for account {account_id}")
+
+            # Fetch latest balance only (limit=1)
+            balances = stripe_client.v1.financial_connections.accounts.inferred_balances.list(
+                account=account_id,
+                params={"limit": 1},
+            )
+
+            if balances.data:
+                balance_data = balances.data[0]
+                # Get the currency and balance (Stripe inferred balances support multiple currencies)
+                # Use the first currency available
+                currency = next(iter(balance_data.current.keys()))
+                balance_cents = balance_data.current[currency]
+
+                # Update account with latest balance
+                account["currency"] = currency
+                account["latest_balance"] = balance_cents / 100  # Convert from cents
+                account["balance_as_of"] = datetime.fromtimestamp(balance_data.as_of, tz=timezone.utc)
+
+                # Dual-write updated account
+                dual_write_operation(
+                    mongo_write_func=lambda: upsert_with_id(bank_accounts_collection, account, account_id),
+                    pg_write_func=lambda db: bulk_upsert_bank_accounts(db, [account]),
+                    operation_name=f"refresh_balance_{account_id}",
+                )
+                updated_count += 1
+                logging.info(f"Updated balance for account {account_id}: {balance_cents / 100} {currency}")
+
+        except Exception as e:
+            logging.error(f"Error fetching balance for account {account_id}: {e}")
+            # Continue with other accounts even if one fails
+
+    return updated_count
+
+
 @stripe_blueprint.route("/api/refresh/stripe")
 @jwt_required()
 def refresh_stripe_api() -> tuple[Response, int]:
@@ -143,8 +211,10 @@ def get_accounts_api(session_id: str) -> tuple[Response, int]:
 @jwt_required()
 def get_accounts_and_balances_api() -> tuple[Response, int]:
     """
-    N+1 query problem: Stripe doesn't provide batch balance endpoint.
-    Future: add caching, use asyncio, or store balances in DB.
+    Get bank accounts with their latest balances.
+
+    Balances are pre-fetched and stored on account records via refresh_account_balances()
+    to avoid N+1 query problem (previously made one Stripe API call per account).
     """
     accounts: List[Dict[str, Any]] = get_all_data(bank_accounts_collection)
     accounts_and_balances: Dict[str, Dict[str, Any]] = {}
@@ -157,36 +227,21 @@ def get_accounts_and_balances_api() -> tuple[Response, int]:
         if "can_relink" not in account:
             account["can_relink"] = check_can_relink(account)
 
-        try:
-            # Use Stripe SDK to fetch inferred balances
-            balances = stripe_client.v1.financial_connections.accounts.inferred_balances.list(
-                account=account_id,
-                params={"limit": 1},
-            )
+        # Get balance from account record
+        balance = account.get("latest_balance", 0)
+        as_of_dt = account.get("balance_as_of")
+        as_of = int(as_of_dt.timestamp()) if as_of_dt else None
+        currency = account.get("currency", "usd")
 
-            balance_data = balances.data[0] if balances.data else None
-            balance_usd = balance_data.current.usd / 100 if balance_data else 0
-            as_of = balance_data.as_of if balance_data else None
-
-            accounts_and_balances[account_id] = {
-                "id": account_id,
-                "name": account_name,
-                "balance": balance_usd,
-                "as_of": as_of,
-                "status": account["status"],
-                "can_relink": account["can_relink"],
-            }
-        except Exception as e:
-            logging.error(f"Error fetching balance for account {account_id}: {e}")
-            # Return account info even if balance fetch fails
-            accounts_and_balances[account_id] = {
-                "id": account_id,
-                "name": account_name,
-                "balance": 0,
-                "as_of": None,
-                "status": account["status"],
-                "can_relink": account["can_relink"],
-            }
+        accounts_and_balances[account_id] = {
+            "id": account_id,
+            "name": account_name,
+            "balance": balance,
+            "currency": currency,
+            "as_of": as_of,
+            "status": account["status"],
+            "can_relink": account["can_relink"],
+        }
 
     return jsonify(accounts_and_balances), 200
 
@@ -290,6 +345,9 @@ def refresh_transactions_api(account_id: str) -> tuple[Response, int]:
                 operation_name="stripe_refresh_transactions",
             )
 
+        # Best-effort: fetch latest balance for this account (won't fail transaction refresh)
+        refresh_account_balances(account_ids=[account_id])
+
         # If we want to enable only refreshing a single account, we need to uncomment this
         # stripe_to_line_items()
         return jsonify("Refreshed Stripe Connection for Given Account"), 200
@@ -305,6 +363,8 @@ def refresh_stripe() -> None:
         refresh_account_api(account["id"])
         refresh_transactions_api(account["id"])
     stripe_to_line_items()
+    # Best-effort: refresh balances for all accounts after transactions updated
+    refresh_account_balances()
 
 
 def stripe_to_line_items() -> None:

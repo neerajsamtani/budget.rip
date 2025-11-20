@@ -220,20 +220,9 @@ class TestStripeAPI:
         mocker.patch("resources.stripe.STRIPE_CUSTOMER_ID", "test_customer_id")
 
         with flask_app.app_context():
-            # Mock Stripe SDK inferred_balances.list method
-            mock_balance_data = mocker.MagicMock()
-            mock_balance_data.current.usd = 10000  # $100.00 in cents
-            mock_balance_data.as_of = "2023-01-15T10:30:00Z"
+            from datetime import datetime, timezone
 
-            mock_balances_response = mocker.MagicMock()
-            mock_balances_response.data = [mock_balance_data]
-
-            mock_inferred_balances_list = mocker.patch(
-                "resources.stripe.stripe_client.v1.financial_connections.accounts.inferred_balances.list"
-            )
-            mock_inferred_balances_list.return_value = mock_balances_response
-
-            # Insert test account
+            # Insert test account with balance
             test_account = {
                 "id": "fca_test123",
                 "_id": "fca_test123",  # For refresh_stripe function
@@ -241,6 +230,9 @@ class TestStripeAPI:
                 "display_name": "Checking Account",
                 "last4": "1234",
                 "status": "active",
+                "latest_balance": 100.0,
+                "currency": "usd",
+                "balance_as_of": datetime(2023, 1, 15, 10, 30, 0, tzinfo=timezone.utc),
             }
             upsert_with_id(bank_accounts_collection, test_account, test_account["id"])
 
@@ -254,6 +246,7 @@ class TestStripeAPI:
             assert "fca_test123" in data
             account_data = data["fca_test123"]
             assert account_data["balance"] == 100.0
+            assert account_data["currency"] == "usd"
             assert account_data["name"] == "Test Bank Checking Account 1234"
 
     def test_subscribe_to_account_api_success(self, test_client, jwt_token, flask_app, mocker):
@@ -884,3 +877,89 @@ class TestStripeIntegration:
             assert line_items[0].description == "Integration test transaction"
             assert line_items[0].payment_method == "Checking Account"
             assert line_items[0].amount == 25.0
+
+
+class TestAccountBalances:
+    """Tests for account balance functionality (simplified approach)"""
+
+    def test_refresh_account_balances_success(self, flask_app, mocker):
+        """Test refresh_account_balances fetches and stores balance on account record"""
+        from dao import bank_accounts_collection, get_all_data, upsert_with_id
+        from resources.stripe import refresh_account_balances
+
+        with flask_app.app_context():
+            # Mock Stripe client
+            mock_balance_data = mocker.Mock()
+            mock_balance_data.current = {"usd": 10000}  # $100.00 in cents
+            mock_balance_data.as_of = 1700000000
+
+            mock_balances = mocker.Mock()
+            mock_balances.data = [mock_balance_data]
+
+            mock_stripe_client = mocker.patch("resources.stripe.stripe_client")
+            mock_stripe_client.v1.financial_connections.accounts.inferred_balances.list.return_value = mock_balances
+
+            # Setup test account
+            test_account = {
+                "id": "fca_test123",
+                "institution_name": "Test Bank",
+                "display_name": "Checking",
+                "last4": "1234",
+                "status": "active",
+            }
+            upsert_with_id(bank_accounts_collection, test_account, test_account["id"])
+
+            # Call refresh_account_balances
+            count = refresh_account_balances()
+
+            # Verify Stripe API was called correctly
+            mock_stripe_client.v1.financial_connections.accounts.inferred_balances.list.assert_called_once()
+            call_args = mock_stripe_client.v1.financial_connections.accounts.inferred_balances.list.call_args
+            assert call_args[1]["account"] == "fca_test123"
+            assert call_args[1]["params"]["limit"] == 1
+
+            # Verify balance was stored on account
+            assert count == 1
+            accounts = get_all_data(bank_accounts_collection)
+            updated_account = next(acc for acc in accounts if acc["id"] == "fca_test123")
+            assert updated_account["latest_balance"] == 100.0
+            assert updated_account["currency"] == "usd"
+            assert updated_account["balance_as_of"] is not None
+
+    def test_get_accounts_and_balances_from_account_record(self, test_client, jwt_token, flask_app):
+        """Test GET /api/accounts_and_balances reads balance from account record"""
+        from datetime import UTC, datetime
+
+        from dao import bank_accounts_collection, upsert_with_id
+
+        with flask_app.app_context():
+            # Setup test account with balance in MongoDB
+            test_account = {
+                "id": "fca_test789",
+                "institution_name": "Test Bank",
+                "display_name": "Savings",
+                "last4": "5678",
+                "status": "active",
+                "can_relink": False,
+                "latest_balance": 150.50,
+                "currency": "usd",
+                "balance_as_of": datetime.fromtimestamp(1700000000, UTC),
+            }
+            upsert_with_id(bank_accounts_collection, test_account, test_account["id"])
+
+            # Call API endpoint
+            response = test_client.get(
+                "/api/accounts_and_balances",
+                headers={"Authorization": "Bearer " + jwt_token},
+            )
+
+            assert response.status_code == 200
+            data = response.get_json()
+            assert "fca_test789" in data
+            assert data["fca_test789"]["balance"] == 150.50
+            assert data["fca_test789"]["currency"] == "usd"
+            # Timestamp may vary due to timezone handling
+            assert data["fca_test789"]["as_of"] is not None
+            assert isinstance(data["fca_test789"]["as_of"], int)
+            assert data["fca_test789"]["name"] == "Test Bank Savings 5678"
+            assert data["fca_test789"]["status"] == "active"
