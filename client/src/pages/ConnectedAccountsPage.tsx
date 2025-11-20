@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Elements } from "@stripe/react-stripe-js";
 import { FinancialConnectionsSession } from "@stripe/stripe-js/types/api";
 import { Stripe } from "@stripe/stripe-js/types/stripe-js";
@@ -177,7 +178,16 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
                     const canRelink = accountsAndBalances[id]?.can_relink ?? false;
                     return (
                         <TableRow key={`stripe-${id}`}>
-                            <TableCell>{institution_name} {display_name} {last4}</TableCell>
+                            <TableCell>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <span>{institution_name} {display_name} {last4}</span>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        Account ID: {id}
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TableCell>
                             {status === 'inactive' && canRelink ?
                                 <TableCell><Button onClick={() => { relinkAccount(id) }} variant="secondary">Reactivate</Button></TableCell>
                                 : <TableCell>Active</TableCell>}
@@ -211,7 +221,16 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
         const canRelink = accountsAndBalances[stripeAccount.id]?.can_relink ?? false;
         return (
             <TableRow key={stripeAccount.id}>
-                <TableCell>{stripeAccount.institution_name} {stripeAccount.subcategory} ({stripeAccount.id})</TableCell>
+                <TableCell>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <span>{stripeAccount.institution_name} {stripeAccount.display_name} {stripeAccount.last4}</span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            Account ID: {stripeAccount.id}
+                        </TooltipContent>
+                    </Tooltip>
+                </TableCell>
                 <TableCell>
                     {canRelink ? (
                         <Button onClick={() => { relinkAccount(stripeAccount.id) }} variant="secondary">Reactivate</Button>

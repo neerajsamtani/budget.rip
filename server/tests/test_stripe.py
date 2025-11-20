@@ -752,19 +752,11 @@ class TestCheckCanRelink:
             mock_response = mocker.MagicMock()
             mock_response.json.return_value = {
                 "status": "inactive",
-                "status_details": {
-                    "inactive": {
-                        "action": "relink_required"
-                    }
-                }
+                "status_details": {"inactive": {"action": "relink_required"}},
             }
             mock_requests_get.return_value = mock_response
 
-            account = {
-                "id": "fca_test123",
-                "status": "inactive",
-                "authorization": "fcauth_test123"
-            }
+            account = {"id": "fca_test123", "status": "inactive", "authorization": "fcauth_test123"}
             result = check_can_relink(account)
 
             assert result is True
@@ -776,16 +768,10 @@ class TestCheckCanRelink:
 
             mock_requests_get = mocker.patch("requests.get")
             mock_response = mocker.MagicMock()
-            mock_response.json.return_value = {
-                "status": "active"
-            }
+            mock_response.json.return_value = {"status": "active"}
             mock_requests_get.return_value = mock_response
 
-            account = {
-                "id": "fca_test123",
-                "status": "inactive",
-                "authorization": "fcauth_test123"
-            }
+            account = {"id": "fca_test123", "status": "inactive", "authorization": "fcauth_test123"}
             result = check_can_relink(account)
 
             assert result is False
@@ -797,21 +783,10 @@ class TestCheckCanRelink:
 
             mock_requests_get = mocker.patch("requests.get")
             mock_response = mocker.MagicMock()
-            mock_response.json.return_value = {
-                "status": "inactive",
-                "status_details": {
-                    "inactive": {
-                        "action": "none"
-                    }
-                }
-            }
+            mock_response.json.return_value = {"status": "inactive", "status_details": {"inactive": {"action": "none"}}}
             mock_requests_get.return_value = mock_response
 
-            account = {
-                "id": "fca_test123",
-                "status": "inactive",
-                "authorization": "fcauth_test123"
-            }
+            account = {"id": "fca_test123", "status": "inactive", "authorization": "fcauth_test123"}
             result = check_can_relink(account)
 
             assert result is False
@@ -824,11 +799,7 @@ class TestCheckCanRelink:
             mock_requests_get = mocker.patch("requests.get")
             mock_requests_get.side_effect = Exception("API error")
 
-            account = {
-                "id": "fca_test123",
-                "status": "inactive",
-                "authorization": "fcauth_test123"
-            }
+            account = {"id": "fca_test123", "status": "inactive", "authorization": "fcauth_test123"}
             result = check_can_relink(account)
 
             assert result is False
@@ -838,11 +809,7 @@ class TestCheckCanRelink:
         with flask_app.app_context():
             from resources.stripe import check_can_relink
 
-            account = {
-                "id": "fca_test123",
-                "status": "inactive",
-                "authorization": None
-            }
+            account = {"id": "fca_test123", "status": "inactive", "authorization": None}
             result = check_can_relink(account)
 
             assert result is False
@@ -854,16 +821,10 @@ class TestCheckCanRelink:
 
             mock_requests_get = mocker.patch("requests.get")
             mock_response = mocker.MagicMock()
-            mock_response.json.return_value = {
-                "status": "unknown_status"
-            }
+            mock_response.json.return_value = {"status": "unknown_status"}
             mock_requests_get.return_value = mock_response
 
-            account = {
-                "id": "fca_test123",
-                "status": "inactive",
-                "authorization": "fcauth_test123"
-            }
+            account = {"id": "fca_test123", "status": "inactive", "authorization": "fcauth_test123"}
             result = check_can_relink(account)
 
             assert result is False

@@ -47,7 +47,7 @@ const mockConnectedAccounts = [
 ];
 const mockAccountsAndBalances = {
     'stripe-1': { balance: 1000, as_of: 1700000000, status: 'active' },
-    'stripe-2': { balance: 2000, as_of: 1700000000, status: 'inactive' },
+    'stripe-2': { balance: 2000, as_of: 1700000000, status: 'inactive', can_relink: true },
 };
 
 describe('ConnectedAccountsPage', () => {
@@ -265,7 +265,8 @@ describe('ConnectedAccountsPage', () => {
             render(<ConnectedAccountsPage stripePromise={mockStripePromise} />);
 
             await waitFor(() => {
-                expect(screen.getByText(/Bank Savings 5678/)).toBeInTheDocument();
+                const accounts = screen.getAllByText(/Bank Savings 5678/);
+                expect(accounts.length).toBeGreaterThan(0);
             });
 
             const refreshButtons = screen.getAllByRole('button');
