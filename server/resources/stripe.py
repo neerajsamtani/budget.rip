@@ -302,9 +302,7 @@ def refresh_transactions_api(account_id: str) -> tuple[Response, int]:
         stripe.api_version = "2022-08-01; financial_connections_transactions_beta=v1"
 
         while has_more:
-            logger.info(
-                f"Last request at: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-            )
+            logger.info(f"Last request at: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
             transactions_list_params = {
                 "account": account_id,

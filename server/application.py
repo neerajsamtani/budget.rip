@@ -57,9 +57,9 @@ from resources.venmo import refresh_venmo, venmo_blueprint, venmo_to_line_items
 # Logs are treated as event streams that can be aggregated by cloud platforms
 logging.basicConfig(
     level=getattr(logging, LOG_LEVEL.upper(), logging.INFO),
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     stream=sys.stdout,
-    force=True  # Override any existing logging configuration
+    force=True,  # Override any existing logging configuration
 )
 
 # Create module logger
