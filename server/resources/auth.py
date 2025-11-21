@@ -1,4 +1,6 @@
 import logging
+
+logger = logging.getLogger(__name__)
 from datetime import timedelta
 from typing import Any, Dict, Optional
 
@@ -28,14 +30,14 @@ def signup_user_api() -> tuple[Response, int]:
     required_fields = ["first_name", "last_name", "email", "password"]
     for field in required_fields:
         if field not in body or not body[field]:
-            logging.warning(f"Signup attempt with missing field: {field}")
+            logger.warning(f"Signup attempt with missing field: {field}")
             return jsonify({"error": f"Missing required field: {field}"}), 400
     if get_user_by_email(body["email"]):
-        logging.warning(f"Signup attempt with existing email: {body['email']}")
+        logger.warning(f"Signup attempt with existing email: {body['email']}")
         return jsonify("User Already Exists"), 400
     elif body["email"] not in GATED_USERS:
         # For now, the user must be gated
-        logging.warning(f"Signup attempt by non-gated user: {body['email']}")
+        logger.warning(f"Signup attempt by non-gated user: {body['email']}")
         return jsonify("User Not Signed Up For Private Beta"), 403
     else:
         user["id"] = generate_id("user")
@@ -48,7 +50,7 @@ def signup_user_api() -> tuple[Response, int]:
             pg_write_func=lambda db: upsert_user(db, user),
             operation_name="create_user",
         )
-        logging.info(f"New user created: {body['email']}")
+        logger.info(f"New user created: {body['email']}")
         return jsonify("Created User"), 201
 
 
@@ -58,15 +60,15 @@ def login_user_api() -> tuple[Response, int]:
     required_fields = ["email", "password"]
     for field in required_fields:
         if field not in body or not body[field]:
-            logging.warning(f"Login attempt with missing field: {field}")
+            logger.warning(f"Login attempt with missing field: {field}")
             return jsonify({"error": f"Missing required field: {field}"}), 400
     user: Optional[Dict[str, Any]] = get_user_by_email(body["email"])
     if user is None:
-        logging.warning(f"Login attempt with non-existent email: {body['email']}")
+        logger.warning(f"Login attempt with non-existent email: {body['email']}")
         return jsonify({"error": "Email or password invalid"}), 401
     authorized: bool = check_password(user["password_hash"], body["password"])
     if not authorized:
-        logging.warning(f"Login attempt with invalid password for: {body['email']}")
+        logger.warning(f"Login attempt with invalid password for: {body['email']}")
         return jsonify({"error": "Email or password invalid"}), 401
 
     expires: timedelta = timedelta(days=3)
@@ -75,7 +77,7 @@ def login_user_api() -> tuple[Response, int]:
     # Set the JWT cookies in the response
     resp: Response = jsonify({"login": True})
     set_access_cookies(resp, access_token)
-    logging.info(f"User logged in successfully: {body['email']}")
+    logger.info(f"User logged in successfully: {body['email']}")
     return resp, 200
 
 
@@ -88,5 +90,5 @@ def login_user_api() -> tuple[Response, int]:
 def logout_api() -> tuple[Response, int]:
     resp: Response = jsonify({"logout": True})
     unset_jwt_cookies(resp)
-    logging.info("User logged out")
+    logger.info("User logged out")
     return resp, 200

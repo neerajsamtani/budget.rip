@@ -7,6 +7,8 @@ import stripe
 from flask import Blueprint, Response, jsonify, request
 from flask_jwt_extended import jwt_required
 
+logger = logging.getLogger(__name__)
+
 from constants import STRIPE_API_KEY, STRIPE_CUSTOMER_ID
 from dao import (
     bank_accounts_collection,
@@ -68,7 +70,7 @@ def check_can_relink(account: stripe.financial_connections.Account) -> bool:
 
             return False
         except Exception as e:
-            logging.error(f"Error checking relink status for account {account.get('id')}: {e}")
+            logger.error(f"Error checking relink status for account {account.get('id')}: {e}")
             return False  # Default to False on error - safer than allowing broken relinks
 
     return False
@@ -106,7 +108,7 @@ def refresh_account_balances(account_ids: Optional[List[str]] = None) -> int:
         account_id = account["id"]
 
         try:
-            logging.info(f"Fetching latest balance for account {account_id}")
+            logger.info(f"Fetching latest balance for account {account_id}")
 
             # Fetch latest balance only (limit=1)
             balances = stripe_client.v1.financial_connections.accounts.inferred_balances.list(
@@ -130,10 +132,10 @@ def refresh_account_balances(account_ids: Optional[List[str]] = None) -> int:
                     operation_name=f"refresh_balance_{account_id}",
                 )
                 updated_count += 1
-                logging.info(f"Updated balance for account {account_id}: {balance_cents / 100} {currency}")
+                logger.info(f"Updated balance for account {account_id}: {balance_cents / 100} {currency}")
 
         except Exception as e:
-            logging.error(f"Error fetching balance for account {account_id}: {e}")
+            logger.error(f"Error fetching balance for account {account_id}: {e}")
             # Continue with other accounts even if one fails
 
     return updated_count
@@ -155,7 +157,7 @@ def create_fc_session_api(
         try:
             customer: stripe.Customer = stripe.Customer.retrieve(STRIPE_CUSTOMER_ID)
         except stripe.InvalidRequestError:
-            logging.info("Creating a new customer...")
+            logger.info("Creating a new customer...")
             customer: stripe.Customer = stripe.Customer.create(email="neeraj@gmail.com", name="Neeraj")
 
         session_params: Dict[str, Any] = {
@@ -258,7 +260,7 @@ def subscribe_to_account_api() -> tuple[Response, int]:
 @stripe_blueprint.route("/api/refresh_account/<account_id>")
 def refresh_account_api(account_id: str) -> tuple[Response, int]:
     try:
-        logging.info(f"Refreshing {account_id}")
+        logger.info(f"Refreshing {account_id}")
         account: stripe.financial_connections.Account = stripe.financial_connections.Account.retrieve(account_id)
         account["can_relink"] = check_can_relink(account)
 
@@ -276,7 +278,7 @@ def refresh_account_api(account_id: str) -> tuple[Response, int]:
 @jwt_required()
 def relink_account_api(account_id: str) -> tuple[Response, int]:
     try:
-        logging.info(f"Relinking {account_id}")
+        logger.info(f"Relinking {account_id}")
         account: stripe.financial_connections.Account = stripe.financial_connections.Account.retrieve(account_id)
 
         if not check_can_relink(account):
@@ -290,7 +292,7 @@ def relink_account_api(account_id: str) -> tuple[Response, int]:
 
 @stripe_blueprint.route("/api/refresh_transactions/<account_id>")
 def refresh_transactions_api(account_id: str) -> tuple[Response, int]:
-    logging.info(f"Getting Transactions for {account_id}")
+    logger.info(f"Getting Transactions for {account_id}")
     # TODO: This gets all transactions ever. We should only get those that we don't have
     try:
         has_more: bool = True
@@ -300,9 +302,8 @@ def refresh_transactions_api(account_id: str) -> tuple[Response, int]:
         stripe.api_version = "2022-08-01; financial_connections_transactions_beta=v1"
 
         while has_more:
-            logging.info(
-                "Last request at: ",
-                datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            logger.info(
+                f"Last request at: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
             )
 
             transactions_list_params = {
@@ -320,7 +321,7 @@ def refresh_transactions_api(account_id: str) -> tuple[Response, int]:
                 if transaction.status == "posted":
                     all_transactions.append(transaction)
                 elif transaction.status == "pending":
-                    logging.info(
+                    logger.info(
                         f"Pending Transaction: {transaction.description} | "
                         + f"{cents_to_dollars(flip_amount(transaction.amount))}"
                     )
@@ -347,7 +348,7 @@ def refresh_transactions_api(account_id: str) -> tuple[Response, int]:
 
 
 def refresh_stripe() -> None:
-    logging.info("Refreshing Stripe Data")
+    logger.info("Refreshing Stripe Data")
     bank_accounts: List[Dict[str, Any]] = get_all_data(bank_accounts_collection)
     for account in bank_accounts:
         refresh_account_api(account["id"])

@@ -15,6 +15,8 @@ from helpers import to_dict, to_dict_robust
 from utils.database_handlers import get_collection_handler
 from utils.dual_write import dual_write_operation
 
+logger = logging.getLogger(__name__)
+
 venmo_raw_data_collection: str = "venmo_raw_data"
 splitwise_raw_data_collection: str = "splitwise_raw_data"
 cash_raw_data_collection: str = "cash_raw_data"
@@ -74,7 +76,7 @@ def remove_event_from_line_item(line_item_id: Union[str, int, ObjectId]) -> None
         # Try to unset event_id using the provided ID as-is
         result = collection.update_one({"_id": line_item_id}, {"$unset": {"event_id": ""}})
         if result.matched_count == 0:
-            logging.warning(f"Could not find line item with ID {line_item_id} to remove event_id")
+            logger.warning(f"Could not find line item with ID {line_item_id} to remove event_id")
 
     def pg_write(db_session):
         from models.sql_models import EventLineItem, LineItem
@@ -85,7 +87,7 @@ def remove_event_from_line_item(line_item_id: Union[str, int, ObjectId]) -> None
             # Delete all EventLineItem junctions for this line item
             db_session.query(EventLineItem).filter(EventLineItem.line_item_id == line_item.id).delete()
         else:
-            logging.info(f"Line item {line_item_id} not in PostgreSQL yet")
+            logger.info(f"Line item {line_item_id} not in PostgreSQL yet")
 
     # dual_write_operation handles transaction management (commit/rollback)
     dual_write_operation(
@@ -192,26 +194,26 @@ def bulk_upsert(cur_collection_str: str, items: List[Any]) -> None:
             # Use PyMongo's UpdateOne class for proper bulk operations
             bulk_operations.append(UpdateOne({"_id": item_dict["_id"]}, {"$set": item_dict}, upsert=True))
         except Exception as e:
-            logging.error(f"Error preparing item for bulk upsert: {e}")
-            logging.error(f"Item type: {type(item)}")
-            logging.error(f"Item: {item}")
+            logger.error(f"Error preparing item for bulk upsert: {e}")
+            logger.error(f"Item type: {type(item)}")
+            logger.error(f"Item: {item}")
             continue
 
     # Execute bulk operations
     if bulk_operations:
         try:
             result: Any = cur_collection.bulk_write(bulk_operations, ordered=False)
-            logging.info(f"Bulk upsert completed: {result.upserted_count} inserted, {result.modified_count} updated")
+            logger.info(f"Bulk upsert completed: {result.upserted_count} inserted, {result.modified_count} updated")
         except Exception as e:
-            logging.error(f"Error in bulk upsert: {e}")
+            logger.error(f"Error in bulk upsert: {e}")
             if isinstance(e, BulkWriteError):
-                logging.error(f"BulkWriteError: {e.details}")
+                logger.error(f"BulkWriteError: {e.details}")
             # Fallback to individual upserts for better error isolation
             for item in items:
                 try:
                     upsert(cur_collection_str, item)
                 except Exception as individual_error:
-                    logging.error(f"Error upserting individual item: {individual_error}")
+                    logger.error(f"Error upserting individual item: {individual_error}")
 
 
 def get_categorized_data() -> List[Dict[str, Any]]:

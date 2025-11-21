@@ -1,4 +1,6 @@
 import logging
+
+logger = logging.getLogger(__name__)
 from typing import Any, Dict, List
 
 from flask import Blueprint, Response, jsonify
@@ -35,10 +37,10 @@ def refresh_venmo_api() -> tuple[Response, int]:
 
 
 def refresh_venmo() -> None:
-    logging.info("Refreshing Venmo Data")
+    logger.info("Refreshing Venmo Data")
     profile: User | None = get_venmo_client().my_profile()
     if profile is None:
-        logging.error("Failed to get Venmo profile")
+        logger.error("Failed to get Venmo profile")
         raise Exception("Failed to get Venmo profile")
     my_id: int = profile.id
     transactions: Any = get_venmo_client().user.get_user_transactions(str(my_id))  # type: ignore
@@ -66,9 +68,9 @@ def refresh_venmo() -> None:
             pg_write_func=lambda db: bulk_upsert_transactions(db, all_transactions, source="venmo"),
             operation_name="venmo_refresh_transactions",
         )
-        logging.info(f"Refreshed {len(all_transactions)} Venmo transactions")
+        logger.info(f"Refreshed {len(all_transactions)} Venmo transactions")
     else:
-        logging.info("No new Venmo transactions to refresh")
+        logger.info("No new Venmo transactions to refresh")
 
 
 def venmo_to_line_items() -> None:
@@ -133,6 +135,6 @@ def venmo_to_line_items() -> None:
             pg_write_func=lambda db: bulk_upsert_line_items(db, all_line_items, source="venmo"),
             operation_name="venmo_create_line_items",
         )
-        logging.info(f"Converted {len(all_line_items)} Venmo transactions to line items")
+        logger.info(f"Converted {len(all_line_items)} Venmo transactions to line items")
     else:
-        logging.info("No Venmo transactions to convert to line items")
+        logger.info("No Venmo transactions to convert to line items")
