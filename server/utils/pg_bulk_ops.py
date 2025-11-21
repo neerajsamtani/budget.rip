@@ -8,7 +8,7 @@ to PostgreSQL during the dual-write period.
 import logging
 from datetime import UTC, datetime
 from decimal import Decimal
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from helpers import iso_8601_to_posix, to_dict_robust
 from models.sql_models import BankAccount, LineItem, PaymentMethod, Transaction, User
@@ -52,14 +52,11 @@ def bulk_upsert_transactions(db_session, transactions_data: List[Any], source: s
     if not transactions_data:
         return 0
 
-    # Convert to dicts and extract MongoDB _id
     transaction_dicts = []
     mongo_ids = []
     for txn in transactions_data:
-        # Convert to dict using robust conversion (handles both dict and object types)
         txn_dict = to_dict_robust(txn)
 
-        # Ensure _id field is set correctly
         if "_id" not in txn_dict:
             if "id" in txn_dict:
                 txn_dict["_id"] = txn_dict["id"]
@@ -79,7 +76,6 @@ def bulk_upsert_transactions(db_session, transactions_data: List[Any], source: s
     if not transaction_dicts:
         return 0
 
-    # Check existing transactions to avoid duplicates
     existing_query = db_session.query(Transaction.source, Transaction.source_id).filter(Transaction.source == source)
     if mongo_ids:
         existing_pairs = set(
@@ -89,7 +85,6 @@ def bulk_upsert_transactions(db_session, transactions_data: List[Any], source: s
     else:
         existing_pairs = set()
 
-    # Prepare bulk insert mappings for new transactions
     bulk_inserts = []
     for txn_dict, (src, mongo_id) in zip(transaction_dicts, mongo_ids):
         if (src, mongo_id) in existing_pairs:
@@ -97,7 +92,6 @@ def bulk_upsert_transactions(db_session, transactions_data: List[Any], source: s
 
         transaction_date = get_transaction_date(txn_dict, source)
 
-        # Remove MongoDB-specific _id from source_data
         source_data = {k: v for k, v in txn_dict.items() if k != "_id"}
 
         bulk_inserts.append(
@@ -118,6 +112,62 @@ def bulk_upsert_transactions(db_session, transactions_data: List[Any], source: s
     return 0
 
 
+def _convert_line_item_to_dict(li: Any) -> Optional[Dict[str, Any]]:
+    """
+    Convert a line item (object or dict) to a standardized dict format.
+
+    Returns None if the line item format is unsupported.
+    """
+    if hasattr(li, "id") and hasattr(li, "date") and hasattr(li, "payment_method"):
+        return {
+            "id": li.id,
+            "date": li.date,
+            "payment_method": li.payment_method,
+            "description": li.description,
+            "amount": li.amount,
+            "responsible_party": getattr(li, "responsible_party", ""),
+        }
+    elif isinstance(li, dict):
+        return li.copy()
+    else:
+        logger.warning(f"Skipping unsupported line item type: {type(li)}")
+        return None
+
+
+def _build_line_item_insert_mapping(
+    li_dict: Dict[str, Any],
+    transaction_id: str,
+    payment_method_id: str,
+    mongo_id: str,
+) -> Dict[str, Any]:
+    """Build bulk insert mapping for a single line item."""
+    date_value = li_dict.get("date", 0)
+    if isinstance(date_value, (int, float)):
+        li_date = datetime.fromtimestamp(float(date_value), UTC)
+    else:
+        logger.warning(f"Unexpected date type: {type(date_value)}, using current time")
+        li_date = datetime.now(UTC)
+
+    amount_value = li_dict.get("amount", 0)
+    try:
+        li_amount = Decimal(str(amount_value))
+    except (ValueError, TypeError):
+        logger.warning(f"Invalid amount: {amount_value}, using 0")
+        li_amount = Decimal("0.00")
+
+    return {
+        "id": generate_id("li"),
+        "transaction_id": transaction_id,
+        "mongo_id": mongo_id,
+        "date": li_date,
+        "amount": li_amount,
+        "description": li_dict.get("description", ""),
+        "payment_method_id": payment_method_id,
+        "responsible_party": li_dict.get("responsible_party", ""),
+        "notes": li_dict.get("notes"),
+    }
+
+
 def bulk_upsert_line_items(db_session, line_items_data: List[Any], source: str) -> int:
     """
     Bulk upsert line items to PostgreSQL.
@@ -133,11 +183,9 @@ def bulk_upsert_line_items(db_session, line_items_data: List[Any], source: str) 
     if not line_items_data:
         return 0
 
-    # Pre-load payment method name-to-ID mapping
     payment_methods = db_session.query(PaymentMethod).all()
     payment_method_map = {pm.name: pm.id for pm in payment_methods}
 
-    # Pre-build transaction lookup dict by (source, source_id)
     # Extract mongo_ids from line items to find matching transactions
     line_item_mongo_ids = []
     for li in line_items_data:
@@ -148,12 +196,11 @@ def bulk_upsert_line_items(db_session, line_items_data: List[Any], source: str) 
         else:
             continue
 
-        # Extract transaction mongo_id from line item id format: "line_item_{txn_mongo_id}"
+        # Expected format: "line_item_{txn_mongo_id}"
         if li_id.startswith("line_item_"):
             txn_mongo_id = li_id.replace("line_item_", "")
             line_item_mongo_ids.append(txn_mongo_id)
 
-    # Query transactions for this source
     if line_item_mongo_ids:
         transactions = (
             db_session.query(Transaction)
@@ -167,27 +214,13 @@ def bulk_upsert_line_items(db_session, line_items_data: List[Any], source: str) 
     else:
         transaction_lookup = {}
 
-    # Convert line items to dict format and check for existing
     line_item_dicts = []
     line_item_mongo_ids_check = []
     for li in line_items_data:
-        # Handle LineItem objects (from resources.line_item)
-        if hasattr(li, "id") and hasattr(li, "date") and hasattr(li, "payment_method"):
-            li_dict = {
-                "id": li.id,
-                "date": li.date,
-                "payment_method": li.payment_method,
-                "description": li.description,
-                "amount": li.amount,
-                "responsible_party": getattr(li, "responsible_party", ""),
-            }
-        elif isinstance(li, dict):
-            li_dict = li.copy()
-        else:
-            logger.warning(f"Skipping unsupported line item type: {type(li)}")
+        li_dict = _convert_line_item_to_dict(li)
+        if not li_dict:
             continue
 
-        # Extract mongo_id from line item id
         li_id = li_dict.get("id", "")
         if li_id.startswith("line_item_"):
             txn_mongo_id = li_id.replace("line_item_", "")
@@ -203,13 +236,11 @@ def bulk_upsert_line_items(db_session, line_items_data: List[Any], source: str) 
     if not line_item_dicts:
         return 0
 
-    # Check existing line items by mongo_id
     existing_mongo_ids = set()
     if line_item_mongo_ids_check:
         existing = db_session.query(LineItem.mongo_id).filter(LineItem.mongo_id.in_(line_item_mongo_ids_check)).all()
         existing_mongo_ids = {row[0] for row in existing}
 
-    # Prepare bulk insert mappings
     bulk_inserts = []
     for li_dict in line_item_dicts:
         mongo_id = li_dict.get("_mongo_id", "")
@@ -227,7 +258,6 @@ def bulk_upsert_line_items(db_session, line_items_data: List[Any], source: str) 
         payment_method_id = payment_method_map.get(payment_method_name)
 
         if not payment_method_id:
-            # Create "Unknown" payment method if not found
             unknown_pm = db_session.query(PaymentMethod).filter_by(name="Unknown").first()
             if not unknown_pm:
                 unknown_pm = PaymentMethod(id=generate_id("pm"), name="Unknown", type="cash", is_active=True)
@@ -236,34 +266,7 @@ def bulk_upsert_line_items(db_session, line_items_data: List[Any], source: str) 
                 payment_method_map["Unknown"] = unknown_pm.id
             payment_method_id = unknown_pm.id
 
-        # Convert date and amount
-        date_value = li_dict.get("date", 0)
-        if isinstance(date_value, (int, float)):
-            li_date = datetime.fromtimestamp(float(date_value), UTC)
-        else:
-            logger.warning(f"Unexpected date type: {type(date_value)}, using current time")
-            li_date = datetime.now(UTC)
-
-        amount_value = li_dict.get("amount", 0)
-        try:
-            li_amount = Decimal(str(amount_value))
-        except (ValueError, TypeError):
-            logger.warning(f"Invalid amount: {amount_value}, using 0")
-            li_amount = Decimal("0.00")
-
-        bulk_inserts.append(
-            {
-                "id": generate_id("li"),
-                "transaction_id": transaction_id,
-                "mongo_id": mongo_id,
-                "date": li_date,
-                "amount": li_amount,
-                "description": li_dict.get("description", ""),
-                "payment_method_id": payment_method_id,
-                "responsible_party": li_dict.get("responsible_party", ""),
-                "notes": li_dict.get("notes"),
-            }
-        )
+        bulk_inserts.append(_build_line_item_insert_mapping(li_dict, transaction_id, payment_method_id, mongo_id))
 
     if bulk_inserts:
         db_session.bulk_insert_mappings(LineItem, bulk_inserts)
@@ -293,34 +296,57 @@ def bulk_upsert_bank_accounts(db_session, accounts_data: List[Any]) -> int:
     if not account_ids:
         return 0
 
-    # Check existing accounts
     existing = db_session.query(BankAccount.id).filter(BankAccount.id.in_(account_ids)).all()
     existing_ids = {row[0] for row in existing}
 
-    # Prepare bulk inserts for new accounts
     bulk_inserts = []
+    bulk_updates = []
     for acc_dict in account_dicts:
         account_id = acc_dict.get("id")
-        if not account_id or account_id in existing_ids:
+        if not account_id:
             continue
 
-        bulk_inserts.append(
-            {
-                "id": account_id,
-                "mongo_id": str(acc_dict.get("_id", "")),
-                "institution_name": acc_dict.get("institution_name", ""),
-                "display_name": acc_dict.get("display_name", ""),
-                "last4": acc_dict.get("last4", ""),
-                "status": acc_dict.get("status", "active"),
-            }
-        )
+        mongo_id = acc_dict.get("_id")
+        account_data = {
+            "id": account_id,
+            "institution_name": acc_dict.get("institution_name", ""),
+            "display_name": acc_dict.get("display_name", ""),
+            "last4": acc_dict.get("last4", ""),
+            "status": acc_dict.get("status", "active"),
+            "can_relink": acc_dict.get("can_relink", True),
+        }
 
+        # Only include mongo_id if it exists (for inserts or when updating from MongoDB)
+        if mongo_id:
+            account_data["mongo_id"] = str(mongo_id)
+
+        if "currency" in acc_dict:
+            account_data["currency"] = acc_dict["currency"]
+        if "latest_balance" in acc_dict:
+            account_data["latest_balance"] = Decimal(str(acc_dict["latest_balance"]))
+        if "balance_as_of" in acc_dict:
+            balance_as_of = acc_dict["balance_as_of"]
+            if isinstance(balance_as_of, (int, float)):
+                balance_as_of = datetime.fromtimestamp(balance_as_of, UTC)
+            account_data["balance_as_of"] = balance_as_of
+
+        if account_id in existing_ids:
+            bulk_updates.append(account_data)
+        else:
+            bulk_inserts.append(account_data)
+
+    count = 0
     if bulk_inserts:
         db_session.bulk_insert_mappings(BankAccount, bulk_inserts)
         logger.info(f"Bulk inserted {len(bulk_inserts)} bank accounts to PostgreSQL")
-        return len(bulk_inserts)
+        count += len(bulk_inserts)
 
-    return 0
+    if bulk_updates:
+        db_session.bulk_update_mappings(BankAccount, bulk_updates)
+        logger.info(f"Bulk updated {len(bulk_updates)} bank accounts to PostgreSQL")
+        count += len(bulk_updates)
+
+    return count
 
 
 def upsert_user(db_session, user_data: Dict[str, Any]) -> bool:
@@ -341,12 +367,10 @@ def upsert_user(db_session, user_data: Dict[str, Any]) -> bool:
         logger.warning("Cannot upsert user without id")
         return False
 
-    # Check if user exists
     existing = db_session.query(User).filter(User.id == user_id).first()
     if existing:
         return False
 
-    # Create new user
     user = User(
         id=user_id,
         mongo_id=str(user_dict.get("_id", "")),

@@ -560,6 +560,10 @@ def _pg_get_all_bank_accounts(
                 "display_name": acc.display_name,
                 "last4": acc.last4,
                 "status": acc.status,
+                "can_relink": acc.can_relink,
+                "currency": acc.currency,
+                "latest_balance": float(acc.latest_balance) if acc.latest_balance is not None else None,
+                "balance_as_of": acc.balance_as_of,
             }
             for acc in accounts
         ]

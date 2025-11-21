@@ -74,7 +74,7 @@ cors: CORS = CORS(
     application,
     supports_credentials=True,
     origins=CORS_ALLOWED_ORIGINS,
-    allow_headers=["Content-Type", "Authorization"],
+    allow_headers=["Content-Type", "Authorization", "X-CSRF-TOKEN"],
     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
 )
 bcrypt: Bcrypt = Bcrypt(application)

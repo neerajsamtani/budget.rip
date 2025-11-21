@@ -40,7 +40,7 @@ dependencies = [
     "six>=1.17.0",
     "splitwise>=3.0.0",
     "sqlalchemy>=2.0.44",
-    "stripe>=14.0.0",
+    "stripe==14.1.0b1",
     "typing-extensions>=4.15.0",
     "urllib3>=2.5.0",
     "venmo-api>=0.3.1",

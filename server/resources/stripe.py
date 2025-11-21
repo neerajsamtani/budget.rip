@@ -1,9 +1,8 @@
 import datetime
-import json
 import logging
 from typing import Any, Dict, List, Optional
 
-import requests
+import requests  # Still needed for Authorization endpoint (not yet in SDK)
 import stripe
 from flask import Blueprint, Response, jsonify, request
 from flask_jwt_extended import jwt_required
@@ -36,6 +35,109 @@ if STRIPE_CUSTOMER_ID is None:
 
 stripe.api_version = "2022-08-01; financial_connections_transactions_beta=v1; financial_connections_relink_api_beta=v1"
 
+# Initialize StripeClient for service-based API access
+stripe_client = stripe.StripeClient(api_key=STRIPE_API_KEY)
+
+
+def check_can_relink(account: stripe.financial_connections.Account) -> bool:
+    """Check if inactive account can be relinked. Active accounts return False (don't need relink)."""
+    if account.get("status") == "active":
+        return False  # Active accounts don't need relinking
+
+    if account.get("status") == "inactive":
+        try:
+            auth_id = account.get("authorization")
+            if not auth_id:
+                return False
+
+            response = requests.get(
+                f"https://api.stripe.com/v1/financial_connections/authorizations/{auth_id}",
+                headers={"Stripe-Version": "2022-08-01; financial_connections_relink_api_beta=v1"},
+                auth=(STRIPE_API_KEY, ""),
+            )
+            authorization = response.json()
+
+            # Account closed at institution - can't relink even if auth is still active
+            if authorization.get("status") == "active":
+                return False
+
+            if authorization.get("status") == "inactive":
+                status_details = authorization.get("status_details", {})
+                inactive_details = status_details.get("inactive", {})
+                return inactive_details.get("action") == "relink_required"
+
+            return False
+        except Exception as e:
+            logging.error(f"Error checking relink status for account {account.get('id')}: {e}")
+            return False  # Default to False on error - safer than allowing broken relinks
+
+    return False
+
+
+def refresh_account_balances(account_ids: Optional[List[str]] = None) -> int:
+    """
+    Fetch and store latest balance for Stripe accounts (best-effort operation).
+
+    Solves N+1 problem: Previously fetched balances via N individual Stripe API
+    calls during page load. Now pre-fetches and stores on account records.
+
+    Best-effort: Balance refresh failures are logged but don't break parent operations
+    (account/transaction refresh). Balances are supplementary data.
+
+    Args:
+        account_ids: Optional list of specific account IDs to refresh. If None, refreshes all accounts.
+
+    Returns:
+        Count of accounts updated with balance info
+    """
+    from datetime import datetime, timezone
+
+    from dao import upsert_with_id
+
+    if account_ids:
+        all_accounts = get_all_data(bank_accounts_collection)
+        accounts = [acc for acc in all_accounts if acc["id"] in account_ids]
+    else:
+        accounts = get_all_data(bank_accounts_collection)
+
+    updated_count = 0
+
+    for account in accounts:
+        account_id = account["id"]
+
+        try:
+            logging.info(f"Fetching latest balance for account {account_id}")
+
+            # Fetch latest balance only (limit=1)
+            balances = stripe_client.v1.financial_connections.accounts.inferred_balances.list(
+                account=account_id,
+                params={"limit": 1},
+            )
+
+            if balances.data:
+                balance_data = balances.data[0]
+                # Stripe inferred balances support multiple currencies
+                currency = next(iter(balance_data.current.keys()))
+                balance_cents = balance_data.current[currency]
+
+                account["currency"] = currency
+                account["latest_balance"] = balance_cents / 100  # Convert from cents
+                account["balance_as_of"] = datetime.fromtimestamp(balance_data.as_of, tz=timezone.utc)
+
+                dual_write_operation(
+                    mongo_write_func=lambda: upsert_with_id(bank_accounts_collection, account, account_id),
+                    pg_write_func=lambda db: bulk_upsert_bank_accounts(db, [account]),
+                    operation_name=f"refresh_balance_{account_id}",
+                )
+                updated_count += 1
+                logging.info(f"Updated balance for account {account_id}: {balance_cents / 100} {currency}")
+
+        except Exception as e:
+            logging.error(f"Error fetching balance for account {account_id}: {e}")
+            # Continue with other accounts even if one fails
+
+    return updated_count
+
 
 @stripe_blueprint.route("/api/refresh/stripe")
 @jwt_required()
@@ -50,37 +152,23 @@ def create_fc_session_api(
     relink_auth: Optional[str] = None,
 ) -> tuple[Response, int]:
     try:
-        # TODO: Is there a better pattern than nested trys?
         try:
             customer: stripe.Customer = stripe.Customer.retrieve(STRIPE_CUSTOMER_ID)
         except stripe.InvalidRequestError:
             logging.info("Creating a new customer...")
             customer: stripe.Customer = stripe.Customer.create(email="neeraj@gmail.com", name="Neeraj")
 
-        # API endpoint
-        url: str = "https://api.stripe.com/v1/financial_connections/sessions"
-
-        headers: Dict[str, str] = {
-            "Stripe-Version": "2022-08-01; financial_connections_transactions_beta=v1; \
-                financial_connections_relink_api_beta=v1",
-            "Content-Type": "application/x-www-form-urlencoded",
+        session_params: Dict[str, Any] = {
+            "account_holder": {"type": "customer", "customer": customer["id"]},
+            "permissions": ["transactions", "balances"],
         }
 
-        # Payload
-        data: Dict[str, Any] = {
-            "account_holder[type]": "customer",
-            "account_holder[customer]": customer["id"],
-            "permissions[]": ["transactions", "balances"],
-        }
-
-        # Add relink_options[authorization] if provided
         if relink_auth:
-            data["relink_options[authorization]"] = relink_auth
+            session_params["relink_options"] = {"authorization": relink_auth}
 
-        # Make the request
-        session: requests.Response = requests.post(url, headers=headers, data=data, auth=(STRIPE_API_KEY, ""))
+        session = stripe.financial_connections.Session.create(**session_params)
 
-        return jsonify({"clientSecret": session.json()["client_secret"]}), 200
+        return jsonify({"clientSecret": session["client_secret"]}), 200
     except Exception as e:
         return jsonify(error=str(e)), 500
 
@@ -108,7 +196,6 @@ def get_accounts_api(session_id: str) -> tuple[Response, int]:
         session: stripe.financial_connections.Session = stripe.financial_connections.Session.retrieve(session_id)
         accounts: List[Dict[str, Any]] = session["accounts"]
 
-        # Bulk upsert all accounts at once
         bulk_upsert(stripe_raw_account_data_collection, accounts)
 
         return jsonify({"accounts": accounts}), 200
@@ -119,30 +206,35 @@ def get_accounts_api(session_id: str) -> tuple[Response, int]:
 @stripe_blueprint.route("/api/accounts_and_balances")
 @jwt_required()
 def get_accounts_and_balances_api() -> tuple[Response, int]:
+    """
+    Get bank accounts with their latest balances.
+
+    Balances are pre-fetched and stored on account records via refresh_account_balances()
+    to avoid N+1 query problem (previously made one Stripe API call per account).
+    """
     accounts: List[Dict[str, Any]] = get_all_data(bank_accounts_collection)
     accounts_and_balances: Dict[str, Dict[str, Any]] = {}
+
     for account in accounts:
         account_id: str = account["id"]
-        headers: Dict[str, str] = {
-            "Stripe-Version": "2022-08-01;",
-        }
-        data: Dict[str, int] = {
-            "limit": 1,
-        }
-        response: requests.Response = requests.get(
-            f"https://api.stripe.com/v1/financial_connections/accounts/{account_id}/inferred_balances",
-            headers=headers,
-            data=data,
-            auth=(STRIPE_API_KEY, ""),
-        )
         account_name: str = f"{account['institution_name']} {account['display_name']} {account['last4']}"
-        response_data: List[Dict[str, Any]] = response.json()["data"]
+
+        if "can_relink" not in account:
+            account["can_relink"] = check_can_relink(account)
+
+        balance = account.get("latest_balance", 0)
+        as_of_dt = account.get("balance_as_of")
+        as_of = int(as_of_dt.timestamp()) if as_of_dt else None
+        currency = account.get("currency", "usd")
+
         accounts_and_balances[account_id] = {
             "id": account_id,
             "name": account_name,
-            "balance": (response_data[0]["current"]["usd"] / 100 if len(response_data) > 0 else 0),
-            "as_of": response_data[0]["as_of"] if len(response_data) > 0 else None,
+            "balance": balance,
+            "currency": currency,
+            "as_of": as_of,
             "status": account["status"],
+            "can_relink": account["can_relink"],
         }
 
     return jsonify(accounts_and_balances), 200
@@ -156,21 +248,8 @@ def subscribe_to_account_api() -> tuple[Response, int]:
         if not account_id:
             return jsonify({"error": "account_id is required"}), 400
 
-        # Use requests since we cannot subscribe to an account with the Stripe Python client
-        headers: Dict[str, str] = {
-            "Stripe-Version": "2022-08-01; financial_connections_transactions_beta=v1",
-            "Content-Type": "application/x-www-form-urlencoded",
-        }
-        data: Dict[str, List[str]] = {
-            "features[]": ["transactions", "inferred_balances"],
-        }
-        response: requests.Response = requests.post(
-            f"https://api.stripe.com/v1/financial_connections/accounts/{account_id}/subscribe",
-            headers=headers,
-            data=data,
-            auth=(STRIPE_API_KEY, ""),
-        )
-        refresh_status: str = json.loads(response.text)["transaction_refresh"]["status"]
+        response = stripe.financial_connections.Account.subscribe(account_id, features=["transactions", "inferred_balances"])
+        refresh_status: str = response.get("transaction_refresh", {}).get("status", "unknown")
         return jsonify(str(refresh_status)), 200
     except Exception as e:
         return jsonify(error=str(e)), 500
@@ -181,6 +260,8 @@ def refresh_account_api(account_id: str) -> tuple[Response, int]:
     try:
         logging.info(f"Refreshing {account_id}")
         account: stripe.financial_connections.Account = stripe.financial_connections.Account.retrieve(account_id)
+        account["can_relink"] = check_can_relink(account)
+
         dual_write_operation(
             mongo_write_func=lambda: upsert(bank_accounts_collection, account),
             pg_write_func=lambda db: bulk_upsert_bank_accounts(db, [account]),
@@ -196,23 +277,13 @@ def refresh_account_api(account_id: str) -> tuple[Response, int]:
 def relink_account_api(account_id: str) -> tuple[Response, int]:
     try:
         logging.info(f"Relinking {account_id}")
-
         account: stripe.financial_connections.Account = stripe.financial_connections.Account.retrieve(account_id)
-        headers: Dict[str, str] = {
-            "Stripe-Version": "2022-08-01; financial_connections_transactions_beta=v1; \
-                financial_connections_relink_api_beta=v1",
-        }
-        response: requests.Response = requests.get(
-            f"https://api.stripe.com/v1/financial_connections/authorizations/{account['authorization']}",
-            headers=headers,
-            auth=(STRIPE_API_KEY, ""),
-        )
-        if response.json()["status_details"]["inactive"]["action"] != "relink_required":
+
+        if not check_can_relink(account):
             return jsonify({"relink_required": False}), 200
 
         create_fc_session_response = create_fc_session_api(account["authorization"])
         return jsonify(create_fc_session_response[0].json), 200
-
     except Exception as e:
         return jsonify(error=str(e)), 500
 
@@ -224,14 +295,11 @@ def refresh_transactions_api(account_id: str) -> tuple[Response, int]:
     try:
         has_more: bool = True
         starting_after = ""
-
-        # Collect all transactions for bulk upsert
         all_transactions: List[Dict[str, Any]] = []
         stripe.api_key = STRIPE_API_KEY
         stripe.api_version = "2022-08-01; financial_connections_transactions_beta=v1"
 
         while has_more:
-            # Print human readable time
             logging.info(
                 "Last request at: ",
                 datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -260,13 +328,15 @@ def refresh_transactions_api(account_id: str) -> tuple[Response, int]:
             has_more = transactions_list_object.has_more
             starting_after = transactions[-1].id if transactions else ""
 
-        # Bulk upsert all collected transactions at once
         if all_transactions:
             dual_write_operation(
                 mongo_write_func=lambda: bulk_upsert(stripe_raw_transaction_data_collection, all_transactions),
                 pg_write_func=lambda db: bulk_upsert_transactions(db, all_transactions, source="stripe"),
                 operation_name="stripe_refresh_transactions",
             )
+
+        # Best-effort: fetch latest balance for this account (won't fail transaction refresh)
+        refresh_account_balances(account_ids=[account_id])
 
         # If we want to enable only refreshing a single account, we need to uncomment this
         # stripe_to_line_items()
@@ -283,6 +353,8 @@ def refresh_stripe() -> None:
         refresh_account_api(account["id"])
         refresh_transactions_api(account["id"])
     stripe_to_line_items()
+    # Best-effort: refresh balances for all accounts after transactions updated
+    refresh_account_balances()
 
 
 def stripe_to_line_items() -> None:
@@ -294,11 +366,9 @@ def stripe_to_line_items() -> None:
     2. Use bulk upsert operations instead of individual upserts
     3. Process transactions in batches to handle large datasets efficiently
     """
-    # Pre-fetch all accounts and create a lookup dictionary
     all_accounts: List[Dict[str, Any]] = get_all_data(bank_accounts_collection)
     account_lookup: Dict[str, Dict[str, Any]] = {account["_id"]: account for account in all_accounts}
 
-    # Get all stripe transactions
     stripe_raw_data: List[Dict[str, Any]] = get_all_data(stripe_raw_transaction_data_collection)
 
     # Process transactions in batches for better memory management
@@ -312,7 +382,6 @@ def stripe_to_line_items() -> None:
         if transaction_account:
             payment_method: str = transaction_account["display_name"]
         else:
-            # Fallback to default if account not found
             payment_method = "Stripe"
 
         line_item = LineItem(
@@ -326,7 +395,6 @@ def stripe_to_line_items() -> None:
 
         line_items_batch.append(line_item)
 
-        # Bulk upsert when batch is full
         if len(line_items_batch) >= batch_size:
             dual_write_operation(
                 mongo_write_func=lambda: bulk_upsert(line_items_collection, line_items_batch),
@@ -335,7 +403,6 @@ def stripe_to_line_items() -> None:
             )
             line_items_batch = []
 
-    # Upsert remaining items in the final batch
     if line_items_batch:
         dual_write_operation(
             mongo_write_func=lambda: bulk_upsert(line_items_collection, line_items_batch),

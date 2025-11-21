@@ -186,7 +186,7 @@ requires-dist = [
     { name = "six", specifier = ">=1.17.0" },
     { name = "splitwise", specifier = ">=3.0.0" },
     { name = "sqlalchemy", specifier = ">=2.0.44" },
-    { name = "stripe", specifier = ">=14.0.0" },
+    { name = "stripe", specifier = "==14.1.0b1" },
     { name = "typing-extensions", specifier = ">=4.15.0" },
     { name = "urllib3", specifier = ">=2.5.0" },
     { name = "venmo-api", specifier = ">=0.3.1" },
@@ -1077,15 +1077,15 @@ wheels = [
 
 [[package]]
 name = "stripe"
-version = "14.0.0"
+version = "14.1.0b1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "requests" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/85/95/9926684a7b581d28c70bf0d8ab873e8d49ec62c398347c324327ced88699/stripe-14.0.0.tar.gz", hash = "sha256:325d20daee936b2bd01936978c71d6717ad62e58ec1f5f5affb083c879c0c2be", size = 1362403, upload-time = "2025-11-18T18:55:56.881Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/60/12/7deb24abf215086f070734d33e353463141f31143b8f6707d2a822db718d/stripe-14.1.0b1.tar.gz", hash = "sha256:38f2e5d996332a5476ace0188f64ed9f65fdfd4fd4677ac0e2c3bdbd83c6f01d", size = 1794443, upload-time = "2025-11-18T19:30:02.29Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/26/f4/7e8e9e81e55a539317a922e255979676335b66dc4d03ecd4af3d470e1fdd/stripe-14.0.0-py3-none-any.whl", hash = "sha256:1c069e99b3223c03291e012ada1429aec40cdd19120d97bffd2a514b2e61ddc9", size = 1970324, upload-time = "2025-11-18T18:55:54.909Z" },
+    { url = "https://files.pythonhosted.org/packages/4f/96/d111244b470d5b1f4cda820f8961863687c174692eaef8f4840a5fa3c0dc/stripe-14.1.0b1-py3-none-any.whl", hash = "sha256:e53220f0fd4efa13179da8c1f2453e2c34135704ae4a2dc539187f79808f34be", size = 2616099, upload-time = "2025-11-18T19:30:00.259Z" },
 ]
 
 [[package]]

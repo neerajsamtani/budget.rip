@@ -38,6 +38,10 @@ class BankAccount(Base):
     display_name = Column(String(255), nullable=False)
     last4 = Column(String(4), nullable=False)
     status = Column(String(50), nullable=False)
+    can_relink = Column(Boolean, nullable=False, default=True)  # Whether inactive account can be relinked
+    currency = Column(String(3), nullable=True)  # ISO 4217 currency code (e.g., 'usd', 'eur')
+    latest_balance = Column(DECIMAL(12, 2), nullable=True)  # Most recent balance from Stripe in account currency
+    balance_as_of = Column(TIMESTAMP(timezone=True), nullable=True)  # When Stripe calculated the balance
     created_at = Column(TIMESTAMP(timezone=True), default=lambda: datetime.now(UTC))
     updated_at = Column(
         TIMESTAMP(timezone=True),

@@ -104,7 +104,7 @@ class TestStripeAPI:
 
         with flask_app.app_context():
             mock_retrieve = mocker.patch("resources.stripe.stripe.Customer.retrieve")
-            mock_post = mocker.patch("resources.stripe.requests.post")
+            mock_session_create = mocker.patch("resources.stripe.stripe.financial_connections.Session.create")
 
             # Mock customer retrieval
             mock_customer = mocker.MagicMock()
@@ -112,10 +112,10 @@ class TestStripeAPI:
             mock_customer.__getitem__.side_effect = lambda k: getattr(mock_customer, k)
             mock_retrieve.return_value = mock_customer
 
-            # Mock successful response
-            mock_response = mocker.Mock()
-            mock_response.json.return_value = {"client_secret": "fcsess_test123_secret"}
-            mock_post.return_value = mock_response
+            # Mock successful session creation
+            mock_session = mocker.MagicMock()
+            mock_session.__getitem__.return_value = "fcsess_test123_secret"
+            mock_session_create.return_value = mock_session
 
             response = test_client.post(
                 "/api/create-fc-session",
@@ -135,7 +135,7 @@ class TestStripeAPI:
         with flask_app.app_context():
             mock_retrieve = mocker.patch("resources.stripe.stripe.Customer.retrieve")
             mock_create = mocker.patch("resources.stripe.stripe.Customer.create")
-            mock_post = mocker.patch("resources.stripe.requests.post")
+            mock_session_create = mocker.patch("resources.stripe.stripe.financial_connections.Session.create")
 
             # Mock customer not found, then creation
             mock_retrieve.side_effect = stripe.InvalidRequestError(message="Customer not found", param=None)
@@ -144,10 +144,10 @@ class TestStripeAPI:
             mock_customer.__getitem__.side_effect = lambda k: getattr(mock_customer, k)
             mock_create.return_value = mock_customer
 
-            # Mock successful response
-            mock_response = mocker.Mock()
-            mock_response.json.return_value = {"client_secret": "fcsess_test123_secret"}
-            mock_post.return_value = mock_response
+            # Mock successful session creation
+            mock_session = mocker.MagicMock()
+            mock_session.__getitem__.return_value = "fcsess_test123_secret"
+            mock_session_create.return_value = mock_session
 
             response = test_client.post(
                 "/api/create-fc-session",
@@ -220,9 +220,9 @@ class TestStripeAPI:
         mocker.patch("resources.stripe.STRIPE_CUSTOMER_ID", "test_customer_id")
 
         with flask_app.app_context():
-            mock_get = mocker.patch("resources.stripe.requests.get")
+            from datetime import datetime, timezone
 
-            # Insert test account
+            # Insert test account with balance
             test_account = {
                 "id": "fca_test123",
                 "_id": "fca_test123",  # For refresh_stripe function
@@ -230,20 +230,11 @@ class TestStripeAPI:
                 "display_name": "Checking Account",
                 "last4": "1234",
                 "status": "active",
+                "latest_balance": 100.0,
+                "currency": "usd",
+                "balance_as_of": datetime(2023, 1, 15, 10, 30, 0, tzinfo=timezone.utc),
             }
             upsert_with_id(bank_accounts_collection, test_account, test_account["id"])
-
-            # Mock balance response
-            mock_response = mocker.Mock()
-            mock_response.json.return_value = {
-                "data": [
-                    {
-                        "current": {"usd": 10000},  # $100.00 in cents
-                        "as_of": "2023-01-15T10:30:00Z",
-                    }
-                ]
-            }
-            mock_get.return_value = mock_response
 
             response = test_client.get(
                 "/api/accounts_and_balances",
@@ -255,6 +246,7 @@ class TestStripeAPI:
             assert "fca_test123" in data
             account_data = data["fca_test123"]
             assert account_data["balance"] == 100.0
+            assert account_data["currency"] == "usd"
             assert account_data["name"] == "Test Bank Checking Account 1234"
 
     def test_subscribe_to_account_api_success(self, test_client, jwt_token, flask_app, mocker):
@@ -263,12 +255,12 @@ class TestStripeAPI:
         mocker.patch("resources.stripe.STRIPE_CUSTOMER_ID", "test_customer_id")
 
         with flask_app.app_context():
-            mock_post = mocker.patch("resources.stripe.requests.post")
+            mock_subscribe = mocker.patch("resources.stripe.stripe.financial_connections.Account.subscribe")
 
             # Mock successful response
-            mock_response = mocker.Mock()
-            mock_response.text = '{"transaction_refresh": {"status": "succeeded"}}'
-            mock_post.return_value = mock_response
+            mock_response = mocker.MagicMock()
+            mock_response.get.return_value = {"status": "succeeded"}
+            mock_subscribe.return_value = mock_response
 
             response = test_client.post(
                 "/api/subscribe_to_account",
@@ -309,7 +301,7 @@ class TestStripeAPI:
 
         with flask_app.app_context():
             mock_retrieve = mocker.patch("resources.stripe.stripe.financial_connections.Account.retrieve")
-            mock_get = mocker.patch("resources.stripe.requests.get")
+            mock_check_can_relink = mocker.patch("resources.stripe.check_can_relink")
             mock_create_session = mocker.patch("resources.stripe.create_fc_session_api")
 
             # Mock account
@@ -319,10 +311,8 @@ class TestStripeAPI:
             mock_account.__getitem__.side_effect = lambda k: getattr(mock_account, k)
             mock_retrieve.return_value = mock_account
 
-            # Mock authorization response indicating relink required
-            mock_auth_response = mocker.Mock()
-            mock_auth_response.json.return_value = {"status_details": {"inactive": {"action": "relink_required"}}}
-            mock_get.return_value = mock_auth_response
+            # Mock check_can_relink to return True (relink required)
+            mock_check_can_relink.return_value = True
 
             # Mock session creation
             mock_session_response = mocker.Mock()
@@ -345,7 +335,7 @@ class TestStripeAPI:
 
         with flask_app.app_context():
             mock_retrieve = mocker.patch("resources.stripe.stripe.financial_connections.Account.retrieve")
-            mock_get = mocker.patch("resources.stripe.requests.get")
+            mock_check_can_relink = mocker.patch("resources.stripe.check_can_relink")
 
             # Mock account
             mock_account = mocker.MagicMock()
@@ -354,10 +344,8 @@ class TestStripeAPI:
             mock_account.__getitem__.side_effect = lambda k: getattr(mock_account, k)
             mock_retrieve.return_value = mock_account
 
-            # Mock authorization response indicating relink not required
-            mock_auth_response = mocker.Mock()
-            mock_auth_response.json.return_value = {"status_details": {"inactive": {"action": "other_action"}}}
-            mock_get.return_value = mock_auth_response
+            # Mock check_can_relink to return False (relink not required)
+            mock_check_can_relink.return_value = False
 
             response = test_client.post(
                 "/api/relink_account/fca_test123",
@@ -735,6 +723,106 @@ class TestStripeDualWrite:
             mock_dual_write.assert_called_once()
 
 
+class TestCheckCanRelink:
+    """Direct unit tests for check_can_relink function"""
+
+    def test_active_account_can_relink(self, flask_app):
+        """Active accounts don't need relinking"""
+        with flask_app.app_context():
+            from resources.stripe import check_can_relink
+
+            account = {"id": "fca_test123", "status": "active"}
+            result = check_can_relink(account)
+
+            assert result is False
+
+    def test_inactive_account_with_relink_required(self, flask_app, mocker):
+        """Inactive account with relink_required action can relink"""
+        with flask_app.app_context():
+            from resources.stripe import check_can_relink
+
+            mock_requests_get = mocker.patch("requests.get")
+            mock_response = mocker.MagicMock()
+            mock_response.json.return_value = {
+                "status": "inactive",
+                "status_details": {"inactive": {"action": "relink_required"}},
+            }
+            mock_requests_get.return_value = mock_response
+
+            account = {"id": "fca_test123", "status": "inactive", "authorization": "fcauth_test123"}
+            result = check_can_relink(account)
+
+            assert result is True
+
+    def test_inactive_account_closed_at_bank(self, flask_app, mocker):
+        """Account closed at bank (auth active, account inactive) cannot relink"""
+        with flask_app.app_context():
+            from resources.stripe import check_can_relink
+
+            mock_requests_get = mocker.patch("requests.get")
+            mock_response = mocker.MagicMock()
+            mock_response.json.return_value = {"status": "active"}
+            mock_requests_get.return_value = mock_response
+
+            account = {"id": "fca_test123", "status": "inactive", "authorization": "fcauth_test123"}
+            result = check_can_relink(account)
+
+            assert result is False
+
+    def test_inactive_account_action_none(self, flask_app, mocker):
+        """Inactive account with action=none cannot relink"""
+        with flask_app.app_context():
+            from resources.stripe import check_can_relink
+
+            mock_requests_get = mocker.patch("requests.get")
+            mock_response = mocker.MagicMock()
+            mock_response.json.return_value = {"status": "inactive", "status_details": {"inactive": {"action": "none"}}}
+            mock_requests_get.return_value = mock_response
+
+            account = {"id": "fca_test123", "status": "inactive", "authorization": "fcauth_test123"}
+            result = check_can_relink(account)
+
+            assert result is False
+
+    def test_error_retrieving_authorization(self, flask_app, mocker):
+        """Errors default to False (safer than allowing broken relinks)"""
+        with flask_app.app_context():
+            from resources.stripe import check_can_relink
+
+            mock_requests_get = mocker.patch("requests.get")
+            mock_requests_get.side_effect = Exception("API error")
+
+            account = {"id": "fca_test123", "status": "inactive", "authorization": "fcauth_test123"}
+            result = check_can_relink(account)
+
+            assert result is False
+
+    def test_missing_authorization_id(self, flask_app):
+        """Inactive account without auth ID cannot relink"""
+        with flask_app.app_context():
+            from resources.stripe import check_can_relink
+
+            account = {"id": "fca_test123", "status": "inactive", "authorization": None}
+            result = check_can_relink(account)
+
+            assert result is False
+
+    def test_inactive_account_with_unknown_auth_status(self, flask_app, mocker):
+        """Inactive account with unknown auth status returns False"""
+        with flask_app.app_context():
+            from resources.stripe import check_can_relink
+
+            mock_requests_get = mocker.patch("requests.get")
+            mock_response = mocker.MagicMock()
+            mock_response.json.return_value = {"status": "unknown_status"}
+            mock_requests_get.return_value = mock_response
+
+            account = {"id": "fca_test123", "status": "inactive", "authorization": "fcauth_test123"}
+            result = check_can_relink(account)
+
+            assert result is False
+
+
 class TestStripeIntegration:
     def test_full_refresh_workflow(self, flask_app, mocker):
         """Test the complete refresh workflow from API to database"""
@@ -789,3 +877,89 @@ class TestStripeIntegration:
             assert line_items[0].description == "Integration test transaction"
             assert line_items[0].payment_method == "Checking Account"
             assert line_items[0].amount == 25.0
+
+
+class TestAccountBalances:
+    """Tests for account balance functionality (simplified approach)"""
+
+    def test_refresh_account_balances_success(self, flask_app, mocker):
+        """Test refresh_account_balances fetches and stores balance on account record"""
+        from dao import bank_accounts_collection, get_all_data, upsert_with_id
+        from resources.stripe import refresh_account_balances
+
+        with flask_app.app_context():
+            # Mock Stripe client
+            mock_balance_data = mocker.Mock()
+            mock_balance_data.current = {"usd": 10000}  # $100.00 in cents
+            mock_balance_data.as_of = 1700000000
+
+            mock_balances = mocker.Mock()
+            mock_balances.data = [mock_balance_data]
+
+            mock_stripe_client = mocker.patch("resources.stripe.stripe_client")
+            mock_stripe_client.v1.financial_connections.accounts.inferred_balances.list.return_value = mock_balances
+
+            # Setup test account
+            test_account = {
+                "id": "fca_test123",
+                "institution_name": "Test Bank",
+                "display_name": "Checking",
+                "last4": "1234",
+                "status": "active",
+            }
+            upsert_with_id(bank_accounts_collection, test_account, test_account["id"])
+
+            # Call refresh_account_balances
+            count = refresh_account_balances()
+
+            # Verify Stripe API was called correctly
+            mock_stripe_client.v1.financial_connections.accounts.inferred_balances.list.assert_called_once()
+            call_args = mock_stripe_client.v1.financial_connections.accounts.inferred_balances.list.call_args
+            assert call_args[1]["account"] == "fca_test123"
+            assert call_args[1]["params"]["limit"] == 1
+
+            # Verify balance was stored on account
+            assert count == 1
+            accounts = get_all_data(bank_accounts_collection)
+            updated_account = next(acc for acc in accounts if acc["id"] == "fca_test123")
+            assert updated_account["latest_balance"] == 100.0
+            assert updated_account["currency"] == "usd"
+            assert updated_account["balance_as_of"] is not None
+
+    def test_get_accounts_and_balances_from_account_record(self, test_client, jwt_token, flask_app):
+        """Test GET /api/accounts_and_balances reads balance from account record"""
+        from datetime import UTC, datetime
+
+        from dao import bank_accounts_collection, upsert_with_id
+
+        with flask_app.app_context():
+            # Setup test account with balance in MongoDB
+            test_account = {
+                "id": "fca_test789",
+                "institution_name": "Test Bank",
+                "display_name": "Savings",
+                "last4": "5678",
+                "status": "active",
+                "can_relink": False,
+                "latest_balance": 150.50,
+                "currency": "usd",
+                "balance_as_of": datetime.fromtimestamp(1700000000, UTC),
+            }
+            upsert_with_id(bank_accounts_collection, test_account, test_account["id"])
+
+            # Call API endpoint
+            response = test_client.get(
+                "/api/accounts_and_balances",
+                headers={"Authorization": "Bearer " + jwt_token},
+            )
+
+            assert response.status_code == 200
+            data = response.get_json()
+            assert "fca_test789" in data
+            assert data["fca_test789"]["balance"] == 150.50
+            assert data["fca_test789"]["currency"] == "usd"
+            # Timestamp may vary due to timezone handling
+            assert data["fca_test789"]["as_of"] is not None
+            assert isinstance(data["fca_test789"]["as_of"], int)
+            assert data["fca_test789"]["name"] == "Test Bank Savings 5678"
+            assert data["fca_test789"]["status"] == "active"
