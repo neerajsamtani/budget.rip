@@ -113,6 +113,17 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
         appearance,
     };
 
+    const AccountNameWithTooltip = ({ name, id }) => (
+        <Tooltip>
+            <TooltipTrigger asChild>
+                <span>{name}</span>
+            </TooltipTrigger>
+            <TooltipContent>
+                Account ID: {id}
+            </TooltipContent>
+        </Tooltip>
+    );
+
     const renderConnectedAccount = (connectedAccount) => {
         // Handle Venmo data (array)
         if (connectedAccount.venmo) {
@@ -179,14 +190,10 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
                     return (
                         <TableRow key={`stripe-${id}`}>
                             <TableCell>
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <span>{institution_name} {display_name} {last4}</span>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        Account ID: {id}
-                                    </TooltipContent>
-                                </Tooltip>
+                                <AccountNameWithTooltip
+                                    name={`${institution_name} ${display_name} ${last4}`}
+                                    id={id}
+                                />
                             </TableCell>
                             {status === 'inactive' && canRelink ?
                                 <TableCell><Button onClick={() => { relinkAccount(id) }} variant="secondary">Reactivate</Button></TableCell>
@@ -222,14 +229,10 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
         return (
             <TableRow key={stripeAccount.id}>
                 <TableCell>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <span>{stripeAccount.institution_name} {stripeAccount.display_name} {stripeAccount.last4}</span>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            Account ID: {stripeAccount.id}
-                        </TooltipContent>
-                    </Tooltip>
+                    <AccountNameWithTooltip
+                        name={`${stripeAccount.institution_name} ${stripeAccount.display_name} ${stripeAccount.last4}`}
+                        id={stripeAccount.id}
+                    />
                 </TableCell>
                 <TableCell>
                     {canRelink ? (

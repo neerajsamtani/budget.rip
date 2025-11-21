@@ -94,7 +94,6 @@ def refresh_account_balances(account_ids: Optional[List[str]] = None) -> int:
 
     from dao import upsert_with_id
 
-    # Get accounts to refresh
     if account_ids:
         all_accounts = get_all_data(bank_accounts_collection)
         accounts = [acc for acc in all_accounts if acc["id"] in account_ids]
@@ -117,17 +116,14 @@ def refresh_account_balances(account_ids: Optional[List[str]] = None) -> int:
 
             if balances.data:
                 balance_data = balances.data[0]
-                # Get the currency and balance (Stripe inferred balances support multiple currencies)
-                # Use the first currency available
+                # Stripe inferred balances support multiple currencies
                 currency = next(iter(balance_data.current.keys()))
                 balance_cents = balance_data.current[currency]
 
-                # Update account with latest balance
                 account["currency"] = currency
                 account["latest_balance"] = balance_cents / 100  # Convert from cents
                 account["balance_as_of"] = datetime.fromtimestamp(balance_data.as_of, tz=timezone.utc)
 
-                # Dual-write updated account
                 dual_write_operation(
                     mongo_write_func=lambda: upsert_with_id(bank_accounts_collection, account, account_id),
                     pg_write_func=lambda db: bulk_upsert_bank_accounts(db, [account]),
@@ -200,7 +196,6 @@ def get_accounts_api(session_id: str) -> tuple[Response, int]:
         session: stripe.financial_connections.Session = stripe.financial_connections.Session.retrieve(session_id)
         accounts: List[Dict[str, Any]] = session["accounts"]
 
-        # Bulk upsert all accounts at once
         bulk_upsert(stripe_raw_account_data_collection, accounts)
 
         return jsonify({"accounts": accounts}), 200
@@ -224,11 +219,9 @@ def get_accounts_and_balances_api() -> tuple[Response, int]:
         account_id: str = account["id"]
         account_name: str = f"{account['institution_name']} {account['display_name']} {account['last4']}"
 
-        # Calculate can_relink if not already in DB
         if "can_relink" not in account:
             account["can_relink"] = check_can_relink(account)
 
-        # Get balance from account record
         balance = account.get("latest_balance", 0)
         as_of_dt = account.get("balance_as_of")
         as_of = int(as_of_dt.timestamp()) if as_of_dt else None
@@ -302,14 +295,11 @@ def refresh_transactions_api(account_id: str) -> tuple[Response, int]:
     try:
         has_more: bool = True
         starting_after = ""
-
-        # Collect all transactions for bulk upsert
         all_transactions: List[Dict[str, Any]] = []
         stripe.api_key = STRIPE_API_KEY
         stripe.api_version = "2022-08-01; financial_connections_transactions_beta=v1"
 
         while has_more:
-            # Print human readable time
             logging.info(
                 "Last request at: ",
                 datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -338,7 +328,6 @@ def refresh_transactions_api(account_id: str) -> tuple[Response, int]:
             has_more = transactions_list_object.has_more
             starting_after = transactions[-1].id if transactions else ""
 
-        # Bulk upsert all collected transactions at once
         if all_transactions:
             dual_write_operation(
                 mongo_write_func=lambda: bulk_upsert(stripe_raw_transaction_data_collection, all_transactions),
@@ -377,11 +366,9 @@ def stripe_to_line_items() -> None:
     2. Use bulk upsert operations instead of individual upserts
     3. Process transactions in batches to handle large datasets efficiently
     """
-    # Pre-fetch all accounts and create a lookup dictionary
     all_accounts: List[Dict[str, Any]] = get_all_data(bank_accounts_collection)
     account_lookup: Dict[str, Dict[str, Any]] = {account["_id"]: account for account in all_accounts}
 
-    # Get all stripe transactions
     stripe_raw_data: List[Dict[str, Any]] = get_all_data(stripe_raw_transaction_data_collection)
 
     # Process transactions in batches for better memory management
@@ -395,7 +382,6 @@ def stripe_to_line_items() -> None:
         if transaction_account:
             payment_method: str = transaction_account["display_name"]
         else:
-            # Fallback to default if account not found
             payment_method = "Stripe"
 
         line_item = LineItem(
@@ -409,7 +395,6 @@ def stripe_to_line_items() -> None:
 
         line_items_batch.append(line_item)
 
-        # Bulk upsert when batch is full
         if len(line_items_batch) >= batch_size:
             dual_write_operation(
                 mongo_write_func=lambda: bulk_upsert(line_items_collection, line_items_batch),
@@ -418,7 +403,6 @@ def stripe_to_line_items() -> None:
             )
             line_items_batch = []
 
-    # Upsert remaining items in the final batch
     if line_items_batch:
         dual_write_operation(
             mongo_write_func=lambda: bulk_upsert(line_items_collection, line_items_batch),
