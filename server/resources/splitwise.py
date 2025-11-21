@@ -1,6 +1,4 @@
 import logging
-
-logger = logging.getLogger(__name__)
 from typing import Any, Dict, List
 
 from flask import Blueprint, Response, jsonify
@@ -18,6 +16,8 @@ from helpers import flip_amount, iso_8601_to_posix
 from resources.line_item import LineItem
 from utils.dual_write import dual_write_operation
 from utils.pg_bulk_ops import bulk_upsert_line_items, bulk_upsert_transactions
+
+logger = logging.getLogger(__name__)
 
 splitwise_blueprint = Blueprint("splitwise", __name__)
 

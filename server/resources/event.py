@@ -1,6 +1,4 @@
 import logging
-
-logger = logging.getLogger(__name__)
 from typing import Any, Dict, List, Optional
 
 from flask import Blueprint, Response, jsonify, request
@@ -20,6 +18,8 @@ from dao import (
 from helpers import html_date_to_posix
 from models.sql_models import Event
 from utils.dual_write import dual_write_operation
+
+logger = logging.getLogger(__name__)
 
 events_blueprint = Blueprint("events", __name__)
 

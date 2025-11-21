@@ -1,6 +1,4 @@
 import logging
-
-logger = logging.getLogger(__name__)
 from datetime import timedelta
 from typing import Any, Dict, Optional
 
@@ -17,6 +15,8 @@ from helpers import check_password, hash_password
 from utils.dual_write import dual_write_operation
 from utils.id_generator import generate_id
 from utils.pg_bulk_ops import upsert_user
+
+logger = logging.getLogger(__name__)
 
 auth_blueprint = Blueprint("auth", __name__)
 

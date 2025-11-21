@@ -7,8 +7,6 @@ import stripe
 from flask import Blueprint, Response, jsonify, request
 from flask_jwt_extended import jwt_required
 
-logger = logging.getLogger(__name__)
-
 from constants import STRIPE_API_KEY, STRIPE_CUSTOMER_ID
 from dao import (
     bank_accounts_collection,
@@ -27,6 +25,8 @@ from utils.pg_bulk_ops import (
     bulk_upsert_line_items,
     bulk_upsert_transactions,
 )
+
+logger = logging.getLogger(__name__)
 
 stripe_blueprint = Blueprint("stripe", __name__)
 

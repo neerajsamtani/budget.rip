@@ -1,7 +1,5 @@
 import json
 import logging
-
-logger = logging.getLogger(__name__)
 from typing import Any, Dict, List, Optional
 
 from flask import Blueprint, Response, jsonify, request
@@ -9,6 +7,8 @@ from flask_jwt_extended import jwt_required
 
 from dao import get_all_data, get_item_by_id, line_items_collection
 from helpers import sort_by_date_descending, str_to_bool
+
+logger = logging.getLogger(__name__)
 
 line_items_blueprint = Blueprint("line_items", __name__)
 

@@ -1,6 +1,4 @@
 import logging
-
-logger = logging.getLogger(__name__)
 from collections import defaultdict
 from datetime import datetime
 from typing import Any, Dict, List
@@ -10,6 +8,8 @@ from flask_jwt_extended import jwt_required
 
 from dao import get_categorized_data
 from helpers import empty_list
+
+logger = logging.getLogger(__name__)
 
 monthly_breakdown_blueprint = Blueprint("monthly_breakdown", __name__)
 
