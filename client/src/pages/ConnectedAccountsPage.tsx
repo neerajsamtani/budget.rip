@@ -199,13 +199,21 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
                                 <TableCell><Button onClick={() => { relinkAccount(id) }} variant="secondary">Reactivate</Button></TableCell>
                                 : <TableCell>Active</TableCell>}
                             <TableCell>
-                                {accountsAndBalances[id] && (
+                                {accountsAndBalances[id]?.balance != null ? (
                                     <StatusBadge status={accountsAndBalances[id]["balance"] >= 0 ? 'success' : 'error'}>
                                         {CurrencyFormatter.format(accountsAndBalances[id]["balance"])}
                                     </StatusBadge>
+                                ) : (
+                                    <span className="text-muted-foreground text-sm">—</span>
                                 )}
                             </TableCell>
-                            <TableCell>{accountsAndBalances[id] && formatDate(accountsAndBalances[id]["as_of"])}</TableCell>
+                            <TableCell>
+                                {accountsAndBalances[id]?.as_of ? (
+                                    formatDate(accountsAndBalances[id]["as_of"])
+                                ) : (
+                                    <span className="text-muted-foreground text-sm">—</span>
+                                )}
+                            </TableCell>
                             <TableCell>
                                 <Button
                                     variant="ghost"
@@ -241,7 +249,13 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
                         <span className="text-muted-foreground text-sm">Cannot relink</span>
                     )}
                 </TableCell>
-                <TableCell>{accountsAndBalances[stripeAccount.id] && formatDate(accountsAndBalances[stripeAccount.id]["as_of"])}</TableCell>
+                <TableCell>
+                    {accountsAndBalances[stripeAccount.id]?.as_of ? (
+                        formatDate(accountsAndBalances[stripeAccount.id]["as_of"])
+                    ) : (
+                        <span className="text-muted-foreground text-sm">—</span>
+                    )}
+                </TableCell>
             </TableRow>
         )
     }

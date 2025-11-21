@@ -136,6 +136,40 @@ describe('ConnectedAccountsPage', () => {
                 expect(screen.getByText(/No connected accounts found/)).toBeInTheDocument();
             });
         });
+
+        it('handles missing balance and date data gracefully', async () => {
+            const accountsWithMissingData = [
+                {
+                    stripe: [
+                        {
+                            institution_name: 'NewBank',
+                            display_name: 'Checking',
+                            last4: '9999',
+                            _id: 'stripe-new',
+                            id: 'stripe-new',
+                            status: 'active',
+                        },
+                    ],
+                },
+            ];
+            const balancesWithMissingData = {
+                'stripe-new': { balance: null, as_of: null, status: 'active' },
+            };
+
+            mockAxiosInstance.get.mockImplementation((url: string) => {
+                if (url.includes('connected_accounts')) return Promise.resolve({ data: accountsWithMissingData });
+                if (url.includes('accounts_and_balances')) return Promise.resolve({ data: balancesWithMissingData });
+                return Promise.resolve({ data: {} });
+            });
+
+            render(<ConnectedAccountsPage stripePromise={mockStripePromise} />);
+            await waitFor(() => {
+                expect(screen.getByText(/NewBank Checking 9999/)).toBeInTheDocument();
+                // Should show em dash (—) instead of $0.00 or Jan 1, 1970
+                const emDashes = screen.getAllByText('—');
+                expect(emDashes.length).toBeGreaterThanOrEqual(2); // One for balance, one for date
+            });
+        });
     });
 
     describe('User Interactions', () => {
