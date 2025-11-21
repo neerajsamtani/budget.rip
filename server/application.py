@@ -1,4 +1,5 @@
 import logging
+import sys
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
@@ -16,6 +17,7 @@ from constants import (
     CORS_ALLOWED_ORIGINS,
     JWT_COOKIE_DOMAIN,
     JWT_SECRET_KEY,
+    LOG_LEVEL,
     MONGO_URI,
     SPLITWISE_API_KEY,
     SPLITWISE_CONSUMER_KEY,
@@ -50,6 +52,18 @@ from resources.stripe import (
     stripe_to_line_items,
 )
 from resources.venmo import refresh_venmo, venmo_blueprint, venmo_to_line_items
+
+# Configure logging to stdout for cloud compatibility
+# Logs are treated as event streams that can be aggregated by cloud platforms
+logging.basicConfig(
+    level=getattr(logging, LOG_LEVEL.upper(), logging.INFO),
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    stream=sys.stdout,
+    force=True,  # Override any existing logging configuration
+)
+
+# Create module logger
+logger = logging.getLogger(__name__)
 
 # Validate required environment variables before starting app
 required_vars = {
@@ -95,9 +109,6 @@ application.config["JWT_COOKIE_SECURE"] = True
 application.config["MONGO_URI"] = MONGO_URI
 application.config["MONGO"] = PyMongo(application)
 
-# Configure the log level (use 'DEBUG' during development and 'INFO' or 'WARNING' in production)
-application.logger.setLevel(logging.DEBUG)
-
 application.register_blueprint(auth_blueprint)
 application.register_blueprint(line_items_blueprint)
 application.register_blueprint(events_blueprint)
@@ -141,12 +152,12 @@ def index_api() -> tuple[Response, int]:
 
 @application.route("/api/refresh/scheduled")
 def schedule_refresh_api() -> tuple[Response, int]:
-    logging.info("Initiating scheduled refresh at " + str(datetime.now()))
+    logger.info("Initiating scheduled refresh at " + str(datetime.now()))
     try:
         refresh_all()
         create_consistent_line_items()
     except Exception as e:
-        logging.error("Error refreshing all: " + str(e))
+        logger.error("Error refreshing all: " + str(e))
         return jsonify({"error": str(e)}), 500
     return jsonify({"message": "success"}), 200
 
@@ -193,7 +204,7 @@ def refresh_single_account_api() -> tuple[Response, int]:
         return jsonify({"message": "success"}), 200
 
     except Exception as e:
-        logging.error(f"Error refreshing account {account_id}: {str(e)}")
+        logger.error(f"Error refreshing account {account_id}: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 
@@ -264,20 +275,20 @@ def add_event_ids_to_line_items() -> None:
 
 
 def refresh_all() -> None:
-    logging.info("Refreshing All Data")
+    logger.info("Refreshing All Data")
     refresh_splitwise()
     refresh_venmo()
     refresh_stripe()
 
 
 def create_consistent_line_items() -> None:
-    logging.info("Creating Consistent Line Items")
+    logger.info("Creating Consistent Line Items")
     splitwise_to_line_items()
     venmo_to_line_items()
     stripe_to_line_items()
     cash_to_line_items()
     add_event_ids_to_line_items()
-    application.logger.info("Created consistent line items")
+    logger.info("Created consistent line items")
 
 
 # main driver function

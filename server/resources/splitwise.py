@@ -17,6 +17,8 @@ from resources.line_item import LineItem
 from utils.dual_write import dual_write_operation
 from utils.pg_bulk_ops import bulk_upsert_line_items, bulk_upsert_transactions
 
+logger = logging.getLogger(__name__)
+
 splitwise_blueprint = Blueprint("splitwise", __name__)
 
 
@@ -37,7 +39,7 @@ def refresh_splitwise_api() -> tuple[Response, int]:
 
 
 def refresh_splitwise() -> None:
-    logging.info("Refreshing Splitwise Data")
+    logger.info("Refreshing Splitwise Data")
     expenses: List[Any] = splitwise_client.getExpenses(limit=LIMIT, dated_after=MOVING_DATE)
 
     # Collect all non-deleted expenses for bulk upsert
@@ -58,9 +60,9 @@ def refresh_splitwise() -> None:
             pg_write_func=lambda db: bulk_upsert_transactions(db, all_expenses, source="splitwise"),
             operation_name="splitwise_refresh_transactions",
         )
-        logging.info(f"Refreshed {len(all_expenses)} Splitwise expenses (skipped {deleted_count} deleted)")
+        logger.info(f"Refreshed {len(all_expenses)} Splitwise expenses (skipped {deleted_count} deleted)")
     else:
-        logging.info("No new Splitwise expenses to refresh")
+        logger.info("No new Splitwise expenses to refresh")
 
 
 def splitwise_to_line_items() -> None:
@@ -117,6 +119,6 @@ def splitwise_to_line_items() -> None:
             pg_write_func=lambda db: bulk_upsert_line_items(db, all_line_items, source="splitwise"),
             operation_name="splitwise_create_line_items",
         )
-        logging.info(f"Converted {len(all_line_items)} Splitwise expenses to line items (ignored {ignored_count})")
+        logger.info(f"Converted {len(all_line_items)} Splitwise expenses to line items (ignored {ignored_count})")
     else:
-        logging.info("No Splitwise expenses to convert to line items")
+        logger.info("No Splitwise expenses to convert to line items")

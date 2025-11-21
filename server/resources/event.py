@@ -19,6 +19,8 @@ from helpers import html_date_to_posix
 from models.sql_models import Event
 from utils.dual_write import dual_write_operation
 
+logger = logging.getLogger(__name__)
+
 events_blueprint = Blueprint("events", __name__)
 
 # TODO: Exceptions
@@ -34,13 +36,13 @@ def all_events_api() -> tuple[Response, int]:
         - End Time
     """
     filters: Dict[str, Any] = {}
-    logging.info(f"Current User: {get_current_user()['email']}")
+    logger.info(f"Current User: {get_current_user()['email']}")
     start_time: float = float(request.args.get("start_time", SMALLEST_EPOCH_TIME))
     end_time: float = float(request.args.get("end_time", LARGEST_EPOCH_TIME))
     filters["date"] = {"$gte": start_time, "$lte": end_time}
     events: List[Dict[str, Any]] = get_all_data(events_collection, filters)
     events_total: float = sum(event["amount"] for event in events)
-    logging.info(f"Retrieved {len(events)} events (total: ${events_total:.2f})")
+    logger.info(f"Retrieved {len(events)} events (total: ${events_total:.2f})")
     return jsonify({"total": events_total, "data": events}), 200
 
 
@@ -52,9 +54,9 @@ def get_event_api(event_id: str) -> tuple[Response, int]:
     """
     event: Optional[Dict[str, Any]] = get_item_by_id(events_collection, event_id)
     if event is None:
-        logging.warning(f"Event not found: {event_id}")
+        logger.warning(f"Event not found: {event_id}")
         return jsonify({"error": "Event not found"}), 404
-    logging.info(f"Retrieved event: {event_id}")
+    logger.info(f"Retrieved event: {event_id}")
     return jsonify(event), 200
 
 
@@ -68,11 +70,11 @@ def post_event_api() -> tuple[Response, int]:
 
     # Validate required fields
     if "line_items" not in new_event:
-        logging.warning("Event creation attempt without line_items field")
+        logger.warning("Event creation attempt without line_items field")
         return jsonify({"error": "Missing required field: line_items"}), 400
 
     if len(new_event["line_items"]) == 0:
-        logging.warning("Event creation attempt with no line items")
+        logger.warning("Event creation attempt with no line items")
         return jsonify("Failed to Create Event: No Line Items Submitted"), 400
 
     filters: Dict[str, Any] = {}
@@ -119,7 +121,7 @@ def post_event_api() -> tuple[Response, int]:
         pg_write_func=pg_write,
     )
 
-    logging.info(f"Created event: {new_event['id']} with {len(line_items)} line items (amount: ${new_event['amount']:.2f})")
+    logger.info(f"Created event: {new_event['id']} with {len(line_items)} line items (amount: ${new_event['amount']:.2f})")
     return jsonify(new_event), 201
 
 
@@ -132,7 +134,7 @@ def delete_event_api(event_id: str) -> tuple[Response, int]:
     # Use ID coexistence to get event from either database
     event: Optional[Dict[str, Any]] = get_item_by_id(events_collection, event_id)
     if event is None:
-        logging.warning(f"Event deletion attempt for non-existent event: {event_id}")
+        logger.warning(f"Event deletion attempt for non-existent event: {event_id}")
         return jsonify({"error": "Event not found"}), 404
 
     line_item_ids: List[str] = event["line_items"]
@@ -154,7 +156,7 @@ def delete_event_api(event_id: str) -> tuple[Response, int]:
         if pg_event:
             db_session.delete(pg_event)
         else:
-            logging.info(f"Event {event_id} not in PostgreSQL yet")
+            logger.info(f"Event {event_id} not in PostgreSQL yet")
 
     # Execute dual-write
     dual_write_operation(
@@ -163,7 +165,7 @@ def delete_event_api(event_id: str) -> tuple[Response, int]:
         pg_write_func=pg_write,
     )
 
-    logging.info(f"Deleted event: {event_id} with {len(line_item_ids)} line items")
+    logger.info(f"Deleted event: {event_id} with {len(line_item_ids)} line items")
     return jsonify("Deleted Event"), 200
 
 
@@ -178,15 +180,15 @@ def get_line_items_for_event_api(
     try:
         event: Optional[Dict[str, Any]] = get_item_by_id(events_collection, event_id)
         if event is None:
-            logging.warning(f"Line items request for non-existent event: {event_id}")
+            logger.warning(f"Line items request for non-existent event: {event_id}")
             return jsonify({"error": "Event not found"}), 404
         line_items: List[Dict[str, Any]] = []
         for line_item_id in event["line_items"]:
             line_item: Optional[Dict[str, Any]] = get_item_by_id(line_items_collection, line_item_id)
             if line_item is not None:
                 line_items.append(line_item)
-        logging.info(f"Retrieved {len(line_items)} line items for event: {event_id}")
+        logger.info(f"Retrieved {len(line_items)} line items for event: {event_id}")
         return jsonify({"data": line_items}), 200
     except Exception as e:
-        logging.error(f"Error retrieving line items for event {event_id}: {e}")
+        logger.error(f"Error retrieving line items for event {event_id}: {e}")
         return jsonify(error=str(e)), 500

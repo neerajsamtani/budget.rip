@@ -17,6 +17,8 @@ from utils.dual_write import dual_write_operation
 from utils.id_generator import generate_id
 from utils.pg_bulk_ops import bulk_upsert_line_items, bulk_upsert_transactions
 
+logger = logging.getLogger(__name__)
+
 cash_blueprint = Blueprint("cash", __name__)
 
 # TODO: Exceptions
@@ -31,7 +33,7 @@ def create_cash_transaction_api() -> tuple[Response, int]:
     required_fields = ["date", "amount"]
     missing_fields = [field for field in required_fields if field not in transaction]
     if missing_fields:
-        logging.warning(f"Cash transaction creation attempt missing required fields: {missing_fields}")
+        logger.warning(f"Cash transaction creation attempt missing required fields: {missing_fields}")
         return jsonify({"error": f"Missing required fields: {', '.join(missing_fields)}"}), 400
 
     transaction["id"] = generate_id("cash")
@@ -42,7 +44,7 @@ def create_cash_transaction_api() -> tuple[Response, int]:
         pg_write_func=lambda db: bulk_upsert_transactions(db, [transaction], source="cash"),
         operation_name="cash_create_transaction",
     )
-    logging.info(f"Cash transaction created: {transaction['description']} - ${transaction['amount']}")
+    logger.info(f"Cash transaction created: {transaction['description']} - ${transaction['amount']}")
     cash_to_line_items()
     return jsonify("Created Cash Transaction"), 201
 
@@ -80,6 +82,6 @@ def cash_to_line_items() -> None:
             pg_write_func=lambda db: bulk_upsert_line_items(db, all_line_items, source="cash"),
             operation_name="cash_create_line_items",
         )
-        logging.info(f"Converted {len(all_line_items)} cash transactions to line items")
+        logger.info(f"Converted {len(all_line_items)} cash transactions to line items")
     else:
-        logging.info("No cash transactions to convert to line items")
+        logger.info("No cash transactions to convert to line items")

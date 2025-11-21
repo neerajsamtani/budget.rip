@@ -8,6 +8,8 @@ from flask_jwt_extended import jwt_required
 from dao import get_all_data, get_item_by_id, line_items_collection
 from helpers import sort_by_date_descending, str_to_bool
 
+logger = logging.getLogger(__name__)
+
 line_items_blueprint = Blueprint("line_items", __name__)
 
 # TODO: Exceptions
@@ -70,7 +72,7 @@ def all_line_items_api() -> tuple[Response, int]:
     payment_method: Optional[str] = request.args.get("payment_method")
     line_items: List[Dict[str, Any]] = all_line_items(only_line_items_to_review, payment_method)
     line_items_total: float = sum(line_item["amount"] for line_item in line_items)
-    logging.info(f"Retrieved {len(line_items)} line items (total: ${line_items_total:.2f})")
+    logger.info(f"Retrieved {len(line_items)} line items (total: ${line_items_total:.2f})")
     return jsonify({"total": line_items_total, "data": line_items}), 200
 
 
@@ -98,7 +100,7 @@ def get_line_item_api(line_item_id: str) -> tuple[Response, int]:
     """
     line_item: Optional[Dict[str, Any]] = get_item_by_id(line_items_collection, line_item_id)
     if line_item is None:
-        logging.warning(f"Line item not found: {line_item_id}")
+        logger.warning(f"Line item not found: {line_item_id}")
         return jsonify({"error": "Line item not found"}), 404
-    logging.info(f"Retrieved line item: {line_item_id}")
+    logger.info(f"Retrieved line item: {line_item_id}")
     return jsonify(line_item), 200
