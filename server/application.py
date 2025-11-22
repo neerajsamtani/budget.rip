@@ -276,8 +276,9 @@ def add_event_ids_to_line_items() -> None:
     # Build a mapping of line_item_id -> event_id
     line_item_to_event: Dict[str, str] = {}
     for event in events:
+        event_id = event.get("id") or event.get("_id")
         for line_item_id in event.get("line_items", []):
-            line_item_to_event[line_item_id] = event["id"]
+            line_item_to_event[line_item_id] = event_id
 
     if not line_item_to_event:
         logger.debug(f"No line items to update, exiting early after {time.time() - start_time:.3f}s")
