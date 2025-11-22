@@ -1,9 +1,12 @@
 """Handler registry pattern for MongoDB → PostgreSQL migration - routes reads based on READ_FROM_POSTGRESQL flag"""
 
+import logging
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, Union
 
 from bson import ObjectId
+
+logger = logging.getLogger(__name__)
 
 
 class DatabaseHandler(ABC):
@@ -24,8 +27,10 @@ class UserHandler(DatabaseHandler):
         import dao
 
         if dao.READ_FROM_POSTGRESQL:
+            logger.debug("Reading user by id from PostgreSQL")
             return dao._pg_get_user_by_id(str(id))
 
+        logger.debug("Reading user by id from MongoDB")
         cur_collection = dao.get_collection(dao.users_collection)
         return cur_collection.find_one({"_id": id})
 
@@ -35,8 +40,10 @@ class LineItemHandler(DatabaseHandler):
         import dao
 
         if dao.READ_FROM_POSTGRESQL:
+            logger.debug("Reading all line items from PostgreSQL")
             return dao._pg_get_all_line_items(filters)
 
+        logger.debug("Reading all line items from MongoDB")
         cur_collection = dao.get_collection(dao.line_items_collection)
         return list(cur_collection.find(filters).sort("date", -1))
 
@@ -44,8 +51,10 @@ class LineItemHandler(DatabaseHandler):
         import dao
 
         if dao.READ_FROM_POSTGRESQL:
+            logger.debug("Reading line item by id from PostgreSQL")
             return dao._pg_get_line_item_by_id(str(id))
 
+        logger.debug("Reading line item by id from MongoDB")
         cur_collection = dao.get_collection(dao.line_items_collection)
         return cur_collection.find_one({"_id": id})
 
@@ -55,8 +64,10 @@ class EventHandler(DatabaseHandler):
         import dao
 
         if dao.READ_FROM_POSTGRESQL:
+            logger.debug("Reading all events from PostgreSQL")
             return dao._pg_get_all_events(filters)
 
+        logger.debug("Reading all events from MongoDB")
         cur_collection = dao.get_collection(dao.events_collection)
         return list(cur_collection.find(filters).sort("date", -1))
 
@@ -64,8 +75,10 @@ class EventHandler(DatabaseHandler):
         import dao
 
         if dao.READ_FROM_POSTGRESQL:
+            logger.debug("Reading event by id from PostgreSQL")
             return dao._pg_get_event_by_id(str(id))
 
+        logger.debug("Reading event by id from MongoDB")
         cur_collection = dao.get_collection(dao.events_collection)
         return cur_collection.find_one({"_id": id})
 
@@ -78,6 +91,7 @@ class TransactionHandler(DatabaseHandler):
         import dao
 
         if dao.READ_FROM_POSTGRESQL:
+            logger.debug(f"Reading all {self.source} transactions from PostgreSQL")
             return dao._pg_get_transactions(self.source, filters)
 
         # Get collection name from source
@@ -91,6 +105,7 @@ class TransactionHandler(DatabaseHandler):
         if not collection_name:
             return []
 
+        logger.debug(f"Reading all {self.source} transactions from MongoDB")
         cur_collection = dao.get_collection(collection_name)
         return list(cur_collection.find(filters).sort("date", -1))
 
@@ -107,6 +122,7 @@ class TransactionHandler(DatabaseHandler):
         if not collection_name:
             return None
 
+        logger.debug(f"Reading {self.source} transaction by id from MongoDB")
         cur_collection = dao.get_collection(collection_name)
         return cur_collection.find_one({"_id": id})
 
@@ -116,14 +132,17 @@ class BankAccountHandler(DatabaseHandler):
         import dao
 
         if dao.READ_FROM_POSTGRESQL:
+            logger.debug("Reading all bank accounts from PostgreSQL")
             return dao._pg_get_all_bank_accounts(filters)
 
+        logger.debug("Reading all bank accounts from MongoDB")
         cur_collection = dao.get_collection(dao.bank_accounts_collection)
         return list(cur_collection.find(filters).sort("date", -1))
 
     def get_by_id(self, id: Union[str, int, ObjectId]) -> Optional[Dict[str, Any]]:
         import dao
 
+        logger.debug("Reading bank account by id from MongoDB")
         cur_collection = dao.get_collection(dao.bank_accounts_collection)
         return cur_collection.find_one({"_id": id})
 
@@ -139,6 +158,7 @@ class MongoDBHandler(DatabaseHandler):
         if dao.READ_FROM_POSTGRESQL:
             raise NotImplementedError(f"Unknown collection '{self.collection_name}' - cannot read from PostgreSQL")
 
+        logger.debug(f"Reading all {self.collection_name} from MongoDB (fallback handler)")
         cur_collection = dao.get_collection(self.collection_name)
         return list(cur_collection.find(filters).sort("date", -1))
 
@@ -149,6 +169,7 @@ class MongoDBHandler(DatabaseHandler):
         if dao.READ_FROM_POSTGRESQL:
             raise NotImplementedError(f"Unknown collection '{self.collection_name}' - cannot read from PostgreSQL")
 
+        logger.debug(f"Reading {self.collection_name} by id from MongoDB (fallback handler)")
         cur_collection = dao.get_collection(self.collection_name)
         return cur_collection.find_one({"_id": id})
 
