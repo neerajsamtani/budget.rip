@@ -36,6 +36,7 @@ from dao import (
     bulk_upsert,
     events_collection,
     get_all_data,
+    get_collection,
     get_item_by_id,
     line_items_collection,
     users_collection,
@@ -249,30 +250,55 @@ def get_payment_methods_api() -> tuple[Response, int]:
 
 def add_event_ids_to_line_items() -> None:
     """
-    Add event IDs to line items with optimized database operations.
+    Add event IDs to MongoDB line items (MongoDB-specific denormalization).
 
-    Optimizations:
-    1. Use bulk upsert operations instead of individual upserts
-    2. Collect all line items before bulk upserting
-    3. Process line items in batches for better memory management
+    PostgreSQL uses event_line_items junction table instead and doesn't need this.
+    This function always reads/writes directly to MongoDB to maintain consistency
+    during the dual-write migration phase.
+
+    Uses only 2 database queries regardless of event count:
+    1. Fetch all events from MongoDB
+    2. Fetch all line items that belong to events (single query)
     """
-    events: List[Dict[str, Any]] = get_all_data(events_collection)
+    import time
 
-    # Collect all line items that need updating for bulk upsert
-    all_line_items_to_update: List[Dict[str, Any]] = []
+    start_time = time.time()
+    logger.debug("Starting add_event_ids_to_line_items")
 
+    # Always read directly from MongoDB - this is MongoDB-specific denormalization
+    # PostgreSQL relationships are handled via event_line_items junction table
+    events_coll = get_collection(events_collection)
+    line_items_coll = get_collection(line_items_collection)
+
+    events: List[Dict[str, Any]] = list(events_coll.find())
+    logger.debug(f"Fetched {len(events)} events from MongoDB in {time.time() - start_time:.3f}s")
+
+    # Build a mapping of line_item_id -> event_id
+    line_item_to_event: Dict[str, str] = {}
     for event in events:
-        filters: Dict[str, Any] = {}
-        filters["_id"] = {"$in": event["line_items"]}
-        line_items: List[Dict[str, Any]] = get_all_data(line_items_collection, filters)
+        for line_item_id in event.get("line_items", []):
+            line_item_to_event[line_item_id] = event["id"]
 
-        for line_item in line_items:
-            line_item["event_id"] = event["id"]
-            all_line_items_to_update.append(line_item)
+    if not line_item_to_event:
+        logger.debug(f"No line items to update, exiting early after {time.time() - start_time:.3f}s")
+        return
 
-    # Bulk upsert all collected line items at once
-    if all_line_items_to_update:
-        bulk_upsert(line_items_collection, all_line_items_to_update)
+    # Single query to fetch all relevant line items from MongoDB
+    all_line_item_ids = list(line_item_to_event.keys())
+    logger.debug(f"Fetching {len(all_line_item_ids)} line items in single query")
+    line_items: List[Dict[str, Any]] = list(line_items_coll.find({"_id": {"$in": all_line_item_ids}}))
+    logger.debug(f"Fetched {len(line_items)} line items from MongoDB in {time.time() - start_time:.3f}s")
+
+    # Add event_id to each line item
+    for line_item in line_items:
+        line_item["event_id"] = line_item_to_event[line_item["_id"]]
+
+    # Bulk upsert to MongoDB only
+    if line_items:
+        logger.debug(f"Bulk upserting {len(line_items)} line items to MongoDB")
+        bulk_upsert(line_items_collection, line_items)
+
+    logger.debug(f"Completed add_event_ids_to_line_items in {time.time() - start_time:.3f}s")
 
 
 def refresh_all() -> None:
