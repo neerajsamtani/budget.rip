@@ -121,7 +121,6 @@ application.register_blueprint(stripe_blueprint)
 load_dotenv()
 
 
-
 # Register a callback function that loads a user from your database whenever
 # a protected route is accessed. This should return any python object on a
 # successful lookup, or None if the lookup failed for any reason (for example

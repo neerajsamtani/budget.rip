@@ -363,7 +363,9 @@ def _pg_get_line_item_by_id(id: str) -> Optional[Dict[str, Any]]:
         query = db_session.query(LineItem).options(joinedload(LineItem.payment_method), joinedload(LineItem.events))
 
         line_item = (
-            query.filter(LineItem.id == id).first() if is_postgres_id(id, "li") else query.filter(LineItem.mongo_id == id).first()
+            query.filter(LineItem.id == id).first()
+            if is_postgres_id(id, "li")
+            else query.filter(LineItem.mongo_id == id).first()
         )
 
         return _pg_serialize_line_item(line_item) if line_item else None
@@ -435,7 +437,9 @@ def _pg_get_event_by_id(id: str) -> Optional[Dict[str, Any]]:
 
         # PostgreSQL event IDs use "evt_" prefix with ULID (e.g., "evt_01K...")
         # MongoDB event IDs follow different patterns (e.g., "event_cash_...", "event{hash}")
-        event = query.filter(Event.id == id).first() if is_postgres_id(id, "evt") else query.filter(Event.mongo_id == id).first()
+        event = (
+            query.filter(Event.id == id).first() if is_postgres_id(id, "evt") else query.filter(Event.mongo_id == id).first()
+        )
 
         return _pg_serialize_event(event) if event else None
     finally:
