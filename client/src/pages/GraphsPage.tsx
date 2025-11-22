@@ -1,4 +1,4 @@
-import React, { lazy, Suspense } from "react";
+import React, { lazy, Suspense, useState, useEffect } from "react";
 import { PageContainer, PageHeader } from "../components/ui/layout";
 import { Body, H1 } from "../components/ui/typography";
 import { chartColorSequence } from '../lib/chart-colors';
@@ -17,6 +17,14 @@ interface CategoryExpense {
 
 export default function GraphsPage() {
   const { data: categorizedData = {}, isLoading, error } = useMonthlyBreakdown()
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const data = Object.keys(categorizedData)
     .filter(category => Array.isArray(categorizedData[category]))
@@ -36,25 +44,45 @@ export default function GraphsPage() {
   const layout = {
     barmode: 'relative',
     xaxis: {
-      title: 'Date',
+      title: isMobile ? '' : 'Date',
       gridcolor: '#F5F5F5',
       linecolor: '#E0E0E0',
+      tickangle: isMobile ? -45 : 0,
+      tickfont: { size: isMobile ? 9 : 12 },
+      nticks: isMobile ? 6 : undefined,
     },
     yaxis: {
-      title: 'Amount',
+      title: isMobile ? '' : 'Amount',
       gridcolor: '#F5F5F5',
       linecolor: '#E0E0E0',
+      tickfont: { size: isMobile ? 10 : 12 },
     },
     autosize: true,
+    margin: isMobile
+      ? { l: 40, r: 10, t: 10, b: 60 }
+      : { l: 60, r: 30, t: 30, b: 60 },
     // Nordic styling
     paper_bgcolor: '#FFFFFF',
     plot_bgcolor: '#FFFFFF',
     font: {
       family: 'Source Sans Pro, sans-serif',
-      size: 12,
+      size: isMobile ? 10 : 12,
       color: '#374151'
     },
-    colorway: chartColorSequence
+    colorway: chartColorSequence,
+    legend: isMobile ? {
+      orientation: 'h',
+      y: -0.3,
+      x: 0.5,
+      xanchor: 'center',
+      font: { size: 10 },
+    } : {
+      orientation: 'v',
+      y: 0.5,
+      x: 1.02,
+      xanchor: 'left',
+    },
+    showlegend: true,
   };
 
 
@@ -68,18 +96,18 @@ export default function GraphsPage() {
       </PageHeader>
 
       <div className="space-y-6">
-        <div className="bg-white rounded-xl border p-4 md:p-6 shadow-sm">
+        <div className="bg-white rounded-xl border p-2 md:p-6 shadow-sm overflow-x-auto">
           {isLoading ? (
-            <div className="flex items-center justify-center h-96">
+            <div className="flex items-center justify-center h-64 md:h-96">
               <Body className="text-muted-foreground">Loading data...</Body>
             </div>
           ) : error ? (
-            <div className="flex items-center justify-center h-96">
+            <div className="flex items-center justify-center h-64 md:h-96">
               <Body className="text-destructive">Error loading data. Please try again.</Body>
             </div>
           ) : (
             <Suspense fallback={
-              <div className="flex items-center justify-center h-96">
+              <div className="flex items-center justify-center h-64 md:h-96">
                 <Body className="text-muted-foreground">Loading chart...</Body>
               </div>
             }>
@@ -88,9 +116,13 @@ export default function GraphsPage() {
                 layout={layout}
                 config={{
                   displayModeBar: false,
-                  responsive: true
+                  responsive: true,
+                  scrollZoom: false,
                 }}
-                style={{ width: '100%', height: 'auto', minHeight: '400px' }}
+                style={{
+                  width: '100%',
+                  height: isMobile ? '350px' : '500px',
+                }}
                 useResizeHandler={true}
                 className="w-full"
               />

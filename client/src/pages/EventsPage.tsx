@@ -1,10 +1,12 @@
+import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Category } from "@/constants/categories";
 import { CurrencyFormatter } from "@/utils/formatters";
+import { ChevronDown, ChevronUp, Filter } from "lucide-react";
 import { DateTime } from "luxon";
 import React, { useState } from "react";
 import CategoryFilter from "../components/CategoryFilter";
-import Event, { EventInterface } from "../components/Event";
+import Event, { EventCard, EventInterface } from "../components/Event";
 import MonthFilter from "../components/MonthFilter";
 import TagsFilter from "../components/TagsFilter";
 import { PageContainer, PageHeader } from "../components/ui/layout";
@@ -20,6 +22,7 @@ export default function EventsPage() {
     const [month, setMonth] = useState(now.monthLong)
     const [year, setYear] = useState(String(now.year))
     const [tagFilter, setTagFilter] = useState<string>('');
+    const [filtersOpen, setFiltersOpen] = useState(false);
 
     // Calculate time range for API query
     let startTime, endTime;
@@ -66,6 +69,14 @@ export default function EventsPage() {
 
     const cashFlowWithFilters = calculateCashFlowWithFilters(events);
     const spending = calculateSpending(events);
+    const filteredEvents = events.filter(event => matchCategory(event) && matchTags(event));
+
+    // Count active filters
+    const activeFilterCount = [
+        category !== "All",
+        month !== "All",
+        tagFilter !== ""
+    ].filter(Boolean).length;
 
     return (
         <PageContainer>
@@ -76,74 +87,122 @@ export default function EventsPage() {
                 </Body>
             </PageHeader>
 
-            <div className="space-y-6">
-                <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="space-y-4">
+                {/* Mobile filters toggle */}
+                <div className="md:hidden">
+                    <Button
+                        variant="secondary"
+                        onClick={() => setFiltersOpen(!filtersOpen)}
+                        className="w-full justify-between"
+                    >
+                        <span className="flex items-center gap-2">
+                            <Filter className="h-4 w-4" />
+                            Filters
+                            {activeFilterCount > 0 && (
+                                <span className="bg-primary text-white text-xs px-2 py-0.5 rounded-full">
+                                    {activeFilterCount}
+                                </span>
+                            )}
+                        </span>
+                        {filtersOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                    </Button>
+                </div>
+
+                {/* Filters - collapsible on mobile, always visible on desktop */}
+                <div className={`space-y-4 ${filtersOpen ? 'block' : 'hidden'} md:block`}>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
                         <CategoryFilter category={category as Category} setCategory={setCategory} />
                         <MonthFilter month={month} setMonth={setMonth} />
                         <YearFilter year={year as Year} setYear={setYear} />
-                        <TagsFilter tagFilter={tagFilter} setTagFilter={setTagFilter} />
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="bg-muted rounded-lg p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-                            <Body className="font-medium">Cash Flow in {' '}
-                                {month && month !== 'All' ? month : ''} {year}
-                                {category !== 'All' ? ` (${category})` : ''}:</Body>
-                            <StatusBadge status={cashFlowWithFilters < 0 ? 'success' : 'warning'}>
-                                {CurrencyFormatter.format(Math.abs(cashFlowWithFilters))}
-                            </StatusBadge>
-                        </div>
-                        <div className="bg-muted rounded-lg p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-                            <Body className="font-medium">Spending:</Body>
-                            <StatusBadge status={spending <= 0 ? 'success' : 'warning'}>
-                                {CurrencyFormatter.format(Math.abs(spending))}
-                            </StatusBadge>
+                        <div className="col-span-2 md:col-span-1">
+                            <TagsFilter tagFilter={tagFilter} setTagFilter={setTagFilter} />
                         </div>
                     </div>
                 </div>
 
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Date</TableHead>
-                            <TableHead>Name</TableHead>
-                            <TableHead>Category</TableHead>
-                            <TableHead>Amount</TableHead>
-                            <TableHead>Tags</TableHead>
-                            <TableHead>Actions</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
+                {/* Summary cards */}
+                <div className="grid grid-cols-2 gap-3 md:gap-4">
+                    <div className="bg-muted rounded-lg p-3 md:p-4">
+                        <Body className="font-medium text-xs md:text-base mb-1">
+                            Cash Flow
+                        </Body>
+                        <StatusBadge status={cashFlowWithFilters < 0 ? 'success' : 'warning'}>
+                            {CurrencyFormatter.format(Math.abs(cashFlowWithFilters))}
+                        </StatusBadge>
+                    </div>
+                    <div className="bg-muted rounded-lg p-3 md:p-4">
+                        <Body className="font-medium text-xs md:text-base mb-1">Spending</Body>
+                        <StatusBadge status={spending <= 0 ? 'success' : 'warning'}>
+                            {CurrencyFormatter.format(Math.abs(spending))}
+                        </StatusBadge>
+                    </div>
+                </div>
+
+                {/* Mobile card layout */}
+                <div className="md:hidden">
+                    <div className="rounded-xl bg-white shadow-sm border overflow-hidden">
                         {isLoading ? (
-                            <TableRow>
-                                <TableCell colSpan={6} className="text-center text-muted-foreground">
-                                    Loading events...
-                                </TableCell>
-                            </TableRow>
+                            <div className="p-4 text-center text-muted-foreground">
+                                Loading events...
+                            </div>
                         ) : error ? (
+                            <div className="p-4 text-center text-destructive">
+                                Error loading events. Please try again.
+                            </div>
+                        ) : filteredEvents.length > 0 ? (
+                            filteredEvents.map(event => (
+                                <EventCard key={event.id} event={event} />
+                            ))
+                        ) : (
+                            <div className="p-4 text-center text-muted-foreground">
+                                No events found
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Desktop table layout */}
+                <div className="hidden md:block">
+                    <Table>
+                        <TableHeader>
                             <TableRow>
-                                <TableCell colSpan={6} className="text-center text-destructive">
-                                    Error loading events. Please try again.
-                                </TableCell>
+                                <TableHead>Date</TableHead>
+                                <TableHead>Name</TableHead>
+                                <TableHead>Category</TableHead>
+                                <TableHead>Amount</TableHead>
+                                <TableHead>Tags</TableHead>
+                                <TableHead>Actions</TableHead>
                             </TableRow>
-                        ) : events.length > 0 ? (
-                            events
-                                .filter(event => matchCategory(event) && matchTags(event))
-                                .map(event => (
+                        </TableHeader>
+                        <TableBody>
+                            {isLoading ? (
+                                <TableRow>
+                                    <TableCell colSpan={6} className="text-center text-muted-foreground">
+                                        Loading events...
+                                    </TableCell>
+                                </TableRow>
+                            ) : error ? (
+                                <TableRow>
+                                    <TableCell colSpan={6} className="text-center text-destructive">
+                                        Error loading events. Please try again.
+                                    </TableCell>
+                                </TableRow>
+                            ) : filteredEvents.length > 0 ? (
+                                filteredEvents.map(event => (
                                     <TableRow key={event.id}>
                                         <Event event={event} />
                                     </TableRow>
                                 ))
-                        ) : (
-                            <TableRow>
-                                <TableCell colSpan={6} className="text-center text-muted-foreground">
-                                    No events found
-                                </TableCell>
-                            </TableRow>
-                        )}
-                    </TableBody>
-                </Table>
+                            ) : (
+                                <TableRow>
+                                    <TableCell colSpan={6} className="text-center text-muted-foreground">
+                                        No events found
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                </div>
             </div>
         </PageContainer>
     )

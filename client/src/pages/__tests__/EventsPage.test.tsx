@@ -80,7 +80,7 @@ jest.mock('../../components/TagsFilter', () => {
 
 // Mock the Event component
 jest.mock('../../components/Event', () => {
-    return function MockEvent({ event }: any) {
+    const MockEvent = function({ event }: any) {
         return (
             <>
                 <td data-testid={`event-date-${event.id}`}>
@@ -99,6 +99,26 @@ jest.mock('../../components/Event', () => {
                 </td>
             </>
         );
+    };
+    // Export EventCard as a named export (use different test IDs to avoid duplicates)
+    const MockEventCard = function({ event }: any) {
+        return (
+            <div data-testid={`event-card-${event.id}`}>
+                <span data-testid={`card-event-name-${event.id}`}>{event.name}</span>
+                <span data-testid={`card-event-category-${event.id}`}>{event.category}</span>
+                <span data-testid={`card-event-amount-${event.id}`}>${event.amount.toFixed(2)}</span>
+                <span data-testid={`card-event-tags-${event.id}`}>
+                    {event.tags && event.tags.map((tag: string, index: number) => (
+                        <span key={index} data-testid={`card-tag-${event.id}-${index}`}>{tag}</span>
+                    ))}
+                </span>
+            </div>
+        );
+    };
+    return {
+        __esModule: true,
+        default: MockEvent,
+        EventCard: MockEventCard,
     };
 });
 
@@ -197,8 +217,8 @@ describe('EventsPage', () => {
             render(<EventsPage />);
 
             await waitFor(() => {
-                expect(screen.getByText(/Cash Flow in/)).toBeInTheDocument();
-                expect(screen.getByText(/Spending:/)).toBeInTheDocument();
+                expect(screen.getByText(/Cash Flow/)).toBeInTheDocument();
+                expect(screen.getByText(/Spending/)).toBeInTheDocument();
             });
         });
     });
@@ -239,7 +259,9 @@ describe('EventsPage', () => {
             render(<EventsPage />);
 
             await waitFor(() => {
-                expect(screen.getByText(/Error loading events/i)).toBeInTheDocument();
+                // Error message appears in both mobile and desktop layouts
+                const errors = screen.getAllByText(/Error loading events/i);
+                expect(errors.length).toBeGreaterThanOrEqual(1);
             });
         });
 
@@ -306,7 +328,9 @@ describe('EventsPage', () => {
             render(<EventsPage />);
 
             await waitFor(() => {
-                expect(screen.getByText('No events found')).toBeInTheDocument();
+                // Message appears in both mobile and desktop layouts
+                const messages = screen.getAllByText('No events found');
+                expect(messages.length).toBeGreaterThanOrEqual(1);
             });
         });
     });
@@ -419,16 +443,19 @@ describe('EventsPage', () => {
             render(<EventsPage />);
 
             await waitFor(() => {
-                expect(screen.getByText('$7,175.00')).toBeInTheDocument(); // All categories
+                // Cash flow amount appears in the summary card
+                const amounts = screen.getAllByText('$7,175.00');
+                expect(amounts.length).toBeGreaterThanOrEqual(1);
             });
 
             // Change to Dining category only
             const categoryFilter = screen.getByTestId('category-filter');
-            categoryFilter.setAttribute('value', 'Dining');
-            categoryFilter.dispatchEvent(new Event('change', { bubbles: true }));
+            fireEvent.change(categoryFilter, { target: { value: 'Dining' } });
 
             await waitFor(() => {
-                expect(screen.getByText('$50.00')).toBeInTheDocument(); // Only Dining
+                // After filtering to Dining only, $50.00 should appear (in event and/or summary)
+                const amounts = screen.getAllByText('$50.00');
+                expect(amounts.length).toBeGreaterThanOrEqual(1);
             });
         });
 
@@ -549,7 +576,9 @@ describe('EventsPage', () => {
             render(<EventsPage />);
 
             await waitFor(() => {
-                expect(screen.getByText('No events found')).toBeInTheDocument();
+                // Message appears in both mobile and desktop layouts
+                const messages = screen.getAllByText('No events found');
+                expect(messages.length).toBeGreaterThanOrEqual(1);
             });
         });
 
@@ -559,7 +588,9 @@ describe('EventsPage', () => {
             render(<EventsPage />);
 
             await waitFor(() => {
-                expect(screen.getByText(/Error loading events/i)).toBeInTheDocument();
+                // Error message appears in both mobile and desktop layouts
+                const errors = screen.getAllByText(/Error loading events/i);
+                expect(errors.length).toBeGreaterThanOrEqual(1);
             });
         });
 
@@ -636,8 +667,8 @@ describe('EventsPage', () => {
             render(<EventsPage />);
 
             await waitFor(() => {
-                expect(screen.getByText(/Cash Flow in/)).toBeInTheDocument();
-                expect(screen.getByText(/Spending:/)).toBeInTheDocument();
+                expect(screen.getByText(/Cash Flow/)).toBeInTheDocument();
+                expect(screen.getByText(/Spending/)).toBeInTheDocument();
             });
         });
     });
@@ -659,6 +690,76 @@ describe('EventsPage', () => {
                 expect(screen.getByTestId('event-name-1')).toHaveTextContent('Dinner Out');
                 expect(screen.getByTestId('event-category-1')).toHaveTextContent('Dining');
                 expect(screen.getByTestId('event-amount-1')).toHaveTextContent('$50.00');
+            });
+        });
+    });
+
+    describe('Responsive Layout', () => {
+        it('renders mobile card layout', async () => {
+            render(<EventsPage />);
+
+            await waitFor(() => {
+                // Mobile card layout should render event cards
+                expect(screen.getByTestId('event-card-1')).toBeInTheDocument();
+                expect(screen.getByTestId('event-card-2')).toBeInTheDocument();
+            });
+        });
+
+        it('renders desktop table layout', async () => {
+            render(<EventsPage />);
+
+            await waitFor(() => {
+                // Desktop table should also render (hidden via CSS)
+                expect(screen.getByRole('table')).toBeInTheDocument();
+                expect(document.querySelector('thead')).toBeInTheDocument();
+                expect(document.querySelector('tbody')).toBeInTheDocument();
+            });
+        });
+
+        it('renders filters toggle button for mobile', () => {
+            render(<EventsPage />);
+
+            // Mobile filters toggle button should be present
+            const filtersButton = screen.getByRole('button', { name: /filters/i });
+            expect(filtersButton).toBeInTheDocument();
+        });
+
+        it('shows filter count badge when filters are active', async () => {
+            render(<EventsPage />);
+
+            // Change category filter to activate a filter
+            const categoryFilter = screen.getByTestId('category-filter');
+            fireEvent.change(categoryFilter, { target: { value: 'Dining' } });
+
+            await waitFor(() => {
+                // Should show filters button
+                const filtersButton = screen.getByRole('button', { name: /filters/i });
+                expect(filtersButton).toBeInTheDocument();
+                // Badge with count should appear somewhere in the document
+                // Count is 1 because category="Dining" is active
+                const badge = document.querySelector('.rounded-full');
+                expect(badge).toBeInTheDocument();
+            });
+        });
+
+        it('both mobile cards and desktop table show same event data', async () => {
+            render(<EventsPage />);
+
+            await waitFor(() => {
+                // Desktop table should display event data
+                expect(screen.getByTestId('event-name-1')).toHaveTextContent('Dinner Out');
+                // Mobile card should also display event data
+                expect(screen.getByTestId('card-event-name-1')).toHaveTextContent('Dinner Out');
+            });
+        });
+
+        it('renders summary cards with responsive styling', async () => {
+            render(<EventsPage />);
+
+            await waitFor(() => {
+                // Summary cards should be present
+                expect(screen.getByText(/Cash Flow/)).toBeInTheDocument();
+                expect(screen.getByText(/Spending/)).toBeInTheDocument();
             });
         });
     });

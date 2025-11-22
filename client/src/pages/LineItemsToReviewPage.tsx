@@ -4,10 +4,36 @@ import { CurrencyFormatter } from "@/utils/formatters";
 import React, { useCallback, useEffect, useState } from "react";
 import CreateCashTransactionModal from "../components/CreateCashTransactionModal";
 import CreateEventModal from "../components/CreateEventModal";
-import LineItem from "../components/LineItem";
+import LineItem, { LineItemCard } from "../components/LineItem";
 import { PageContainer, PageHeader } from "../components/ui/layout";
 import { Body, H1 } from "../components/ui/typography";
-import { useLineItems } from "../contexts/LineItemsContext";
+import { useLineItems, useLineItemsDispatch } from "../contexts/LineItemsContext";
+
+// Mobile card wrapper that includes context hooks
+function MobileLineItemCard({ lineItem }: { lineItem: any }) {
+    const lineItems = useLineItems();
+    const lineItemsDispatch = useLineItemsDispatch();
+    const isChecked = lineItems.some(li => li.isSelected && li.id === lineItem.id);
+
+    const handleToggle = () => {
+        lineItemsDispatch({
+            type: "toggle_line_item_select",
+            lineItemId: lineItem.id
+        });
+    };
+
+    const amountStatus = lineItem.amount < 0 ? 'success' : 'warning';
+
+    return (
+        <LineItemCard
+            lineItem={lineItem}
+            showCheckBox={true}
+            isChecked={isChecked}
+            handleToggle={handleToggle}
+            amountStatus={amountStatus}
+        />
+    );
+}
 
 export default function LineItemsToReviewPage() {
 
@@ -43,28 +69,38 @@ export default function LineItemsToReviewPage() {
             </PageHeader>
 
             {lineItems && (
-                <div className="space-y-6">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Select</TableHead>
-                                <TableHead>Date</TableHead>
-                                <TableHead>Payment Method</TableHead>
-                                <TableHead>Description</TableHead>
-                                <TableHead>Party</TableHead>
-                                <TableHead className="text-right">Amount</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {lineItems.length > 0 && lineItems.map(lineItem =>
-                                <LineItem
-                                    key={lineItem.id}
-                                    lineItem={lineItem}
-                                    showCheckBox={true}
-                                />
-                            )}
-                        </TableBody>
-                    </Table>
+                <div className="space-y-6 pb-32">
+                    {/* Mobile card layout */}
+                    <div className="md:hidden rounded-xl bg-white shadow-sm border overflow-hidden">
+                        {lineItems.length > 0 && lineItems.map(lineItem => (
+                            <MobileLineItemCard key={lineItem.id} lineItem={lineItem} />
+                        ))}
+                    </div>
+
+                    {/* Desktop table layout */}
+                    <div className="hidden md:block">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Select</TableHead>
+                                    <TableHead>Date</TableHead>
+                                    <TableHead>Payment Method</TableHead>
+                                    <TableHead>Description</TableHead>
+                                    <TableHead>Party</TableHead>
+                                    <TableHead className="text-right">Amount</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {lineItems.length > 0 && lineItems.map(lineItem =>
+                                    <LineItem
+                                        key={lineItem.id}
+                                        lineItem={lineItem}
+                                        showCheckBox={true}
+                                    />
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
                 </div>
             )}
 
