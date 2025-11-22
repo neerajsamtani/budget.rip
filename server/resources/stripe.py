@@ -7,7 +7,7 @@ import stripe
 from flask import Blueprint, Response, jsonify, request
 from flask_jwt_extended import jwt_required
 
-from constants import STRIPE_API_KEY, STRIPE_CUSTOMER_ID
+from constants import BATCH_SIZE, STRIPE_API_KEY, STRIPE_CUSTOMER_EMAIL, STRIPE_CUSTOMER_ID, STRIPE_CUSTOMER_NAME
 from dao import (
     bank_accounts_collection,
     bulk_upsert,
@@ -44,7 +44,7 @@ stripe_client = stripe.StripeClient(api_key=STRIPE_API_KEY)
 def check_can_relink(account: stripe.financial_connections.Account) -> bool:
     """Check if inactive account can be relinked. Active accounts return False (don't need relink)."""
     if account.get("status") == "active":
-        return False  # Active accounts don't need relinking
+        return False
 
     if account.get("status") == "inactive":
         try:
@@ -158,7 +158,7 @@ def create_fc_session_api(
             customer: stripe.Customer = stripe.Customer.retrieve(STRIPE_CUSTOMER_ID)
         except stripe.InvalidRequestError:
             logger.info("Creating a new customer...")
-            customer: stripe.Customer = stripe.Customer.create(email="neeraj@gmail.com", name="Neeraj")
+            customer: stripe.Customer = stripe.Customer.create(email=STRIPE_CUSTOMER_EMAIL, name=STRIPE_CUSTOMER_NAME)
 
         session_params: Dict[str, Any] = {
             "account_holder": {"type": "customer", "customer": customer["id"]},
@@ -337,8 +337,6 @@ def refresh_transactions_api(account_id: str) -> tuple[Response, int]:
         # Best-effort: fetch latest balance for this account (won't fail transaction refresh)
         refresh_account_balances(account_ids=[account_id])
 
-        # If we want to enable only refreshing a single account, we need to uncomment this
-        # stripe_to_line_items()
         return jsonify("Refreshed Stripe Connection for Given Account"), 200
 
     except Exception as e:
@@ -370,8 +368,6 @@ def stripe_to_line_items() -> None:
 
     stripe_raw_data: List[Dict[str, Any]] = get_all_data(stripe_raw_transaction_data_collection)
 
-    # Process transactions in batches for better memory management
-    batch_size: int = 1000
     line_items_batch: List[LineItem] = []
 
     for transaction in stripe_raw_data:
@@ -394,7 +390,7 @@ def stripe_to_line_items() -> None:
 
         line_items_batch.append(line_item)
 
-        if len(line_items_batch) >= batch_size:
+        if len(line_items_batch) >= BATCH_SIZE:
             dual_write_operation(
                 mongo_write_func=lambda: bulk_upsert(line_items_collection, line_items_batch),
                 pg_write_func=lambda db: bulk_upsert_line_items(db, line_items_batch, source="stripe"),

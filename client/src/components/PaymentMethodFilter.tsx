@@ -1,7 +1,6 @@
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import React, { useEffect, useState } from "react";
-import axiosInstance from "../utils/axiosInstance";
+import { SelectFilter } from "@/components/ui/select-filter";
+import React, { useEffect, useMemo } from "react";
+import { usePaymentMethods } from "../hooks/useApi";
 import { showErrorToast } from "../utils/toast-helpers";
 
 type PaymentMethod = string
@@ -12,33 +11,22 @@ interface PaymentMethodFilterProps {
 }
 
 export default function PaymentMethodFilter({ paymentMethod, setPaymentMethod }: PaymentMethodFilterProps) {
-  // TODO: Find a way to use SelectFilter component here
-
-  const [paymentMethods, setPaymentMethods] = useState([])
+  const { data: fetchedMethods = [], error } = usePaymentMethods();
+  const paymentMethods = useMemo(() => ["All", ...fetchedMethods], [fetchedMethods]);
 
   useEffect(() => {
-    axiosInstance.get(`api/payment_methods`)
-      .then(response => {
-        setPaymentMethods(Array.isArray(response.data) ? response.data : []);
-      })
-      .catch(showErrorToast);
-  }, [])
-
+    if (error) {
+      showErrorToast(error);
+    }
+  }, [error]);
 
   return (
-    <div className="space-y-2">
-      <Label className="text-sm font-medium text-foreground">Payment Method</Label>
-      <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-        <SelectTrigger className="w-full">
-          <SelectValue placeholder="Select payment method" />
-        </SelectTrigger>
-        <SelectContent className="bg-white border">
-          <SelectItem value="All">All</SelectItem>
-          {paymentMethods.map(payment_method => {
-            return (<SelectItem value={payment_method} key={payment_method}>{payment_method}</SelectItem>)
-          })}
-        </SelectContent>
-      </Select>
-    </div>
+    <SelectFilter
+      label="Payment Method"
+      value={paymentMethod}
+      onChange={setPaymentMethod}
+      options={paymentMethods}
+      placeholder="Select payment method"
+    />
   );
 }

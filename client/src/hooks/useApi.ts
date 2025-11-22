@@ -12,6 +12,7 @@ export const queryKeys = {
   monthlyBreakdown: () => ['monthlyBreakdown'] as const,
   connectedAccounts: () => ['connectedAccounts'] as const,
   accountsAndBalances: () => ['accountsAndBalances'] as const,
+  paymentMethods: () => ['paymentMethods'] as const,
 };
 
 // Query Hooks
@@ -97,6 +98,16 @@ export function useAccountsAndBalances(): UseQueryResult<unknown> {
     queryFn: async () => {
       const response = await axiosInstance.get('api/accounts_and_balances');
       return response.data;
+    },
+  });
+}
+
+export function usePaymentMethods(): UseQueryResult<string[]> {
+  return useQuery({
+    queryKey: queryKeys.paymentMethods(),
+    queryFn: async () => {
+      const response = await axiosInstance.get('api/payment_methods');
+      return Array.isArray(response.data) ? response.data : [];
     },
   });
 }

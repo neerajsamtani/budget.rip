@@ -6,9 +6,12 @@ from helpers import iso_8601_to_posix
 
 load_dotenv()
 
-# TODO: Better abstraction and handling of dates
-
 LIMIT = 1000
+BATCH_SIZE = 1000
+
+# Stripe customer configuration - used when creating new customers
+STRIPE_CUSTOMER_EMAIL = os.getenv("STRIPE_CUSTOMER_EMAIL", "")
+STRIPE_CUSTOMER_NAME = os.getenv("STRIPE_CUSTOMER_NAME", "")
 MOVING_DATE = "2022-08-03T00:00:00Z"
 MOVING_DATE_POSIX = iso_8601_to_posix(MOVING_DATE)
 GATED_USERS = ["neerajjsamtani@gmail.com"]
