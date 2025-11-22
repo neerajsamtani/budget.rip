@@ -61,24 +61,10 @@ def str_to_bool(value: Union[str, bool, None]) -> bool:
         raise ValueError(f'Cannot convert "{value}" to boolean')
 
 
-def iso_8601_to_readable(date: str) -> str:
-    # TODO: Don't strip time data from date
-    # Check that the input is a valid ISO 8601 date string with a time component.
-    if not re.match(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$", date):
-        raise ValueError("Invalid input: string must be in ISO 8601 format with a time component.")
-    date_time_obj: datetime = datetime.fromisoformat(date[:10])
-    return date_time_obj.strftime("%b %d %Y")
-
-
 def html_date_to_posix(date: str) -> float:
     date_time_obj: datetime = datetime.strptime(date, "%Y-%m-%d")
     date_time_obj = date_time_obj.replace(tzinfo=timezone.utc)
     return date_time_obj.timestamp()
-
-
-def posix_to_readable(date: float) -> str:
-    date_time_obj: datetime = datetime.fromtimestamp(date)
-    return date_time_obj.strftime("%b %d %Y")
 
 
 def iso_8601_to_posix(date: str) -> float:

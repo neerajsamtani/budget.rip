@@ -14,6 +14,7 @@ from constants import READ_FROM_POSTGRESQL
 from helpers import to_dict, to_dict_robust
 from utils.database_handlers import get_collection_handler
 from utils.dual_write import dual_write_operation
+from utils.id_utils import is_postgres_id
 
 logger = logging.getLogger(__name__)
 
@@ -254,11 +255,6 @@ def get_categorized_data() -> List[Dict[str, Any]]:
     return response
 
 
-# ============================================================================
-# PostgreSQL Read Operations (Phase 5)
-# ============================================================================
-
-
 def _serialize_datetime(dt: Optional[Any]) -> float:
     """Treats naive datetimes from SQLite as UTC to ensure consistent timestamp conversion"""
     if not dt:
@@ -367,7 +363,7 @@ def _pg_get_line_item_by_id(id: str) -> Optional[Dict[str, Any]]:
         query = db_session.query(LineItem).options(joinedload(LineItem.payment_method), joinedload(LineItem.events))
 
         line_item = (
-            query.filter(LineItem.id == id).first() if id.startswith("li_") else query.filter(LineItem.mongo_id == id).first()
+            query.filter(LineItem.id == id).first() if is_postgres_id(id, "li") else query.filter(LineItem.mongo_id == id).first()
         )
 
         return _pg_serialize_line_item(line_item) if line_item else None
@@ -384,7 +380,7 @@ def _pg_get_user_by_id(id: str) -> Optional[Dict[str, Any]]:
     try:
         query = db_session.query(User)
 
-        user = query.filter(User.id == id).first() if id.startswith("user_") else query.filter(User.mongo_id == id).first()
+        user = query.filter(User.id == id).first() if is_postgres_id(id, "user") else query.filter(User.mongo_id == id).first()
 
         return _pg_serialize_user(user) if user else None
     finally:
@@ -437,12 +433,9 @@ def _pg_get_event_by_id(id: str) -> Optional[Dict[str, Any]]:
             joinedload(Event.tags),
         )
 
-        # PostgreSQL event IDs look like "event_01K..." or "evt_xxx" (ULID or test IDs)
-        # MongoDB event IDs look like "event_cash_..." or "event{hash}"
-        # Check if it's a PostgreSQL ID by looking for patterns
-        is_pg_id = (id.startswith("evt_") or id.startswith("event_0")) and len(id) >= 7
-
-        event = query.filter(Event.id == id).first() if is_pg_id else query.filter(Event.mongo_id == id).first()
+        # PostgreSQL event IDs use "evt_" prefix with ULID (e.g., "evt_01K...")
+        # MongoDB event IDs follow different patterns (e.g., "event_cash_...", "event{hash}")
+        event = query.filter(Event.id == id).first() if is_postgres_id(id, "evt") else query.filter(Event.mongo_id == id).first()
 
         return _pg_serialize_event(event) if event else None
     finally:

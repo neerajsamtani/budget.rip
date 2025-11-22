@@ -80,8 +80,6 @@ missing = [name for name, value in required_vars.items() if not value]
 if missing:
     raise RuntimeError(f"Required environment variables not set: {', '.join(missing)}")
 
-# Flask constructor takes the name of
-# current module (__name__) as argument.
 application: Flask = Flask(__name__)
 
 cors: CORS = CORS(
@@ -122,12 +120,6 @@ application.register_blueprint(stripe_blueprint)
 # load_dotenv will then search for a variable by the given name in the host environment.
 load_dotenv()
 
-# TODO: Add IDs to line items since dates aren't finegrained in python 3.8 datetime
-
-# Get Debug Logging
-# logging.basicConfig(level=logging.DEBUG)
-
-# TODO: Type hints
 
 
 # Register a callback function that loads a user from your database whenever
@@ -138,11 +130,6 @@ load_dotenv()
 def user_lookup_callback(_jwt_header: Dict[str, Any], jwt_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     id: ObjectId = ObjectId(jwt_data["sub"])
     return get_item_by_id(users_collection, id)
-
-
-##############
-### ROUTES ###
-##############
 
 
 @application.route("/api/")
@@ -291,11 +278,7 @@ def create_consistent_line_items() -> None:
     logger.info("Created consistent line items")
 
 
-# main driver function
 if __name__ == "__main__":
-    # run() method of Flask class runs the application
-    # on the local development server.
-    # TODO: Disable debugging
     application.config["CORS_HEADERS"] = "Content-Type"
     application.config["ENV"] = "development"
     application.config["DEBUG"] = True
