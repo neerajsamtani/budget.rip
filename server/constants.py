@@ -6,6 +6,9 @@ from helpers import iso_8601_to_posix
 
 load_dotenv()
 
+# Test mode flag - set by conftest.py before any imports
+TESTING = os.getenv("TESTING", "false").lower() == "true"
+
 LIMIT = 1000
 BATCH_SIZE = 1000
 
@@ -22,7 +25,22 @@ STRIPE_CUSTOMER_ID = os.getenv("STRIPE_CUSTOMER_ID")
 MONGO_URI = os.getenv(
     "MONGO_URI", "mongodb://localhost:27017/test_db"
 )  # Change to LIVE_MONGO_URI if you want to use the live database
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://budgit_user:password@localhost:5432/budgit")
+DATABASE_HOST = os.getenv("DATABASE_HOST")
+DATABASE_PORT = os.getenv("DATABASE_PORT", "5432")
+DATABASE_USERNAME = os.getenv("DATABASE_USERNAME")
+DATABASE_PASSWORD = os.getenv("DATABASE_PASSWORD")
+DATABASE_NAME = os.getenv("DATABASE_NAME")
+DATABASE_SSL_MODE = os.getenv("DATABASE_SSL_MODE", "prefer")
+
+
+def get_database_display_url():
+    """Returns a safe-to-log database URL with masked password."""
+    user = DATABASE_USERNAME or "(unset)"
+    host = DATABASE_HOST or "(unset)"
+    name = DATABASE_NAME or "(unset)"
+    return f"postgresql://{user}:***@{host}:{DATABASE_PORT}/{name}"
+
+
 # Phase 5 migration flag: switch read operations from MongoDB to PostgreSQL
 # Default: False (reads from MongoDB), Set to True to read from PostgreSQL
 READ_FROM_POSTGRESQL = os.getenv("READ_FROM_POSTGRESQL", "false").lower() == "true"

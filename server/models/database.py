@@ -2,20 +2,37 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from constants import DATABASE_URL
+from constants import DATABASE_HOST, DATABASE_NAME, DATABASE_PASSWORD, DATABASE_PORT, DATABASE_SSL_MODE, DATABASE_USERNAME
 
 # Configure engine based on database type
-if DATABASE_URL.startswith("sqlite"):
-    # SQLite configuration - enable URI mode for shared memory in tests
+if DATABASE_HOST == "sqlite":
+    # SQLite configuration using a shared in-memory database
+    # Use a creator function to avoid SQLite creating physical files
+    import sqlite3
+
+    def get_shared_memory_connection():
+        return sqlite3.connect("file::memory:?cache=shared", uri=True, check_same_thread=False)
+
     engine = create_engine(
-        DATABASE_URL,
-        connect_args={"uri": True, "check_same_thread": False},
+        "sqlite://",
+        creator=get_shared_memory_connection,
         echo=False,
     )
 else:
-    # PostgreSQL configuration
+    # PostgreSQL configuration using psycopg2 directly for connection
+    # This avoids URL encoding issues with special characters in credentials
+    import psycopg2
+
     engine = create_engine(
-        DATABASE_URL,
+        "postgresql+psycopg2://",
+        creator=lambda: psycopg2.connect(
+            host=DATABASE_HOST,
+            port=DATABASE_PORT,
+            user=DATABASE_USERNAME,
+            password=DATABASE_PASSWORD,
+            dbname=DATABASE_NAME,
+            sslmode=DATABASE_SSL_MODE,
+        ),
         pool_pre_ping=True,  # Verify connections before using
         pool_recycle=3600,  # Recycle connections after 1 hour
         echo=False,  # Set to True for SQL debugging
