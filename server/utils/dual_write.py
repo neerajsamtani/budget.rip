@@ -46,6 +46,7 @@ def dual_write_operation(
 
     # Write to MongoDB (primary)
     try:
+        logger.debug(f"Writing to MongoDB: {operation_name}")
         mongo_result = mongo_write_func()
         result["mongo_success"] = True
         result["mongo_result"] = mongo_result
@@ -58,6 +59,7 @@ def dual_write_operation(
     # Write to PostgreSQL (secondary)
     db_session = None
     try:
+        logger.debug(f"Writing to PostgreSQL: {operation_name}")
         db_session = SessionLocal()
         pg_result = pg_write_func(db_session)
         db_session.commit()

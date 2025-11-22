@@ -100,7 +100,9 @@ def remove_event_from_line_item(line_item_id: Union[str, int, ObjectId]) -> None
 
 def get_user_by_email(email: str) -> Optional[Dict[str, Any]]:
     if READ_FROM_POSTGRESQL:
+        logger.debug("Reading user by email from PostgreSQL")
         return _pg_get_user_by_email(email)
+    logger.debug("Reading user by email from MongoDB")
     cur_collection: Collection = get_collection(users_collection)
     return cur_collection.find_one({"email": {"$eq": email}})
 
@@ -220,8 +222,10 @@ def bulk_upsert(cur_collection_str: str, items: List[Any]) -> None:
 def get_categorized_data() -> List[Dict[str, Any]]:
     """Group totalExpense by month, year, and category"""
     if READ_FROM_POSTGRESQL:
+        logger.debug("Reading categorized data from PostgreSQL")
         return _pg_get_categorized_data()
 
+    logger.debug("Reading categorized data from MongoDB")
     cur_collection: Collection = get_collection(events_collection)
     query_result: Any = cur_collection.aggregate(
         [
