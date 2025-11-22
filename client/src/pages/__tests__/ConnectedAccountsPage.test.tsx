@@ -22,8 +22,8 @@ jest.mock('../../components/FinancialConnectionsForm', () => ({ fcsess_secret, s
 const mockStripePromise = Promise.resolve(null);
 
 const mockConnectedAccounts = [
-    { venmo: ['user1'] },
-    { splitwise: ['swuser1'] },
+    { venmo: [{ username: 'user1', last_refreshed_at: 1700000000 }] },
+    { splitwise: [{ username: 'swuser1', last_refreshed_at: 1700000000 }] },
     {
         stripe: [
             {

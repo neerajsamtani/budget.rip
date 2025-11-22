@@ -1,4 +1,5 @@
 import logging
+from datetime import UTC, datetime
 from typing import Any, Dict, List
 
 from flask import Blueprint, Response, jsonify
@@ -15,8 +16,9 @@ from dao import (
 )
 from helpers import flip_amount
 from resources.line_item import LineItem
+from models.database import SessionLocal
 from utils.dual_write import dual_write_operation
-from utils.pg_bulk_ops import bulk_upsert_line_items, bulk_upsert_transactions
+from utils.pg_bulk_ops import bulk_upsert_line_items, bulk_upsert_transactions, upsert_integration_account
 
 logger = logging.getLogger(__name__)
 
@@ -71,6 +73,19 @@ def refresh_venmo() -> None:
         logger.info(f"Refreshed {len(all_transactions)} Venmo transactions")
     else:
         logger.info("No new Venmo transactions to refresh")
+
+    # Update integration account with last refreshed timestamp
+    db = SessionLocal()
+    try:
+        upsert_integration_account(
+            db,
+            source="venmo",
+            display_name=profile.username,
+            last_refreshed_at=datetime.now(UTC),
+        )
+        db.commit()
+    finally:
+        db.close()
 
 
 def venmo_to_line_items() -> None:

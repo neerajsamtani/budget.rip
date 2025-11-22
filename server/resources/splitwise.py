@@ -1,4 +1,5 @@
 import logging
+from datetime import UTC, datetime
 from typing import Any, Dict, List
 
 from flask import Blueprint, Response, jsonify
@@ -14,8 +15,9 @@ from dao import (
 )
 from helpers import flip_amount, iso_8601_to_posix
 from resources.line_item import LineItem
+from models.database import SessionLocal
 from utils.dual_write import dual_write_operation
-from utils.pg_bulk_ops import bulk_upsert_line_items, bulk_upsert_transactions
+from utils.pg_bulk_ops import bulk_upsert_line_items, bulk_upsert_transactions, upsert_integration_account
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +65,21 @@ def refresh_splitwise() -> None:
         logger.info(f"Refreshed {len(all_expenses)} Splitwise expenses (skipped {deleted_count} deleted)")
     else:
         logger.info("No new Splitwise expenses to refresh")
+
+    # Update integration account with last refreshed timestamp
+    current_user = splitwise_client.getCurrentUser()
+    display_name = f"{current_user.getFirstName()} {current_user.getLastName()}"
+    db = SessionLocal()
+    try:
+        upsert_integration_account(
+            db,
+            source="splitwise",
+            display_name=display_name,
+            last_refreshed_at=datetime.now(UTC),
+        )
+        db.commit()
+    finally:
+        db.close()
 
 
 def splitwise_to_line_items() -> None:

@@ -125,16 +125,24 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
     );
 
     const renderConnectedAccount = (connectedAccount) => {
-        // Handle Venmo data (array)
+        // Handle Venmo data (array of objects with username and last_refreshed_at)
         if (connectedAccount.venmo) {
-            return connectedAccount.venmo.map((venmoUser, index) => {
-                const accountKey = `venmo-${venmoUser}`;
+            return connectedAccount.venmo.map((venmoAccount, index) => {
+                const username = venmoAccount.username;
+                const lastRefreshedAt = venmoAccount.last_refreshed_at;
+                const accountKey = `venmo-${username}`;
                 return (
                     <TableRow key={`${accountKey}-${index}`}>
-                        <TableCell>Venmo - {venmoUser}</TableCell>
+                        <TableCell>Venmo - {username}</TableCell>
                         <TableCell></TableCell>
                         <TableCell></TableCell>
-                        <TableCell></TableCell>
+                        <TableCell>
+                            {lastRefreshedAt ? (
+                                formatDate(lastRefreshedAt)
+                            ) : (
+                                <span className="text-muted-foreground text-sm">—</span>
+                            )}
+                        </TableCell>
                         <TableCell>
                             <Button
                                 variant="ghost"
@@ -150,16 +158,24 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
             });
         }
 
-        // Handle Splitwise data (array)
+        // Handle Splitwise data (array of objects with username and last_refreshed_at)
         if (connectedAccount.splitwise) {
-            return connectedAccount.splitwise.map((splitwiseUser, index) => {
-                const accountKey = `splitwise-${splitwiseUser}`;
+            return connectedAccount.splitwise.map((splitwiseAccount, index) => {
+                const username = splitwiseAccount.username;
+                const lastRefreshedAt = splitwiseAccount.last_refreshed_at;
+                const accountKey = `splitwise-${username}`;
                 return (
                     <TableRow key={`${accountKey}-${index}`}>
-                        <TableCell>Splitwise - {splitwiseUser}</TableCell>
+                        <TableCell>Splitwise - {username}</TableCell>
                         <TableCell></TableCell>
                         <TableCell></TableCell>
-                        <TableCell></TableCell>
+                        <TableCell>
+                            {lastRefreshedAt ? (
+                                formatDate(lastRefreshedAt)
+                            ) : (
+                                <span className="text-muted-foreground text-sm">—</span>
+                            )}
+                        </TableCell>
                         <TableCell>
                             <Button
                                 variant="ghost"

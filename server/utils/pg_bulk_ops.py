@@ -11,7 +11,7 @@ from decimal import Decimal
 from typing import Any, Dict, List, Optional
 
 from helpers import iso_8601_to_posix, to_dict_robust
-from models.sql_models import BankAccount, LineItem, PaymentMethod, Transaction, User
+from models.sql_models import BankAccount, IntegrationAccount, LineItem, PaymentMethod, Transaction, User
 from utils.id_generator import generate_id
 
 logger = logging.getLogger(__name__)
@@ -383,3 +383,59 @@ def upsert_user(db_session, user_data: Dict[str, Any]) -> bool:
     db_session.add(user)
     logger.info(f"Inserted user {user_id} to PostgreSQL")
     return True
+
+
+def upsert_integration_account(
+    db_session,
+    source: str,
+    display_name: str,
+    last_refreshed_at: Optional[datetime] = None,
+) -> str:
+    """
+    Upsert an integration account (Venmo/Splitwise) to PostgreSQL.
+
+    Creates a new record if it doesn't exist, or updates the existing one.
+
+    Args:
+        db_session: SQLAlchemy session
+        source: Integration source ("venmo" or "splitwise")
+        display_name: Display name for the account (username or full name)
+        last_refreshed_at: When the account data was last refreshed
+
+    Returns:
+        The integration account ID
+    """
+    existing = db_session.query(IntegrationAccount).filter(IntegrationAccount.source == source).first()
+
+    if existing:
+        existing.display_name = display_name
+        if last_refreshed_at:
+            existing.last_refreshed_at = last_refreshed_at
+        existing.updated_at = datetime.now(UTC)
+        logger.info(f"Updated {source} integration account in PostgreSQL")
+        return existing.id
+    else:
+        account_id = generate_id("intacc")
+        account = IntegrationAccount(
+            id=account_id,
+            source=source,
+            display_name=display_name,
+            last_refreshed_at=last_refreshed_at,
+        )
+        db_session.add(account)
+        logger.info(f"Inserted {source} integration account to PostgreSQL")
+        return account_id
+
+
+def get_integration_account(db_session, source: str) -> Optional[IntegrationAccount]:
+    """
+    Get an integration account by source.
+
+    Args:
+        db_session: SQLAlchemy session
+        source: Integration source ("venmo" or "splitwise")
+
+    Returns:
+        IntegrationAccount or None if not found
+    """
+    return db_session.query(IntegrationAccount).filter(IntegrationAccount.source == source).first()

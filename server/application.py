@@ -58,6 +58,8 @@ from resources.stripe import (
     stripe_to_line_items,
 )
 from resources.venmo import refresh_venmo, venmo_blueprint, venmo_to_line_items
+from models.database import SessionLocal
+from utils.pg_bulk_ops import get_integration_account
 
 # Configure logging to stdout for cloud compatibility
 # Logs are treated as event streams that can be aggregated by cloud platforms
@@ -214,19 +216,40 @@ def refresh_single_account_api() -> tuple[Response, int]:
 @jwt_required()
 def get_connected_accounts_api() -> tuple[Response, int]:
     connected_accounts: List[Dict[str, Any]] = []
-    # # venmo
+
+    # Get integration accounts from PostgreSQL for last_refreshed_at timestamps
+    db = SessionLocal()
+    try:
+        venmo_account = get_integration_account(db, "venmo")
+        splitwise_account = get_integration_account(db, "splitwise")
+    finally:
+        db.close()
+
+    # venmo
     profile: User | None = get_venmo_client().my_profile()
     if profile is None:
         raise Exception("Failed to get Venmo profile")
-    connected_accounts.append({"venmo": [profile.username]})
+    venmo_last_refreshed = None
+    if venmo_account and venmo_account.last_refreshed_at:
+        venmo_last_refreshed = int(venmo_account.last_refreshed_at.timestamp())
+    connected_accounts.append({
+        "venmo": [{
+            "username": profile.username,
+            "last_refreshed_at": venmo_last_refreshed,
+        }]
+    })
+
     # splitwise
-    connected_accounts.append(
-        {
-            "splitwise": [
-                f"{splitwise_client.getCurrentUser().getFirstName()} {splitwise_client.getCurrentUser().getLastName()}"
-            ]
-        }
-    )
+    splitwise_last_refreshed = None
+    if splitwise_account and splitwise_account.last_refreshed_at:
+        splitwise_last_refreshed = int(splitwise_account.last_refreshed_at.timestamp())
+    connected_accounts.append({
+        "splitwise": [{
+            "username": f"{splitwise_client.getCurrentUser().getFirstName()} {splitwise_client.getCurrentUser().getLastName()}",
+            "last_refreshed_at": splitwise_last_refreshed,
+        }]
+    })
+
     # stripe
     bank_accounts: List[Dict[str, Any]] = get_all_data(bank_accounts_collection)
     connected_accounts.append({"stripe": bank_accounts})

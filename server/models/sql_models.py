@@ -50,6 +50,33 @@ class BankAccount(Base):
     )
 
 
+class IntegrationAccount(Base):
+    """
+    Metadata for integration accounts (Venmo, Splitwise).
+
+    Unlike BankAccounts which are fetched from Stripe, these track
+    user-level integrations with external services. Stores the display
+    name and when data was last refreshed from the integration.
+    """
+
+    __tablename__ = "integration_accounts"
+
+    id = Column(String(255), primary_key=True)  # intacc_xxx
+    source = Column(
+        Enum("venmo", "splitwise", name="integration_source"),
+        nullable=False,
+        unique=True,
+    )
+    display_name = Column(String(255), nullable=False)  # Username or full name
+    last_refreshed_at = Column(TIMESTAMP(timezone=True), nullable=True)  # When data was last fetched
+    created_at = Column(TIMESTAMP(timezone=True), default=lambda: datetime.now(UTC))
+    updated_at = Column(
+        TIMESTAMP(timezone=True),
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
+    )
+
+
 class User(Base):
     __tablename__ = "users"
 

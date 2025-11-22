@@ -248,11 +248,15 @@ class TestApplicationRoutes:
 
             # Check Venmo data
             venmo_data = next(item for item in data if "venmo" in item)
-            assert venmo_data["venmo"] == ["test_user"]
+            assert len(venmo_data["venmo"]) == 1
+            assert venmo_data["venmo"][0]["username"] == "test_user"
+            assert "last_refreshed_at" in venmo_data["venmo"][0]
 
             # Check Splitwise data
             splitwise_data = next(item for item in data if "splitwise" in item)
-            assert splitwise_data["splitwise"] == ["John Doe"]
+            assert len(splitwise_data["splitwise"]) == 1
+            assert splitwise_data["splitwise"][0]["username"] == "John Doe"
+            assert "last_refreshed_at" in splitwise_data["splitwise"][0]
 
             # Check Stripe data
             stripe_data = next(item for item in data if "stripe" in item)
