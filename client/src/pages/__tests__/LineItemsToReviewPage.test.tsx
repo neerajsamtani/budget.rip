@@ -8,6 +8,7 @@ import LineItemsToReviewPage from '../LineItemsToReviewPage';
 // Mock the context
 jest.mock('../../contexts/LineItemsContext', () => ({
     useLineItems: jest.fn(),
+    useLineItemsDispatch: jest.fn(() => jest.fn()),
 }));
 
 // Mock the components
@@ -32,7 +33,7 @@ jest.mock('../../components/CreateEventModal', () => {
 });
 
 jest.mock('../../components/LineItem', () => {
-    return function MockLineItem({ lineItem, showCheckBox }: any) {
+    const MockLineItem = function({ lineItem, showCheckBox }: any) {
         return (
             <tr data-testid={`line-item-${lineItem._id}`}>
                 <td>{showCheckBox ? 'Checkbox' : 'No Checkbox'}</td>
@@ -43,6 +44,20 @@ jest.mock('../../components/LineItem', () => {
                 <td>${(lineItem.amount || 0).toFixed(2)}</td>
             </tr>
         );
+    };
+    // Export LineItemCard for mobile view
+    const MockLineItemCard = function({ lineItem, showCheckBox, isChecked, handleToggle, amountStatus }: any) {
+        return (
+            <div data-testid={`line-item-card-${lineItem._id || lineItem.id}`}>
+                <span>{lineItem.description || ''}</span>
+                <span>${(lineItem.amount || 0).toFixed(2)}</span>
+            </div>
+        );
+    };
+    return {
+        __esModule: true,
+        default: MockLineItem,
+        LineItemCard: MockLineItemCard,
     };
 });
 
@@ -115,11 +130,12 @@ describe('LineItemsToReviewPage', () => {
         it('renders line items with correct data', () => {
             render(<LineItemsToReviewPage />);
 
-            // Check first line item data
-            expect(screen.getByText('Test transaction 1')).toBeInTheDocument();
-            expect(screen.getByText('Test Store 1')).toBeInTheDocument();
-            expect(screen.getByText('$50.00')).toBeInTheDocument();
-            expect(screen.getByText('credit_card')).toBeInTheDocument();
+            // Check first line item data in the desktop table row
+            const tableRow = screen.getByTestId('line-item-1');
+            expect(tableRow).toHaveTextContent('Test transaction 1');
+            expect(tableRow).toHaveTextContent('Test Store 1');
+            expect(tableRow).toHaveTextContent('$50.00');
+            expect(tableRow).toHaveTextContent('credit_card');
         });
 
         it('renders action buttons in the navbar', () => {
@@ -132,8 +148,13 @@ describe('LineItemsToReviewPage', () => {
         it('shows checkboxes for line items', () => {
             render(<LineItemsToReviewPage />);
 
-            const lineItems = screen.getAllByTestId(/line-item-/);
-            lineItems.forEach(item => {
+            // Check desktop table rows for checkbox (not mobile cards)
+            const tableRows = [
+                screen.getByTestId('line-item-1'),
+                screen.getByTestId('line-item-2'),
+                screen.getByTestId('line-item-3'),
+            ];
+            tableRows.forEach(item => {
                 expect(item).toHaveTextContent('Checkbox');
             });
         });
@@ -318,13 +339,26 @@ describe('LineItemsToReviewPage', () => {
         it('passes correct props to LineItem components', () => {
             render(<LineItemsToReviewPage />);
 
-            const lineItems = screen.getAllByTestId(/line-item-/);
-            expect(lineItems).toHaveLength(3);
+            // Check desktop table rows (line-item-1, etc.) - 3 items
+            const tableRows = [
+                screen.getByTestId('line-item-1'),
+                screen.getByTestId('line-item-2'),
+                screen.getByTestId('line-item-3'),
+            ];
+            expect(tableRows).toHaveLength(3);
 
-            // Check that each line item shows "Checkbox" indicating showCheckBox=true
-            lineItems.forEach(item => {
+            // Check that each table row shows "Checkbox" indicating showCheckBox=true
+            tableRows.forEach(item => {
                 expect(item).toHaveTextContent('Checkbox');
             });
+
+            // Check mobile cards also exist (line-item-card-1, etc.) - 3 items
+            const cards = [
+                screen.getByTestId('line-item-card-1'),
+                screen.getByTestId('line-item-card-2'),
+                screen.getByTestId('line-item-card-3'),
+            ];
+            expect(cards).toHaveLength(3);
         });
 
         it('passes correct props to CreateCashTransactionModal', async () => {
@@ -410,7 +444,9 @@ describe('LineItemsToReviewPage', () => {
 
             render(<LineItemsToReviewPage />);
 
-            expect(screen.getByText('$999999.99')).toBeInTheDocument();
+            // Both table and card render the amount, use getAllByText
+            const amounts = screen.getAllByText('$999999.99');
+            expect(amounts.length).toBeGreaterThanOrEqual(1);
         });
 
         it('handles zero amounts correctly', () => {
@@ -424,7 +460,63 @@ describe('LineItemsToReviewPage', () => {
 
             render(<LineItemsToReviewPage />);
 
-            expect(screen.getByText('$0.00')).toBeInTheDocument();
+            // Both table and card render the amount, use getAllByText
+            const amounts = screen.getAllByText('$0.00');
+            expect(amounts.length).toBeGreaterThanOrEqual(1);
+        });
+    });
+
+    describe('Responsive Layout', () => {
+        it('renders mobile card layout', () => {
+            render(<LineItemsToReviewPage />);
+
+            // Mobile card layout should render line item cards
+            expect(screen.getByTestId('line-item-card-1')).toBeInTheDocument();
+            expect(screen.getByTestId('line-item-card-2')).toBeInTheDocument();
+            expect(screen.getByTestId('line-item-card-3')).toBeInTheDocument();
+        });
+
+        it('renders desktop table layout', () => {
+            render(<LineItemsToReviewPage />);
+
+            // Desktop table should also render (hidden via CSS)
+            expect(screen.getByRole('table')).toBeInTheDocument();
+            const rowgroups = screen.getAllByRole('rowgroup');
+            expect(rowgroups).toHaveLength(2); // thead and tbody
+        });
+
+        it('renders both mobile and desktop layouts simultaneously', () => {
+            render(<LineItemsToReviewPage />);
+
+            // Both layouts should be in the DOM (CSS controls visibility)
+            expect(screen.getByTestId('line-item-card-1')).toBeInTheDocument();
+            expect(screen.getByTestId('line-item-1')).toBeInTheDocument();
+        });
+
+        it('mobile cards show correct data', () => {
+            render(<LineItemsToReviewPage />);
+
+            const mobileCard = screen.getByTestId('line-item-card-1');
+            expect(mobileCard).toHaveTextContent('Test transaction 1');
+            expect(mobileCard).toHaveTextContent('$50.00');
+        });
+
+        it('desktop table shows correct data', () => {
+            render(<LineItemsToReviewPage />);
+
+            const tableRow = screen.getByTestId('line-item-1');
+            expect(tableRow).toHaveTextContent('Test transaction 1');
+            expect(tableRow).toHaveTextContent('$50.00');
+            expect(tableRow).toHaveTextContent('credit_card');
+        });
+
+        it('renders fixed bottom bar with buttons on both layouts', () => {
+            render(<LineItemsToReviewPage />);
+
+            const bottomContainer = document.querySelector('.fixed.bottom-0');
+            expect(bottomContainer).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: /create cash transaction/i })).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: /create event/i })).toBeInTheDocument();
         });
     });
 }); 
