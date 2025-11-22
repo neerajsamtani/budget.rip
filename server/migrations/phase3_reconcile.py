@@ -30,7 +30,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from pymongo import MongoClient
 from sqlalchemy.exc import IntegrityError
 
-from constants import DATABASE_URL, MONGO_URI
+from constants import MONGO_URI, get_database_display_url
 from dao import line_items_collection
 from helpers import iso_8601_to_posix
 from models.database import SessionLocal
@@ -337,7 +337,7 @@ def main():
         logging.info("[DRY RUN MODE - No changes will be made]")
     logging.info("=" * 60)
     logging.info(f"MongoDB URI: {MONGO_URI}")
-    logging.info(f"PostgreSQL URL: {DATABASE_URL}")
+    logging.info(f"PostgreSQL URL: {get_database_display_url()}")
     logging.info("")
 
     # Connect to databases

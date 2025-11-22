@@ -19,7 +19,7 @@ from pathlib import Path
 # Add parent directory for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from constants import DATABASE_URL, MONGO_URI
+from constants import MONGO_URI, get_database_display_url
 
 
 def run_script(script_name, args=None):
@@ -47,7 +47,7 @@ def main():
     print('=' * 70)
     print(f"Mode: {'QUICK' if args.quick else 'THOROUGH'}")
     print(f"MongoDB: {MONGO_URI}")
-    print(f"PostgreSQL: {DATABASE_URL}")
+    print(f"PostgreSQL: {get_database_display_url()}")
 
     # Determine args for each phase
     phase3_args = ["--quick"] if args.quick else ["--thorough"]

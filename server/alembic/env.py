@@ -1,11 +1,13 @@
 from logging.config import fileConfig
+from urllib.parse import quote_plus
 
-from sqlalchemy import engine_from_config, pool
+import psycopg2
+from sqlalchemy import create_engine, pool
 
 from alembic import context
 
-# Import database URL from constants
-from constants import DATABASE_URL
+# Import database config from constants
+from constants import DATABASE_HOST, DATABASE_NAME, DATABASE_PASSWORD, DATABASE_PORT, DATABASE_SSL_MODE, DATABASE_USERNAME
 
 # Import Base and all models for autogenerate support
 # Import all models to ensure they're registered with Base.metadata
@@ -16,9 +18,6 @@ from models.sql_models import (
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
-
-# Override sqlalchemy.url with DATABASE_URL from constants
-config.set_main_option("sqlalchemy.url", DATABASE_URL)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
@@ -47,7 +46,8 @@ def run_migrations_offline() -> None:
     script output.
 
     """
-    url = config.get_main_option("sqlalchemy.url")
+    # Build URL with proper escaping for offline mode
+    url = f"postgresql://{quote_plus(DATABASE_USERNAME)}:{quote_plus(DATABASE_PASSWORD)}@{DATABASE_HOST}:{DATABASE_PORT}/{DATABASE_NAME}?sslmode={DATABASE_SSL_MODE}"
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -66,9 +66,17 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
-    connectable = engine_from_config(
-        config.get_section(config.config_ini_section, {}),
-        prefix="sqlalchemy.",
+    # Use psycopg2 creator to avoid URL encoding issues with special characters
+    connectable = create_engine(
+        "postgresql+psycopg2://",
+        creator=lambda: psycopg2.connect(
+            host=DATABASE_HOST,
+            port=DATABASE_PORT,
+            user=DATABASE_USERNAME,
+            password=DATABASE_PASSWORD,
+            dbname=DATABASE_NAME,
+            sslmode=DATABASE_SSL_MODE,
+        ),
         poolclass=pool.NullPool,
     )
 

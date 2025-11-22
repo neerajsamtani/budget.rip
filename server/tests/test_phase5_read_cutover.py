@@ -12,18 +12,15 @@ Test coverage:
 - ID coexistence (both ID formats)
 - Filter consistency
 - Raw transaction reads (venmo, splitwise, stripe, cash)
+
+NOTE: This test file uses the shared database setup from conftest.py.
+The DATABASE_HOST and DATABASE_NAME env vars are set in conftest.py before any imports.
 """
 
-import os
 from datetime import UTC, datetime
 from decimal import Decimal
 
 import pytest
-
-# Ensure test database is set before imports
-os.environ["DATABASE_URL"] = "sqlite:///file:test_phase5?mode=memory&cache=shared&uri=true"
-
-from sqlalchemy import create_engine
 
 from dao import (
     _pg_get_all_bank_accounts,
@@ -42,10 +39,8 @@ from dao import (
     get_user_by_email,
     line_items_collection,
 )
-from models.database import SessionLocal
 from models.sql_models import (
     BankAccount,
-    Base,
     Category,
     Event,
     EventLineItem,
@@ -55,30 +50,6 @@ from models.sql_models import (
     User,
 )
 from utils.id_generator import generate_id
-
-
-@pytest.fixture(scope="function")
-def pg_session():
-    """Create a PostgreSQL test session with in-memory SQLite"""
-    engine = create_engine(
-        "sqlite:///file:test_phase5?mode=memory&cache=shared&uri=true",
-        connect_args={"uri": True},
-        echo=False,
-    )
-
-    # Create all tables
-    Base.metadata.create_all(engine)
-
-    # Create session
-    Session = SessionLocal
-    session = Session()
-
-    yield session
-
-    # Cleanup
-    session.close()
-    Base.metadata.drop_all(engine)
-    engine.dispose()
 
 
 @pytest.fixture(scope="function")

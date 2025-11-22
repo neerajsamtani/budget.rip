@@ -24,7 +24,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from pymongo import MongoClient
 
-from constants import DATABASE_URL, MONGO_URI
+from constants import MONGO_URI, get_database_display_url
 from dao import events_collection
 from models.database import SessionLocal
 from models.sql_models import Category, Event, EventLineItem, EventTag, LineItem, Tag
@@ -348,7 +348,7 @@ def main():
     """Main migration function"""
     logging.info("Starting Phase 4: Event and Tag Migration")
     logging.info(f"MongoDB URI: {MONGO_URI}")
-    logging.info(f"PostgreSQL URL: {DATABASE_URL}")
+    logging.info(f"PostgreSQL URL: {get_database_display_url()}")
     logging.info("")
 
     # Connect to databases

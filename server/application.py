@@ -15,6 +15,10 @@ from venmo_api.models.user import User
 from clients import get_venmo_client, splitwise_client
 from constants import (
     CORS_ALLOWED_ORIGINS,
+    DATABASE_HOST,
+    DATABASE_NAME,
+    DATABASE_PASSWORD,
+    DATABASE_USERNAME,
     JWT_COOKIE_DOMAIN,
     JWT_SECRET_KEY,
     LOG_LEVEL,
@@ -24,6 +28,7 @@ from constants import (
     SPLITWISE_CONSUMER_SECRET,
     STRIPE_API_KEY,
     STRIPE_CUSTOMER_ID,
+    TESTING,
     VENMO_ACCESS_TOKEN,
 )
 from dao import (
@@ -76,6 +81,16 @@ required_vars = {
     "STRIPE_LIVE_API_SECRET_KEY": STRIPE_API_KEY,
     "STRIPE_CUSTOMER_ID": STRIPE_CUSTOMER_ID,
 }
+# Database credentials required in production (tests use SQLite with defaults)
+if not TESTING:
+    required_vars.update(
+        {
+            "DATABASE_HOST": DATABASE_HOST,
+            "DATABASE_USERNAME": DATABASE_USERNAME,
+            "DATABASE_PASSWORD": DATABASE_PASSWORD,
+            "DATABASE_NAME": DATABASE_NAME,
+        }
+    )
 missing = [name for name, value in required_vars.items() if not value]
 if missing:
     raise RuntimeError(f"Required environment variables not set: {', '.join(missing)}")

@@ -39,7 +39,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from pymongo import MongoClient
 
-from constants import DATABASE_URL, MONGO_URI
+from constants import MONGO_URI, get_database_display_url
 from dao import (
     _pg_get_all_events,
     _pg_get_all_line_items,
@@ -467,7 +467,7 @@ def main():
     logging.info("PHASE 5 VERIFICATION: Read Operation Consistency")
     logging.info("=" * 60)
     logging.info(f"MongoDB URI: {MONGO_URI}")
-    logging.info(f"PostgreSQL URL: {DATABASE_URL}")
+    logging.info(f"PostgreSQL URL: {get_database_display_url()}")
     logging.info("")
 
     # Run all verification checks

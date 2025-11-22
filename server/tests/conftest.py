@@ -17,10 +17,12 @@ for key, value in test_env_vars.items():
     if key not in os.environ:
         os.environ[key] = value
 
-# CRITICAL: Set test database URL to SQLite shared in-memory BEFORE any imports
+# CRITICAL: Set test environment BEFORE any imports
 # This prevents test data from polluting the production PostgreSQL database
-# Using shared memory mode allows multiple engine connections to access the same database
-os.environ["DATABASE_URL"] = "sqlite:///file:memdb1?mode=memory&cache=shared&uri=true"
+os.environ["TESTING"] = "true"
+os.environ["DATABASE_HOST"] = "sqlite"
+# Use a unique name for the shared in-memory database to avoid file creation
+os.environ["DATABASE_NAME"] = ":memory:"
 
 import mongomock
 from flask import Flask
@@ -61,7 +63,6 @@ except ImportError:
 
 
 # Global test database engine and session
-TEST_DATABASE_URL = os.environ["DATABASE_URL"]
 test_engine = None
 TestSession = None
 
@@ -69,8 +70,18 @@ TestSession = None
 def init_test_db():
     """Initialize the test database schema"""
     global test_engine, TestSession
-    # Enable URI mode for SQLite to support shared memory connections
-    test_engine = create_engine(TEST_DATABASE_URL, echo=False, connect_args={"uri": True})
+    import sqlite3
+
+    # Use a shared in-memory database via a creator function
+    # This avoids SQLite creating physical files with names like "file:memdb1"
+    def get_shared_memory_connection():
+        return sqlite3.connect("file::memory:?cache=shared", uri=True)
+
+    test_engine = create_engine(
+        "sqlite://",
+        creator=get_shared_memory_connection,
+        echo=False,
+    )
 
     # Enable foreign key constraints for SQLite
     @event.listens_for(test_engine, "connect")
