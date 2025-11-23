@@ -27,10 +27,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     await logoutMutation.mutateAsync();
-    // Clear user data after logout
+    // Set user to null immediately
     queryClient.setQueryData(authQueryKeys.currentUser, null);
-    // Invalidate all queries to clear cached data
-    queryClient.clear();
+    // Remove all other cached queries (line items, events, etc.) but keep currentUser
+    queryClient.removeQueries({
+      predicate: (query) => query.queryKey[0] !== 'currentUser',
+    });
   }, [logoutMutation, queryClient]);
 
   const value: AuthContextType = {

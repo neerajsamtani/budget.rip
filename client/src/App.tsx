@@ -11,17 +11,17 @@ import {
   BrowserRouter as Router,
   Routes
 } from "react-router-dom";
+import { ProtectedRoute, PublicOnlyRoute } from "./components/ProtectedRoute";
+import { useAuth } from "./contexts/AuthContext";
 import { useLineItemsDispatch } from "./contexts/LineItemsContext";
-import { showSuccessToast, showErrorToast } from "./utils/toast-helpers";
+import { useRefreshAllData } from "./hooks/useApi";
 import ConnectedAccountsPage from "./pages/ConnectedAccountsPage";
 import EventsPage from "./pages/EventsPage";
 import GraphsPage from "./pages/GraphsPage";
 import LineItemsPage from "./pages/LineItemsPage";
 import LineItemsToReviewPage from "./pages/LineItemsToReviewPage";
 import LoginPage from "./pages/LoginPage";
-import { useRefreshAllData } from "./hooks/useApi";
-import { useAuth } from "./contexts/AuthContext";
-import { ProtectedRoute, PublicOnlyRoute } from "./components/ProtectedRoute";
+import { showErrorToast, showSuccessToast } from "./utils/toast-helpers";
 
 // Make sure to call loadStripe outside of a component's render to avoid
 // recreating the Stripe object on every render.
@@ -101,23 +101,15 @@ export default function App() {
                 </div>
               )}
 
-              {isAuthenticated ? (
+              {isAuthenticated && (
                 <>
+                  <Button onClick={() => logout()} variant="ghost" size="sm">
+                    Log Out
+                  </Button>
                   <Button onClick={handleRefreshData} variant="default" size="sm" disabled={refreshMutation.isPending}>
                     {refreshMutation.isPending ? <Spinner size="sm" /> : "Refresh Data"}
                   </Button>
-                  <Button onClick={() => logout()} variant="outline" size="sm">
-                    Log Out
-                  </Button>
                 </>
-              ) : (
-                !isLoading && (
-                  <Link to="/login">
-                    <Button variant="default" size="sm">
-                      Log In
-                    </Button>
-                  </Link>
-                )
               )}
             </div>
 

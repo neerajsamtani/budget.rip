@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { mockAxiosInstance, render, screen, waitFor } from '../../utils/test-utils';
 import { LineItemInterface, LineItemsProvider, useLineItems, useLineItemsDispatch } from '../LineItemsContext';
+import { AuthProvider } from '../AuthContext';
 
 // Mock sonner toast
 jest.mock('sonner', () => {
@@ -75,15 +76,32 @@ const mockLineItems: LineItemInterface[] = [
     }
 ];
 
+// Helper wrapper that provides both Auth and LineItems contexts
+const renderWithProviders = (ui: React.ReactElement) => {
+    return render(
+        <AuthProvider>
+            {ui}
+        </AuthProvider>
+    );
+};
+
 describe('LineItemsContext', () => {
     beforeEach(() => {
         jest.clearAllMocks();
-        mockAxiosInstance.get.mockResolvedValue({ data: { data: mockLineItems } });
+        // Mock authenticated user for auth check, and line items for the actual data
+        mockAxiosInstance.get.mockImplementation((url: string) => {
+            if (url.includes('api/auth/me')) {
+                return Promise.resolve({
+                    data: { id: 'user_123', email: 'test@example.com', first_name: 'Test', last_name: 'User' }
+                });
+            }
+            return Promise.resolve({ data: { data: mockLineItems } });
+        });
     });
 
     describe('Provider Initialization', () => {
         it('renders children correctly', () => {
-            render(
+            renderWithProviders(
                 <LineItemsProvider>
                     <div data-testid="child">Child Component</div>
                 </LineItemsProvider>
@@ -94,7 +112,7 @@ describe('LineItemsContext', () => {
 
         it('fetches line items on mount', async () => {
             await act(async () => {
-                render(
+                renderWithProviders(
                     <LineItemsProvider>
                         <TestComponent />
                     </LineItemsProvider>
@@ -115,7 +133,7 @@ describe('LineItemsContext', () => {
 
         it('populates line items after successful API call', async () => {
             await act(async () => {
-                render(
+                renderWithProviders(
                     <LineItemsProvider>
                         <TestComponent />
                     </LineItemsProvider>
@@ -133,7 +151,7 @@ describe('LineItemsContext', () => {
     describe('Context Hooks', () => {
         it('provides line items through useLineItems hook', async () => {
             await act(async () => {
-                render(
+                renderWithProviders(
                     <LineItemsProvider>
                         <TestComponent />
                     </LineItemsProvider>
@@ -147,7 +165,7 @@ describe('LineItemsContext', () => {
 
         it('provides dispatch function through useLineItemsDispatch hook', async () => {
             await act(async () => {
-                render(
+                renderWithProviders(
                     <LineItemsProvider>
                         <TestComponent />
                     </LineItemsProvider>
@@ -164,7 +182,7 @@ describe('LineItemsContext', () => {
     describe('Reducer Actions', () => {
         it('handles toggle_line_item_select action', async () => {
             await act(async () => {
-                render(
+                renderWithProviders(
                     <LineItemsProvider>
                         <TestComponent />
                     </LineItemsProvider>
@@ -187,7 +205,7 @@ describe('LineItemsContext', () => {
 
         it('handles remove_line_items action', async () => {
             await act(async () => {
-                render(
+                renderWithProviders(
                     <LineItemsProvider>
                         <TestComponent />
                     </LineItemsProvider>
@@ -222,10 +240,13 @@ describe('LineItemsContext', () => {
                 }
             ];
 
-            mockAxiosInstance.get.mockResolvedValueOnce({ data: { data: newLineItems } });
+            // First call is for auth, second for line items
+            mockAxiosInstance.get
+                .mockResolvedValueOnce({ data: { id: 'user_123', email: 'test@example.com', first_name: 'Test', last_name: 'User' } })
+                .mockResolvedValueOnce({ data: { data: newLineItems } });
 
             await act(async () => {
-                render(
+                renderWithProviders(
                     <LineItemsProvider>
                         <TestComponent />
                     </LineItemsProvider>
@@ -242,10 +263,18 @@ describe('LineItemsContext', () => {
     describe('Error Handling', () => {
         it('handles API error gracefully', async () => {
             const { toast } = require('sonner');
-            mockAxiosInstance.get.mockRejectedValue(new Error('API Error'));
+            // Auth succeeds, but line items fails
+            mockAxiosInstance.get.mockImplementation((url: string) => {
+                if (url.includes('api/auth/me')) {
+                    return Promise.resolve({
+                        data: { id: 'user_123', email: 'test@example.com', first_name: 'Test', last_name: 'User' }
+                    });
+                }
+                return Promise.reject(new Error('API Error'));
+            });
 
             await act(async () => {
-                render(
+                renderWithProviders(
                     <LineItemsProvider>
                         <TestComponent />
                     </LineItemsProvider>
@@ -261,10 +290,18 @@ describe('LineItemsContext', () => {
         });
 
         it('maintains empty state when API fails', async () => {
-            mockAxiosInstance.get.mockRejectedValue(new Error('API Error'));
+            // Auth succeeds, but line items fails
+            mockAxiosInstance.get.mockImplementation((url: string) => {
+                if (url.includes('api/auth/me')) {
+                    return Promise.resolve({
+                        data: { id: 'user_123', email: 'test@example.com', first_name: 'Test', last_name: 'User' }
+                    });
+                }
+                return Promise.reject(new Error('API Error'));
+            });
 
             await act(async () => {
-                render(
+                renderWithProviders(
                     <LineItemsProvider>
                         <TestComponent />
                     </LineItemsProvider>
@@ -280,7 +317,7 @@ describe('LineItemsContext', () => {
     describe('State Management', () => {
         it('maintains state across multiple actions', async () => {
             await act(async () => {
-                render(
+                renderWithProviders(
                     <LineItemsProvider>
                         <TestComponent />
                     </LineItemsProvider>
@@ -314,7 +351,7 @@ describe('LineItemsContext', () => {
 
         it('handles multiple toggle operations', async () => {
             await act(async () => {
-                render(
+                renderWithProviders(
                     <LineItemsProvider>
                         <TestComponent />
                     </LineItemsProvider>
@@ -348,7 +385,7 @@ describe('LineItemsContext', () => {
     describe('API Integration', () => {
         it('uses correct API endpoint', async () => {
             await act(async () => {
-                render(
+                renderWithProviders(
                     <LineItemsProvider>
                         <TestComponent />
                     </LineItemsProvider>
@@ -368,27 +405,31 @@ describe('LineItemsContext', () => {
         });
 
         it('handles different API response structures', async () => {
-            const differentResponse = {
-                data: {
-                    data: [
-                        {
-                            _id: '4',
-                            id: '4',
-                            date: 1640995200,
-                            payment_method: 'paypal',
-                            description: 'Different transaction',
-                            responsible_party: 'Different Store',
-                            amount: 25.00,
-                            isSelected: true,
-                        }
-                    ]
+            const differentLineItems = [
+                {
+                    _id: '4',
+                    id: '4',
+                    date: 1640995200,
+                    payment_method: 'paypal',
+                    description: 'Different transaction',
+                    responsible_party: 'Different Store',
+                    amount: 25.00,
+                    isSelected: true,
                 }
-            };
+            ];
 
-            mockAxiosInstance.get.mockResolvedValueOnce(differentResponse);
+            // Override the mock to return different line items
+            mockAxiosInstance.get.mockImplementation((url: string) => {
+                if (url.includes('api/auth/me')) {
+                    return Promise.resolve({
+                        data: { id: 'user_123', email: 'test@example.com', first_name: 'Test', last_name: 'User' }
+                    });
+                }
+                return Promise.resolve({ data: { data: differentLineItems } });
+            });
 
             await act(async () => {
-                render(
+                renderWithProviders(
                     <LineItemsProvider>
                         <TestComponent />
                     </LineItemsProvider>
