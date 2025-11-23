@@ -7,7 +7,7 @@ import { Body, H3 } from "../components/ui/typography";
 import { LineItemInterface } from '../contexts/LineItemsContext';
 import { showSuccessToast, showErrorToast } from '../utils/toast-helpers';
 import { EventInterface } from './Event';
-import LineItem from './LineItem';
+import LineItem, { LineItemCard } from './LineItem';
 import { useDeleteEvent } from '../hooks/useApi';
 
 export default function EventDetailsModal({ show, event, lineItemsForEvent, onHide }:
@@ -38,7 +38,22 @@ export default function EventDetailsModal({ show, event, lineItemsForEvent, onHi
             </Body>
           </DialogHeader>
           <div className="space-y-6 -mx-6 px-6">
-            <div className="overflow-x-auto">
+            {/* Mobile card layout */}
+            <div className="md:hidden rounded-xl bg-white shadow-sm border overflow-hidden">
+              {lineItemsForEvent.map(lineItem => (
+                <LineItemCard
+                  key={lineItem.id}
+                  lineItem={lineItem}
+                  showCheckBox={false}
+                  isChecked={false}
+                  handleToggle={() => {}}
+                  amountStatus={lineItem.amount < 0 ? 'success' : 'warning'}
+                />
+              ))}
+            </div>
+
+            {/* Desktop table layout */}
+            <div className="hidden md:block overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>

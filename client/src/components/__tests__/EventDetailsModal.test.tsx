@@ -20,7 +20,7 @@ jest.mock('sonner', () => {
 
 // Mock the LineItem component
 jest.mock('../LineItem', () => {
-    return function MockLineItem({ lineItem }: { lineItem: LineItemInterface }) {
+    const MockLineItem = function MockLineItem({ lineItem }: { lineItem: LineItemInterface }) {
         return (
             <tr data-testid={`line-item-${lineItem._id}`}>
                 <td>{new Date(lineItem.date * 1000).toLocaleDateString()}</td>
@@ -30,6 +30,19 @@ jest.mock('../LineItem', () => {
                 <td>${lineItem.amount.toFixed(2)}</td>
             </tr>
         );
+    };
+    const MockLineItemCard = function MockLineItemCard({ lineItem }: any) {
+        return (
+            <div data-testid={`line-item-card-${lineItem._id}`}>
+                <span>{lineItem.description}</span>
+                <span>${lineItem.amount.toFixed(2)}</span>
+            </div>
+        );
+    };
+    return {
+        __esModule: true,
+        default: MockLineItem,
+        LineItemCard: MockLineItemCard,
     };
 });
 
