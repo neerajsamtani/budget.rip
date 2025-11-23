@@ -104,9 +104,11 @@ def get_current_user_api() -> tuple[Response, int]:
     if user is None:
         return jsonify({"error": "User not found"}), 404
 
-    return jsonify({
-        "id": str(user.get("_id")),
-        "email": user.get("email"),
-        "first_name": user.get("first_name"),
-        "last_name": user.get("last_name"),
-    }), 200
+    return jsonify(
+        {
+            "id": str(user.get("_id")),
+            "email": user.get("email"),
+            "first_name": user.get("first_name"),
+            "last_name": user.get("last_name"),
+        }
+    ), 200

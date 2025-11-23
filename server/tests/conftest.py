@@ -176,6 +176,7 @@ def flask_app():
         def user_lookup_callback(jwt_header, jwt_payload):
             from bson import ObjectId
             from flask import current_app
+
             user_id = jwt_payload.get("sub")
             if user_id:
                 try:

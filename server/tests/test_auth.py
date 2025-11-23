@@ -231,18 +231,23 @@ class TestAuthAPI:
     def test_get_current_user_api_success(self, test_client, flask_app, create_user_via_api):
         """Test GET /api/auth/me endpoint - success case (authenticated user)"""
         # Create and log in a user
-        create_user_via_api({
-            "first_name": "Neeraj",
-            "last_name": "Samtani",
-            "email": "neerajjsamtani@gmail.com",
-            "password": "testpassword123",
-        })
+        create_user_via_api(
+            {
+                "first_name": "Neeraj",
+                "last_name": "Samtani",
+                "email": "neerajjsamtani@gmail.com",
+                "password": "testpassword123",
+            }
+        )
 
         # Log in to get JWT cookie
-        login_response = test_client.post("/api/auth/login", json={
-            "email": "neerajjsamtani@gmail.com",
-            "password": "testpassword123",
-        })
+        login_response = test_client.post(
+            "/api/auth/login",
+            json={
+                "email": "neerajjsamtani@gmail.com",
+                "password": "testpassword123",
+            },
+        )
         assert login_response.status_code == 200
 
         # Call /api/auth/me - cookies are automatically sent by test_client
@@ -264,17 +269,22 @@ class TestAuthAPI:
     def test_get_current_user_api_after_logout(self, test_client, create_user_via_api):
         """Test GET /api/auth/me endpoint - after logout"""
         # Create and log in a user
-        create_user_via_api({
-            "first_name": "Neeraj",
-            "last_name": "Samtani",
-            "email": "neerajjsamtani@gmail.com",
-            "password": "testpassword123",
-        })
+        create_user_via_api(
+            {
+                "first_name": "Neeraj",
+                "last_name": "Samtani",
+                "email": "neerajjsamtani@gmail.com",
+                "password": "testpassword123",
+            }
+        )
 
-        test_client.post("/api/auth/login", json={
-            "email": "neerajjsamtani@gmail.com",
-            "password": "testpassword123",
-        })
+        test_client.post(
+            "/api/auth/login",
+            json={
+                "email": "neerajjsamtani@gmail.com",
+                "password": "testpassword123",
+            },
+        )
 
         # Verify authenticated
         response = test_client.get("/api/auth/me")
