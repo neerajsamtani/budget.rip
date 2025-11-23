@@ -121,10 +121,10 @@ export default function LineItemsToReviewPage() {
                         </Body>
                         <div className="flex flex-row gap-2 sm:gap-4">
                             <Button onClick={() => setCashModalShow(true)} variant="secondary" size="sm" className="text-xs sm:text-sm px-2 sm:px-4">
-                                Cash
+                                Create Cash Transaction
                             </Button>
                             <Button onClick={() => setEventModalShow(true)} size="sm" className="text-xs sm:text-sm px-2 sm:px-4">
-                                Event (↵)
+                                Create Event<span className="hidden sm:inline"> (↵)</span>
                             </Button>
                         </div>
                     </div>
