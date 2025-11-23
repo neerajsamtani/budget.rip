@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ResponsiveDialog, ResponsiveDialogDescription, ResponsiveDialogFooter, ResponsiveDialogHeader, ResponsiveDialogTitle, useIsMobile } from "@/components/ui/responsive-dialog";
+import { ResponsiveDialog, useIsMobile } from "@/components/ui/responsive-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CATEGORIES } from '@/constants/categories';
 import React, { useEffect, useState } from 'react';
@@ -120,13 +120,13 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
 
   return (
     <ResponsiveDialog open={show} onOpenChange={closeModal} className={isMobile ? "" : "w-full !max-w-[42rem]"}>
-      <ResponsiveDialogHeader className="pb-4 border-b border-muted">
-        <ResponsiveDialogTitle className="text-foreground">New Event Details</ResponsiveDialogTitle>
-        <ResponsiveDialogDescription className="text-muted-foreground mt-2">
+      <div className="flex flex-col gap-2 pb-4 border-b border-muted">
+        <h3 className="text-lg font-semibold text-foreground">New Event Details</h3>
+        <p className="text-muted-foreground text-sm">
           Create a financial event from your selected transactions
-        </ResponsiveDialogDescription>
-      </ResponsiveDialogHeader>
-      <div className="space-y-6">
+        </p>
+      </div>
+      <div className="space-y-6 py-4">
         <div className="space-y-3">
           <Label htmlFor="event-name" className="text-sm font-medium text-foreground">
             Event Name
@@ -224,27 +224,25 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
         </div>
       </div>
 
-      <ResponsiveDialogFooter className="pt-4 border-t border-muted">
-        <div className={`flex w-full ${isMobile ? "flex-col gap-3" : "items-center justify-between"}`}>
-          <div className="bg-muted px-4 py-2 rounded-lg">
-            <Body className="text-sm font-medium text-foreground">
-              Total: <span className="text-primary font-semibold">{CurrencyFormatter.format(total)}</span>
-            </Body>
-          </div>
-          <div className={`flex gap-3 ${isMobile ? "flex-col" : ""}`}>
-            <Button onClick={closeModal} variant="secondary" className={isMobile ? "w-full" : "min-w-[100px]"}>
-              Cancel
-            </Button>
-            <Button
-              onClick={() => createEvent(name, category)}
-              disabled={disableSubmit}
-              className={isMobile ? "w-full" : "min-w-[100px]"}
-            >
-              Create Event
-            </Button>
-          </div>
+      <div className={`flex pt-4 border-t border-muted ${isMobile ? "flex-col gap-3" : "items-center justify-between"}`}>
+        <div className="bg-muted px-4 py-2 rounded-lg">
+          <Body className="text-sm font-medium text-foreground">
+            Total: <span className="text-primary font-semibold">{CurrencyFormatter.format(total)}</span>
+          </Body>
         </div>
-      </ResponsiveDialogFooter>
+        <div className={`flex gap-3 ${isMobile ? "flex-col" : ""}`}>
+          <Button onClick={closeModal} variant="secondary" className={isMobile ? "w-full" : "min-w-[100px]"}>
+            Cancel
+          </Button>
+          <Button
+            onClick={() => createEvent(name, category)}
+            disabled={disableSubmit}
+            className={isMobile ? "w-full" : "min-w-[100px]"}
+          >
+            Create Event
+          </Button>
+        </div>
+      </div>
     </ResponsiveDialog>
   );
 }

@@ -1,9 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ResponsiveDialog, ResponsiveDialogFooter, ResponsiveDialogHeader, useIsMobile } from "@/components/ui/responsive-dialog";
+import { ResponsiveDialog, useIsMobile } from "@/components/ui/responsive-dialog";
 import React from 'react';
-import { Body, H3 } from "../components/ui/typography";
 import { useField } from '../hooks/useField';
 import { showSuccessToast, showErrorToast } from '../utils/toast-helpers';
 import { useCreateCashTransaction } from '../hooks/useApi';
@@ -42,13 +41,13 @@ export default function CreateCashTransactionModal({ show, onHide }: { show: boo
 
   return (
     <ResponsiveDialog open={show} onOpenChange={onHide} className={isMobile ? "" : "w-full !max-w-[32rem]"}>
-      <ResponsiveDialogHeader className="pb-4 border-b border-muted">
-        <H3 className="text-foreground">New Cash Transaction</H3>
-        <Body className="text-muted-foreground mt-2">
+      <div className="flex flex-col gap-2 pb-4 border-b border-muted">
+        <h3 className="text-lg font-semibold text-foreground">New Cash Transaction</h3>
+        <p className="text-muted-foreground text-sm">
           Record a new cash transaction in your budget
-        </Body>
-      </ResponsiveDialogHeader>
-      <div className="space-y-4">
+        </p>
+      </div>
+      <div className="space-y-4 py-4">
         <div className="space-y-2">
           <Label htmlFor="event-date" className="text-sm font-medium text-foreground">
             Date
@@ -99,14 +98,14 @@ export default function CreateCashTransactionModal({ show, onHide }: { show: boo
           />
         </div>
       </div>
-      <ResponsiveDialogFooter className={`pt-4 border-t border-muted gap-3 ${isMobile ? "flex-col" : ""}`}>
+      <div className={`flex pt-4 border-t border-muted gap-3 ${isMobile ? "flex-col" : "justify-end"}`}>
         <Button onClick={onHide} variant="secondary" className={isMobile ? "w-full" : "min-w-[100px]"}>
           Cancel
         </Button>
         <Button onClick={createCashTransaction} className={isMobile ? "w-full" : "min-w-[100px]"}>
           Create Transaction
         </Button>
-      </ResponsiveDialogFooter>
+      </div>
     </ResponsiveDialog>
   );
 }

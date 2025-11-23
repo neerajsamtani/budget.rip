@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ResponsiveDialog, ResponsiveDialogFooter, ResponsiveDialogHeader, useIsMobile } from "@/components/ui/responsive-dialog";
+import { ResponsiveDialog, useIsMobile } from "@/components/ui/responsive-dialog";
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import React from 'react';
 import { Body, H3 } from "../components/ui/typography";
@@ -30,13 +30,13 @@ export default function EventDetailsModal({ show, event, lineItemsForEvent, onHi
 
   return (
     <ResponsiveDialog open={show} onOpenChange={onHide} className={isMobile ? "" : "w-full !max-w-[56rem]"}>
-      <ResponsiveDialogHeader className="pb-4 border-b border-muted">
+      <div className="flex flex-col gap-2 pb-4 border-b border-muted">
         <H3 className="text-foreground">{event.name}</H3>
-        <Body className="text-muted-foreground mt-2">
+        <Body className="text-muted-foreground">
           Category: <span className="font-medium text-primary">{event.category}</span>
         </Body>
-      </ResponsiveDialogHeader>
-      <div className="space-y-6">
+      </div>
+      <div className="space-y-6 py-4">
         {isMobile ? (
           <div className="rounded-xl bg-muted/50 border overflow-hidden">
             {lineItemsForEvent.map(lineItem => (
@@ -83,14 +83,14 @@ export default function EventDetailsModal({ show, event, lineItemsForEvent, onHi
           </div>
         )}
       </div>
-      <ResponsiveDialogFooter className="pt-4 border-t border-muted gap-3">
-        <Button onClick={onHide} variant="secondary" className="min-w-[100px]">
+      <div className={`flex pt-4 border-t border-muted gap-3 ${isMobile ? "flex-col" : "justify-end"}`}>
+        <Button onClick={onHide} variant="secondary" className={isMobile ? "w-full" : "min-w-[100px]"}>
           Close
         </Button>
-        <Button onClick={deleteEvent} variant="destructive" className="min-w-[100px]">
+        <Button onClick={deleteEvent} variant="destructive" className={isMobile ? "w-full" : "min-w-[100px]"}>
           Delete Event
         </Button>
-      </ResponsiveDialogFooter>
+      </div>
     </ResponsiveDialog>
   );
 }
