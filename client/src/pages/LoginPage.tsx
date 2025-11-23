@@ -2,69 +2,51 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { toast } from "sonner";
+import { useLocation, useNavigate } from 'react-router-dom';
 import { PageContainer, PageHeader } from "../components/ui/layout";
 import { Body, H1 } from "../components/ui/typography";
 import { FormField, useField } from '../hooks/useField';
-import { useLogin, useLogout } from '../hooks/useApi';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function LoginPage() {
     const email = useField("text", "" as string)
     const password = useField("password", "" as string)
     const navigate = useNavigate()
+    const location = useLocation()
     const [error, setError] = useState<string | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const loginMutation = useLogin();
-    const logoutMutation = useLogout();
+    const { login } = useAuth();
 
     const validateEmail = (email: string) => {
         // Simple email regex
         return /^\S+@\S+\.\S+$/.test(email);
     };
 
-    const handleLogin = (email: FormField<string>, password: FormField<string>) => {
+    const handleLogin = async (emailField: FormField<string>, passwordField: FormField<string>) => {
         setError(null);
-        if (!email.value || !password.value) {
+        if (!emailField.value || !passwordField.value) {
             setError('Email and password are required.');
             return;
         }
-        if (!validateEmail(email.value)) {
+        if (!validateEmail(emailField.value)) {
             setError('Please enter a valid email address.');
             return;
         }
-        const credentials = {
-            "email": email.value,
-            "password": password.value
-        }
-        loginMutation.mutate(credentials, {
-            onSuccess: () => {
-                email.setEmpty()
-                password.setEmpty()
-                setError(null);
-                navigate('/')
-            },
-            onError: (error: any) => {
-                setError(error.message || 'Login failed');
-            }
-        });
-    }
 
-    const handleLogout = () => {
-        logoutMutation.mutate(undefined, {
-            onSuccess: () => {
-                toast.info("Notification", {
-                    description: "Logged out",
-                    duration: 3500,
-                });
-            },
-            onError: (error: Error) => {
-                toast.error("Error", {
-                    description: error.message || "Failed to log out",
-                    duration: 3500,
-                });
-            }
-        });
+        setIsSubmitting(true);
+        try {
+            await login(emailField.value, passwordField.value);
+            emailField.setEmpty();
+            passwordField.setEmpty();
+            // Redirect to the page they tried to visit, or home
+            const from = location.state?.from?.pathname || '/';
+            navigate(from, { replace: true });
+        } catch (err: any) {
+            setError(err.response?.data?.error || err.message || 'Login failed');
+        } finally {
+            setIsSubmitting(false);
+        }
     }
 
     return (
@@ -110,21 +92,13 @@ export default function LoginPage() {
                                 {error}
                             </div>
                         )}
-                        <div className="flex space-x-3 pt-2">
-                            <Button
-                                onClick={() => handleLogin(email, password)}
-                                className="flex-1"
-                            >
-                                Log In
-                            </Button>
-                            <Button
-                                onClick={handleLogout}
-                                variant="secondary"
-                                className="flex-1"
-                            >
-                                Log Out
-                            </Button>
-                        </div>
+                        <Button
+                            onClick={() => handleLogin(email, password)}
+                            className="w-full"
+                            disabled={isSubmitting}
+                        >
+                            {isSubmitting ? 'Logging in...' : 'Log In'}
+                        </Button>
                     </div>
                 </div>
             </div>

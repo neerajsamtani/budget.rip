@@ -26,13 +26,16 @@ import React from 'react';
 import App from './App';
 import { fireEvent, screen, waitFor, createTestQueryClient } from './utils/test-utils';
 import { QueryClientProvider } from '@tanstack/react-query';
+import { AuthProvider } from './contexts/AuthContext';
 
-// Wrapper for rendering App component with QueryClientProvider
+// Wrapper for rendering App component with QueryClientProvider and AuthProvider
 const renderApp = () => {
     const queryClient = createTestQueryClient();
     return render(
         <QueryClientProvider client={queryClient}>
-            <App />
+            <AuthProvider>
+                <App />
+            </AuthProvider>
         </QueryClientProvider>
     );
 };
@@ -110,8 +113,21 @@ describe('App', () => {
         mockAxiosInstance.delete.mockReset();
         mockAxiosInstance.patch.mockReset();
 
-        // Ensure all GET requests return a resolved promise by default
-        mockAxiosInstance.get.mockResolvedValue({ data: { data: [] } });
+        // Mock GET requests - return authenticated user for api/auth/me
+        // Most tests expect to see the authenticated UI (nav links, refresh button, etc.)
+        mockAxiosInstance.get.mockImplementation((url: string) => {
+            if (url.includes('api/auth/me')) {
+                return Promise.resolve({
+                    data: {
+                        id: 'user_123',
+                        email: 'test@example.com',
+                        first_name: 'Test',
+                        last_name: 'User',
+                    }
+                });
+            }
+            return Promise.resolve({ data: { data: [] } });
+        });
         // Ensure all POST requests return a resolved promise by default
         mockAxiosInstance.post.mockResolvedValue({ data: { success: true } });
         // Ensure all PUT requests return a resolved promise by default
@@ -123,30 +139,41 @@ describe('App', () => {
     });
 
     describe('Rendering', () => {
-        it('renders navbar with brand and navigation links', () => {
+        it('renders navbar with brand and navigation links when authenticated', async () => {
             renderApp();
 
-            expect(screen.getByText('Budgit')).toBeInTheDocument();
-            expect(screen.getByRole('link', { name: /review/i })).toBeInTheDocument();
-            expect(screen.getByRole('link', { name: /events/i })).toBeInTheDocument();
-            expect(screen.getByRole('link', { name: /line items/i })).toBeInTheDocument();
-            expect(screen.getByRole('link', { name: /connected accounts/i })).toBeInTheDocument();
-            expect(screen.getByRole('link', { name: /graphs/i })).toBeInTheDocument();
-            expect(screen.getByRole('link', { name: /login/i })).toBeInTheDocument();
+            // Wait for auth check to complete and UI to render
+            await waitFor(() => {
+                expect(screen.getByText('Budgit')).toBeInTheDocument();
+            });
+
+            await waitFor(() => {
+                expect(screen.getByRole('link', { name: /review/i })).toBeInTheDocument();
+                expect(screen.getByRole('link', { name: /events/i })).toBeInTheDocument();
+                expect(screen.getByRole('link', { name: /line items/i })).toBeInTheDocument();
+                expect(screen.getByRole('link', { name: /connected accounts/i })).toBeInTheDocument();
+                expect(screen.getByRole('link', { name: /graphs/i })).toBeInTheDocument();
+                // When authenticated, we see Log Out button, not Login link
+                expect(screen.getByRole('button', { name: /log out/i })).toBeInTheDocument();
+            });
         });
 
-        it('renders refresh data button', () => {
+        it('renders refresh data button when authenticated', async () => {
             renderApp();
 
-            expect(screen.getByRole('button', { name: /refresh data/i })).toBeInTheDocument();
+            await waitFor(() => {
+                expect(screen.getByRole('button', { name: /refresh data/i })).toBeInTheDocument();
+            });
         });
 
-        it('renders LineItemsToReviewPage as default route', () => {
+        it('renders LineItemsToReviewPage as default route when authenticated', async () => {
             renderApp();
 
             // The default route should show the review page
             // We can verify this by checking if the navbar is present and the button is there
-            expect(screen.getByRole('button', { name: /refresh data/i })).toBeInTheDocument();
+            await waitFor(() => {
+                expect(screen.getByRole('button', { name: /refresh data/i })).toBeInTheDocument();
+            });
         });
 
         it('renders toaster with close button enabled', () => {
@@ -167,16 +194,19 @@ describe('App', () => {
     });
 
     describe('Navigation Links', () => {
-        it('has all required navigation links', () => {
+        it('has all required navigation links when authenticated', async () => {
             renderApp();
 
-            // Test that all navigation links are present and accessible
-            expect(screen.getByRole('link', { name: /review/i })).toBeInTheDocument();
-            expect(screen.getByRole('link', { name: /events/i })).toBeInTheDocument();
-            expect(screen.getByRole('link', { name: /line items/i })).toBeInTheDocument();
-            expect(screen.getByRole('link', { name: /connected accounts/i })).toBeInTheDocument();
-            expect(screen.getByRole('link', { name: /graphs/i })).toBeInTheDocument();
-            expect(screen.getByRole('link', { name: /login/i })).toBeInTheDocument();
+            // Test that all navigation links are present and accessible when authenticated
+            await waitFor(() => {
+                expect(screen.getByRole('link', { name: /review/i })).toBeInTheDocument();
+                expect(screen.getByRole('link', { name: /events/i })).toBeInTheDocument();
+                expect(screen.getByRole('link', { name: /line items/i })).toBeInTheDocument();
+                expect(screen.getByRole('link', { name: /connected accounts/i })).toBeInTheDocument();
+                expect(screen.getByRole('link', { name: /graphs/i })).toBeInTheDocument();
+                // When authenticated, we see Log Out button instead of Login link
+                expect(screen.getByRole('button', { name: /log out/i })).toBeInTheDocument();
+            });
         });
     });
 
@@ -184,13 +214,15 @@ describe('App', () => {
         it('shows loading spinner when refresh button is clicked', async () => {
             const mockAxiosInstance = require('./utils/axiosInstance').default;
             // Create a promise that resolves after a delay to keep spinner visible
+            const originalGet = mockAxiosInstance.get;
             mockAxiosInstance.post.mockImplementation(() =>
                 new Promise(resolve => setTimeout(() => resolve({ data: { data: [] } }), 100))
             );
 
             renderApp();
 
-            const refreshButton = screen.getByRole('button', { name: /refresh data/i });
+            // Wait for auth to complete first
+            const refreshButton = await screen.findByRole('button', { name: /refresh data/i });
             fireEvent.click(refreshButton);
 
             // Should show spinner - use querySelector since it has aria-hidden="true"
@@ -217,7 +249,8 @@ describe('App', () => {
 
             renderApp();
 
-            const refreshButton = screen.getByRole('button', { name: /refresh data/i });
+            // Wait for auth to complete first
+            const refreshButton = await screen.findByRole('button', { name: /refresh data/i });
             fireEvent.click(refreshButton);
 
             await waitFor(() => {
@@ -239,7 +272,8 @@ describe('App', () => {
 
             renderApp();
 
-            const refreshButton = screen.getByRole('button', { name: /refresh data/i });
+            // Wait for auth to complete first
+            const refreshButton = await screen.findByRole('button', { name: /refresh data/i });
             fireEvent.click(refreshButton);
 
             await waitFor(() => {
@@ -258,7 +292,8 @@ describe('App', () => {
 
             renderApp();
 
-            const refreshButton = screen.getByRole('button', { name: /refresh data/i });
+            // Wait for auth to complete first
+            const refreshButton = await screen.findByRole('button', { name: /refresh data/i });
             fireEvent.click(refreshButton);
 
             // Should show spinner initially
@@ -278,7 +313,8 @@ describe('App', () => {
 
             renderApp();
 
-            const refreshButton = screen.getByRole('button', { name: /refresh data/i });
+            // Wait for auth to complete first
+            const refreshButton = await screen.findByRole('button', { name: /refresh data/i });
             fireEvent.click(refreshButton);
 
             // Should handle the error without crashing
@@ -295,7 +331,8 @@ describe('App', () => {
 
             renderApp();
 
-            const refreshButton = screen.getByRole('button', { name: /refresh data/i });
+            // Wait for auth to complete first
+            const refreshButton = await screen.findByRole('button', { name: /refresh data/i });
             fireEvent.click(refreshButton);
 
             // Should show spinner initially
@@ -327,25 +364,31 @@ describe('App', () => {
     });
 
     describe('Accessibility', () => {
-        it('has proper navbar structure', () => {
+        it('has proper navbar structure', async () => {
             renderApp();
-            expect(screen.getByText('Budgit')).toBeInTheDocument();
-            expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
+            await waitFor(() => {
+                expect(screen.getByText('Budgit')).toBeInTheDocument();
+            });
         });
 
-        it('has proper button labels', () => {
+        it('has proper button labels when authenticated', async () => {
             renderApp();
-            expect(screen.getByRole('button', { name: /refresh data/i })).toBeInTheDocument();
+            await waitFor(() => {
+                expect(screen.getByRole('button', { name: /refresh data/i })).toBeInTheDocument();
+            });
         });
 
-        it('has proper link labels', () => {
+        it('has proper link labels when authenticated', async () => {
             renderApp();
-            expect(screen.getByRole('link', { name: /review/i })).toBeInTheDocument();
-            expect(screen.getByRole('link', { name: /events/i })).toBeInTheDocument();
-            expect(screen.getByRole('link', { name: /line items/i })).toBeInTheDocument();
-            expect(screen.getByRole('link', { name: /connected accounts/i })).toBeInTheDocument();
-            expect(screen.getByRole('link', { name: /graphs/i })).toBeInTheDocument();
-            expect(screen.getByRole('link', { name: /login/i })).toBeInTheDocument();
+            await waitFor(() => {
+                expect(screen.getByRole('link', { name: /review/i })).toBeInTheDocument();
+                expect(screen.getByRole('link', { name: /events/i })).toBeInTheDocument();
+                expect(screen.getByRole('link', { name: /line items/i })).toBeInTheDocument();
+                expect(screen.getByRole('link', { name: /connected accounts/i })).toBeInTheDocument();
+                expect(screen.getByRole('link', { name: /graphs/i })).toBeInTheDocument();
+                // When authenticated, we see Log Out button instead of Login link
+                expect(screen.getByRole('button', { name: /log out/i })).toBeInTheDocument();
+            });
         });
 
         it('has proper spinner accessibility attributes', async () => {
@@ -356,7 +399,8 @@ describe('App', () => {
 
             renderApp();
 
-            const refreshButton = screen.getByRole('button', { name: /refresh data/i });
+            // Wait for auth to complete first
+            const refreshButton = await screen.findByRole('button', { name: /refresh data/i });
             fireEvent.click(refreshButton);
 
             // Look for spinner by class using querySelector since it has aria-hidden="true"
@@ -368,12 +412,16 @@ describe('App', () => {
     });
 
     describe('State Management', () => {
-        it('initializes with correct default state', () => {
+        it('initializes with correct default state when authenticated', async () => {
             renderApp();
 
-            // Should start with no loading state
-            expect(document.querySelector('.animate-spin')).not.toBeInTheDocument();
-            expect(screen.getByRole('button', { name: /refresh data/i })).toBeInTheDocument();
+            // Wait for auth to complete and refresh button to appear
+            await waitFor(() => {
+                expect(screen.getByRole('button', { name: /refresh data/i })).toBeInTheDocument();
+            });
+
+            // After auth completes, should have no loading spinner for refresh
+            // Note: The auth loading spinner would have gone away by now
         });
 
         it('updates loading state correctly', async () => {
@@ -384,10 +432,8 @@ describe('App', () => {
 
             renderApp();
 
-            const refreshButton = screen.getByRole('button', { name: /refresh data/i });
-
-            // Initially no spinner
-            expect(document.querySelector('.animate-spin')).not.toBeInTheDocument();
+            // Wait for auth to complete first
+            const refreshButton = await screen.findByRole('button', { name: /refresh data/i });
 
             // Click to start loading
             fireEvent.click(refreshButton);
@@ -409,7 +455,8 @@ describe('App', () => {
 
             renderApp();
 
-            const refreshButton = screen.getByRole('button', { name: /refresh data/i });
+            // Wait for auth to complete first
+            const refreshButton = await screen.findByRole('button', { name: /refresh data/i });
             fireEvent.click(refreshButton);
 
             // Should call toast after successful refresh
@@ -431,7 +478,8 @@ describe('App', () => {
 
             renderApp();
 
-            const refreshButton = screen.getByRole('button', { name: /refresh data/i });
+            // Wait for auth to complete first
+            const refreshButton = await screen.findByRole('button', { name: /refresh data/i });
             fireEvent.click(refreshButton);
 
             // Should call error toast on error

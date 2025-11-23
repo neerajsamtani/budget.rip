@@ -5,6 +5,8 @@ from typing import Any, Dict, Optional
 from flask import Blueprint, Response, jsonify, request
 from flask_jwt_extended import (
     create_access_token,
+    get_current_user,
+    jwt_required,
     set_access_cookies,
     unset_jwt_cookies,
 )
@@ -92,3 +94,19 @@ def logout_api() -> tuple[Response, int]:
     unset_jwt_cookies(resp)
     logger.info("User logged out")
     return resp, 200
+
+
+@auth_blueprint.route("/api/auth/me", methods=["GET"])
+@jwt_required()
+def get_current_user_api() -> tuple[Response, int]:
+    """Returns the current authenticated user's information."""
+    user = get_current_user()
+    if user is None:
+        return jsonify({"error": "User not found"}), 404
+
+    return jsonify({
+        "id": str(user.get("_id")),
+        "email": user.get("email"),
+        "first_name": user.get("first_name"),
+        "last_name": user.get("last_name"),
+    }), 200

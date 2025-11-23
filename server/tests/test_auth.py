@@ -228,6 +228,65 @@ class TestAuthAPI:
         set_cookie_header = response.headers.get("Set-Cookie", "")
         assert "access_token_cookie=;" in set_cookie_header or "access_token_cookie=; " in set_cookie_header
 
+    def test_get_current_user_api_success(self, test_client, flask_app, create_user_via_api):
+        """Test GET /api/auth/me endpoint - success case (authenticated user)"""
+        # Create and log in a user
+        create_user_via_api({
+            "first_name": "Neeraj",
+            "last_name": "Samtani",
+            "email": "neerajjsamtani@gmail.com",
+            "password": "testpassword123",
+        })
+
+        # Log in to get JWT cookie
+        login_response = test_client.post("/api/auth/login", json={
+            "email": "neerajjsamtani@gmail.com",
+            "password": "testpassword123",
+        })
+        assert login_response.status_code == 200
+
+        # Call /api/auth/me - cookies are automatically sent by test_client
+        response = test_client.get("/api/auth/me")
+
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data["email"] == "neerajjsamtani@gmail.com"
+        assert data["first_name"] == "Neeraj"
+        assert data["last_name"] == "Samtani"
+        assert "id" in data
+
+    def test_get_current_user_api_unauthenticated(self, test_client):
+        """Test GET /api/auth/me endpoint - unauthenticated (no JWT)"""
+        response = test_client.get("/api/auth/me")
+
+        assert response.status_code == 401
+
+    def test_get_current_user_api_after_logout(self, test_client, create_user_via_api):
+        """Test GET /api/auth/me endpoint - after logout"""
+        # Create and log in a user
+        create_user_via_api({
+            "first_name": "Neeraj",
+            "last_name": "Samtani",
+            "email": "neerajjsamtani@gmail.com",
+            "password": "testpassword123",
+        })
+
+        test_client.post("/api/auth/login", json={
+            "email": "neerajjsamtani@gmail.com",
+            "password": "testpassword123",
+        })
+
+        # Verify authenticated
+        response = test_client.get("/api/auth/me")
+        assert response.status_code == 200
+
+        # Log out
+        test_client.post("/api/auth/logout")
+
+        # Should now be unauthenticated
+        response = test_client.get("/api/auth/me")
+        assert response.status_code == 401
+
 
 class TestAuthFunctions:
     def test_get_user_by_email_success(self, flask_app, pg_session):

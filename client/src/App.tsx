@@ -20,6 +20,8 @@ import LineItemsPage from "./pages/LineItemsPage";
 import LineItemsToReviewPage from "./pages/LineItemsToReviewPage";
 import LoginPage from "./pages/LoginPage";
 import { useRefreshAllData } from "./hooks/useApi";
+import { useAuth } from "./contexts/AuthContext";
+import { ProtectedRoute, PublicOnlyRoute } from "./components/ProtectedRoute";
 
 // Make sure to call loadStripe outside of a component's render to avoid
 // recreating the Stripe object on every render.
@@ -34,6 +36,7 @@ export default function App() {
   const lineItemsDispatch = useLineItemsDispatch();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const refreshMutation = useRefreshAllData();
+  const { isAuthenticated, logout, isLoading } = useAuth();
 
   const handleRefreshData = () => {
     refreshMutation.mutate(undefined, {
@@ -63,54 +66,68 @@ export default function App() {
 
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center space-x-4 lg:space-x-6">
-              <div className="flex space-x-1">
-                <Link
-                  className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150"
-                  to="/"
-                >
-                  Review
-                </Link>
-                <Link
-                  className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150"
-                  to="/events"
-                >
-                  Events
-                </Link>
-                <Link
-                  className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150"
-                  to="/line_items"
-                >
-                  Line Items
-                </Link>
-                <Link
-                  className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150"
-                  to="/connected_accounts"
-                >
-                  Connected Accounts
-                </Link>
-                <Link
-                  className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150"
-                  to="/graphs"
-                >
-                  Graphs
-                </Link>
-                <Link
-                  className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150"
-                  to="/login"
-                >
-                  Login
-                </Link>
-              </div>
-              <Button onClick={handleRefreshData} variant="default" size="sm" disabled={refreshMutation.isPending}>
-                {refreshMutation.isPending ? <Spinner size="sm" /> : "Refresh Data"}
-              </Button>
+              {isAuthenticated && (
+                <div className="flex space-x-1">
+                  <Link
+                    className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150"
+                    to="/"
+                  >
+                    Review
+                  </Link>
+                  <Link
+                    className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150"
+                    to="/events"
+                  >
+                    Events
+                  </Link>
+                  <Link
+                    className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150"
+                    to="/line_items"
+                  >
+                    Line Items
+                  </Link>
+                  <Link
+                    className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150"
+                    to="/connected_accounts"
+                  >
+                    Connected Accounts
+                  </Link>
+                  <Link
+                    className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150"
+                    to="/graphs"
+                  >
+                    Graphs
+                  </Link>
+                </div>
+              )}
+
+              {isAuthenticated ? (
+                <>
+                  <Button onClick={handleRefreshData} variant="default" size="sm" disabled={refreshMutation.isPending}>
+                    {refreshMutation.isPending ? <Spinner size="sm" /> : "Refresh Data"}
+                  </Button>
+                  <Button onClick={() => logout()} variant="outline" size="sm">
+                    Log Out
+                  </Button>
+                </>
+              ) : (
+                !isLoading && (
+                  <Link to="/login">
+                    <Button variant="default" size="sm">
+                      Log In
+                    </Button>
+                  </Link>
+                )
+              )}
             </div>
 
             {/* Mobile Navigation */}
             <div className="md:hidden flex items-center gap-2">
-              <Button onClick={handleRefreshData} variant="default" size="sm" disabled={refreshMutation.isPending}>
-                {refreshMutation.isPending ? <Spinner size="sm" /> : "Refresh"}
-              </Button>
+              {isAuthenticated && (
+                <Button onClick={handleRefreshData} variant="default" size="sm" disabled={refreshMutation.isPending}>
+                  {refreshMutation.isPending ? <Spinner size="sm" /> : "Refresh"}
+                </Button>
+              )}
               <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                 <SheetTrigger asChild>
                   <Button variant="outline" size="sm" aria-label="Open navigation menu">
@@ -119,48 +136,63 @@ export default function App() {
                 </SheetTrigger>
                 <SheetContent side="right" className="w-[250px] sm:w-[300px]">
                   <nav className="flex flex-col gap-4">
-                    <Link
-                      className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150 rounded-md hover:bg-muted"
-                      to="/"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      Review
-                    </Link>
-                    <Link
-                      className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150 rounded-md hover:bg-muted"
-                      to="/events"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      Events
-                    </Link>
-                    <Link
-                      className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150 rounded-md hover:bg-muted"
-                      to="/line_items"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      Line Items
-                    </Link>
-                    <Link
-                      className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150 rounded-md hover:bg-muted"
-                      to="/connected_accounts"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      Connected Accounts
-                    </Link>
-                    <Link
-                      className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150 rounded-md hover:bg-muted"
-                      to="/graphs"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      Graphs
-                    </Link>
-                    <Link
-                      className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150 rounded-md hover:bg-muted"
-                      to="/login"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      Login
-                    </Link>
+                    {isAuthenticated ? (
+                      <>
+                        <Link
+                          className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150 rounded-md hover:bg-muted"
+                          to="/"
+                          onClick={() => setMobileMenuOpen(false)}
+                        >
+                          Review
+                        </Link>
+                        <Link
+                          className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150 rounded-md hover:bg-muted"
+                          to="/events"
+                          onClick={() => setMobileMenuOpen(false)}
+                        >
+                          Events
+                        </Link>
+                        <Link
+                          className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150 rounded-md hover:bg-muted"
+                          to="/line_items"
+                          onClick={() => setMobileMenuOpen(false)}
+                        >
+                          Line Items
+                        </Link>
+                        <Link
+                          className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150 rounded-md hover:bg-muted"
+                          to="/connected_accounts"
+                          onClick={() => setMobileMenuOpen(false)}
+                        >
+                          Connected Accounts
+                        </Link>
+                        <Link
+                          className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150 rounded-md hover:bg-muted"
+                          to="/graphs"
+                          onClick={() => setMobileMenuOpen(false)}
+                        >
+                          Graphs
+                        </Link>
+                        <Button
+                          onClick={() => {
+                            logout();
+                            setMobileMenuOpen(false);
+                          }}
+                          variant="outline"
+                          className="mt-4"
+                        >
+                          Log Out
+                        </Button>
+                      </>
+                    ) : (
+                      <Link
+                        className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150 rounded-md hover:bg-muted"
+                        to="/login"
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        Log In
+                      </Link>
+                    )}
                   </nav>
                 </SheetContent>
               </Sheet>
@@ -169,12 +201,12 @@ export default function App() {
         </Navbar>
 
         <Routes>
-          <Route path="/" element={<LineItemsToReviewPage />} />
-          <Route path="/events" element={<EventsPage />} />
-          <Route path="/line_items" element={<LineItemsPage />} />
-          <Route path="/connected_accounts" element={<ConnectedAccountsPage stripePromise={stripePromise} />} />
-          <Route path="/graphs" element={<GraphsPage />} />
-          <Route path="/login" element={<LoginPage />} />
+          <Route path="/" element={<ProtectedRoute><LineItemsToReviewPage /></ProtectedRoute>} />
+          <Route path="/events" element={<ProtectedRoute><EventsPage /></ProtectedRoute>} />
+          <Route path="/line_items" element={<ProtectedRoute><LineItemsPage /></ProtectedRoute>} />
+          <Route path="/connected_accounts" element={<ProtectedRoute><ConnectedAccountsPage stripePromise={stripePromise} /></ProtectedRoute>} />
+          <Route path="/graphs" element={<ProtectedRoute><GraphsPage /></ProtectedRoute>} />
+          <Route path="/login" element={<PublicOnlyRoute><LoginPage /></PublicOnlyRoute>} />
         </Routes>
       </Router>
     </React.StrictMode>
