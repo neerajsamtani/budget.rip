@@ -32,7 +32,7 @@ function ResponsiveDialog({ open, onOpenChange, children, className }: Responsiv
     return (
       <MobileContext.Provider value={true}>
         <Sheet open={open} onOpenChange={onOpenChange}>
-          <SheetContent side="bottom" className={`max-h-[90vh] overflow-y-auto ${className || ""}`}>
+          <SheetContent side="bottom" className={`max-h-[90vh] overflow-y-auto overflow-x-hidden ${className || ""}`}>
             {children}
           </SheetContent>
         </Sheet>
