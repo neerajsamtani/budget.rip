@@ -113,18 +113,18 @@ export default function LineItemsToReviewPage() {
                 onHide={() => setEventModalShow(false)}
             />
 
-            <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 md:p-6 shadow-lg">
+            <div className="fixed bottom-0 left-0 right-0 bg-white border-t px-3 py-2 sm:p-4 md:p-6 shadow-lg safe-area-bottom">
                 <div className="container mx-auto max-w-7xl">
-                    <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-                        <Body className="text-muted-foreground">
-                            Total Selected: {CurrencyFormatter.format(total)}
+                    <div className="flex flex-row justify-between items-center gap-2 sm:gap-4">
+                        <Body className="text-muted-foreground text-sm sm:text-base whitespace-nowrap">
+                            Total: {CurrencyFormatter.format(total)}
                         </Body>
-                        <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 w-full sm:w-auto">
-                            <Button onClick={() => setCashModalShow(true)} variant="secondary" className="w-full sm:w-auto">
+                        <div className="flex flex-row gap-2 sm:gap-4">
+                            <Button onClick={() => setCashModalShow(true)} variant="secondary" size="sm" className="text-xs sm:text-sm px-2 sm:px-4">
                                 Create Cash Transaction
                             </Button>
-                            <Button onClick={() => setEventModalShow(true)} className="w-full sm:w-auto">
-                                Create Event (↵)
+                            <Button onClick={() => setEventModalShow(true)} size="sm" className="text-xs sm:text-sm px-2 sm:px-4">
+                                Create Event<span className="hidden sm:inline"> (↵)</span>
                             </Button>
                         </div>
                     </div>
