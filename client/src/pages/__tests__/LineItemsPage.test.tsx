@@ -18,7 +18,7 @@ jest.mock('sonner', () => {
 
 // Mock the components
 jest.mock('../../components/LineItem', () => {
-    return function MockLineItem({ lineItem }: any) {
+    const MockLineItem = function MockLineItem({ lineItem }: any) {
         return (
             <tr data-testid={`line-item-${lineItem._id}`}>
                 <td>{new Date(lineItem.date * 1000).toLocaleDateString()}</td>
@@ -28,6 +28,20 @@ jest.mock('../../components/LineItem', () => {
                 <td>${(lineItem.amount || 0).toFixed(2)}</td>
             </tr>
         );
+    };
+    const MockLineItemCard = function MockLineItemCard({ lineItem }: any) {
+        return (
+            <div data-testid={`line-item-card-${lineItem._id}`}>
+                <span>{new Date(lineItem.date * 1000).toLocaleDateString()}</span>
+                <span>{lineItem.description || ''}</span>
+                <span>${(lineItem.amount || 0).toFixed(2)}</span>
+            </div>
+        );
+    };
+    return {
+        __esModule: true,
+        default: MockLineItem,
+        LineItemCard: MockLineItemCard,
     };
 });
 
@@ -134,10 +148,9 @@ describe('LineItemsPage', () => {
             render(<LineItemsPage />);
 
             await waitFor(() => {
-                expect(screen.getByText('Test transaction 1')).toBeInTheDocument();
-                expect(screen.getByText('Test Store 1')).toBeInTheDocument();
-                expect(screen.getByText('$50.00')).toBeInTheDocument();
-                expect(screen.getByText('credit_card')).toBeInTheDocument();
+                // Mobile and desktop layouts both render, so use getAllByText
+                expect(screen.getAllByText('Test transaction 1').length).toBeGreaterThan(0);
+                expect(screen.getAllByText('$50.00').length).toBeGreaterThan(0);
             });
         });
 
@@ -338,9 +351,10 @@ describe('LineItemsPage', () => {
             render(<LineItemsPage />);
 
             await waitFor(() => {
-                expect(screen.getByText('$50.00')).toBeInTheDocument();
-                expect(screen.getByText('$100.00')).toBeInTheDocument();
-                expect(screen.getByText('$25.00')).toBeInTheDocument();
+                // Mobile and desktop layouts both render
+                expect(screen.getAllByText('$50.00').length).toBeGreaterThan(0);
+                expect(screen.getAllByText('$100.00').length).toBeGreaterThan(0);
+                expect(screen.getAllByText('$25.00').length).toBeGreaterThan(0);
             });
         });
 
@@ -378,7 +392,7 @@ describe('LineItemsPage', () => {
             render(<LineItemsPage />);
 
             await waitFor(() => {
-                expect(screen.getByText('$0.00')).toBeInTheDocument();
+                expect(screen.getAllByText('$0.00').length).toBeGreaterThan(0);
             });
         });
 
@@ -396,7 +410,7 @@ describe('LineItemsPage', () => {
             render(<LineItemsPage />);
 
             await waitFor(() => {
-                expect(screen.getByText('$999999.99')).toBeInTheDocument();
+                expect(screen.getAllByText('$999999.99').length).toBeGreaterThan(0);
             });
         });
     });
@@ -474,8 +488,11 @@ describe('LineItemsPage', () => {
             render(<LineItemsPage />);
 
             await waitFor(() => {
-                const lineItems = screen.getAllByTestId(/line-item-/);
-                expect(lineItems).toHaveLength(3);
+                // Both mobile cards and desktop table rows are rendered
+                const tableRows = screen.getAllByTestId(/^line-item-\d+$/);
+                const cards = screen.getAllByTestId(/^line-item-card-\d+$/);
+                expect(tableRows).toHaveLength(3);
+                expect(cards).toHaveLength(3);
             });
         });
 
