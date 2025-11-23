@@ -21,29 +21,30 @@ if (!Element.prototype.scrollIntoView) {
     Element.prototype.scrollIntoView = () => { };
 }
 
-// Mock axios instance for API calls - create mock without importing axios
-const mockAxiosInstance = {
-    get: jest.fn(),
-    post: jest.fn(),
-    put: jest.fn(),
-    delete: jest.fn(),
-    patch: jest.fn(),
-    defaults: {
-        headers: {
-            common: {}
-        }
-    },
-    interceptors: {
-        request: { use: jest.fn() },
-        response: { use: jest.fn() }
-    }
-};
-
-// Mock the axios instance module
+// Mock the axios instance module - must be before any imports that use it
 jest.mock('../utils/axiosInstance', () => ({
     __esModule: true,
-    default: mockAxiosInstance,
+    default: {
+        get: jest.fn(),
+        post: jest.fn(),
+        put: jest.fn(),
+        delete: jest.fn(),
+        patch: jest.fn(),
+        defaults: {
+            headers: {
+                common: {}
+            }
+        },
+        interceptors: {
+            request: { use: jest.fn() },
+            response: { use: jest.fn() }
+        }
+    },
 }));
+
+// Get reference to the mocked axios instance
+import axiosInstance from '../utils/axiosInstance';
+const mockAxiosInstance = axiosInstance as jest.Mocked<typeof axiosInstance>;
 
 // Create a custom query client for tests with no retries
 export const createTestQueryClient = () => new QueryClient({
@@ -59,6 +60,8 @@ export const createTestQueryClient = () => new QueryClient({
 });
 
 // Custom render function that includes basic providers
+// Note: AuthProvider is NOT included here to avoid extra API calls in non-auth tests
+// Tests that need AuthProvider should use their own wrapper (see auth tests for examples)
 const AllTheProviders = ({ children }: { children: React.ReactNode }) => {
     const queryClient = createTestQueryClient();
     return (

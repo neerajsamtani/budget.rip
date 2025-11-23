@@ -17,4 +17,22 @@ axiosInstance.interceptors.request.use((config) => {
     return config;
 });
 
+// Response interceptor for handling 401 errors (expired/invalid token)
+axiosInstance.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        // Don't redirect for auth endpoints (login check, etc.)
+        const isAuthEndpoint = error.config?.url?.includes('/api/auth/');
+
+        if (error.response?.status === 401 && !isAuthEndpoint) {
+            // Token expired or invalid - redirect to login
+            // Only redirect if not already on login page
+            if (window.location.pathname !== '/login') {
+                window.location.href = '/login';
+            }
+        }
+        return Promise.reject(error);
+    }
+);
+
 export default axiosInstance

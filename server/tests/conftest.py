@@ -166,10 +166,33 @@ def flask_app():
         app.config["MONGO"] = MockMongo(mongo_client)
         jwt = JWTManager(app)
         app.config["JWT_SECRET_KEY"] = JWT_SECRET_KEY
+        app.config["JWT_TOKEN_LOCATION"] = ["cookies", "headers"]
+        app.config["JWT_ACCESS_COOKIE_PATH"] = "/api/"
+        app.config["JWT_COOKIE_CSRF_PROTECT"] = False  # Disable CSRF for tests
+        app.config["JWT_COOKIE_SECURE"] = False  # Allow non-HTTPS in tests
 
         # Add user lookup loader for JWT
         @jwt.user_lookup_loader
         def user_lookup_callback(jwt_header, jwt_payload):
+            from bson import ObjectId
+            from flask import current_app
+
+            user_id = jwt_payload.get("sub")
+            if user_id:
+                try:
+                    # Directly query mongomock to avoid handler routing issues
+                    db = current_app.config["MONGO"].cx[current_app.config["MONGO_DB_NAME"]]
+                    # Try as string first (for user_xxx style IDs)
+                    user = db.users.find_one({"_id": user_id})
+                    if user:
+                        return user
+                    # Try as ObjectId (for legacy ObjectId style IDs)
+                    user = db.users.find_one({"_id": ObjectId(user_id)})
+                    if user:
+                        return user
+                except Exception:
+                    pass
+            # Fallback for tests that use the old jwt_token fixture
             return {"email": "test@example.com", "id": "user_id"}
 
         # Import and register main application routes from application.py

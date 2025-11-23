@@ -11,15 +11,17 @@ import {
   BrowserRouter as Router,
   Routes
 } from "react-router-dom";
+import { ProtectedRoute, PublicOnlyRoute } from "./components/ProtectedRoute";
+import { useAuth } from "./contexts/AuthContext";
 import { useLineItemsDispatch } from "./contexts/LineItemsContext";
-import { showSuccessToast, showErrorToast } from "./utils/toast-helpers";
+import { useRefreshAllData } from "./hooks/useApi";
 import ConnectedAccountsPage from "./pages/ConnectedAccountsPage";
 import EventsPage from "./pages/EventsPage";
 import GraphsPage from "./pages/GraphsPage";
 import LineItemsPage from "./pages/LineItemsPage";
 import LineItemsToReviewPage from "./pages/LineItemsToReviewPage";
 import LoginPage from "./pages/LoginPage";
-import { useRefreshAllData } from "./hooks/useApi";
+import { showErrorToast, showSuccessToast } from "./utils/toast-helpers";
 
 // Make sure to call loadStripe outside of a component's render to avoid
 // recreating the Stripe object on every render.
@@ -34,6 +36,7 @@ export default function App() {
   const lineItemsDispatch = useLineItemsDispatch();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const refreshMutation = useRefreshAllData();
+  const { isAuthenticated, logout } = useAuth();
 
   const handleRefreshData = () => {
     refreshMutation.mutate(undefined, {
@@ -58,109 +61,134 @@ export default function App() {
         <Navbar className="bg-white shadow-sm border-b">
           <div className="container mx-auto flex justify-between items-center px-4 md:px-6 h-16">
             <NavbarBrand className="text-foreground font-heading font-semibold text-lg">
-              Budgit
+              <Link
+                to="/"
+              >
+                Budgit
+              </Link>
             </NavbarBrand>
 
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center space-x-4 lg:space-x-6">
-              <div className="flex space-x-1">
-                <Link
-                  className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150"
-                  to="/"
-                >
-                  Review
-                </Link>
-                <Link
-                  className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150"
-                  to="/events"
-                >
-                  Events
-                </Link>
-                <Link
-                  className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150"
-                  to="/line_items"
-                >
-                  Line Items
-                </Link>
-                <Link
-                  className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150"
-                  to="/connected_accounts"
-                >
-                  Connected Accounts
-                </Link>
-                <Link
-                  className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150"
-                  to="/graphs"
-                >
-                  Graphs
-                </Link>
-                <Link
-                  className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150"
-                  to="/login"
-                >
-                  Login
-                </Link>
-              </div>
-              <Button onClick={handleRefreshData} variant="default" size="sm" disabled={refreshMutation.isPending}>
-                {refreshMutation.isPending ? <Spinner size="sm" /> : "Refresh Data"}
-              </Button>
+              {isAuthenticated && (
+                <div className="flex space-x-1">
+                  <Link
+                    className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150"
+                    to="/"
+                  >
+                    Review
+                  </Link>
+                  <Link
+                    className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150"
+                    to="/events"
+                  >
+                    Events
+                  </Link>
+                  <Link
+                    className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150"
+                    to="/line_items"
+                  >
+                    Line Items
+                  </Link>
+                  <Link
+                    className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150"
+                    to="/connected_accounts"
+                  >
+                    Connected Accounts
+                  </Link>
+                  <Link
+                    className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150"
+                    to="/graphs"
+                  >
+                    Graphs
+                  </Link>
+                  <button
+                    className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150 cursor-pointer"
+                    onClick={() => logout()}
+                  >
+                    Log Out
+                  </button>
+                </div>
+              )}
+
+              {isAuthenticated && (
+                <Button onClick={handleRefreshData} variant="default" size="sm" disabled={refreshMutation.isPending}>
+                  {refreshMutation.isPending ? <Spinner size="sm" /> : "Refresh Data"}
+                </Button>
+              )}
             </div>
 
             {/* Mobile Navigation */}
             <div className="md:hidden flex items-center gap-2">
-              <Button onClick={handleRefreshData} variant="default" size="sm" disabled={refreshMutation.isPending}>
-                {refreshMutation.isPending ? <Spinner size="sm" /> : "Refresh"}
-              </Button>
+              {isAuthenticated && (
+                <Button onClick={handleRefreshData} variant="default" size="sm" disabled={refreshMutation.isPending}>
+                  {refreshMutation.isPending ? <Spinner size="sm" /> : "Refresh"}
+                </Button>
+              )}
               <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                 <SheetTrigger asChild>
-                  <Button variant="outline" size="sm" aria-label="Open navigation menu">
+                  <Button variant="ghost" size="sm" aria-label="Open navigation menu">
                     <MenuIcon className="h-5 w-5" />
                   </Button>
                 </SheetTrigger>
                 <SheetContent side="right" className="w-[250px] sm:w-[300px]">
                   <nav className="flex flex-col gap-4">
-                    <Link
-                      className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150 rounded-md hover:bg-muted"
-                      to="/"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      Review
-                    </Link>
-                    <Link
-                      className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150 rounded-md hover:bg-muted"
-                      to="/events"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      Events
-                    </Link>
-                    <Link
-                      className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150 rounded-md hover:bg-muted"
-                      to="/line_items"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      Line Items
-                    </Link>
-                    <Link
-                      className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150 rounded-md hover:bg-muted"
-                      to="/connected_accounts"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      Connected Accounts
-                    </Link>
-                    <Link
-                      className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150 rounded-md hover:bg-muted"
-                      to="/graphs"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      Graphs
-                    </Link>
-                    <Link
-                      className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150 rounded-md hover:bg-muted"
-                      to="/login"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      Login
-                    </Link>
+                    {isAuthenticated ? (
+                      <>
+                        <Link
+                          className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150 rounded-md hover:bg-muted"
+                          to="/"
+                          onClick={() => setMobileMenuOpen(false)}
+                        >
+                          Review
+                        </Link>
+                        <Link
+                          className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150 rounded-md hover:bg-muted"
+                          to="/events"
+                          onClick={() => setMobileMenuOpen(false)}
+                        >
+                          Events
+                        </Link>
+                        <Link
+                          className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150 rounded-md hover:bg-muted"
+                          to="/line_items"
+                          onClick={() => setMobileMenuOpen(false)}
+                        >
+                          Line Items
+                        </Link>
+                        <Link
+                          className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150 rounded-md hover:bg-muted"
+                          to="/connected_accounts"
+                          onClick={() => setMobileMenuOpen(false)}
+                        >
+                          Connected Accounts
+                        </Link>
+                        <Link
+                          className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150 rounded-md hover:bg-muted"
+                          to="/graphs"
+                          onClick={() => setMobileMenuOpen(false)}
+                        >
+                          Graphs
+                        </Link>
+                        <button
+                          className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150 rounded-md hover:bg-muted text-left cursor-pointer"
+                          onClick={() => {
+                            logout();
+                            setMobileMenuOpen(false);
+                          }}
+                        >
+                          Log Out
+                        </button>
+                      </>
+                    ) : (
+                      <Link
+                        className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150 rounded-md hover:bg-muted"
+                        to="/login"
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        Log In
+                      </Link>
+                    )}
                   </nav>
                 </SheetContent>
               </Sheet>
@@ -169,12 +197,12 @@ export default function App() {
         </Navbar>
 
         <Routes>
-          <Route path="/" element={<LineItemsToReviewPage />} />
-          <Route path="/events" element={<EventsPage />} />
-          <Route path="/line_items" element={<LineItemsPage />} />
-          <Route path="/connected_accounts" element={<ConnectedAccountsPage stripePromise={stripePromise} />} />
-          <Route path="/graphs" element={<GraphsPage />} />
-          <Route path="/login" element={<LoginPage />} />
+          <Route path="/" element={<ProtectedRoute><LineItemsToReviewPage /></ProtectedRoute>} />
+          <Route path="/events" element={<ProtectedRoute><EventsPage /></ProtectedRoute>} />
+          <Route path="/line_items" element={<ProtectedRoute><LineItemsPage /></ProtectedRoute>} />
+          <Route path="/connected_accounts" element={<ProtectedRoute><ConnectedAccountsPage stripePromise={stripePromise} /></ProtectedRoute>} />
+          <Route path="/graphs" element={<ProtectedRoute><GraphsPage /></ProtectedRoute>} />
+          <Route path="/login" element={<PublicOnlyRoute><LoginPage /></PublicOnlyRoute>} />
         </Routes>
       </Router>
     </React.StrictMode>

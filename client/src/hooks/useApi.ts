@@ -32,7 +32,7 @@ export function useEvents(startTime?: number, endTime?: number): UseQueryResult<
   });
 }
 
-export function useLineItems(params?: { reviewed?: boolean; paymentMethod?: string; eventId?: string; onlyLineItemsToReview?: boolean }): UseQueryResult<LineItemInterface[]> {
+export function useLineItems(params?: { reviewed?: boolean; paymentMethod?: string; eventId?: string; onlyLineItemsToReview?: boolean; enabled?: boolean }): UseQueryResult<LineItemInterface[]> {
   return useQuery({
     queryKey: queryKeys.lineItems(params),
     queryFn: async () => {
@@ -54,6 +54,7 @@ export function useLineItems(params?: { reviewed?: boolean; paymentMethod?: stri
       const response = await axiosInstance.get('api/line_items', { params: queryParams });
       return response.data.data as LineItemInterface[];
     },
+    enabled: params?.enabled ?? true,
   });
 }
 

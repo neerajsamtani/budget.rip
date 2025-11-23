@@ -1,6 +1,7 @@
 import React, { createContext, ReactNode, useContext, useEffect, useReducer } from 'react';
 import { useLineItems as useLineItemsQuery } from '../hooks/useApi';
 import { showErrorToast } from '../utils/toast-helpers';
+import { useAuth } from './AuthContext';
 
 // Define TypeScript interfaces for the line item and props
 export interface LineItemInterface {
@@ -61,8 +62,9 @@ function lineItemsReducer(lineItems: LineItemInterface[], action: Action) {
 export function LineItemsProvider({ children }: { children: ReactNode }) {
     const initialLineItems: LineItemInterface[] = []
     const [lineItems, lineItemsDispatch] = useReducer(lineItemsReducer, initialLineItems);
+    const { isAuthenticated } = useAuth();
 
-    const { data: fetchedLineItems, error } = useLineItemsQuery({ onlyLineItemsToReview: true });
+    const { data: fetchedLineItems, error } = useLineItemsQuery({ onlyLineItemsToReview: true, enabled: isAuthenticated });
 
     useEffect(() => {
         if (fetchedLineItems) {

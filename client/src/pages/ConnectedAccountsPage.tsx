@@ -4,15 +4,15 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { Elements } from "@stripe/react-stripe-js";
 import { FinancialConnectionsSession } from "@stripe/stripe-js/types/api";
 import { Stripe } from "@stripe/stripe-js/types/stripe-js";
+import { RefreshCw } from "lucide-react";
 import React, { useState } from "react";
 import { toast } from "sonner";
-import { RefreshCw, Wallet } from "lucide-react";
 import FinancialConnectionsForm from "../components/FinancialConnectionsForm";
 import { PageContainer, PageHeader } from "../components/ui/layout";
 import { StatusBadge } from "../components/ui/status-badge";
 import { Body, H1, H4 } from "../components/ui/typography";
+import { useAccountsAndBalances, useConnectedAccounts, useCreateFinancialConnectionsSession, useRefreshAccount, useRelinkAccount, useSubscribeToAccount } from "../hooks/useApi";
 import { CurrencyFormatter, DateFormatter } from "../utils/formatters";
-import { useConnectedAccounts, useAccountsAndBalances, useCreateFinancialConnectionsSession, useSubscribeToAccount, useRelinkAccount, useRefreshAccount } from "../hooks/useApi";
 
 export default function ConnectedAccountsPage({ stripePromise }: { stripePromise: Promise<Stripe | null> }) {
     const [clientSecret, setClientSecret] = useState("");
@@ -275,9 +275,6 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
         <div className="p-4 border-b last:border-b-0">
             <div className="flex items-start justify-between gap-3">
                 <div className="flex items-start gap-3 min-w-0 flex-1">
-                    <div className="p-2 bg-muted rounded-lg shrink-0">
-                        <Wallet className="h-4 w-4 text-muted-foreground" />
-                    </div>
                     <div className="min-w-0 flex-1">
                         <p className="font-medium text-foreground truncate" title={name}>{name}</p>
                         {(status || balance != null) && (
