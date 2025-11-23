@@ -1,12 +1,12 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ResponsiveDialog, useIsMobile } from "@/components/ui/responsive-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CATEGORIES } from '@/constants/categories';
-import React, { Fragment, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { getPrefillFromLineItems } from '.././data/EventHints';
 import { Body } from "../components/ui/typography";
 import { useLineItems, useLineItemsDispatch } from "../contexts/LineItemsContext";
@@ -116,139 +116,133 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
     });
   }
 
+  const isMobile = useIsMobile();
+
   return (
-    <Fragment>
-      <Dialog open={show} onOpenChange={closeModal}>
-        <DialogContent className={"w-full !max-w-[42rem]"}>
-          <DialogHeader className="pb-4 border-b border-muted -mx-6 px-6">
-            <DialogTitle className="text-foreground">New Event Details</DialogTitle>
-            <DialogDescription className="text-muted-foreground mt-2">
-              Create a financial event from your selected transactions
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-6 -mx-6 px-6">
-            <div className="space-y-3">
-              <Label htmlFor="event-name" className="text-sm font-medium text-foreground">
-                Event Name
-              </Label>
-              <Input
-                id="event-name"
-                type={name.type}
-                value={name.value}
-                onChange={name.onChange}
-                className="w-full !min-w-[350px]"
-                placeholder="Enter a descriptive name for this event"
-              />
-            </div>
+    <ResponsiveDialog open={show} onOpenChange={closeModal} className={isMobile ? "" : "w-full !max-w-[42rem]"}>
+      <div className="flex flex-col gap-2 pb-4 border-b border-muted">
+        <h3 className="text-lg font-semibold text-foreground">New Event Details</h3>
+        <p className="text-muted-foreground text-sm">
+          Create a financial event from your selected transactions
+        </p>
+      </div>
+      <div className="space-y-6 py-4">
+        <div className="space-y-3">
+          <Label htmlFor="event-name" className="text-sm font-medium text-foreground">
+            Event Name
+          </Label>
+          <Input
+            id="event-name"
+            type={name.type}
+            value={name.value}
+            onChange={name.onChange}
+            className="w-full"
+            placeholder="Enter a descriptive name for this event"
+          />
+        </div>
 
-            <div className="space-y-3">
-              {/* TODO: Is it possible to replace this with a CategoryFilter component? */}
-              <Label htmlFor="event-category" className="text-sm font-medium text-foreground">
-                Category
-              </Label>
-              <Select value={category.value} onValueChange={(value) => category.setCustomValue(value)}>
-                <SelectTrigger className="w-full !min-w-[350px]">
-                  <SelectValue placeholder="Select a category" />
-                </SelectTrigger>
-                <SelectContent className="bg-white border">
-                  {CATEGORIES.map(cat => (
-                    <SelectItem key={cat} value={cat}>
-                      {cat}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+        <div className="space-y-3">
+          <Label htmlFor="event-category" className="text-sm font-medium text-foreground">
+            Category
+          </Label>
+          <Select value={category.value} onValueChange={(value) => category.setCustomValue(value)}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select a category" />
+            </SelectTrigger>
+            <SelectContent className="bg-white border">
+              {CATEGORIES.map(cat => (
+                <SelectItem key={cat} value={cat}>
+                  {cat}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-            <div className="space-y-3">
-              {/* TODO: Create a separate component for adding / removing tags */}
-              <Label htmlFor="event-tags" className="text-sm font-medium text-foreground">
-                Tags
-              </Label>
-              <div className="space-y-3">
-                {tags.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {tags.map(tag => (
-                      <Badge
-                        key={tag.id}
-                        className="bg-primary text-white hover:bg-primary-dark flex items-center gap-1 px-3 py-1">
-                        {tag.text}
-                        <span
-                          onClick={() => removeTag(tag.id)}
-                          className="ml-1 cursor-pointer hover:text-red-300 font-bold"
-                        >
-                          ×
-                        </span>
-                      </Badge>
-                    ))}
-                  </div>
-                )}
-                <Input
-                  id="event-tags"
-                  type="text"
-                  value={tagInput}
-                  onChange={(e) => setTagInput(e.target.value)}
-                  onKeyDown={handleTagInputKeyDown}
-                  placeholder="Type a tag and press Enter to add"
-                  className="w-full !min-w-[350px]"
-                />
+        <div className="space-y-3">
+          <Label htmlFor="event-tags" className="text-sm font-medium text-foreground">
+            Tags
+          </Label>
+          <div className="space-y-3">
+            {tags.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {tags.map(tag => (
+                  <Badge
+                    key={tag.id}
+                    className="bg-primary text-white hover:bg-primary-dark flex items-center gap-1 px-3 py-1">
+                    {tag.text}
+                    <span
+                      onClick={() => removeTag(tag.id)}
+                      className="ml-1 cursor-pointer hover:text-red-300 font-bold"
+                    >
+                      ×
+                    </span>
+                  </Badge>
+                ))}
               </div>
-            </div>
-
-            <div className="space-y-3">
-              <Label htmlFor="override-date-input" className="text-sm font-medium text-foreground">
-                Override Date (optional)
-              </Label>
-              <Input
-                id="override-date-input"
-                type={date.type}
-                value={date.value}
-                onChange={date.onChange}
-                className="w-full !min-w-[350px]"
-              />
-            </div>
-
-            <div className="flex items-center space-x-3 p-4 bg-muted rounded-lg">
-              <Checkbox
-                id="duplicate-transaction"
-                checked={isDuplicateTransaction.value}
-                onCheckedChange={() => isDuplicateTransaction.setCustomValue(!isDuplicateTransaction.value)}
-                className="border-primary data-[state=checked]:bg-primary"
-              />
-              <div className="space-y-1">
-                <Label htmlFor="duplicate-transaction" className="text-sm font-medium text-foreground cursor-pointer">
-                  Duplicate Transaction
-                </Label>
-                <Body className="text-muted-foreground text-xs">
-                  Check this if the transaction amount is double what it should be
-                </Body>
-              </div>
-            </div>
+            )}
+            <Input
+              id="event-tags"
+              type="text"
+              value={tagInput}
+              onChange={(e) => setTagInput(e.target.value)}
+              onKeyDown={handleTagInputKeyDown}
+              placeholder="Type a tag and press Enter to add"
+              className="w-full"
+            />
           </div>
+        </div>
 
-          <DialogFooter className="pt-4 border-t border-muted -mx-6 px-6">
-            <div className="flex items-center justify-between w-full">
-              <div className="bg-muted px-4 py-2 rounded-lg">
-                <Body className="text-sm font-medium text-foreground">
-                  Total: <span className="text-primary font-semibold">{CurrencyFormatter.format(total)}</span>
-                </Body>
-              </div>
-              <div className="flex space-x-3">
-                <Button onClick={closeModal} variant="secondary" className="min-w-[100px]">
-                  Cancel
-                </Button>
-                <Button
-                  onClick={() => createEvent(name, category)}
-                  disabled={disableSubmit}
-                  className="min-w-[100px]"
-                >
-                  Create Event
-                </Button>
-              </div>
-            </div>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </Fragment >
+        <div className="space-y-3">
+          <Label htmlFor="override-date-input" className="text-sm font-medium text-foreground">
+            Override Date (optional)
+          </Label>
+          <Input
+            id="override-date-input"
+            type={date.type}
+            value={date.value}
+            onChange={date.onChange}
+            className="w-full"
+          />
+        </div>
+
+        <div className="flex items-center space-x-3 p-4 bg-muted rounded-lg">
+          <Checkbox
+            id="duplicate-transaction"
+            checked={isDuplicateTransaction.value}
+            onCheckedChange={() => isDuplicateTransaction.setCustomValue(!isDuplicateTransaction.value)}
+            className="border-primary data-[state=checked]:bg-primary"
+          />
+          <div className="space-y-1">
+            <Label htmlFor="duplicate-transaction" className="text-sm font-medium text-foreground cursor-pointer">
+              Duplicate Transaction
+            </Label>
+            <Body className="text-muted-foreground text-xs">
+              Check this if the transaction amount is double what it should be
+            </Body>
+          </div>
+        </div>
+      </div>
+
+      <div className={`flex pt-4 border-t border-muted ${isMobile ? "flex-col gap-3" : "items-center justify-between"}`}>
+        <div className="bg-muted px-4 py-2 rounded-lg">
+          <Body className="text-sm font-medium text-foreground">
+            Total: <span className="text-primary font-semibold">{CurrencyFormatter.format(total)}</span>
+          </Body>
+        </div>
+        <div className={`flex gap-3 ${isMobile ? "flex-col" : ""}`}>
+          <Button onClick={closeModal} variant="secondary" className={isMobile ? "w-full" : "min-w-[100px]"}>
+            Cancel
+          </Button>
+          <Button
+            onClick={() => createEvent(name, category)}
+            disabled={disableSubmit}
+            className={isMobile ? "w-full" : "min-w-[100px]"}
+          >
+            Create Event
+          </Button>
+        </div>
+      </div>
+    </ResponsiveDialog>
   );
 }

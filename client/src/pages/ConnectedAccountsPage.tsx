@@ -6,7 +6,7 @@ import { FinancialConnectionsSession } from "@stripe/stripe-js/types/api";
 import { Stripe } from "@stripe/stripe-js/types/stripe-js";
 import React, { useState } from "react";
 import { toast } from "sonner";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, Wallet } from "lucide-react";
 import FinancialConnectionsForm from "../components/FinancialConnectionsForm";
 import { PageContainer, PageHeader } from "../components/ui/layout";
 import { StatusBadge } from "../components/ui/status-badge";
@@ -260,6 +260,136 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
         )
     }
 
+    // Mobile card component for connected accounts
+    const AccountCard = ({ name, id, status, balance, lastUpdated, onRefresh, onRelink, isRefreshing, canRelink }: {
+        name: string;
+        id: string;
+        status?: 'active' | 'inactive';
+        balance?: number | null;
+        lastUpdated?: string | null;
+        onRefresh?: () => void;
+        onRelink?: () => void;
+        isRefreshing?: boolean;
+        canRelink?: boolean;
+    }) => (
+        <div className="p-4 border-b last:border-b-0">
+            <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-3 min-w-0 flex-1">
+                    <div className="p-2 bg-muted rounded-lg shrink-0">
+                        <Wallet className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                        <p className="font-medium text-foreground truncate" title={name}>{name}</p>
+                        {(status || balance != null) && (
+                            <div className="flex flex-wrap items-center gap-2 mt-1">
+                                {status === 'inactive' && canRelink ? (
+                                    <Button onClick={onRelink} variant="secondary" size="sm">Reactivate</Button>
+                                ) : status && (
+                                    <span className="text-sm text-muted-foreground capitalize">{status}</span>
+                                )}
+                                {balance != null && (
+                                    <StatusBadge status={balance >= 0 ? 'success' : 'error'}>
+                                        {CurrencyFormatter.format(balance)}
+                                    </StatusBadge>
+                                )}
+                            </div>
+                        )}
+                        {lastUpdated && (
+                            <p className="text-xs text-muted-foreground mt-1">{lastUpdated}</p>
+                        )}
+                    </div>
+                </div>
+                {onRefresh && (
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={onRefresh}
+                        disabled={isRefreshing || status === 'inactive'}
+                        className="shrink-0"
+                    >
+                        <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                    </Button>
+                )}
+            </div>
+        </div>
+    );
+
+    const renderConnectedAccountCards = (connectedAccount) => {
+        if (connectedAccount.venmo) {
+            return connectedAccount.venmo.map((venmoUser, index) => {
+                const accountKey = `venmo-${venmoUser}`;
+                return (
+                    <AccountCard
+                        key={`${accountKey}-${index}`}
+                        name={`Venmo - ${venmoUser}`}
+                        id={accountKey}
+                        onRefresh={() => refreshAccount(accountKey, 'venmo')}
+                        isRefreshing={refreshingAccountId === accountKey}
+                    />
+                );
+            });
+        }
+
+        if (connectedAccount.splitwise) {
+            return connectedAccount.splitwise.map((splitwiseUser, index) => {
+                const accountKey = `splitwise-${splitwiseUser}`;
+                return (
+                    <AccountCard
+                        key={`${accountKey}-${index}`}
+                        name={`Splitwise - ${splitwiseUser}`}
+                        id={accountKey}
+                        onRefresh={() => refreshAccount(accountKey, 'splitwise')}
+                        isRefreshing={refreshingAccountId === accountKey}
+                    />
+                );
+            });
+        }
+
+        if (connectedAccount.stripe) {
+            return connectedAccount.stripe
+                .filter((stripeAccount) => {
+                    const { status } = stripeAccount;
+                    const canRelink = accountsAndBalances[stripeAccount.id]?.can_relink ?? false;
+                    return status === 'active' || (status === 'inactive' && canRelink);
+                })
+                .map((stripeAccount) => {
+                    const { institution_name, display_name, last4, id, status } = stripeAccount;
+                    const canRelink = accountsAndBalances[id]?.can_relink ?? false;
+                    return (
+                        <AccountCard
+                            key={`stripe-${id}`}
+                            name={`${institution_name} ${display_name} ${last4}`}
+                            id={id}
+                            status={status}
+                            balance={accountsAndBalances[id]?.balance}
+                            lastUpdated={accountsAndBalances[id]?.as_of ? formatDate(accountsAndBalances[id]["as_of"]) : null}
+                            onRefresh={() => refreshAccount(id, 'stripe')}
+                            onRelink={() => relinkAccount(id)}
+                            isRefreshing={refreshingAccountId === id}
+                            canRelink={canRelink}
+                        />
+                    );
+                });
+        }
+
+        return null;
+    };
+
+    const renderInactiveAccountCard = (stripeAccount) => {
+        const canRelink = accountsAndBalances[stripeAccount.id]?.can_relink ?? false;
+        return (
+            <AccountCard
+                key={stripeAccount.id}
+                name={`${stripeAccount.institution_name} ${stripeAccount.display_name} ${stripeAccount.last4}`}
+                id={stripeAccount.id}
+                status="inactive"
+                lastUpdated={accountsAndBalances[stripeAccount.id]?.as_of ? formatDate(accountsAndBalances[stripeAccount.id]["as_of"]) : null}
+                onRelink={canRelink ? () => relinkAccount(stripeAccount.id) : undefined}
+                canRelink={canRelink}
+            />
+        );
+    };
+
     return (
         <PageContainer>
             <PageHeader>
@@ -307,28 +437,44 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
                 </div>
 
                 <div className="space-y-6">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Connected Accounts</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead>Balance</TableHead>
-                                <TableHead>Last Updated</TableHead>
-                                <TableHead>Refresh</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {connectedAccounts.length > 0 ? (
-                                connectedAccounts.flatMap(renderConnectedAccount)
-                            ) : (
+                    {/* Mobile card layout */}
+                    <div className="md:hidden">
+                        {connectedAccounts.length > 0 ? (
+                            <div className="rounded-xl bg-white shadow-sm border overflow-hidden">
+                                {connectedAccounts.flatMap(renderConnectedAccountCards)}
+                            </div>
+                        ) : (
+                            <Body className="text-center text-muted-foreground py-4">
+                                No connected accounts found
+                            </Body>
+                        )}
+                    </div>
+
+                    {/* Desktop table layout */}
+                    <div className="hidden md:block">
+                        <Table>
+                            <TableHeader>
                                 <TableRow>
-                                    <TableCell colSpan={5} className="text-center text-muted-foreground">
-                                        No connected accounts found
-                                    </TableCell>
+                                    <TableHead>Connected Accounts</TableHead>
+                                    <TableHead>Status</TableHead>
+                                    <TableHead>Balance</TableHead>
+                                    <TableHead>Last Updated</TableHead>
+                                    <TableHead>Refresh</TableHead>
                                 </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
+                            </TableHeader>
+                            <TableBody>
+                                {connectedAccounts.length > 0 ? (
+                                    connectedAccounts.flatMap(renderConnectedAccount)
+                                ) : (
+                                    <TableRow>
+                                        <TableCell colSpan={5} className="text-center text-muted-foreground">
+                                            No connected accounts found
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
 
                     <div className="bg-muted rounded-lg p-4 md:p-6">
                         <H4>Net Worth: <StatusBadge status={netWorth >= 0 ? 'success' : 'error'}>{CurrencyFormatter.format(netWorth)}</StatusBadge></H4>
@@ -336,26 +482,43 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
 
                     <div className="space-y-4">
                         <H4>Inactive Accounts</H4>
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Connected Accounts</TableHead>
-                                    <TableHead>Reactivate</TableHead>
-                                    <TableHead>Last Updated</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {connectedAccounts.length > 0 ? (
-                                    connectedAccounts.find(account => account.stripe)?.stripe.filter(account => account.status === "inactive").flatMap(renderStripeAccount)
-                                ) : (
+
+                        {/* Mobile card layout */}
+                        <div className="md:hidden">
+                            {connectedAccounts.find(account => account.stripe)?.stripe.filter(account => account.status === "inactive").length > 0 ? (
+                                <div className="rounded-xl bg-white shadow-sm border overflow-hidden">
+                                    {connectedAccounts.find(account => account.stripe)?.stripe.filter(account => account.status === "inactive").map(renderInactiveAccountCard)}
+                                </div>
+                            ) : (
+                                <Body className="text-center text-muted-foreground py-4">
+                                    No inactive accounts
+                                </Body>
+                            )}
+                        </div>
+
+                        {/* Desktop table layout */}
+                        <div className="hidden md:block">
+                            <Table>
+                                <TableHeader>
                                     <TableRow>
-                                        <TableCell colSpan={3} className="text-center text-muted-foreground">
-                                            No inactive connected accounts found
-                                        </TableCell>
+                                        <TableHead>Connected Accounts</TableHead>
+                                        <TableHead>Reactivate</TableHead>
+                                        <TableHead>Last Updated</TableHead>
                                     </TableRow>
-                                )}
-                            </TableBody>
-                        </Table>
+                                </TableHeader>
+                                <TableBody>
+                                    {connectedAccounts.length > 0 ? (
+                                        connectedAccounts.find(account => account.stripe)?.stripe.filter(account => account.status === "inactive").flatMap(renderStripeAccount)
+                                    ) : (
+                                        <TableRow>
+                                            <TableCell colSpan={3} className="text-center text-muted-foreground">
+                                                No inactive connected accounts found
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </div>
                     </div>
                 </div>
             </div>

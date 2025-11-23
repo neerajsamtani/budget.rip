@@ -109,17 +109,18 @@ describe('ConnectedAccountsPage', () => {
         it('displays venmo and splitwise accounts', async () => {
             render(<ConnectedAccountsPage stripePromise={mockStripePromise} />);
             await waitFor(() => {
-                expect(screen.getByText(/Venmo - user1/)).toBeInTheDocument();
-                expect(screen.getByText(/Splitwise - swuser1/)).toBeInTheDocument();
+                // Mobile and desktop layouts both render
+                expect(screen.getAllByText(/Venmo - user1/).length).toBeGreaterThan(0);
+                expect(screen.getAllByText(/Splitwise - swuser1/).length).toBeGreaterThan(0);
             });
         });
 
         it('displays stripe accounts with status and balance', async () => {
             render(<ConnectedAccountsPage stripePromise={mockStripePromise} />);
             await waitFor(() => {
-                expect(screen.getByText(/Bank Checking 1234/)).toBeInTheDocument();
-                expect(screen.getByText('Active')).toBeInTheDocument();
-                // Check for balance amount within the table context
+                // Mobile and desktop layouts both render
+                expect(screen.getAllByText(/Bank Checking 1234/).length).toBeGreaterThan(0);
+                expect(screen.getAllByText('Active').length).toBeGreaterThan(0);
                 const balanceCells = screen.getAllByText('$1,000.00');
                 expect(balanceCells.length).toBeGreaterThanOrEqual(1);
             });
@@ -133,7 +134,8 @@ describe('ConnectedAccountsPage', () => {
             });
             render(<ConnectedAccountsPage stripePromise={mockStripePromise} />);
             await waitFor(() => {
-                expect(screen.getByText(/No connected accounts found/)).toBeInTheDocument();
+                // Mobile and desktop both show empty state message
+                expect(screen.getAllByText(/No connected accounts found/).length).toBeGreaterThan(0);
             });
         });
 
@@ -164,10 +166,11 @@ describe('ConnectedAccountsPage', () => {
 
             render(<ConnectedAccountsPage stripePromise={mockStripePromise} />);
             await waitFor(() => {
-                expect(screen.getByText(/NewBank Checking 9999/)).toBeInTheDocument();
-                // Should show em dash (—) instead of $0.00 or Jan 1, 1970
+                // Mobile and desktop layouts both render
+                expect(screen.getAllByText(/NewBank Checking 9999/).length).toBeGreaterThan(0);
+                // Should show em dash (—) in desktop table
                 const emDashes = screen.getAllByText('—');
-                expect(emDashes.length).toBeGreaterThanOrEqual(2); // One for balance, one for date
+                expect(emDashes.length).toBeGreaterThanOrEqual(2);
             });
         });
     });
@@ -202,9 +205,10 @@ describe('ConnectedAccountsPage', () => {
             render(<ConnectedAccountsPage stripePromise={mockStripePromise} />);
 
             await waitFor(() => {
-                expect(screen.getByText(/Bank Checking 1234/)).toBeInTheDocument();
+                expect(screen.getAllByText(/Bank Checking 1234/).length).toBeGreaterThan(0);
             });
 
+            // Find refresh button in the desktop table row
             const refreshButtons = screen.getAllByRole('button');
             const stripeRefreshBtn = refreshButtons.find(btn =>
                 btn.querySelector('svg') &&
@@ -239,9 +243,10 @@ describe('ConnectedAccountsPage', () => {
             render(<ConnectedAccountsPage stripePromise={mockStripePromise} />);
 
             await waitFor(() => {
-                expect(screen.getByText(/Venmo - user1/)).toBeInTheDocument();
+                expect(screen.getAllByText(/Venmo - user1/).length).toBeGreaterThan(0);
             });
 
+            // Find refresh button in the desktop table row
             const refreshButtons = screen.getAllByRole('button');
             const venmoRefreshBtn = refreshButtons.find(btn =>
                 btn.querySelector('svg') &&
@@ -274,9 +279,10 @@ describe('ConnectedAccountsPage', () => {
             render(<ConnectedAccountsPage stripePromise={mockStripePromise} />);
 
             await waitFor(() => {
-                expect(screen.getByText(/Bank Checking 1234/)).toBeInTheDocument();
+                expect(screen.getAllByText(/Bank Checking 1234/).length).toBeGreaterThan(0);
             });
 
+            // Find refresh button in the desktop table row
             const refreshButtons = screen.getAllByRole('button');
             const stripeRefreshBtn = refreshButtons.find(btn =>
                 btn.querySelector('svg') &&
