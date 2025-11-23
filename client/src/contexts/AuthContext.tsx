@@ -21,18 +21,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async (email: string, password: string) => {
     await loginMutation.mutateAsync({ email, password });
-    // Refetch current user after successful login
-    await queryClient.invalidateQueries({ queryKey: authQueryKeys.currentUser });
+    // Invalidate all queries to ensure fresh data for the new session
+    await queryClient.invalidateQueries();
   }, [loginMutation, queryClient]);
 
   const logout = useCallback(async () => {
     await logoutMutation.mutateAsync();
-    // Set user to null immediately
+    // Clear user data - ProtectedRoute will handle redirect
+    // We don't clear other queries here to avoid refetch issues;
+    // they'll be invalidated on next login anyway
     queryClient.setQueryData(authQueryKeys.currentUser, null);
-    // Remove all other cached queries (line items, events, etc.) but keep currentUser
-    queryClient.removeQueries({
-      predicate: (query) => query.queryKey[0] !== 'currentUser',
-    });
   }, [logoutMutation, queryClient]);
 
   const value: AuthContextType = {

@@ -61,7 +61,11 @@ export default function App() {
         <Navbar className="bg-white shadow-sm border-b">
           <div className="container mx-auto flex justify-between items-center px-4 md:px-6 h-16">
             <NavbarBrand className="text-foreground font-heading font-semibold text-lg">
-              Budgit
+              <Link
+                to="/"
+              >
+                Budgit
+              </Link>
             </NavbarBrand>
 
             {/* Desktop Navigation */}
@@ -98,18 +102,19 @@ export default function App() {
                   >
                     Graphs
                   </Link>
+                  <button
+                    className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150 cursor-pointer"
+                    onClick={() => logout()}
+                  >
+                    Log Out
+                  </button>
                 </div>
               )}
 
               {isAuthenticated && (
-                <>
-                  <Button onClick={() => logout()} variant="ghost" size="sm">
-                    Log Out
-                  </Button>
-                  <Button onClick={handleRefreshData} variant="default" size="sm" disabled={refreshMutation.isPending}>
-                    {refreshMutation.isPending ? <Spinner size="sm" /> : "Refresh Data"}
-                  </Button>
-                </>
+                <Button onClick={handleRefreshData} variant="default" size="sm" disabled={refreshMutation.isPending}>
+                  {refreshMutation.isPending ? <Spinner size="sm" /> : "Refresh Data"}
+                </Button>
               )}
             </div>
 
@@ -165,16 +170,15 @@ export default function App() {
                         >
                           Graphs
                         </Link>
-                        <Button
+                        <button
+                          className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150 rounded-md hover:bg-muted text-left cursor-pointer"
                           onClick={() => {
                             logout();
                             setMobileMenuOpen(false);
                           }}
-                          variant="outline"
-                          className="mt-4"
                         >
                           Log Out
-                        </Button>
+                        </button>
                       </>
                     ) : (
                       <Link

@@ -5,8 +5,8 @@ import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { PageContainer, PageHeader } from "../components/ui/layout";
 import { Body, H1 } from "../components/ui/typography";
-import { FormField, useField } from '../hooks/useField';
 import { useAuth } from '../contexts/AuthContext';
+import { FormField, useField } from '../hooks/useField';
 
 export default function LoginPage() {
     const email = useField("text", "" as string)
@@ -51,14 +51,14 @@ export default function LoginPage() {
 
     return (
         <PageContainer>
-            <PageHeader>
-                <H1>Login</H1>
-                <Body className="text-muted-foreground">
-                    Sign in to access your budgeting dashboard
-                </Body>
-            </PageHeader>
 
             <div className="w-full !max-w-[28rem] mx-auto">
+                <PageHeader>
+                    <H1>Login</H1>
+                    <Body className="text-muted-foreground">
+                        Sign in to access your budgeting dashboard
+                    </Body>
+                </PageHeader>
                 <div className="bg-white rounded-xl border p-8 shadow-sm">
                     <div className="space-y-6">
                         <div className="space-y-3">
