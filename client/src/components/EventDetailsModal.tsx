@@ -1,8 +1,8 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogFooter, DialogHeader } from "@/components/ui/dialog";
+import { ResponsiveDialog, ResponsiveDialogFooter, ResponsiveDialogHeader, useIsMobile } from "@/components/ui/responsive-dialog";
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import React, { Fragment } from 'react';
+import React from 'react';
 import { Body, H3 } from "../components/ui/typography";
 import { LineItemInterface } from '../contexts/LineItemsContext';
 import { showSuccessToast, showErrorToast } from '../utils/toast-helpers';
@@ -14,6 +14,7 @@ export default function EventDetailsModal({ show, event, lineItemsForEvent, onHi
   { show: boolean, event: EventInterface, lineItemsForEvent: LineItemInterface[], onHide: () => void }) {
 
   const deleteEventMutation = useDeleteEvent();
+  const isMobile = useIsMobile();
 
   const deleteEvent = () => {
     deleteEventMutation.mutate(event.id, {
@@ -28,72 +29,68 @@ export default function EventDetailsModal({ show, event, lineItemsForEvent, onHi
   }
 
   return (
-    <Fragment>
-      <Dialog open={show} onOpenChange={onHide}>
-        <DialogContent className={"w-full !max-w-[56rem]"}>
-          <DialogHeader className="pb-4 border-b border-muted -mx-6 px-6">
-            <H3 className="text-foreground">{event.name}</H3>
-            <Body className="text-muted-foreground mt-2">
-              Category: <span className="font-medium text-primary">{event.category}</span>
-            </Body>
-          </DialogHeader>
-          <div className="space-y-6 -mx-6 px-6">
-            {/* Mobile card layout */}
-            <div className="md:hidden rounded-xl bg-white shadow-sm border overflow-hidden">
-              {lineItemsForEvent.map(lineItem => (
-                <LineItemCard
-                  key={lineItem.id}
-                  lineItem={lineItem}
-                  showCheckBox={false}
-                  isChecked={false}
-                  handleToggle={() => {}}
-                  amountStatus={lineItem.amount < 0 ? 'success' : 'warning'}
-                />
+    <ResponsiveDialog open={show} onOpenChange={onHide} className={isMobile ? "" : "w-full !max-w-[56rem]"}>
+      <ResponsiveDialogHeader className="pb-4 border-b border-muted">
+        <H3 className="text-foreground">{event.name}</H3>
+        <Body className="text-muted-foreground mt-2">
+          Category: <span className="font-medium text-primary">{event.category}</span>
+        </Body>
+      </ResponsiveDialogHeader>
+      <div className="space-y-6">
+        {isMobile ? (
+          <div className="rounded-xl bg-muted/50 border overflow-hidden">
+            {lineItemsForEvent.map(lineItem => (
+              <LineItemCard
+                key={lineItem.id}
+                lineItem={lineItem}
+                showCheckBox={false}
+                isChecked={false}
+                handleToggle={() => {}}
+                amountStatus={lineItem.amount < 0 ? 'success' : 'warning'}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Payment Method</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Amount</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {lineItemsForEvent.map(lineItem =>
+                  <LineItem key={lineItem.id} lineItem={lineItem} />
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+        {event.tags && event.tags.length > 0 && (
+          <div className="flex items-center gap-3">
+            <Body className="font-medium text-foreground">Tags:</Body>
+            <div className="flex flex-wrap gap-2">
+              {event.tags.map((tag, index) => (
+                <Badge key={index} className="bg-primary text-white px-3 py-1">
+                  {tag}
+                </Badge>
               ))}
             </div>
-
-            {/* Desktop table layout */}
-            <div className="hidden md:block overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Payment Method</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Amount</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {lineItemsForEvent.map(lineItem =>
-                    <LineItem key={lineItem.id} lineItem={lineItem} />
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-            {event.tags && event.tags.length > 0 && (
-              <div className="flex items-center gap-3">
-                <Body className="font-medium text-foreground">Tags:</Body>
-                <div className="flex flex-wrap gap-2">
-                  {event.tags.map((tag, index) => (
-                    <Badge key={index} className="bg-primary text-white px-3 py-1">
-                      {tag}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
-          <DialogFooter className="pt-4 border-t border-muted gap-3 -mx-6 px-6">
-            <Button onClick={onHide} variant="secondary" className="min-w-[100px]">
-              Close
-            </Button>
-            <Button onClick={deleteEvent} variant="destructive" className="min-w-[100px]">
-              Delete Event
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </Fragment>
+        )}
+      </div>
+      <ResponsiveDialogFooter className="pt-4 border-t border-muted gap-3">
+        <Button onClick={onHide} variant="secondary" className="min-w-[100px]">
+          Close
+        </Button>
+        <Button onClick={deleteEvent} variant="destructive" className="min-w-[100px]">
+          Delete Event
+        </Button>
+      </ResponsiveDialogFooter>
+    </ResponsiveDialog>
   );
 }
