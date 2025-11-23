@@ -36,7 +36,7 @@ export default function App() {
   const lineItemsDispatch = useLineItemsDispatch();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const refreshMutation = useRefreshAllData();
-  const { isAuthenticated, logout, isLoading } = useAuth();
+  const { isAuthenticated, logout } = useAuth();
 
   const handleRefreshData = () => {
     refreshMutation.mutate(undefined, {
@@ -127,7 +127,7 @@ export default function App() {
               )}
               <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
                 <SheetTrigger asChild>
-                  <Button variant="outline" size="sm" aria-label="Open navigation menu">
+                  <Button variant="ghost" size="sm" aria-label="Open navigation menu">
                     <MenuIcon className="h-5 w-5" />
                   </Button>
                 </SheetTrigger>

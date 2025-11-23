@@ -1,17 +1,18 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ResponsiveDialog, useIsMobile } from "@/components/ui/responsive-dialog";
-import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import React from 'react';
 import { Body, H3 } from "../components/ui/typography";
 import { LineItemInterface } from '../contexts/LineItemsContext';
-import { showSuccessToast, showErrorToast } from '../utils/toast-helpers';
+import { useDeleteEvent } from '../hooks/useApi';
+import { showErrorToast, showSuccessToast } from '../utils/toast-helpers';
 import { EventInterface } from './Event';
 import LineItem, { LineItemCard } from './LineItem';
-import { useDeleteEvent } from '../hooks/useApi';
+import { Spinner } from "./ui/spinner";
 
-export default function EventDetailsModal({ show, event, lineItemsForEvent, onHide }:
-  { show: boolean, event: EventInterface, lineItemsForEvent: LineItemInterface[], onHide: () => void }) {
+export default function EventDetailsModal({ show, event, lineItemsForEvent, isLoadingLineItemsForEvent, onHide }:
+  { show: boolean, event: EventInterface, lineItemsForEvent: LineItemInterface[], isLoadingLineItemsForEvent: boolean, onHide: () => void }) {
 
   const deleteEventMutation = useDeleteEvent();
   const isMobile = useIsMobile();
@@ -39,13 +40,15 @@ export default function EventDetailsModal({ show, event, lineItemsForEvent, onHi
       <div className="space-y-6 py-4">
         {isMobile ? (
           <div className="rounded-xl bg-muted/50 border overflow-hidden">
-            {lineItemsForEvent.map(lineItem => (
+            {isLoadingLineItemsForEvent ? (<div className="flex justify-center items-center p-4">
+              <Spinner size="sm" />
+            </div>) : lineItemsForEvent.map(lineItem => (
               <LineItemCard
                 key={lineItem.id}
                 lineItem={lineItem}
                 showCheckBox={false}
                 isChecked={false}
-                handleToggle={() => {}}
+                handleToggle={() => { }}
                 amountStatus={lineItem.amount < 0 ? 'success' : 'warning'}
               />
             ))}
@@ -63,7 +66,15 @@ export default function EventDetailsModal({ show, event, lineItemsForEvent, onHi
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {lineItemsForEvent.map(lineItem =>
+                {isLoadingLineItemsForEvent ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="p-8 text-center">
+                      <div className="flex justify-center items-center w-full">
+                        <Spinner size="sm" />
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : lineItemsForEvent.map(lineItem =>
                   <LineItem key={lineItem.id} lineItem={lineItem} />
                 )}
               </TableBody>

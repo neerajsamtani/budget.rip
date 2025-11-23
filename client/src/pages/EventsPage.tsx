@@ -114,9 +114,7 @@ export default function EventsPage() {
                         <CategoryFilter category={category as Category} setCategory={setCategory} />
                         <MonthFilter month={month} setMonth={setMonth} />
                         <YearFilter year={year as Year} setYear={setYear} />
-                        <div className="col-span-2 md:col-span-1">
-                            <TagsFilter tagFilter={tagFilter} setTagFilter={setTagFilter} />
-                        </div>
+                        <TagsFilter tagFilter={tagFilter} setTagFilter={setTagFilter} />
                     </div>
                 </div>
 

@@ -1,12 +1,12 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TableCell } from "@/components/ui/table";
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { StatusBadge } from "../components/ui/status-badge";
-import { CurrencyFormatter, DateFormatter } from "../utils/formatters";
-import EventDetailsModal from "./EventDetailsModal";
 import { useEventLineItems } from "../hooks/useApi";
+import { CurrencyFormatter, DateFormatter } from "../utils/formatters";
 import { showErrorToast } from "../utils/toast-helpers";
+import EventDetailsModal from "./EventDetailsModal";
 
 export interface EventInterface {
     _id: string;
@@ -22,7 +22,7 @@ export interface EventInterface {
 function useEventDetails(eventId: string) {
     const [modalShow, setModalShow] = useState(false);
     const [shouldFetch, setShouldFetch] = useState(false);
-    const { data: lineItems = [], error } = useEventLineItems(shouldFetch ? eventId : '');
+    const { data: lineItems = [], error, isLoading: isLoadingLineItemsForEvent } = useEventLineItems(shouldFetch ? eventId : '');
 
     useEffect(() => {
         if (error) showErrorToast(error);
@@ -33,12 +33,12 @@ function useEventDetails(eventId: string) {
         setModalShow(true);
     };
 
-    return { modalShow, lineItems, show, hide: () => setModalShow(false) };
+    return { modalShow, lineItems, isLoadingLineItemsForEvent, show, hide: () => setModalShow(false) };
 }
 
 export function EventCard({ event }: { event: EventInterface }) {
     const readableDate = DateFormatter.format(event.date * 1000);
-    const { modalShow, lineItems, show, hide } = useEventDetails(event.id);
+    const { modalShow, lineItems, isLoadingLineItemsForEvent, show, hide } = useEventDetails(event.id);
     const amountStatus = event.amount > 0 ? 'warning' : 'success';
 
     return (
@@ -63,14 +63,14 @@ export function EventCard({ event }: { event: EventInterface }) {
                     <span className="text-xs text-muted-foreground">+{event.tags.length - 2} more</span>
                 )}
             </div>
-            <EventDetailsModal show={modalShow} event={event} lineItemsForEvent={lineItems} onHide={hide} />
+            <EventDetailsModal show={modalShow} event={event} lineItemsForEvent={lineItems} isLoadingLineItemsForEvent={isLoadingLineItemsForEvent} onHide={hide} />
         </div>
     );
 }
 
 export default function Event({ event }: { event: EventInterface }) {
     const readableDate = DateFormatter.format(event.date * 1000);
-    const { modalShow, lineItems, show, hide } = useEventDetails(event.id);
+    const { modalShow, lineItems, isLoadingLineItemsForEvent, show, hide } = useEventDetails(event.id);
     const amountStatus = event.amount > 0 ? 'warning' : 'success';
 
     return (
@@ -104,7 +104,7 @@ export default function Event({ event }: { event: EventInterface }) {
                 <Button onClick={show} variant="secondary" size="sm" className="text-xs">
                     View Details
                 </Button>
-                <EventDetailsModal show={modalShow} event={event} lineItemsForEvent={lineItems} onHide={hide} />
+                <EventDetailsModal show={modalShow} event={event} lineItemsForEvent={lineItems} isLoadingLineItemsForEvent={isLoadingLineItemsForEvent} onHide={hide} />
             </TableCell>
         </>
     )
