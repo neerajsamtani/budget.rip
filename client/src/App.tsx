@@ -131,7 +131,7 @@ export default function App() {
                     <MenuIcon className="h-5 w-5" />
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="right" className="w-[250px] sm:w-[300px]">
+                <SheetContent side="right" className="!w-[250px] sm:!w-[300px] !max-w-none">
                   <nav className="flex flex-col gap-4">
                     {isAuthenticated ? (
                       <>
