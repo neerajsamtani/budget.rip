@@ -341,9 +341,11 @@ describe('GraphsPage', () => {
             // Don't resolve the promise immediately
             mockAxiosInstance.get.mockImplementation(() => new Promise(() => { }));
 
-            render(<GraphsPage />);
+            const { container } = render(<GraphsPage />);
 
-            expect(screen.getByText(/Loading data.../i)).toBeInTheDocument();
+            // Check for spinner (loading indicator)
+            const spinner = container.querySelector('.animate-spin');
+            expect(spinner).toBeInTheDocument();
         });
 
         it('updates plot when data loads', async () => {

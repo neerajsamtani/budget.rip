@@ -20,7 +20,7 @@ jest.mock('sonner', () => {
 
 // Test component to use the context
 const TestComponent = () => {
-    const lineItems = useLineItems();
+    const { lineItems, isLoading } = useLineItems();
     const dispatch = useLineItemsDispatch();
 
     const handleToggle = () => {
@@ -40,6 +40,7 @@ const TestComponent = () => {
     return (
         <div>
             <div data-testid="line-items-count">{lineItems.length}</div>
+            <div data-testid="is-loading">{isLoading ? 'loading' : 'not loading'}</div>
             <div data-testid="line-items-list">
                 {lineItems.map(item => (
                     <div key={item.id} data-testid={`line-item-${item.id}`}>

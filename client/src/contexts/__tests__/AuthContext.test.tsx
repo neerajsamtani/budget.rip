@@ -1,3 +1,4 @@
+import { Spinner } from '@/components/ui/spinner';
 import { act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
@@ -38,7 +39,7 @@ const TestComponent = () => {
     };
 
     if (isLoading) {
-        return <div data-testid="loading">Loading...</div>;
+        return <div data-testid="loading"><Spinner size="lg" /></div>;
     }
 
     return (
@@ -174,7 +175,7 @@ describe('AuthContext', () => {
     describe('useAuth hook', () => {
         it('throws error when used outside AuthProvider', () => {
             // Suppress console.error for this test
-            const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+            const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
 
             expect(() => {
                 render(<TestComponent />);

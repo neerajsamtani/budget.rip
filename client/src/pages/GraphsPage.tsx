@@ -1,19 +1,11 @@
-import React, { lazy, Suspense, useState, useEffect } from "react";
+import { Spinner } from "@/components/ui/spinner";
+import React, { lazy, Suspense, useEffect, useState } from "react";
 import { PageContainer, PageHeader } from "../components/ui/layout";
 import { Body, H1 } from "../components/ui/typography";
-import { chartColorSequence } from '../lib/chart-colors';
 import { useMonthlyBreakdown } from "../hooks/useApi";
+import { chartColorSequence } from '../lib/chart-colors';
 
 const Plot = lazy(() => import('react-plotly.js'));
-
-interface Expense {
-  amount: number;
-  date: string;
-}
-
-interface CategoryExpense {
-  [key: string]: Expense[];
-}
 
 export default function GraphsPage() {
   const { data: categorizedData = {}, isLoading, error } = useMonthlyBreakdown()
@@ -100,7 +92,7 @@ export default function GraphsPage() {
         <div className="bg-white rounded-xl border p-2 md:p-6 shadow-sm overflow-x-auto">
           {isLoading ? (
             <div className="flex items-center justify-center h-64 md:h-96">
-              <Body className="text-muted-foreground">Loading data...</Body>
+              <Spinner size="md" className="text-muted-foreground" />
             </div>
           ) : error ? (
             <div className="flex items-center justify-center h-64 md:h-96">
@@ -109,7 +101,7 @@ export default function GraphsPage() {
           ) : (
             <Suspense fallback={
               <div className="flex items-center justify-center h-64 md:h-96">
-                <Body className="text-muted-foreground">Loading chart...</Body>
+                <Spinner size="md" className="text-muted-foreground" />
               </div>
             }>
               <Plot

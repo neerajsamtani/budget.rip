@@ -80,7 +80,7 @@ jest.mock('sonner', () => {
 // Mock the LineItemsContext
 jest.mock('./contexts/LineItemsContext', () => {
     return {
-        useLineItems: jest.fn(() => []),
+        useLineItems: jest.fn(() => ({ lineItems: [], isLoading: false })),
         useLineItemsDispatch: jest.fn(),
     };
 });

@@ -23,7 +23,7 @@ describe('LineItem', () => {
 
     describe('Rendering', () => {
         it('renders line item data correctly', () => {
-            mockUseLineItems.mockReturnValue([]);
+            mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: false });
             render(
                 <table><tbody><LineItem lineItem={mockLineItem} /></tbody></table>
             );
@@ -35,7 +35,7 @@ describe('LineItem', () => {
         });
 
         it('renders checkbox when showCheckBox is true', () => {
-            mockUseLineItems.mockReturnValue([]);
+            mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: false });
             render(
                 <table><tbody><LineItem lineItem={mockLineItem} showCheckBox={true} /></tbody></table>
             );
@@ -45,7 +45,7 @@ describe('LineItem', () => {
         });
 
         it('does not render checkbox when showCheckBox is false', () => {
-            mockUseLineItems.mockReturnValue([]);
+            mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: false });
             render(
                 <table><tbody><LineItem lineItem={mockLineItem} showCheckBox={false} /></tbody></table>
             );
@@ -55,7 +55,7 @@ describe('LineItem', () => {
         });
 
         it('does not render checkbox when showCheckBox is not provided', () => {
-            mockUseLineItems.mockReturnValue([]);
+            mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: false });
             render(
                 <table><tbody><LineItem lineItem={mockLineItem} /></tbody></table>
             );
@@ -65,7 +65,7 @@ describe('LineItem', () => {
         });
 
         it('formats date correctly', () => {
-            mockUseLineItems.mockReturnValue([]);
+            mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: false });
             render(
                 <table><tbody><LineItem lineItem={mockLineItem} /></tbody></table>
             );
@@ -75,7 +75,7 @@ describe('LineItem', () => {
         });
 
         it('renders all table cells in correct order', () => {
-            mockUseLineItems.mockReturnValue([]);
+            mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: false });
             render(
                 <table><tbody><LineItem lineItem={mockLineItem} showCheckBox={true} /></tbody></table>
             );
@@ -90,7 +90,7 @@ describe('LineItem', () => {
         });
 
         it('renders without checkbox when showCheckBox is false', () => {
-            mockUseLineItems.mockReturnValue([]);
+            mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: false });
             render(
                 <table><tbody><LineItem lineItem={mockLineItem} showCheckBox={false} /></tbody></table>
             );
@@ -107,9 +107,9 @@ describe('LineItem', () => {
 
     describe('Checkbox State Management', () => {
         it('shows checkbox as checked when line item is selected', () => {
-            mockUseLineItems.mockReturnValue([
+            mockUseLineItems.mockReturnValue({ lineItems: [
                 { ...mockLineItem, isSelected: true }
-            ]);
+            ], isLoading: false });
 
             render(
                 <table><tbody><LineItem lineItem={mockLineItem} showCheckBox={true} /></tbody></table>
@@ -120,9 +120,9 @@ describe('LineItem', () => {
         });
 
         it('shows checkbox as unchecked when line item is not selected', () => {
-            mockUseLineItems.mockReturnValue([
+            mockUseLineItems.mockReturnValue({ lineItems: [
                 { ...mockLineItem, isSelected: false }
-            ]);
+            ], isLoading: false });
 
             render(
                 <table><tbody><LineItem lineItem={mockLineItem} showCheckBox={true} /></tbody></table>
@@ -133,7 +133,7 @@ describe('LineItem', () => {
         });
 
         it('shows checkbox as unchecked when line item is not in context', () => {
-            mockUseLineItems.mockReturnValue([]);
+            mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: false });
 
             render(
                 <table><tbody><LineItem lineItem={mockLineItem} showCheckBox={true} /></tbody></table>
@@ -145,10 +145,10 @@ describe('LineItem', () => {
 
         it('handles multiple line items in context correctly', () => {
             const otherLineItem = { ...mockLineItem, _id: '2', id: '2', isSelected: true };
-            mockUseLineItems.mockReturnValue([
+            mockUseLineItems.mockReturnValue({ lineItems: [
                 { ...mockLineItem, isSelected: false },
                 otherLineItem
-            ]);
+            ], isLoading: false });
 
             render(
                 <table><tbody><LineItem lineItem={mockLineItem} showCheckBox={true} /></tbody></table>
@@ -161,7 +161,7 @@ describe('LineItem', () => {
 
     describe('User Interactions', () => {
         it('calls dispatch with toggle action when checkbox is clicked', async () => {
-            mockUseLineItems.mockReturnValue([]);
+            mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: false });
             render(
                 <table><tbody><LineItem lineItem={mockLineItem} showCheckBox={true} /></tbody></table>
             );
@@ -177,7 +177,7 @@ describe('LineItem', () => {
 
         it('calls dispatch with correct lineItemId', async () => {
             const customLineItem = { ...mockLineItem, id: 'custom-id' };
-            mockUseLineItems.mockReturnValue([]);
+            mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: false });
             render(
                 <table><tbody><LineItem lineItem={customLineItem} showCheckBox={true} /></tbody></table>
             );
@@ -192,7 +192,7 @@ describe('LineItem', () => {
         });
 
         it('handles multiple checkbox clicks', async () => {
-            mockUseLineItems.mockReturnValue([]);
+            mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: false });
             render(
                 <table><tbody><LineItem lineItem={mockLineItem} showCheckBox={true} /></tbody></table>
             );
@@ -213,7 +213,7 @@ describe('LineItem', () => {
         });
 
         it('maintains focus after checkbox interaction', async () => {
-            mockUseLineItems.mockReturnValue([]);
+            mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: false });
             render(
                 <table><tbody><LineItem lineItem={mockLineItem} showCheckBox={true} /></tbody></table>
             );
@@ -226,7 +226,7 @@ describe('LineItem', () => {
 
     describe('Date Formatting', () => {
         it('formats different dates correctly', () => {
-            mockUseLineItems.mockReturnValue([]);
+            mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: false });
 
             const testCases = [
                 { date: 1640995200, expected: 'Jan 1, 2022' }, // 2022-01-01
@@ -245,7 +245,7 @@ describe('LineItem', () => {
         });
 
         it('handles edge case dates', () => {
-            mockUseLineItems.mockReturnValue([]);
+            mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: false });
 
             // Test end of year
             const endOfYearLineItem = { ...mockLineItem, date: 1672531199 }; // 2022-12-31 23:59:59
@@ -258,7 +258,7 @@ describe('LineItem', () => {
 
     describe('Props Handling', () => {
         it('handles different line item data types', () => {
-            mockUseLineItems.mockReturnValue([]);
+            mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: false });
 
             const testLineItem = {
                 _id: 'test-id',
@@ -282,7 +282,7 @@ describe('LineItem', () => {
         });
 
         it('handles zero amount', () => {
-            mockUseLineItems.mockReturnValue([]);
+            mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: false });
 
             const zeroAmountLineItem = { ...mockLineItem, amount: 0 };
             render(
@@ -293,7 +293,7 @@ describe('LineItem', () => {
         });
 
         it('handles large amounts', () => {
-            mockUseLineItems.mockReturnValue([]);
+            mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: false });
 
             const largeAmountLineItem = { ...mockLineItem, amount: 999999.99 };
             render(
@@ -304,7 +304,7 @@ describe('LineItem', () => {
         });
 
         it('handles empty strings in text fields', () => {
-            mockUseLineItems.mockReturnValue([]);
+            mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: false });
 
             const emptyFieldsLineItem = {
                 ...mockLineItem,
@@ -323,7 +323,7 @@ describe('LineItem', () => {
 
     describe('Accessibility', () => {
         it('has proper table structure', () => {
-            mockUseLineItems.mockReturnValue([]);
+            mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: false });
             render(
                 <table><tbody><LineItem lineItem={mockLineItem} showCheckBox={true} /></tbody></table>
             );
@@ -333,7 +333,7 @@ describe('LineItem', () => {
         });
 
         it('has proper checkbox accessibility', () => {
-            mockUseLineItems.mockReturnValue([]);
+            mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: false });
             render(
                 <table><tbody><LineItem lineItem={mockLineItem} showCheckBox={true} /></tbody></table>
             );
@@ -344,7 +344,7 @@ describe('LineItem', () => {
         });
 
         it('maintains proper table cell structure', () => {
-            mockUseLineItems.mockReturnValue([]);
+            mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: false });
             render(
                 <table><tbody><LineItem lineItem={mockLineItem} showCheckBox={true} /></tbody></table>
             );
@@ -359,7 +359,7 @@ describe('LineItem', () => {
 
     describe('Edge Cases', () => {
         it('handles empty context array', () => {
-            mockUseLineItems.mockReturnValue([]);
+            mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: false });
             render(
                 <table><tbody><LineItem lineItem={mockLineItem} showCheckBox={true} /></tbody></table>
             );
@@ -369,7 +369,7 @@ describe('LineItem', () => {
         });
 
         it('handles line item with missing properties', () => {
-            mockUseLineItems.mockReturnValue([]);
+            mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: false });
 
             const incompleteLineItem = {
                 _id: 'incomplete',
@@ -387,7 +387,7 @@ describe('LineItem', () => {
         });
 
         it('handles rapid checkbox interactions', async () => {
-            mockUseLineItems.mockReturnValue([]);
+            mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: false });
             render(
                 <table><tbody><LineItem lineItem={mockLineItem} showCheckBox={true} /></tbody></table>
             );
@@ -406,7 +406,7 @@ describe('LineItem', () => {
     describe('Context Integration', () => {
         it('uses context data correctly for selection state', () => {
             const selectedLineItem = { ...mockLineItem, isSelected: true };
-            mockUseLineItems.mockReturnValue([selectedLineItem]);
+            mockUseLineItems.mockReturnValue({ lineItems: [selectedLineItem], isLoading: false });
 
             render(
                 <table><tbody><LineItem lineItem={mockLineItem} showCheckBox={true} /></tbody></table>
@@ -418,7 +418,7 @@ describe('LineItem', () => {
 
         it('updates selection state when context changes', () => {
             // Initially not selected
-            mockUseLineItems.mockReturnValue([]);
+            mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: false });
             const { rerender } = render(
                 <table><tbody><LineItem lineItem={mockLineItem} showCheckBox={true} /></tbody></table>
             );
@@ -427,7 +427,7 @@ describe('LineItem', () => {
             expect(checkbox).not.toBeChecked();
 
             // Update context to show as selected
-            mockUseLineItems.mockReturnValue([{ ...mockLineItem, isSelected: true }]);
+            mockUseLineItems.mockReturnValue({ lineItems: [{ ...mockLineItem, isSelected: true }], isLoading: false });
             rerender(
                 <table><tbody><LineItem lineItem={mockLineItem} showCheckBox={true} /></tbody></table>
             );
@@ -438,7 +438,7 @@ describe('LineItem', () => {
 
         it('matches line item by id for selection state', () => {
             const differentIdLineItem = { ...mockLineItem, id: 'different-id' };
-            mockUseLineItems.mockReturnValue([differentIdLineItem]);
+            mockUseLineItems.mockReturnValue({ lineItems: [differentIdLineItem], isLoading: false });
 
             render(
                 <table><tbody><LineItem lineItem={mockLineItem} showCheckBox={true} /></tbody></table>

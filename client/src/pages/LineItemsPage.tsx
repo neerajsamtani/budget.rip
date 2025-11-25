@@ -1,4 +1,5 @@
-import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Spinner } from "@/components/ui/spinner";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import React, { useState } from "react";
 import LineItem, { LineItemCard } from "../components/LineItem";
 import PaymentMethodFilter from "../components/PaymentMethodFilter";
@@ -25,55 +26,75 @@ export default function LineItemsPage() {
                     <PaymentMethodFilter paymentMethod={paymentMethod} setPaymentMethod={setPaymentMethod} />
                 </div>
 
-                {isLoading ? (
-                    <Body className="text-center text-muted-foreground py-8">
-                        Loading line items...
-                    </Body>
-                ) : error ? (
-                    <Body className="text-center text-destructive py-8">
-                        Error loading line items. Please try again.
-                    </Body>
-                ) : lineItems.length > 0 ? (
-                    <>
-                        {/* Mobile card layout */}
-                        <div className="md:hidden rounded-xl bg-white shadow-sm border overflow-hidden">
-                            {lineItems.map(lineItem => (
+                {/* Mobile card layout */}
+                <div className="md:hidden">
+                    <div className="rounded-xl bg-white shadow-sm border overflow-hidden">
+                        {isLoading ? (
+                            <div className="flex justify-center py-8">
+                                <Spinner size="md" className="text-muted-foreground" />
+                            </div>
+                        ) : error ? (
+                            <div className="p-4 text-center text-destructive">
+                                Error loading line items. Please try again.
+                            </div>
+                        ) : lineItems.length > 0 ? (
+                            lineItems.map(lineItem => (
                                 <LineItemCard
                                     key={lineItem.id}
                                     lineItem={lineItem}
                                     showCheckBox={false}
                                     isChecked={false}
-                                    handleToggle={() => {}}
+                                    handleToggle={() => { }}
                                     amountStatus={lineItem.amount < 0 ? 'success' : 'warning'}
                                 />
-                            ))}
-                        </div>
+                            ))
+                        ) : (
+                            <div className="p-4 text-center text-muted-foreground">
+                                No Line Items found
+                            </div>
+                        )}
+                    </div>
+                </div>
 
-                        {/* Desktop table layout */}
-                        <div className="hidden md:block">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Date</TableHead>
-                                        <TableHead>Payment Method</TableHead>
-                                        <TableHead>Description</TableHead>
-                                        <TableHead>Party</TableHead>
-                                        <TableHead className="text-right">Amount</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {lineItems.map(lineItem => (
-                                        <LineItem key={lineItem.id} lineItem={lineItem} />
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </div>
-                    </>
-                ) : (
-                    <Body className="text-center text-muted-foreground py-8">
-                        No Line Items found
-                    </Body>
-                )}
+                {/* Desktop table layout */}
+                <div className="hidden md:block">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Date</TableHead>
+                                <TableHead>Payment Method</TableHead>
+                                <TableHead>Description</TableHead>
+                                <TableHead>Party</TableHead>
+                                <TableHead className="text-right">Amount</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {isLoading ? (
+                                <TableRow>
+                                    <TableCell colSpan={5} className="text-center py-8">
+                                        <Spinner size="md" className="text-muted-foreground mx-auto" />
+                                    </TableCell>
+                                </TableRow>
+                            ) : error ? (
+                                <TableRow>
+                                    <TableCell colSpan={5} className="text-center text-destructive">
+                                        Error loading line items. Please try again.
+                                    </TableCell>
+                                </TableRow>
+                            ) : lineItems.length > 0 ? (
+                                lineItems.map(lineItem => (
+                                    <LineItem key={lineItem.id} lineItem={lineItem} />
+                                ))
+                            ) : (
+                                <TableRow>
+                                    <TableCell colSpan={5} className="text-center text-muted-foreground">
+                                        No Line Items found
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                </div>
             </div>
         </PageContainer>
     )

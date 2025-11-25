@@ -1,4 +1,6 @@
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Spinner } from "@/components/ui/spinner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Category } from "@/constants/categories";
 import { CurrencyFormatter } from "@/utils/formatters";
@@ -124,15 +126,23 @@ export default function EventsPage() {
                         <Body className="font-medium text-xs md:text-base">
                             Cash Flow
                         </Body>
-                        <StatusBadge status={cashFlowWithFilters < 0 ? 'success' : 'warning'}>
-                            {CurrencyFormatter.format(Math.abs(cashFlowWithFilters))}
-                        </StatusBadge>
+                        {isLoading ? (
+                            <Skeleton className="h-6 w-20 bg-green-50" />
+                        ) : (
+                            <StatusBadge status={cashFlowWithFilters < 0 ? 'success' : 'warning'}>
+                                {CurrencyFormatter.format(Math.abs(cashFlowWithFilters))}
+                            </StatusBadge>
+                        )}
                     </div>
                     <div className="bg-muted rounded-lg p-3 md:p-4 flex items-center justify-between gap-2">
                         <Body className="font-medium text-xs md:text-base">Spending</Body>
-                        <StatusBadge status={spending <= 0 ? 'success' : 'warning'}>
-                            {CurrencyFormatter.format(Math.abs(spending))}
-                        </StatusBadge>
+                        {isLoading ? (
+                            <Skeleton className="h-6 w-20 bg-yellow-50" />
+                        ) : (
+                            <StatusBadge status={spending <= 0 ? 'success' : 'warning'}>
+                                {CurrencyFormatter.format(Math.abs(spending))}
+                            </StatusBadge>
+                        )}
                     </div>
                 </div>
 
@@ -140,8 +150,8 @@ export default function EventsPage() {
                 <div className="md:hidden">
                     <div className="rounded-xl bg-white shadow-sm border overflow-hidden">
                         {isLoading ? (
-                            <div className="p-4 text-center text-muted-foreground">
-                                Loading events...
+                            <div className="flex justify-center py-8">
+                                <Spinner size="md" className="text-muted-foreground" />
                             </div>
                         ) : error ? (
                             <div className="p-4 text-center text-destructive">
@@ -175,8 +185,8 @@ export default function EventsPage() {
                         <TableBody>
                             {isLoading ? (
                                 <TableRow>
-                                    <TableCell colSpan={6} className="text-center text-muted-foreground">
-                                        Loading events...
+                                    <TableCell colSpan={6} className="text-center py-8">
+                                        <Spinner size="md" className="text-muted-foreground mx-auto" />
                                     </TableCell>
                                 </TableRow>
                             ) : error ? (

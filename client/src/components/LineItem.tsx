@@ -94,9 +94,9 @@ function LineItemRow({ lineItem, showCheckBox, isChecked, handleToggle, amountSt
 }
 
 export default function LineItem({ lineItem, showCheckBox }: LineItemProps) {
-    const lineItems = useLineItems();
+    const { lineItems } = useLineItems();
     const lineItemsDispatch = useLineItemsDispatch();
-    const isChecked = lineItems.some(li => li.isSelected && li.id === lineItem.id);
+    const isChecked = (lineItems || []).some(li => li.isSelected && li.id === lineItem.id);
 
     const handleToggle = () => {
         lineItemsDispatch({
@@ -106,7 +106,7 @@ export default function LineItem({ lineItem, showCheckBox }: LineItemProps) {
     }
 
     // Determine amount status for color coding
-    const amountStatus = lineItem.amount < 0 ? 'success' : 'warning';
+    const amountStatus: 'success' | 'warning' = lineItem.amount < 0 ? 'success' : 'warning';
 
     const props = { lineItem, showCheckBox, isChecked, handleToggle, amountStatus };
 

@@ -95,6 +95,7 @@ describe('EventDetailsModal', () => {
                     show={true}
                     event={mockEvent}
                     lineItemsForEvent={mockLineItems}
+                    isLoadingLineItemsForEvent={false}
                     onHide={mockOnHide}
                 />
             );
@@ -112,6 +113,7 @@ describe('EventDetailsModal', () => {
                     show={false}
                     event={mockEvent}
                     lineItemsForEvent={mockLineItems}
+                    isLoadingLineItemsForEvent={false}
                     onHide={mockOnHide}
                 />
             );
@@ -125,6 +127,7 @@ describe('EventDetailsModal', () => {
                     show={true}
                     event={mockEvent}
                     lineItemsForEvent={mockLineItems}
+                    isLoadingLineItemsForEvent={false}
                     onHide={mockOnHide}
                 />
             );
@@ -141,6 +144,7 @@ describe('EventDetailsModal', () => {
                     show={true}
                     event={mockEvent}
                     lineItemsForEvent={mockLineItems}
+                    isLoadingLineItemsForEvent={false}
                     onHide={mockOnHide}
                 />
             );
@@ -158,6 +162,7 @@ describe('EventDetailsModal', () => {
                     show={true}
                     event={mockEvent}
                     lineItemsForEvent={mockLineItems}
+                    isLoadingLineItemsForEvent={false}
                     onHide={mockOnHide}
                 />
             );
@@ -172,6 +177,7 @@ describe('EventDetailsModal', () => {
                     show={true}
                     event={mockEvent}
                     lineItemsForEvent={mockLineItems}
+                    isLoadingLineItemsForEvent={false}
                     onHide={mockOnHide}
                 />
             );
@@ -189,6 +195,7 @@ describe('EventDetailsModal', () => {
                     show={true}
                     event={eventWithoutTags}
                     lineItemsForEvent={mockLineItems}
+                    isLoadingLineItemsForEvent={false}
                     onHide={mockOnHide}
                 />
             );
@@ -205,6 +212,7 @@ describe('EventDetailsModal', () => {
                     show={true}
                     event={eventWithEmptyTags}
                     lineItemsForEvent={mockLineItems}
+                    isLoadingLineItemsForEvent={false}
                     onHide={mockOnHide}
                 />
             );
@@ -218,6 +226,7 @@ describe('EventDetailsModal', () => {
                     show={true}
                     event={mockEvent}
                     lineItemsForEvent={mockLineItems}
+                    isLoadingLineItemsForEvent={false}
                     onHide={mockOnHide}
                 />
             );
@@ -232,6 +241,7 @@ describe('EventDetailsModal', () => {
                     show={true}
                     event={mockEvent}
                     lineItemsForEvent={[]}
+                    isLoadingLineItemsForEvent={false}
                     onHide={mockOnHide}
                 />
             );
@@ -248,6 +258,7 @@ describe('EventDetailsModal', () => {
                     show={true}
                     event={mockEvent}
                     lineItemsForEvent={mockLineItems}
+                    isLoadingLineItemsForEvent={false}
                     onHide={mockOnHide}
                 />
             );
@@ -264,6 +275,7 @@ describe('EventDetailsModal', () => {
                     show={true}
                     event={mockEvent}
                     lineItemsForEvent={mockLineItems}
+                    isLoadingLineItemsForEvent={false}
                     onHide={mockOnHide}
                 />
             );
@@ -282,6 +294,7 @@ describe('EventDetailsModal', () => {
                     show={true}
                     event={mockEvent}
                     lineItemsForEvent={mockLineItems}
+                    isLoadingLineItemsForEvent={false}
                     onHide={mockOnHide}
                 />
             );
@@ -302,6 +315,7 @@ describe('EventDetailsModal', () => {
                     show={true}
                     event={mockEvent}
                     lineItemsForEvent={mockLineItems}
+                    isLoadingLineItemsForEvent={false}
                     onHide={mockOnHide}
                 />
             );
@@ -324,6 +338,7 @@ describe('EventDetailsModal', () => {
                     show={true}
                     event={mockEvent}
                     lineItemsForEvent={mockLineItems}
+                    isLoadingLineItemsForEvent={false}
                     onHide={mockOnHide}
                 />
             );
@@ -346,6 +361,7 @@ describe('EventDetailsModal', () => {
                     show={true}
                     event={mockEvent}
                     lineItemsForEvent={mockLineItems}
+                    isLoadingLineItemsForEvent={false}
                     onHide={mockOnHide}
                 />
             );
@@ -369,6 +385,7 @@ describe('EventDetailsModal', () => {
                     show={true}
                     event={mockEvent}
                     lineItemsForEvent={mockLineItems}
+                    isLoadingLineItemsForEvent={false}
                     onHide={mockOnHide}
                 />
             );
@@ -393,6 +410,7 @@ describe('EventDetailsModal', () => {
                     show={true}
                     event={mockEvent}
                     lineItemsForEvent={mockLineItems}
+                    isLoadingLineItemsForEvent={false}
                     onHide={mockOnHide}
                 />
             );
@@ -418,6 +436,7 @@ describe('EventDetailsModal', () => {
                     show={true}
                     event={mockEvent}
                     lineItemsForEvent={mockLineItems}
+                    isLoadingLineItemsForEvent={false}
                     onHide={mockOnHide}
                 />
             );
@@ -435,6 +454,7 @@ describe('EventDetailsModal', () => {
                     show={true}
                     event={mockEvent}
                     lineItemsForEvent={mockLineItems}
+                    isLoadingLineItemsForEvent={false}
                     onHide={mockOnHide}
                 />
             );
@@ -449,6 +469,7 @@ describe('EventDetailsModal', () => {
                     show={true}
                     event={mockEvent}
                     lineItemsForEvent={mockLineItems}
+                    isLoadingLineItemsForEvent={false}
                     onHide={mockOnHide}
                 />
             );
@@ -469,6 +490,7 @@ describe('EventDetailsModal', () => {
                     show={true}
                     event={mockEvent}
                     lineItemsForEvent={mockLineItems}
+                    isLoadingLineItemsForEvent={false}
                     onHide={mockOnHide}
                 />
             );
@@ -484,6 +506,7 @@ describe('EventDetailsModal', () => {
                     show={true}
                     event={mockEvent}
                     lineItemsForEvent={mockLineItems}
+                    isLoadingLineItemsForEvent={false}
                     onHide={mockOnHide}
                 />
             );
@@ -526,6 +549,7 @@ describe('EventDetailsModal', () => {
                     show={true}
                     event={eventWithDifferentData}
                     lineItemsForEvent={singleLineItem}
+                    isLoadingLineItemsForEvent={false}
                     onHide={mockOnHide}
                 />
             );
@@ -547,6 +571,7 @@ describe('EventDetailsModal', () => {
                     show={true}
                     event={mockEvent}
                     lineItemsForEvent={mockLineItems}
+                    isLoadingLineItemsForEvent={false}
                     onHide={mockOnHide}
                 />
             );
@@ -561,6 +586,7 @@ describe('EventDetailsModal', () => {
                     show={true}
                     event={mockEvent}
                     lineItemsForEvent={mockLineItems}
+                    isLoadingLineItemsForEvent={false}
                     onHide={mockOnHide}
                 />
             );

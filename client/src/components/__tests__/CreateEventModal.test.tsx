@@ -84,7 +84,7 @@ describe('CreateEventModal', () => {
 
     beforeEach(() => {
         jest.clearAllMocks();
-        mockUseLineItems.mockReturnValue(mockLineItems);
+        mockUseLineItems.mockReturnValue({ lineItems: mockLineItems, isLoading: false });
         mockUseLineItemsDispatch.mockReturnValue(mockDispatch);
         mockGetPrefillFromLineItems.mockReturnValue(null);
         mockDefaultNameCleanup.mockImplementation((str) => str);
@@ -323,7 +323,7 @@ describe('CreateEventModal', () => {
         });
 
         it('clears form when no line items are selected', async () => {
-            mockUseLineItems.mockReturnValue([]);
+            mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: false });
 
             // First render with show=false to trigger prefill
             const { rerender } = render(<CreateEventModal show={false} onHide={mockOnHide} />);

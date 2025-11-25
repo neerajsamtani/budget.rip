@@ -99,7 +99,7 @@ const mockLineItems = [
 describe('LineItemsToReviewPage', () => {
     beforeEach(() => {
         jest.clearAllMocks();
-        mockUseLineItems.mockReturnValue(mockLineItems);
+        mockUseLineItems.mockReturnValue({ lineItems: mockLineItems, isLoading: false });
     });
 
     describe('Rendering', () => {
@@ -160,7 +160,7 @@ describe('LineItemsToReviewPage', () => {
         });
 
         it('handles empty line items gracefully', () => {
-            mockUseLineItems.mockReturnValue([]);
+            mockUseLineItems.mockReturnValue({ lineItems:[], isLoading: false });
             render(<LineItemsToReviewPage />);
 
             expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
@@ -169,7 +169,7 @@ describe('LineItemsToReviewPage', () => {
         });
 
         it('handles null line items gracefully', () => {
-            mockUseLineItems.mockReturnValue(null as any);
+            mockUseLineItems.mockReturnValue({ lineItems:null as any, isLoading: false });
             render(<LineItemsToReviewPage />);
 
             expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
@@ -427,7 +427,7 @@ describe('LineItemsToReviewPage', () => {
                     // Missing other properties
                 } as any
             ];
-            mockUseLineItems.mockReturnValue(incompleteLineItems);
+            mockUseLineItems.mockReturnValue({ lineItems:incompleteLineItems, isLoading: false });
 
             render(<LineItemsToReviewPage />);
 
@@ -441,7 +441,7 @@ describe('LineItemsToReviewPage', () => {
                     amount: 999999.99,
                 }
             ];
-            mockUseLineItems.mockReturnValue(largeAmountLineItems);
+            mockUseLineItems.mockReturnValue({ lineItems:largeAmountLineItems, isLoading: false });
 
             render(<LineItemsToReviewPage />);
 
@@ -457,7 +457,7 @@ describe('LineItemsToReviewPage', () => {
                     amount: 0,
                 }
             ];
-            mockUseLineItems.mockReturnValue(zeroAmountLineItems);
+            mockUseLineItems.mockReturnValue({ lineItems:zeroAmountLineItems, isLoading: false });
 
             render(<LineItemsToReviewPage />);
 

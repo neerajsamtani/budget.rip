@@ -20,7 +20,12 @@ type Action =
     | { type: 'toggle_line_item_select'; lineItemId: string }
     | { type: 'remove_line_items'; lineItemIds: string[] };
 
-export const LineItemsContext = createContext<LineItemInterface[]>([]);
+interface LineItemsContextValue {
+    lineItems: LineItemInterface[];
+    isLoading: boolean;
+}
+
+export const LineItemsContext = createContext<LineItemsContextValue>({ lineItems: [], isLoading: false });
 export const LineItemsDispatchContext = createContext<React.Dispatch<Action>>(() => { });
 
 export function useLineItems() {
@@ -64,7 +69,7 @@ export function LineItemsProvider({ children }: { children: ReactNode }) {
     const [lineItems, lineItemsDispatch] = useReducer(lineItemsReducer, initialLineItems);
     const { isAuthenticated } = useAuth();
 
-    const { data: fetchedLineItems, error } = useLineItemsQuery({ onlyLineItemsToReview: true, enabled: isAuthenticated });
+    const { data: fetchedLineItems, isLoading, error } = useLineItemsQuery({ onlyLineItemsToReview: true, enabled: isAuthenticated });
 
     useEffect(() => {
         if (fetchedLineItems) {
@@ -82,7 +87,7 @@ export function LineItemsProvider({ children }: { children: ReactNode }) {
     }, [error])
 
     return (
-        <LineItemsContext.Provider value={lineItems}>
+        <LineItemsContext.Provider value={{ lineItems, isLoading }}>
             <LineItemsDispatchContext.Provider value={lineItemsDispatch}>
                 {children}
             </LineItemsDispatchContext.Provider>
