@@ -1,7 +1,7 @@
 import * as React from "react"
 import { createContext, useContext, useEffect, useState } from "react"
-import { Dialog, DialogContent } from "./dialog"
-import { Sheet, SheetContent } from "./sheet"
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "./dialog"
+import { Sheet, SheetContent, SheetTitle, SheetDescription } from "./sheet"
 
 const MobileContext = createContext(false)
 
@@ -55,8 +55,30 @@ function useResponsiveDialogContext() {
   return useContext(MobileContext)
 }
 
+function ResponsiveDialogTitle({ children, className }: { children: React.ReactNode; className?: string }) {
+  const isMobile = useContext(MobileContext)
+
+  if (isMobile) {
+    return <SheetTitle className={className}>{children}</SheetTitle>
+  }
+
+  return <DialogTitle className={className}>{children}</DialogTitle>
+}
+
+function ResponsiveDialogDescription({ children, className }: { children: React.ReactNode; className?: string }) {
+  const isMobile = useContext(MobileContext)
+
+  if (isMobile) {
+    return <SheetDescription className={className}>{children}</SheetDescription>
+  }
+
+  return <DialogDescription className={className}>{children}</DialogDescription>
+}
+
 export {
   ResponsiveDialog,
+  ResponsiveDialogTitle,
+  ResponsiveDialogDescription,
   useIsMobile,
   useResponsiveDialogContext,
 }

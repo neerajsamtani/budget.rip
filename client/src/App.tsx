@@ -69,41 +69,41 @@ export default function App() {
             </NavbarBrand>
 
             {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center space-x-4 lg:space-x-6">
+            <div className="hidden lg:flex items-center space-x-2 xl:space-x-4">
               {isAuthenticated && (
                 <div className="flex space-x-1">
                   <Link
-                    className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150"
+                    className="text-foreground hover:text-primary px-2 xl:px-3 py-2 no-underline font-body font-medium transition-colors duration-150 text-sm xl:text-base whitespace-nowrap"
                     to="/"
                   >
                     Review
                   </Link>
                   <Link
-                    className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150"
+                    className="text-foreground hover:text-primary px-2 xl:px-3 py-2 no-underline font-body font-medium transition-colors duration-150 text-sm xl:text-base whitespace-nowrap"
                     to="/events"
                   >
                     Events
                   </Link>
                   <Link
-                    className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150"
+                    className="text-foreground hover:text-primary px-2 xl:px-3 py-2 no-underline font-body font-medium transition-colors duration-150 text-sm xl:text-base whitespace-nowrap"
                     to="/line_items"
                   >
                     Line Items
                   </Link>
                   <Link
-                    className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150"
+                    className="text-foreground hover:text-primary px-2 xl:px-3 py-2 no-underline font-body font-medium transition-colors duration-150 text-sm xl:text-base whitespace-nowrap"
                     to="/connected_accounts"
                   >
                     Connected Accounts
                   </Link>
                   <Link
-                    className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150"
+                    className="text-foreground hover:text-primary px-2 xl:px-3 py-2 no-underline font-body font-medium transition-colors duration-150 text-sm xl:text-base whitespace-nowrap"
                     to="/graphs"
                   >
                     Graphs
                   </Link>
                   <button
-                    className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150 cursor-pointer"
+                    className="text-foreground hover:text-primary px-2 xl:px-3 py-2 no-underline font-body font-medium transition-colors duration-150 cursor-pointer text-sm xl:text-base whitespace-nowrap"
                     onClick={() => logout()}
                   >
                     Log Out
@@ -112,14 +112,14 @@ export default function App() {
               )}
 
               {isAuthenticated && (
-                <Button onClick={handleRefreshData} variant="default" size="sm" disabled={refreshMutation.isPending}>
+                <Button onClick={handleRefreshData} variant="default" size="sm" disabled={refreshMutation.isPending} className="whitespace-nowrap">
                   {refreshMutation.isPending ? <Spinner size="sm" /> : "Refresh Data"}
                 </Button>
               )}
             </div>
 
             {/* Mobile Navigation */}
-            <div className="md:hidden flex items-center gap-2">
+            <div className="lg:hidden flex items-center gap-2">
               {isAuthenticated && (
                 <Button onClick={handleRefreshData} variant="default" size="sm" disabled={refreshMutation.isPending}>
                   {refreshMutation.isPending ? <Spinner size="sm" /> : "Refresh"}

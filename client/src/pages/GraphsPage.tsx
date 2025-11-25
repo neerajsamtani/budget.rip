@@ -47,9 +47,10 @@ export default function GraphsPage() {
       title: isMobile ? '' : 'Date',
       gridcolor: '#F5F5F5',
       linecolor: '#E0E0E0',
-      tickangle: isMobile ? -45 : 0,
+      tickangle: -45,
       tickfont: { size: isMobile ? 9 : 12 },
-      nticks: isMobile ? 6 : undefined,
+      nticks: isMobile ? 6 : 12,
+      tickmode: 'auto',
     },
     yaxis: {
       title: isMobile ? '' : 'Amount',

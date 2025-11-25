@@ -111,9 +111,9 @@ export default function EventsPage() {
                 {/* Filters - collapsible on mobile, always visible on desktop */}
                 <div className={`space-y-4 ${filtersOpen ? 'block' : 'hidden'} md:block`}>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-                        <CategoryFilter category={category as Category} setCategory={setCategory} />
                         <MonthFilter month={month} setMonth={setMonth} />
                         <YearFilter year={year as Year} setYear={setYear} />
+                        <CategoryFilter category={category as Category} setCategory={setCategory} />
                         <TagsFilter tagFilter={tagFilter} setTagFilter={setTagFilter} />
                     </div>
                 </div>
