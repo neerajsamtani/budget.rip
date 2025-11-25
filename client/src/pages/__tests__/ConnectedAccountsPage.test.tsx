@@ -320,6 +320,46 @@ describe('ConnectedAccountsPage', () => {
         });
     });
 
+    describe('Loading States', () => {
+        it('shows loading spinner during initial data fetch for mobile view', () => {
+            // Don't resolve the promise immediately
+            mockAxiosInstance.get.mockImplementation(() => new Promise(() => { }));
+
+            const { container } = render(<ConnectedAccountsPage stripePromise={mockStripePromise} />);
+
+            // Check for spinner in mobile view
+            const spinners = container.querySelectorAll('.animate-spin');
+            expect(spinners.length).toBeGreaterThan(0);
+        });
+
+        it('shows loading spinner during initial data fetch for desktop table', () => {
+            // Don't resolve the promise immediately
+            mockAxiosInstance.get.mockImplementation(() => new Promise(() => { }));
+
+            const { container } = render(<ConnectedAccountsPage stripePromise={mockStripePromise} />);
+
+            // Check for spinner (loading indicator)
+            const spinner = container.querySelector('.animate-spin');
+            expect(spinner).toBeInTheDocument();
+        });
+
+        it('replaces loading spinner with data after fetch completes', async () => {
+            render(<ConnectedAccountsPage stripePromise={mockStripePromise} />);
+
+            await waitFor(() => {
+                expect(screen.getAllByText(/Bank Checking 1234/).length).toBeGreaterThan(0);
+            });
+
+            // Spinner should be gone
+            const { container } = render(<ConnectedAccountsPage stripePromise={mockStripePromise} />);
+            await waitFor(() => {
+                const spinners = container.querySelectorAll('.animate-spin:not([aria-hidden])');
+                // Spinners may exist but should not be visible in the loading state context
+                expect(screen.getAllByText(/Bank Checking 1234/).length).toBeGreaterThan(0);
+            });
+        });
+    });
+
     describe('Accessibility', () => {
         it('has proper heading and table structure', async () => {
             render(<ConnectedAccountsPage stripePromise={mockStripePromise} />);

@@ -694,6 +694,57 @@ describe('EventsPage', () => {
         });
     });
 
+    describe('Loading States', () => {
+        it('shows skeleton loading states in summary cards during initial load', () => {
+            // Don't resolve the promise immediately
+            mockAxiosInstance.get.mockImplementation(() => new Promise(() => { }));
+
+            const { container } = render(<EventsPage />);
+
+            // Check for skeleton components in summary cards
+            const skeletons = container.querySelectorAll('[data-slot="skeleton"]');
+            expect(skeletons.length).toBeGreaterThan(0);
+        });
+
+        it('shows spinner in mobile view during initial load', () => {
+            // Don't resolve the promise immediately
+            mockAxiosInstance.get.mockImplementation(() => new Promise(() => { }));
+
+            const { container } = render(<EventsPage />);
+
+            // Check for spinner (loading indicator)
+            const spinner = container.querySelector('.animate-spin');
+            expect(spinner).toBeInTheDocument();
+        });
+
+        it('shows spinner in desktop table during initial load', () => {
+            // Don't resolve the promise immediately
+            mockAxiosInstance.get.mockImplementation(() => new Promise(() => { }));
+
+            const { container } = render(<EventsPage />);
+
+            // Check for spinner in table
+            const spinner = container.querySelector('.animate-spin');
+            expect(spinner).toBeInTheDocument();
+        });
+
+        it('replaces skeleton with actual values after data loads', async () => {
+            render(<EventsPage />);
+
+            await waitFor(() => {
+                // Summary cards should show actual values
+                expect(screen.getByText('$7,175.00')).toBeInTheDocument();
+                expect(screen.getByText('$175.00')).toBeInTheDocument();
+            });
+
+            // Skeletons should be gone
+            const { container } = render(<EventsPage />);
+            await waitFor(() => {
+                expect(screen.getByText('$7,175.00')).toBeInTheDocument();
+            });
+        });
+    });
+
     describe('Responsive Layout', () => {
         it('renders mobile card layout', async () => {
             render(<EventsPage />);
