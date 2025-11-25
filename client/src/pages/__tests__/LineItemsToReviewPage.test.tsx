@@ -520,4 +520,54 @@ describe('LineItemsToReviewPage', () => {
             expect(screen.getByRole('button', { name: /create event/i })).toBeInTheDocument();
         });
     });
+
+    describe('Loading States', () => {
+        it('shows loading spinner in mobile view during initial load', () => {
+            mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: true });
+
+            const { container } = render(<LineItemsToReviewPage />);
+
+            // Check for spinner in mobile view
+            const spinners = container.querySelectorAll('.animate-spin');
+            expect(spinners.length).toBeGreaterThan(0);
+        });
+
+        it('shows loading spinner in desktop table during initial load', () => {
+            mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: true });
+
+            const { container } = render(<LineItemsToReviewPage />);
+
+            // Check for spinner (loading indicator)
+            const spinner = container.querySelector('.animate-spin');
+            expect(spinner).toBeInTheDocument();
+        });
+
+        it('replaces loading spinner with data after load completes', () => {
+            // Start with loading state
+            mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: true });
+            const { container, rerender } = render(<LineItemsToReviewPage />);
+
+            // Verify spinner is present
+            let spinner = container.querySelector('.animate-spin');
+            expect(spinner).toBeInTheDocument();
+
+            // Update to loaded state with data
+            mockUseLineItems.mockReturnValue({ lineItems: mockLineItems, isLoading: false });
+            rerender(<LineItemsToReviewPage />);
+
+            // Verify data is displayed
+            expect(screen.getByTestId('line-item-1')).toBeInTheDocument();
+            expect(screen.getByTestId('line-item-2')).toBeInTheDocument();
+        });
+
+        it('shows "No line items to review" message when loaded with no data', () => {
+            mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: false });
+
+            render(<LineItemsToReviewPage />);
+
+            // Should show message in both mobile and desktop layouts
+            const messages = screen.getAllByText('No line items to review');
+            expect(messages.length).toBeGreaterThan(0);
+        });
+    });
 }); 
