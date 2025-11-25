@@ -18,13 +18,10 @@ export default function CreateCashTransactionModal({ show, onHide }: { show: boo
   const createCashTransactionMutation = useCreateCashTransaction();
 
   const createCashTransaction = () => {
-    // Convert date string to Unix timestamp (seconds since epoch)
-    const dateTimestamp = date.value ? new Date(date.value).getTime() / 1000 : Date.now() / 1000;
-
     const newCashTransaction: CreateCashTransactionData = {
-      date: Math.floor(dateTimestamp),
-      name: person.value,
-      category: description.value,
+      date: date.value,
+      person: person.value,
+      description: description.value,
       amount: amount.value
     };
     createCashTransactionMutation.mutate(newCashTransaction, {

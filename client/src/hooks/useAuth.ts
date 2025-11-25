@@ -1,5 +1,4 @@
 import { useQuery, UseQueryResult } from '@tanstack/react-query';
-import { AxiosError } from 'axios';
 import axiosInstance from '../utils/axiosInstance';
 
 export interface User {

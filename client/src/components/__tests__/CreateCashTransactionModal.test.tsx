@@ -137,13 +137,12 @@ describe('CreateCashTransactionModal', () => {
             await userEvent.click(submitButton);
 
             await waitFor(() => {
-                // Check that the API was called with the correct transformed data
                 expect(mockAxiosInstance.post).toHaveBeenCalledWith(
                     expect.stringContaining('api/cash_transaction'),
                     {
-                        date: expect.any(Number), // Unix timestamp (seconds)
-                        name: 'John Doe', // person → name
-                        category: 'Lunch payment', // description → category
+                        date: '2024-01-15',
+                        person: 'John Doe',
+                        description: 'Lunch payment',
                         amount: '25.50'
                     }
                 );

@@ -155,11 +155,10 @@ export function useCreateEvent(): UseMutationResult<unknown, Error, CreateEventD
 }
 
 export interface CreateCashTransactionData {
-  name: string;
-  category: string;
+  date: string;        // YYYY-MM-DD format
+  person: string;
+  description: string;
   amount: number;
-  date: number;
-  tags?: string[];
 }
 
 export function useCreateCashTransaction(): UseMutationResult<unknown, Error, CreateCashTransactionData> {
