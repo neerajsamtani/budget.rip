@@ -54,13 +54,19 @@ if (!global.URL.revokeObjectURL) {
 
 // Mock react-plotly.js to avoid canvas issues
 jest.mock('react-plotly.js', () => {
-    return function MockPlot(props: any) {
+    return function MockPlot(props: Record<string, unknown>) {
         return <div data-testid="plotly-chart" {...props} />;
     };
 });
 
 // Mock Sonner toast
-const mockToaster = jest.fn((props: any) => <div data-testid="toaster" />);
+interface ToasterProps {
+    closeButton?: boolean;
+    position?: string;
+    richColors?: boolean;
+}
+
+const mockToaster = jest.fn(() => <div data-testid="toaster" />);
 jest.mock('sonner', () => {
     const mockToast = jest.fn();
     return {
@@ -70,7 +76,7 @@ jest.mock('sonner', () => {
             info: jest.fn(),
             warning: jest.fn(),
         }),
-        Toaster: (props: any) => {
+        Toaster: (props: ToasterProps) => {
             mockToaster(props);
             return <div data-testid="toaster" />;
         },
@@ -214,7 +220,6 @@ describe('App', () => {
         it('shows loading spinner when refresh button is clicked', async () => {
             const mockAxiosInstance = require('./utils/axiosInstance').default;
             // Create a promise that resolves after a delay to keep spinner visible
-            const originalGet = mockAxiosInstance.get;
             mockAxiosInstance.post.mockImplementation(() =>
                 new Promise(resolve => setTimeout(() => resolve({ data: { data: [] } }), 100))
             );

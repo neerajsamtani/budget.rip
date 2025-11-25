@@ -9,12 +9,11 @@ function TagsFilterControlledWrapper({ initialValue = '' }: { initialValue?: str
 }
 
 describe('TagsFilter', () => {
-    let rerender: any;
+    let rerender: (_ui: React.ReactElement) => void;
 
     function setup(initialValue = '') {
-        const utils = render(<TagsFilter tagFilter={initialValue} setTagFilter={jest.fn()} />);
-        rerender = utils.rerender;
-        return utils;
+        const { rerender: setRerender } = render(<TagsFilter tagFilter={initialValue} setTagFilter={jest.fn()} />);
+        rerender = setRerender;
     }
 
     describe('Rendering', () => {
@@ -24,7 +23,7 @@ describe('TagsFilter', () => {
             expect(screen.getByRole('textbox')).toBeInTheDocument();
         });
         it('renders with proper form structure', () => {
-            const { container } = setup();
+            setup();
             // Check for shadcn components: label and input
             expect(screen.getByText('Tags')).toBeInTheDocument();
             expect(screen.getByRole('textbox')).toBeInTheDocument();
@@ -97,18 +96,18 @@ describe('TagsFilter', () => {
 
     describe('Form Structure', () => {
         it('has proper input group structure', () => {
-            const { container } = setup();
+            setup();
             // Check for shadcn components: label and input are present
             expect(screen.getByText('Tags')).toBeInTheDocument();
             expect(screen.getByRole('textbox')).toBeInTheDocument();
         });
         it('has proper form control structure', () => {
-            const { container } = setup();
+            setup();
             // Check for input element exists
             expect(screen.getByRole('textbox')).toBeInTheDocument();
         });
         it('has proper input type', () => {
-            const { container } = setup();
+            setup();
             const input = screen.getByRole('textbox');
             expect(input).toHaveAttribute('type', 'text');
         });

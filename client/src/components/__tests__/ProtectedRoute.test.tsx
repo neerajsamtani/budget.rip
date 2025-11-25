@@ -15,7 +15,6 @@ jest.mock('../../utils/axiosInstance', () => ({
 
 import axiosInstance from '../../utils/axiosInstance';
 const mockGet = axiosInstance.get as jest.Mock;
-const mockPost = axiosInstance.post as jest.Mock;
 
 import { ProtectedRoute, PublicOnlyRoute } from '../ProtectedRoute';
 import { AuthProvider } from '../../contexts/AuthContext';

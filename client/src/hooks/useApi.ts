@@ -154,7 +154,7 @@ export function useCreateEvent(): UseMutationResult<unknown, Error, CreateEventD
   });
 }
 
-interface CreateCashTransactionData {
+export interface CreateCashTransactionData {
   name: string;
   category: string;
   amount: number;

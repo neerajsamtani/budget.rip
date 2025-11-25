@@ -8,10 +8,10 @@ import CreateEventModal from "../components/CreateEventModal";
 import LineItem, { LineItemCard } from "../components/LineItem";
 import { PageContainer, PageHeader } from "../components/ui/layout";
 import { Body, H1 } from "../components/ui/typography";
-import { useLineItems, useLineItemsDispatch } from "../contexts/LineItemsContext";
+import { LineItemInterface, useLineItems, useLineItemsDispatch } from "../contexts/LineItemsContext";
 
 // Mobile card wrapper that includes context hooks
-function MobileLineItemCard({ lineItem }: { lineItem: any }) {
+function MobileLineItemCard({ lineItem }: { lineItem: LineItemInterface }) {
     const { lineItems } = useLineItems();
     const lineItemsDispatch = useLineItemsDispatch();
     const isChecked = (lineItems || []).some(li => li.isSelected && li.id === lineItem.id);

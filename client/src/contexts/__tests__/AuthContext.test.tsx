@@ -25,7 +25,7 @@ const TestComponent = () => {
     const handleLogin = async () => {
         try {
             await login('test@example.com', 'password123');
-        } catch (e) {
+        } catch {
             // Error handled by context
         }
     };
@@ -33,7 +33,7 @@ const TestComponent = () => {
     const handleLogout = async () => {
         try {
             await logout();
-        } catch (e) {
+        } catch {
             // Error handled by context
         }
     };

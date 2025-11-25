@@ -23,7 +23,7 @@ afterAll(() => {
 });
 
 // Mock IntersectionObserver if not available in test environment
-(global as any).IntersectionObserver = class IntersectionObserver {
+(global as typeof globalThis).IntersectionObserver = class IntersectionObserver {
     constructor() { }
     disconnect() { }
     observe() { }
@@ -31,7 +31,7 @@ afterAll(() => {
 };
 
 // Mock ResizeObserver if not available in test environment
-(global as any).ResizeObserver = class ResizeObserver {
+(global as typeof globalThis).ResizeObserver = class ResizeObserver {
     constructor() { }
     disconnect() { }
     observe() { }
@@ -39,8 +39,8 @@ afterAll(() => {
 };
 
 // Mock MutationObserver if not available in test environment
-(global as any).MutationObserver = class MutationObserver {
-    constructor(callback: any) { }
+(global as typeof globalThis).MutationObserver = class MutationObserver {
+    constructor() { }
     disconnect() { }
     observe() { }
     takeRecords() { return []; }

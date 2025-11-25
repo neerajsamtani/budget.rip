@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { AxiosError } from 'axios';
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { PageContainer, PageHeader } from "../components/ui/layout";
@@ -42,8 +43,14 @@ export default function LoginPage() {
             // Redirect to the page they tried to visit, or home
             const from = location.state?.from?.pathname || '/';
             navigate(from, { replace: true });
-        } catch (err: any) {
-            setError(err.response?.data?.error || err.message || 'Login failed');
+        } catch (err) {
+            if (err instanceof AxiosError) {
+                setError(err.response?.data?.error || err.message || 'Login failed');
+            } else if (err instanceof Error) {
+                setError(err.message);
+            } else {
+                setError('Login failed');
+            }
         } finally {
             setIsSubmitting(false);
         }

@@ -15,6 +15,12 @@ import { Body, H1, H4 } from "../components/ui/typography";
 import { useAccountsAndBalances, useConnectedAccounts, useCreateFinancialConnectionsSession, useRefreshAccount, useRelinkAccount, useSubscribeToAccount } from "../hooks/useApi";
 import { CurrencyFormatter, DateFormatter } from "../utils/formatters";
 
+interface ConnectedAccount {
+    venmo?: string[];
+    splitwise?: string[];
+    stripe?: FinancialConnectionsSession.Account[];
+}
+
 export default function ConnectedAccountsPage({ stripePromise }: { stripePromise: Promise<Stripe | null> }) {
     const [clientSecret, setClientSecret] = useState("");
     const [stripeAccounts, setStripeAccounts] = useState<FinancialConnectionsSession.Account[]>([])
@@ -127,7 +133,7 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
         </Tooltip>
     );
 
-    const renderConnectedAccount = (connectedAccount: any) => {
+    const renderConnectedAccount = (connectedAccount: ConnectedAccount) => {
         // Handle Venmo data (array)
         if (connectedAccount.venmo) {
             return connectedAccount.venmo.map((venmoUser, index) => {
@@ -235,7 +241,7 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
         return null;
     };
 
-    const renderStripeAccount = (stripeAccount: any) => {
+    const renderStripeAccount = (stripeAccount: FinancialConnectionsSession.Account) => {
         const canRelink = accountsAndBalances[stripeAccount.id]?.can_relink ?? false;
         return (
             <TableRow key={stripeAccount.id}>
@@ -264,9 +270,8 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
     }
 
     // Mobile card component for connected accounts
-    const AccountCard = ({ name, id, status, balance, lastUpdated, onRefresh, onRelink, isRefreshing, canRelink }: {
+    const AccountCard = ({ name, status, balance, lastUpdated, onRefresh, onRelink, isRefreshing, canRelink }: {
         name: string;
-        id: string;
         status?: 'active' | 'inactive';
         balance?: number | null;
         lastUpdated?: string | null;
@@ -314,7 +319,7 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
         </div>
     );
 
-    const renderConnectedAccountCards = (connectedAccount: any) => {
+    const renderConnectedAccountCards = (connectedAccount: ConnectedAccount) => {
         if (connectedAccount.venmo) {
             return connectedAccount.venmo.map((venmoUser, index) => {
                 const accountKey = `venmo-${venmoUser}`;
@@ -322,7 +327,6 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
                     <AccountCard
                         key={`${accountKey}-${index}`}
                         name={`Venmo - ${venmoUser}`}
-                        id={accountKey}
                         onRefresh={() => refreshAccount(accountKey, 'venmo')}
                         isRefreshing={refreshingAccountId === accountKey}
                     />
@@ -337,7 +341,6 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
                     <AccountCard
                         key={`${accountKey}-${index}`}
                         name={`Splitwise - ${splitwiseUser}`}
-                        id={accountKey}
                         onRefresh={() => refreshAccount(accountKey, 'splitwise')}
                         isRefreshing={refreshingAccountId === accountKey}
                     />
@@ -359,7 +362,6 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
                         <AccountCard
                             key={`stripe-${id}`}
                             name={`${institution_name} ${display_name} ${last4}`}
-                            id={id}
                             status={status}
                             balance={accountsAndBalances[id]?.balance}
                             lastUpdated={accountsAndBalances[id]?.as_of ? formatDate(accountsAndBalances[id]["as_of"]) : null}
@@ -375,13 +377,12 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
         return null;
     };
 
-    const renderInactiveAccountCard = (stripeAccount: any) => {
+    const renderInactiveAccountCard = (stripeAccount: FinancialConnectionsSession.Account) => {
         const canRelink = accountsAndBalances[stripeAccount.id]?.can_relink ?? false;
         return (
             <AccountCard
                 key={stripeAccount.id}
                 name={`${stripeAccount.institution_name} ${stripeAccount.display_name} ${stripeAccount.last4}`}
-                id={stripeAccount.id}
                 status="inactive"
                 lastUpdated={accountsAndBalances[stripeAccount.id]?.as_of ? formatDate(accountsAndBalances[stripeAccount.id]["as_of"]) : null}
                 onRelink={canRelink ? () => relinkAccount(stripeAccount.id) : undefined}

@@ -5,7 +5,7 @@ import { ResponsiveDialog, useIsMobile } from "@/components/ui/responsive-dialog
 import React from 'react';
 import { useField } from '../hooks/useField';
 import { showSuccessToast, showErrorToast } from '../utils/toast-helpers';
-import { useCreateCashTransaction } from '../hooks/useApi';
+import { useCreateCashTransaction, CreateCashTransactionData } from '../hooks/useApi';
 
 export default function CreateCashTransactionModal({ show, onHide }: { show: boolean, onHide: () => void }) {
 
@@ -18,13 +18,16 @@ export default function CreateCashTransactionModal({ show, onHide }: { show: boo
   const createCashTransactionMutation = useCreateCashTransaction();
 
   const createCashTransaction = () => {
-    const newCashTransaction = {
-      "date": date.value,
-      "person": person.value,
-      "description": description.value,
-      "amount": amount.value
-    }
-    createCashTransactionMutation.mutate(newCashTransaction as any, {
+    // Convert date string to Unix timestamp (seconds since epoch)
+    const dateTimestamp = date.value ? new Date(date.value).getTime() / 1000 : Date.now() / 1000;
+
+    const newCashTransaction: CreateCashTransactionData = {
+      date: Math.floor(dateTimestamp),
+      name: person.value,
+      category: description.value,
+      amount: amount.value
+    };
+    createCashTransactionMutation.mutate(newCashTransaction, {
       onSuccess: () => {
         date.setEmpty()
         person.setEmpty()
