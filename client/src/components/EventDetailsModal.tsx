@@ -17,6 +17,12 @@ export default function EventDetailsModal({ show, event, lineItemsForEvent, isLo
   const deleteEventMutation = useDeleteEvent();
   const isMobile = useIsMobile();
 
+  const handleOpenChange = (open: boolean) => {
+    if (!open) {
+      onHide();
+    }
+  };
+
   const deleteEvent = () => {
     deleteEventMutation.mutate(event.id, {
       onSuccess: () => {
@@ -30,7 +36,7 @@ export default function EventDetailsModal({ show, event, lineItemsForEvent, isLo
   }
 
   return (
-    <ResponsiveDialog open={show} onOpenChange={onHide} className={isMobile ? "" : "w-full !max-w-[56rem]"}>
+    <ResponsiveDialog open={show} onOpenChange={handleOpenChange} className={isMobile ? "" : "w-full !max-w-[56rem]"}>
       <div className="flex flex-col gap-2 pb-4 border-b border-muted">
         <ResponsiveDialogTitle className="text-foreground">{event.name}</ResponsiveDialogTitle>
         <ResponsiveDialogDescription className="text-muted-foreground">
