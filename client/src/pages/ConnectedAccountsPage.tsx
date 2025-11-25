@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Elements } from "@stripe/react-stripe-js";
@@ -19,12 +20,14 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
     const [stripeAccounts, setStripeAccounts] = useState<FinancialConnectionsSession.Account[]>([])
     const [refreshingAccountId, setRefreshingAccountId] = useState<string | null>(null)
 
-    const { data: connectedAccounts = [] } = useConnectedAccounts()
-    const { data: accountsAndBalances = {} } = useAccountsAndBalances()
+    const { data: connectedAccounts = [], isLoading: isLoadingAccounts } = useConnectedAccounts()
+    const { data: accountsAndBalances = {}, isLoading: isLoadingBalances } = useAccountsAndBalances()
     const createSessionMutation = useCreateFinancialConnectionsSession()
     const subscribeToAccountMutation = useSubscribeToAccount()
     const relinkAccountMutation = useRelinkAccount()
     const refreshAccountMutation = useRefreshAccount()
+
+    const isLoading = isLoadingAccounts || isLoadingBalances
 
     const formatDate = (unixTime: number) => DateFormatter.format(new Date(unixTime * 1000))
 
@@ -113,7 +116,7 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
         appearance,
     };
 
-    const AccountNameWithTooltip = ({ name, id }) => (
+    const AccountNameWithTooltip = ({ name, id }: { name: string; id: string }) => (
         <Tooltip>
             <TooltipTrigger asChild>
                 <span>{name}</span>
@@ -124,7 +127,7 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
         </Tooltip>
     );
 
-    const renderConnectedAccount = (connectedAccount) => {
+    const renderConnectedAccount = (connectedAccount: any) => {
         // Handle Venmo data (array)
         if (connectedAccount.venmo) {
             return connectedAccount.venmo.map((venmoUser, index) => {
@@ -232,7 +235,7 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
         return null;
     };
 
-    const renderStripeAccount = (stripeAccount) => {
+    const renderStripeAccount = (stripeAccount: any) => {
         const canRelink = accountsAndBalances[stripeAccount.id]?.can_relink ?? false;
         return (
             <TableRow key={stripeAccount.id}>
@@ -311,7 +314,7 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
         </div>
     );
 
-    const renderConnectedAccountCards = (connectedAccount) => {
+    const renderConnectedAccountCards = (connectedAccount: any) => {
         if (connectedAccount.venmo) {
             return connectedAccount.venmo.map((venmoUser, index) => {
                 const accountKey = `venmo-${venmoUser}`;
@@ -372,7 +375,7 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
         return null;
     };
 
-    const renderInactiveAccountCard = (stripeAccount) => {
+    const renderInactiveAccountCard = (stripeAccount: any) => {
         const canRelink = accountsAndBalances[stripeAccount.id]?.can_relink ?? false;
         return (
             <AccountCard
@@ -436,7 +439,11 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
                 <div className="space-y-6">
                     {/* Mobile card layout */}
                     <div className="md:hidden">
-                        {connectedAccounts.length > 0 ? (
+                        {isLoading ? (
+                            <div className="flex justify-center py-8">
+                                <Spinner size="md" className="text-muted-foreground" />
+                            </div>
+                        ) : connectedAccounts.length > 0 ? (
                             <div className="rounded-xl bg-white shadow-sm border overflow-hidden">
                                 {connectedAccounts.flatMap(renderConnectedAccountCards)}
                             </div>
@@ -460,7 +467,13 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {connectedAccounts.length > 0 ? (
+                                {isLoading ? (
+                                    <TableRow>
+                                        <TableCell colSpan={5} className="text-center py-8">
+                                            <Spinner size="md" className="text-muted-foreground mx-auto" />
+                                        </TableCell>
+                                    </TableRow>
+                                ) : connectedAccounts.length > 0 ? (
                                     connectedAccounts.flatMap(renderConnectedAccount)
                                 ) : (
                                     <TableRow>
@@ -482,7 +495,11 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
 
                         {/* Mobile card layout */}
                         <div className="md:hidden">
-                            {connectedAccounts.find(account => account.stripe)?.stripe.filter(account => account.status === "inactive").length > 0 ? (
+                            {isLoading ? (
+                                <div className="flex justify-center py-8">
+                                    <Spinner size="md" className="text-muted-foreground" />
+                                </div>
+                            ) : connectedAccounts.find(account => account.stripe)?.stripe.filter(account => account.status === "inactive").length > 0 ? (
                                 <div className="rounded-xl bg-white shadow-sm border overflow-hidden">
                                     {connectedAccounts.find(account => account.stripe)?.stripe.filter(account => account.status === "inactive").map(renderInactiveAccountCard)}
                                 </div>
@@ -504,7 +521,13 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {connectedAccounts.length > 0 ? (
+                                    {isLoading ? (
+                                        <TableRow>
+                                            <TableCell colSpan={3} className="text-center py-8">
+                                                <Spinner size="md" className="text-muted-foreground mx-auto" />
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : connectedAccounts.length > 0 ? (
                                         connectedAccounts.find(account => account.stripe)?.stripe.filter(account => account.status === "inactive").flatMap(renderStripeAccount)
                                     ) : (
                                         <TableRow>

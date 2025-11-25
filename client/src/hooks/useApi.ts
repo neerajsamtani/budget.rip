@@ -83,12 +83,27 @@ export function useMonthlyBreakdown(): UseQueryResult<MonthlyBreakdownData> {
   });
 }
 
-export function useConnectedAccounts(): UseQueryResult<unknown> {
+export interface StripeAccount {
+  id: string;
+  institution_name: string;
+  display_name: string;
+  last4: string;
+  status: 'active' | 'inactive';
+  subcategory: string;
+}
+
+export interface ConnectedAccount {
+  venmo?: string[];
+  splitwise?: string[];
+  stripe?: StripeAccount[];
+}
+
+export function useConnectedAccounts(): UseQueryResult<ConnectedAccount[]> {
   return useQuery({
     queryKey: queryKeys.connectedAccounts(),
     queryFn: async () => {
       const response = await axiosInstance.get('api/connected_accounts');
-      return response.data;
+      return response.data as ConnectedAccount[];
     },
   });
 }

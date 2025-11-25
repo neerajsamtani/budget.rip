@@ -23,11 +23,11 @@ interface Tag {
 
 export default function CreateEventModal({ show, onHide }: { show: boolean, onHide: () => void }) {
 
-  const lineItems = useLineItems();
+  const { lineItems } = useLineItems();
   const lineItemsDispatch = useLineItemsDispatch();
   const createEventMutation = useCreateEvent();
 
-  const selectedLineItems = lineItems.filter(lineItem => lineItem.isSelected);
+  const selectedLineItems = (lineItems || []).filter(lineItem => lineItem.isSelected);
   const selectedLineItemIds = selectedLineItems.map(lineItem => lineItem.id);
 
   useEffect(() => {

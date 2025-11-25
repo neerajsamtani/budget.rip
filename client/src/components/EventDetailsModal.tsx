@@ -1,9 +1,9 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ResponsiveDialog, useIsMobile } from "@/components/ui/responsive-dialog";
+import { ResponsiveDialog, ResponsiveDialogTitle, ResponsiveDialogDescription, useIsMobile } from "@/components/ui/responsive-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import React from 'react';
-import { Body, H3 } from "../components/ui/typography";
+import { Body } from "../components/ui/typography";
 import { LineItemInterface } from '../contexts/LineItemsContext';
 import { useDeleteEvent } from '../hooks/useApi';
 import { showErrorToast, showSuccessToast } from '../utils/toast-helpers';
@@ -16,6 +16,12 @@ export default function EventDetailsModal({ show, event, lineItemsForEvent, isLo
 
   const deleteEventMutation = useDeleteEvent();
   const isMobile = useIsMobile();
+
+  const handleOpenChange = (open: boolean) => {
+    if (!open) {
+      onHide();
+    }
+  };
 
   const deleteEvent = () => {
     deleteEventMutation.mutate(event.id, {
@@ -30,14 +36,14 @@ export default function EventDetailsModal({ show, event, lineItemsForEvent, isLo
   }
 
   return (
-    <ResponsiveDialog open={show} onOpenChange={onHide} className={isMobile ? "" : "w-full !max-w-[56rem]"}>
+    <ResponsiveDialog open={show} onOpenChange={handleOpenChange} className={isMobile ? "" : "w-full !max-w-[56rem]"}>
       <div className="flex flex-col gap-2 pb-4 border-b border-muted">
-        <H3 className="text-foreground">{event.name}</H3>
-        <Body className="text-muted-foreground">
+        <ResponsiveDialogTitle className="text-foreground">{event.name}</ResponsiveDialogTitle>
+        <ResponsiveDialogDescription className="text-muted-foreground">
           Category: <span className="font-medium text-primary">{event.category}</span>
-        </Body>
+        </ResponsiveDialogDescription>
       </div>
-      <div className="space-y-6 py-4">
+      <div className="space-y-6 py-4 overflow-y-auto max-h-[60vh]">
         {isMobile ? (
           <div className="rounded-xl bg-muted/50 border overflow-hidden">
             {isLoadingLineItemsForEvent ? (<div className="flex justify-center items-center p-4">

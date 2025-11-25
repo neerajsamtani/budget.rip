@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Spinner } from "@/components/ui/spinner";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { CurrencyFormatter } from "@/utils/formatters";
 import React, { useCallback, useEffect, useState } from "react";
 import CreateCashTransactionModal from "../components/CreateCashTransactionModal";
@@ -11,9 +12,9 @@ import { useLineItems, useLineItemsDispatch } from "../contexts/LineItemsContext
 
 // Mobile card wrapper that includes context hooks
 function MobileLineItemCard({ lineItem }: { lineItem: any }) {
-    const lineItems = useLineItems();
+    const { lineItems } = useLineItems();
     const lineItemsDispatch = useLineItemsDispatch();
-    const isChecked = lineItems.some(li => li.isSelected && li.id === lineItem.id);
+    const isChecked = (lineItems || []).some(li => li.isSelected && li.id === lineItem.id);
 
     const handleToggle = () => {
         lineItemsDispatch({
@@ -39,7 +40,7 @@ export default function LineItemsToReviewPage() {
 
     const [eventModalShow, setEventModalShow] = useState(false);
     const [cashModalShow, setCashModalShow] = useState(false);
-    const lineItems = useLineItems();
+    const { lineItems, isLoading } = useLineItems();
     const selectedLineItems = lineItems?.filter(lineItem => lineItem.isSelected) ?? [];
     const total = selectedLineItems.reduce((prev, cur) => prev + cur.amount, 0);
 
@@ -68,41 +69,63 @@ export default function LineItemsToReviewPage() {
                 </Body>
             </PageHeader>
 
-            {lineItems && (
-                <div className="space-y-6 pb-32">
-                    {/* Mobile card layout */}
-                    <div className="md:hidden rounded-xl bg-white shadow-sm border overflow-hidden">
-                        {lineItems.length > 0 && lineItems.map(lineItem => (
+            <div className="space-y-6 pb-32">
+                {/* Mobile card layout */}
+                <div className="md:hidden rounded-xl bg-white shadow-sm border overflow-hidden">
+                    {isLoading ? (
+                        <div className="flex justify-center py-8">
+                            <Spinner size="md" className="text-muted-foreground" />
+                        </div>
+                    ) : lineItems && lineItems.length > 0 ? (
+                        lineItems.map(lineItem => (
                             <MobileLineItemCard key={lineItem.id} lineItem={lineItem} />
-                        ))}
-                    </div>
+                        ))
+                    ) : (
+                        <div className="p-4 text-center text-muted-foreground">
+                            No line items to review
+                        </div>
+                    )}
+                </div>
 
-                    {/* Desktop table layout */}
-                    <div className="hidden md:block">
-                        <Table>
-                            <TableHeader>
+                {/* Desktop table layout */}
+                <div className="hidden md:block">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Select</TableHead>
+                                <TableHead>Date</TableHead>
+                                <TableHead>Payment Method</TableHead>
+                                <TableHead>Description</TableHead>
+                                <TableHead>Party</TableHead>
+                                <TableHead className="text-right">Amount</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {isLoading ? (
                                 <TableRow>
-                                    <TableHead>Select</TableHead>
-                                    <TableHead>Date</TableHead>
-                                    <TableHead>Payment Method</TableHead>
-                                    <TableHead>Description</TableHead>
-                                    <TableHead>Party</TableHead>
-                                    <TableHead className="text-right">Amount</TableHead>
+                                    <TableCell colSpan={6} className="text-center py-8">
+                                        <Spinner size="md" className="text-muted-foreground mx-auto" />
+                                    </TableCell>
                                 </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {lineItems.length > 0 && lineItems.map(lineItem =>
+                            ) : lineItems && lineItems.length > 0 ? (
+                                lineItems.map(lineItem =>
                                     <LineItem
                                         key={lineItem.id}
                                         lineItem={lineItem}
                                         showCheckBox={true}
                                     />
-                                )}
-                            </TableBody>
-                        </Table>
-                    </div>
+                                )
+                            ) : (
+                                <TableRow>
+                                    <TableCell colSpan={6} className="text-center text-muted-foreground">
+                                        No line items to review
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
                 </div>
-            )}
+            </div>
 
             <CreateCashTransactionModal
                 show={cashModalShow}

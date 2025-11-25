@@ -162,7 +162,7 @@ describe('LineItemsPage', () => {
             render(<LineItemsPage />);
 
             await waitFor(() => {
-                expect(screen.getByText('No Line Items found')).toBeInTheDocument();
+                expect(screen.getAllByText('No Line Items found').length).toBeGreaterThan(0);
             });
         });
 
@@ -174,7 +174,7 @@ describe('LineItemsPage', () => {
             render(<LineItemsPage />);
 
             await waitFor(() => {
-                expect(screen.getByText('No Line Items found')).toBeInTheDocument();
+                expect(screen.getAllByText('No Line Items found').length).toBeGreaterThan(0);
             });
         });
     });
@@ -237,7 +237,7 @@ describe('LineItemsPage', () => {
             render(<LineItemsPage />);
 
             await waitFor(() => {
-                expect(screen.getByText(/Error loading line items/i)).toBeInTheDocument();
+                expect(screen.getAllByText(/Error loading line items/i).length).toBeGreaterThan(0);
             });
         });
 
@@ -420,9 +420,11 @@ describe('LineItemsPage', () => {
             // Don't resolve the promise immediately
             mockAxiosInstance.get.mockImplementation(() => new Promise(() => { }));
 
-            render(<LineItemsPage />);
+            const { container } = render(<LineItemsPage />);
 
-            expect(screen.getByText('Loading line items...')).toBeInTheDocument();
+            // Check for spinner (loading indicator)
+            const spinner = container.querySelector('.animate-spin');
+            expect(spinner).toBeInTheDocument();
         });
 
         it('updates display when data loads', async () => {
@@ -434,7 +436,7 @@ describe('LineItemsPage', () => {
             render(<LineItemsPage />);
 
             await waitFor(() => {
-                expect(screen.getByText('No Line Items found')).toBeInTheDocument();
+                expect(screen.getAllByText('No Line Items found').length).toBeGreaterThan(0);
             });
 
             // Clear the mock and set up new response
@@ -515,7 +517,7 @@ describe('LineItemsPage', () => {
             render(<LineItemsPage />);
 
             await waitFor(() => {
-                expect(screen.getByText('No Line Items found')).toBeInTheDocument();
+                expect(screen.getAllByText('No Line Items found').length).toBeGreaterThan(0);
             });
         });
 
@@ -525,7 +527,7 @@ describe('LineItemsPage', () => {
             render(<LineItemsPage />);
 
             await waitFor(() => {
-                expect(screen.getByText(/Error loading line items/i)).toBeInTheDocument();
+                expect(screen.getAllByText(/Error loading line items/i).length).toBeGreaterThan(0);
             });
         });
 
@@ -535,7 +537,7 @@ describe('LineItemsPage', () => {
             render(<LineItemsPage />);
 
             await waitFor(() => {
-                expect(screen.getByText(/Error loading line items/i)).toBeInTheDocument();
+                expect(screen.getAllByText(/Error loading line items/i).length).toBeGreaterThan(0);
             });
         });
 

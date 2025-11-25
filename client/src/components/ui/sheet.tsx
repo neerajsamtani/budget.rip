@@ -68,9 +68,7 @@ function SheetContent({
         className={cn(sheetVariants({ side }), className)}
         {...props}
       >
-        <div className="pr-10">
-          {children}
-        </div>
+        {children}
         <SheetPrimitive.Close
           data-slot="sheet-close"
           className="absolute top-4 right-4 z-10 rounded-full p-2 -m-2 opacity-70 ring-offset-white transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:pointer-events-none text-foreground hover:text-primary hover:bg-muted active:bg-muted"

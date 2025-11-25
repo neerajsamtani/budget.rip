@@ -42,29 +42,31 @@ export function EventCard({ event }: { event: EventInterface }) {
     const amountStatus = event.amount > 0 ? 'warning' : 'success';
 
     return (
-        <div className="p-4 border-b last:border-b-0" onClick={show}>
-            <div className="flex justify-between items-start gap-2 mb-2">
-                <span className="text-sm text-muted-foreground">{readableDate}</span>
-                <StatusBadge status={amountStatus}>
-                    {CurrencyFormatter.format(Math.abs(event.amount))}
-                </StatusBadge>
-            </div>
-            <p className="font-medium text-foreground mb-2">{event.name}</p>
-            <div className="flex flex-wrap items-center gap-2">
-                <Badge className="bg-muted text-foreground border hover:bg-muted">
-                    {event.category}
-                </Badge>
-                {event.tags && event.tags.slice(0, 2).map((tag, index) => (
-                    <Badge key={index} className="bg-primary text-white text-xs px-2 py-1">
-                        {tag}
+        <>
+            <div className="p-4 border-b last:border-b-0" onClick={show}>
+                <div className="flex justify-between items-start gap-2 mb-2">
+                    <span className="text-sm text-muted-foreground">{readableDate}</span>
+                    <StatusBadge status={amountStatus}>
+                        {CurrencyFormatter.format(Math.abs(event.amount))}
+                    </StatusBadge>
+                </div>
+                <p className="font-medium text-foreground mb-2">{event.name}</p>
+                <div className="flex flex-wrap items-center gap-2">
+                    <Badge className="bg-muted text-foreground border hover:bg-muted">
+                        {event.category}
                     </Badge>
-                ))}
-                {event.tags && event.tags.length > 2 && (
-                    <span className="text-xs text-muted-foreground">+{event.tags.length - 2} more</span>
-                )}
+                    {event.tags && event.tags.slice(0, 2).map((tag, index) => (
+                        <Badge key={index} className="bg-primary text-white text-xs px-2 py-1">
+                            {tag}
+                        </Badge>
+                    ))}
+                    {event.tags && event.tags.length > 2 && (
+                        <span className="text-xs text-muted-foreground">+{event.tags.length - 2} more</span>
+                    )}
+                </div>
             </div>
             <EventDetailsModal show={modalShow} event={event} lineItemsForEvent={lineItems} isLoadingLineItemsForEvent={isLoadingLineItemsForEvent} onHide={hide} />
-        </div>
+        </>
     );
 }
 
