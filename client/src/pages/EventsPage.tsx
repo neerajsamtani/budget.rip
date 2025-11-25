@@ -120,16 +120,16 @@ export default function EventsPage() {
 
                 {/* Summary cards */}
                 <div className="grid grid-cols-2 gap-3 md:gap-4">
-                    <div className="bg-muted rounded-lg p-3 md:p-4">
-                        <Body className="font-medium text-xs md:text-base mb-1">
+                    <div className="bg-muted rounded-lg p-3 md:p-4 flex items-center justify-between gap-2">
+                        <Body className="font-medium text-xs md:text-base">
                             Cash Flow
                         </Body>
                         <StatusBadge status={cashFlowWithFilters < 0 ? 'success' : 'warning'}>
                             {CurrencyFormatter.format(Math.abs(cashFlowWithFilters))}
                         </StatusBadge>
                     </div>
-                    <div className="bg-muted rounded-lg p-3 md:p-4">
-                        <Body className="font-medium text-xs md:text-base mb-1">Spending</Body>
+                    <div className="bg-muted rounded-lg p-3 md:p-4 flex items-center justify-between gap-2">
+                        <Body className="font-medium text-xs md:text-base">Spending</Body>
                         <StatusBadge status={spending <= 0 ? 'success' : 'warning'}>
                             {CurrencyFormatter.format(Math.abs(spending))}
                         </StatusBadge>
