@@ -1,20 +1,19 @@
 import userEvent from '@testing-library/user-event';
 import React, { useState } from 'react';
-import { fireEvent, render, screen, waitFor } from '../../utils/test-utils';
+import { render, screen } from '../../utils/test-utils';
 import YearFilter from '../YearFilter';
 
 function YearFilterControlledWrapper({ initialValue = '2024' }: { initialValue?: string }) {
     const [value, setValue] = useState(initialValue);
-    return <YearFilter year={value as any} setYear={setValue as any} />;
+    return <YearFilter year={value} setYear={setValue} />;
 }
 
 describe('YearFilter', () => {
-    let rerender: any;
+    let rerender: (_ui: React.ReactElement) => void;
 
     function setup(initialValue = '2024') {
-        const utils = render(<YearFilter year={initialValue as any} setYear={jest.fn()} />);
-        rerender = utils.rerender;
-        return utils;
+        const { rerender: setRerender } = render(<YearFilter year={initialValue} setYear={jest.fn()} />);
+        rerender = setRerender;
     }
 
     describe('Rendering', () => {
@@ -25,7 +24,7 @@ describe('YearFilter', () => {
         });
 
         it('renders with proper form structure', () => {
-            const { container } = setup();
+            setup();
             expect(screen.getByText('Year')).toBeInTheDocument();
             expect(screen.getByRole('combobox')).toBeInTheDocument();
         });
@@ -80,7 +79,7 @@ describe('YearFilter', () => {
         it('updates display value when year prop changes', () => {
             setup('2024');
             expect(screen.getByText('2024')).toBeInTheDocument();
-            rerender(<YearFilter year={'2023' as any} setYear={jest.fn()} />);
+            rerender(<YearFilter year='2023' setYear={jest.fn()} />);
             expect(screen.getByText('2023')).toBeInTheDocument();
         });
 
@@ -117,13 +116,13 @@ describe('YearFilter', () => {
 
     describe('Form Structure', () => {
         it('has proper input group structure', () => {
-            const { container } = setup();
+            setup();
             expect(screen.getByText('Year')).toBeInTheDocument();
             expect(screen.getByText('Year')).toBeInTheDocument();
         });
 
         it('has proper select element', () => {
-            const { container } = setup();
+            setup();
             const select = screen.getByRole('combobox');
             expect(select).toBeInTheDocument();
             expect(select).toHaveTextContent('2024');

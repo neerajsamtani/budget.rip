@@ -1,26 +1,34 @@
 import { Category } from "@/constants/categories";
 import { LineItemInterface } from "../contexts/LineItemsContext";
 
-// TODO: Remove "any" types
-
 // Basic CEL Evaluator
+type CELOperator = '==' | '!=' | '>' | '<' | '>=' | '<=' | 'in' | 'contains';
+type CELValue = string | number | boolean | null | undefined;
+
 function evaluateCEL(expression: string, context: LineItemInterface) {
     // Helper function to safely get nested properties
-    const getNestedProperty = (obj: any, path: string) => {
-        return path.split('.').reduce((acc, part) => acc && acc[part], obj);
+    const getNestedProperty = (obj: Record<string, CELValue>, path: string): CELValue => {
+        return path.split('.').reduce<CELValue>((acc, part) => {
+            if (acc && typeof acc === 'object' && part in acc) {
+                return (acc as Record<string, CELValue>)[part];
+            }
+            return undefined;
+        }, obj as CELValue);
     };
 
     // Helper function to evaluate a single condition
-    const evaluateCondition = (left: any, operator: any, right: any) => {
-        switch (operator) {
+    const evaluateCondition = (left: CELValue, operator: string, right: CELValue): boolean => {
+        switch (operator as CELOperator) {
             case '==': return left === right;
             case '!=': return left !== right;
-            case '>': return left > right;
-            case '<': return left < right;
-            case '>=': return left >= right;
-            case '<=': return left <= right;
-            case 'in': return right.includes(left);
-            case 'contains': return left.toLowerCase().includes(right.toLowerCase());
+            case '>': return (left as number) > (right as number);
+            case '<': return (left as number) < (right as number);
+            case '>=': return (left as number) >= (right as number);
+            case '<=': return (left as number) <= (right as number);
+            case 'in': return Array.isArray(right) && right.includes(left);
+            case 'contains':
+                return typeof left === 'string' && typeof right === 'string' &&
+                       left.toLowerCase().includes(right.toLowerCase());
             default: throw new Error(`Unsupported operator: ${operator}`);
         }
     };
@@ -31,13 +39,17 @@ function evaluateCEL(expression: string, context: LineItemInterface) {
     // Evaluate each condition
     return conditions.every(condition => {
         const [left, operator, ...rightParts] = condition.split(/\s+/);
-        const leftValue = getNestedProperty(context, left);
-        let rightValue: any = rightParts.join(' ').replace(/^["']|["']$/g, '');
+        const leftValue = getNestedProperty(context as unknown as Record<string, CELValue>, left);
+        let rightValue: CELValue = rightParts.join(' ').replace(/^["']|["']$/g, '');
 
         // Try to parse the right value as a number or boolean
-        if (rightValue === 'true') rightValue = true;
-        else if (rightValue === 'false') rightValue = false;
-        else if (!isNaN(rightValue)) rightValue = parseFloat(rightValue);
+        if (rightValue === 'true') {
+            rightValue = true;
+        } else if (rightValue === 'false') {
+            rightValue = false;
+        } else if (typeof rightValue === 'string' && !isNaN(Number(rightValue))) {
+            rightValue = parseFloat(rightValue);
+        }
 
         return evaluateCondition(leftValue, operator, rightValue);
     });

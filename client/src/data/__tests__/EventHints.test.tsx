@@ -84,11 +84,11 @@ describe('getPrefillFromLineItems', () => {
                 id: '1',
                 date: 1629984000,
                 // Missing other properties
-            } as any;
+            } as LineItemInterface;
 
-            // The CEL evaluator will throw an error when trying to access undefined properties
-            // This is the expected behavior for malformed data
-            expect(() => getPrefillFromLineItems([incompleteLineItem])).toThrow(TypeError);
+            // The CEL evaluator now handles missing properties gracefully by returning undefined
+            // This should return null since no hints will match
+            expect(getPrefillFromLineItems([incompleteLineItem])).toBeNull();
         });
 
         it('handles empty description', () => {

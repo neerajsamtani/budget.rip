@@ -15,7 +15,7 @@ jest.mock('sonner', () => {
     };
 });
 
-jest.mock('../../components/FinancialConnectionsForm', () => ({ fcsess_secret, setStripeAccounts }: any) => (
+jest.mock('../../components/FinancialConnectionsForm', () => () => (
     <div data-testid="fc-form">FinancialConnectionsForm</div>
 ));
 
@@ -239,7 +239,6 @@ describe('ConnectedAccountsPage', () => {
         });
 
         it('refreshes a venmo account when refresh button is clicked', async () => {
-            const { toast } = require('sonner');
             render(<ConnectedAccountsPage stripePromise={mockStripePromise} />);
 
             await waitFor(() => {

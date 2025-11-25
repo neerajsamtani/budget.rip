@@ -19,9 +19,9 @@ export function useCurrentUser(): UseQueryResult<User | null> {
       try {
         const response = await axiosInstance.get('api/auth/me');
         return response.data as User;
-      } catch (error: any) {
+      } catch (error) {
         // If 401, user is not authenticated - this is not an error
-        if (error.response?.status === 401) {
+        if ((error as { response?: { status?: number } }).response?.status === 401) {
           return null;
         }
         throw error;

@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 import path from "path"
 import { visualizer } from 'rollup-plugin-visualizer'
 import { fileURLToPath } from 'url'
-import { defineConfig } from 'vite'
+import { defineConfig, Plugin } from 'vite'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -16,7 +16,7 @@ export default defineConfig({
     visualizer({
       filename: 'dist/stats.html',
       open: false
-    }) as any,
+    }) as Plugin,
     tailwindcss()
   ],
   publicDir: 'public',

@@ -60,7 +60,7 @@ describe('PaymentMethodFilter', () => {
         });
 
         it('renders with proper form structure', () => {
-            const { container } = render(<PaymentMethodFilter paymentMethod={mockPaymentMethod} setPaymentMethod={mockSetPaymentMethod} />);
+            render(<PaymentMethodFilter paymentMethod={mockPaymentMethod} setPaymentMethod={mockSetPaymentMethod} />);
 
             expect(screen.getByText('Payment Method')).toBeInTheDocument();
             expect(screen.getByRole('combobox')).toBeInTheDocument();
@@ -240,20 +240,20 @@ describe('PaymentMethodFilter', () => {
 
     describe('Form Structure', () => {
         it('has proper input group structure', () => {
-            const { container } = render(<PaymentMethodFilter paymentMethod={mockPaymentMethod} setPaymentMethod={mockSetPaymentMethod} />);
+            render(<PaymentMethodFilter paymentMethod={mockPaymentMethod} setPaymentMethod={mockSetPaymentMethod} />);
 
             expect(screen.getByText('Payment Method')).toBeInTheDocument();
             expect(screen.getByRole('combobox')).toBeInTheDocument();
         });
 
         it('has proper form select structure', () => {
-            const { container } = render(<PaymentMethodFilter paymentMethod={mockPaymentMethod} setPaymentMethod={mockSetPaymentMethod} />);
+            render(<PaymentMethodFilter paymentMethod={mockPaymentMethod} setPaymentMethod={mockSetPaymentMethod} />);
 
             expect(screen.getByRole('combobox')).toBeInTheDocument();
         });
 
         it('has proper control ID', () => {
-            const { container } = render(<PaymentMethodFilter paymentMethod={mockPaymentMethod} setPaymentMethod={mockSetPaymentMethod} />);
+            render(<PaymentMethodFilter paymentMethod={mockPaymentMethod} setPaymentMethod={mockSetPaymentMethod} />);
 
             const select = screen.getByRole('combobox');
             expect(select).toBeInTheDocument();

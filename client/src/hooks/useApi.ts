@@ -154,12 +154,11 @@ export function useCreateEvent(): UseMutationResult<unknown, Error, CreateEventD
   });
 }
 
-interface CreateCashTransactionData {
-  name: string;
-  category: string;
+export interface CreateCashTransactionData {
+  date: string;        // YYYY-MM-DD format
+  person: string;
+  description: string;
   amount: number;
-  date: number;
-  tags?: string[];
 }
 
 export function useCreateCashTransaction(): UseMutationResult<unknown, Error, CreateCashTransactionData> {

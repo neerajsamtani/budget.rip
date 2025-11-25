@@ -13,7 +13,7 @@ jest.mock('../../contexts/LineItemsContext', () => ({
 
 // Mock the components
 jest.mock('../../components/CreateCashTransactionModal', () => {
-    return function MockCreateCashTransactionModal({ show, onHide }: any) {
+    return function MockCreateCashTransactionModal({ show, onHide }: { show: boolean; onHide: () => void }) {
         return show ? (
             <div data-testid="cash-transaction-modal">
                 <button onClick={onHide}>Close Cash Modal</button>
@@ -23,7 +23,7 @@ jest.mock('../../components/CreateCashTransactionModal', () => {
 });
 
 jest.mock('../../components/CreateEventModal', () => {
-    return function MockCreateEventModal({ show, onHide }: any) {
+    return function MockCreateEventModal({ show, onHide }: { show: boolean; onHide: () => void }) {
         return show ? (
             <div data-testid="event-modal">
                 <button onClick={onHide}>Close Event Modal</button>
@@ -33,7 +33,23 @@ jest.mock('../../components/CreateEventModal', () => {
 });
 
 jest.mock('../../components/LineItem', () => {
-    const MockLineItem = function({ lineItem, showCheckBox }: any) {
+    interface MockLineItemProps {
+        lineItem: {
+            _id?: string;
+            id?: string;
+            date: number;
+            payment_method?: string;
+            description?: string;
+            responsible_party?: string;
+            amount?: number;
+        };
+        showCheckBox?: boolean;
+        isChecked?: boolean;
+        handleToggle?: () => void;
+        amountStatus?: string;
+    }
+
+    const MockLineItem = function({ lineItem, showCheckBox }: MockLineItemProps) {
         return (
             <tr data-testid={`line-item-${lineItem._id}`}>
                 <td>{showCheckBox ? 'Checkbox' : 'No Checkbox'}</td>
@@ -46,7 +62,7 @@ jest.mock('../../components/LineItem', () => {
         );
     };
     // Export LineItemCard for mobile view
-    const MockLineItemCard = function({ lineItem, showCheckBox, isChecked, handleToggle, amountStatus }: any) {
+    const MockLineItemCard = function({ lineItem }: MockLineItemProps) {
         return (
             <div data-testid={`line-item-card-${lineItem._id || lineItem.id}`}>
                 <span>{lineItem.description || ''}</span>
