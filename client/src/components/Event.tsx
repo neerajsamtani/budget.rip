@@ -56,7 +56,7 @@ export function EventCard({ event }: { event: EventInterface }) {
                         {event.category}
                     </Badge>
                     {event.tags && event.tags.slice(0, 2).map((tag, index) => (
-                        <Badge key={index} className="bg-primary text-white text-xs px-2 py-1">
+                        <Badge key={index} className="bg-primary text-white px-2 py-1">
                             {tag}
                         </Badge>
                     ))}
@@ -93,7 +93,7 @@ export default function Event({ event }: { event: EventInterface }) {
                 {event.tags && event.tags.length > 0 ? (
                     <div className="flex flex-wrap gap-1">
                         {event.tags.map((tag, index) => (
-                            <Badge key={index} className="bg-primary text-white text-xs px-2 py-1">
+                            <Badge key={index} className="bg-primary text-white px-2 py-1">
                                 {tag}
                             </Badge>
                         ))}
@@ -103,7 +103,7 @@ export default function Event({ event }: { event: EventInterface }) {
                 )}
             </TableCell>
             <TableCell>
-                <Button onClick={show} variant="secondary" size="sm" className="text-xs">
+                <Button onClick={show} variant="secondary" size="sm">
                     View Details
                 </Button>
                 <EventDetailsModal show={modalShow} event={event} lineItemsForEvent={lineItems} isLoadingLineItemsForEvent={isLoadingLineItemsForEvent} onHide={hide} />
