@@ -23,6 +23,8 @@ os.environ["TESTING"] = "true"
 os.environ["DATABASE_HOST"] = "sqlite"
 # Use a unique name for the shared in-memory database to avoid file creation
 os.environ["DATABASE_NAME"] = ":memory:"
+# Read from PostgreSQL (SQLite in-memory for tests) instead of MongoDB
+os.environ["READ_FROM_POSTGRESQL"] = "true"
 
 import mongomock
 from flask import Flask
@@ -174,24 +176,14 @@ def flask_app():
         # Add user lookup loader for JWT
         @jwt.user_lookup_loader
         def user_lookup_callback(jwt_header, jwt_payload):
-            from bson import ObjectId
-            from flask import current_app
-
             user_id = jwt_payload.get("sub")
             if user_id:
-                try:
-                    # Directly query mongomock to avoid handler routing issues
-                    db = current_app.config["MONGO"].cx[current_app.config["MONGO_DB_NAME"]]
-                    # Try as string first (for user_xxx style IDs)
-                    user = db.users.find_one({"_id": user_id})
-                    if user:
-                        return user
-                    # Try as ObjectId (for legacy ObjectId style IDs)
-                    user = db.users.find_one({"_id": ObjectId(user_id)})
-                    if user:
-                        return user
-                except Exception:
-                    pass
+                # Query PostgreSQL using the dao layer
+                from dao import get_item_by_id, users_collection
+
+                user = get_item_by_id(users_collection, user_id)
+                if user:
+                    return user
             # Fallback for tests that use the old jwt_token fixture
             return {"email": "test@example.com", "id": "user_id"}
 

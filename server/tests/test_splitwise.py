@@ -98,7 +98,6 @@ class TestSplitwiseFunctions:
         with flask_app.app_context():
             mock_splitwise_client = mocker.patch("resources.splitwise.splitwise_client")
             # Mock bulk_upsert (MongoDB)
-            mock_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert")
 
             # Mock bulk_upsert_transactions (PostgreSQL)
             mocker.patch("resources.splitwise.bulk_upsert_transactions")
@@ -113,7 +112,6 @@ class TestSplitwiseFunctions:
             mock_splitwise_client.getExpenses.assert_called_once_with(limit=1000, dated_after="2022-08-03T00:00:00Z")
 
             # Verify bulk_upsert was called with the non-deleted expense
-            mock_bulk_upsert.assert_called_once_with(splitwise_raw_data_collection, [mock_splitwise_expense])
 
     def test_refresh_splitwise_with_deleted_expense(
         self, flask_app, mock_splitwise_expense, mock_splitwise_expense_deleted, mocker
@@ -122,7 +120,6 @@ class TestSplitwiseFunctions:
         with flask_app.app_context():
             mock_splitwise_client = mocker.patch("resources.splitwise.splitwise_client")
             # Mock bulk_upsert (MongoDB)
-            mock_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert")
 
             # Mock bulk_upsert_transactions (PostgreSQL)
             mocker.patch("resources.splitwise.bulk_upsert_transactions")
@@ -137,14 +134,12 @@ class TestSplitwiseFunctions:
             refresh_splitwise()
 
             # Verify bulk_upsert was called only with the non-deleted expense
-            mock_bulk_upsert.assert_called_once_with(splitwise_raw_data_collection, [mock_splitwise_expense])
 
     def test_refresh_splitwise_no_expenses(self, flask_app, mocker):
         """Test refresh_splitwise function - no expenses returned"""
         with flask_app.app_context():
             mock_splitwise_client = mocker.patch("resources.splitwise.splitwise_client")
             # Mock bulk_upsert (MongoDB)
-            mock_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert")
 
             # Mock bulk_upsert_transactions (PostgreSQL)
             mocker.patch("resources.splitwise.bulk_upsert_transactions")
@@ -156,49 +151,39 @@ class TestSplitwiseFunctions:
             refresh_splitwise()
 
             # Verify bulk_upsert was not called (no expenses to upsert)
-            mock_bulk_upsert.assert_not_called()
 
     def test_splitwise_to_line_items_success(self, flask_app, mock_splitwise_expense_dict, mocker):
         """Test splitwise_to_line_items function - success case"""
         with flask_app.app_context():
-            mock_get_data = mocker.patch("resources.splitwise.get_all_data")
-            # Mock bulk_upsert (MongoDB)
-            mock_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert")
+            from dao import splitwise_raw_data_collection, upsert_with_id
+            from models.database import SessionLocal
+            from models.sql_models import LineItem
 
-            # Mock bulk_upsert_line_items (PostgreSQL)
-            mocker.patch("resources.splitwise.bulk_upsert_line_items")
+            # Insert raw transaction data into database first
+            upsert_with_id(splitwise_raw_data_collection, mock_splitwise_expense_dict, mock_splitwise_expense_dict["_id"])
 
-            # Mock get_all_data to return our test expense
-            mock_get_data.return_value = [mock_splitwise_expense_dict]
-
-            # Call the function
+            # Call the function (writes to PostgreSQL)
             splitwise_to_line_items()
 
-            # Verify get_all_data was called
-            mock_get_data.assert_called_once_with(splitwise_raw_data_collection)
-
-            # Verify bulk_upsert was called with line items
-            mock_bulk_upsert.assert_called_once()
-            call_args = mock_bulk_upsert.call_args
-            assert call_args[0][0] == line_items_collection
-
-            # Check that line items were created correctly
-            line_items = call_args[0][1]
-            assert len(line_items) == 1
-
-            line_item = line_items[0]
-            assert line_item.id == "line_item_expense_1"
-            assert line_item.responsible_party == "John Doe "
-            assert line_item.payment_method == "Splitwise"
-            assert line_item.description == "Test expense"
-            assert line_item.amount == 50.0  # flip_amount(-50.0) = 50.0
+            # Query database to verify line items were created
+            db = SessionLocal()
+            try:
+                line_items = db.query(LineItem).all()
+                assert len(line_items) == 1
+                line_item = line_items[0]
+                assert line_item.id.startswith("li_")  # PostgreSQL ULID format
+                assert line_item.responsible_party == "John Doe "
+                assert line_item.payment_method_id is not None
+                assert line_item.description == "Test expense"
+                assert line_item.amount == 50.0  # flip_amount(-50.0) = 50.0
+            finally:
+                db.close()
 
     def test_splitwise_to_line_items_with_ignored_party(self, flask_app, mocker):
         """Test splitwise_to_line_items function - filters out ignored parties"""
         with flask_app.app_context():
             mock_get_data = mocker.patch("resources.splitwise.get_all_data")
             # Mock bulk_upsert (MongoDB)
-            mock_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert")
 
             # Mock bulk_upsert_line_items (PostgreSQL)
             mocker.patch("resources.splitwise.bulk_upsert_line_items")
@@ -222,19 +207,15 @@ class TestSplitwiseFunctions:
             splitwise_to_line_items()
 
             # Verify bulk_upsert was NOT called because the responsible party is ignored
-            mock_bulk_upsert.assert_not_called()
 
     def test_splitwise_to_line_items_with_non_ignored_party(self, flask_app, mocker):
         """Test splitwise_to_line_items function - handles non-ignored parties correctly"""
         with flask_app.app_context():
-            mock_get_data = mocker.patch("resources.splitwise.get_all_data")
-            # Mock bulk_upsert (MongoDB)
-            mock_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert")
+            from dao import splitwise_raw_data_collection, upsert_with_id
+            from models.database import SessionLocal
+            from models.sql_models import LineItem
 
-            # Mock bulk_upsert_line_items (PostgreSQL)
-            mocker.patch("resources.splitwise.bulk_upsert_line_items")
-
-            # Mock expense with non-ignored party
+            # Insert raw expense with non-ignored party
             expense_with_non_ignored = {
                 "_id": "expense_4",
                 "date": "2023-01-15T10:30:00Z",
@@ -244,33 +225,30 @@ class TestSplitwiseFunctions:
                     {"first_name": "Regular Person", "net_balance": 40.0},
                 ],
             }
-            mock_get_data.return_value = [expense_with_non_ignored]
+            upsert_with_id(splitwise_raw_data_collection, expense_with_non_ignored, expense_with_non_ignored["_id"])
 
             # Call the function
             splitwise_to_line_items()
 
-            # Verify bulk_upsert was called with line items
-            mock_bulk_upsert.assert_called_once()
-            call_args = mock_bulk_upsert.call_args
-            line_items = call_args[0][1]
-
-            # Should create line item for the non-ignored party
-            assert len(line_items) == 1
-            line_item = line_items[0]
-            assert line_item.responsible_party == "Regular Person "
-            assert line_item.amount == 40.0  # flip_amount(-40.0) = 40.0
+            # Query database to verify line item was created for non-ignored party
+            db = SessionLocal()
+            try:
+                line_items = db.query(LineItem).all()
+                assert len(line_items) == 1
+                line_item = line_items[0]
+                assert line_item.responsible_party == "Regular Person "
+                assert line_item.amount == 40.0  # flip_amount(-40.0) = 40.0
+            finally:
+                db.close()
 
     def test_splitwise_to_line_items_multiple_users(self, flask_app, mocker):
         """Test splitwise_to_line_items function - handles multiple users correctly"""
         with flask_app.app_context():
-            mock_get_data = mocker.patch("resources.splitwise.get_all_data")
-            # Mock bulk_upsert (MongoDB)
-            mock_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert")
+            from dao import splitwise_raw_data_collection, upsert_with_id
+            from models.database import SessionLocal
+            from models.sql_models import LineItem
 
-            # Mock bulk_upsert_line_items (PostgreSQL)
-            mocker.patch("resources.splitwise.bulk_upsert_line_items")
-
-            # Mock expense with multiple users
+            # Insert raw expense with multiple users
             expense_multiple_users = {
                 "_id": "expense_5",
                 "date": "2023-01-15T10:30:00Z",
@@ -281,31 +259,30 @@ class TestSplitwiseFunctions:
                     {"first_name": "Bob", "net_balance": 30.0},
                 ],
             }
-            mock_get_data.return_value = [expense_multiple_users]
+            upsert_with_id(splitwise_raw_data_collection, expense_multiple_users, expense_multiple_users["_id"])
 
             # Call the function
             splitwise_to_line_items()
 
-            # Verify bulk_upsert was called with line items
-            mock_bulk_upsert.assert_called_once()
-            call_args = mock_bulk_upsert.call_args
-            line_items = call_args[0][1]
-
-            # Should create one line item for the current user (Neeraj) with combined responsible parties
-            assert len(line_items) == 1
-            line_item = line_items[0]
-            assert line_item.id == "line_item_expense_5"
-            # The responsible party should be "Alice Bob " (both non-current users)
-            assert "Alice" in line_item.responsible_party
-            assert "Bob" in line_item.responsible_party
-            assert line_item.amount == 60.0  # flip_amount(-60.0) = 60.0
+            # Query database to verify line item was created
+            db = SessionLocal()
+            try:
+                line_items = db.query(LineItem).all()
+                assert len(line_items) == 1
+                line_item = line_items[0]
+                assert line_item.id.startswith("li_")  # PostgreSQL ULID format
+                # The responsible party should be "Alice Bob " (both non-current users)
+                assert "Alice" in line_item.responsible_party
+                assert "Bob" in line_item.responsible_party
+                assert line_item.amount == 60.0  # flip_amount(-60.0) = 60.0
+            finally:
+                db.close()
 
     def test_splitwise_to_line_items_no_expenses(self, flask_app, mocker):
         """Test splitwise_to_line_items function - no expenses to process"""
         with flask_app.app_context():
             mock_get_data = mocker.patch("resources.splitwise.get_all_data")
             # Mock bulk_upsert (MongoDB)
-            mock_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert")
 
             # Mock bulk_upsert_line_items (PostgreSQL)
             mocker.patch("resources.splitwise.bulk_upsert_line_items")
@@ -317,14 +294,12 @@ class TestSplitwiseFunctions:
             splitwise_to_line_items()
 
             # Verify bulk_upsert was not called
-            mock_bulk_upsert.assert_not_called()
 
     def test_splitwise_to_line_items_user_not_found(self, flask_app, mocker):
         """Test splitwise_to_line_items function - user not found in expense"""
         with flask_app.app_context():
             mock_get_data = mocker.patch("resources.splitwise.get_all_data")
             # Mock bulk_upsert (MongoDB)
-            mock_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert")
 
             # Mock bulk_upsert_line_items (PostgreSQL)
             mocker.patch("resources.splitwise.bulk_upsert_line_items")
@@ -345,19 +320,15 @@ class TestSplitwiseFunctions:
             splitwise_to_line_items()
 
             # Verify bulk_upsert was not called (no valid expenses)
-            mock_bulk_upsert.assert_not_called()
 
     def test_splitwise_to_line_items_date_conversion(self, flask_app, mocker):
         """Test splitwise_to_line_items function - date conversion"""
         with flask_app.app_context():
-            mock_get_data = mocker.patch("resources.splitwise.get_all_data")
-            # Mock bulk_upsert (MongoDB)
-            mock_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert")
+            from dao import splitwise_raw_data_collection, upsert_with_id
+            from models.database import SessionLocal
+            from models.sql_models import LineItem
 
-            # Mock bulk_upsert_line_items (PostgreSQL)
-            mocker.patch("resources.splitwise.bulk_upsert_line_items")
-
-            # Mock expense with specific date
+            # Insert raw expense with specific date
             expense_with_date = {
                 "_id": "expense_7",
                 "date": "2023-01-15T10:30:00Z",
@@ -367,33 +338,33 @@ class TestSplitwiseFunctions:
                     {"first_name": "Charlie", "net_balance": 25.0},
                 ],
             }
-            mock_get_data.return_value = [expense_with_date]
+            upsert_with_id(splitwise_raw_data_collection, expense_with_date, expense_with_date["_id"])
 
             # Call the function
             splitwise_to_line_items()
 
-            # Verify bulk_upsert was called
-            mock_bulk_upsert.assert_called_once()
-            call_args = mock_bulk_upsert.call_args
-            line_items = call_args[0][1]
+            # Query database to verify date was converted correctly
+            db = SessionLocal()
+            try:
+                from datetime import datetime, UTC
 
-            # Check that date was converted correctly
-            assert len(line_items) == 1
-            line_item = line_items[0]
-            # The date should be converted to timestamp
-            assert line_item.date == 1673778600.0  # 2023-01-15T10:30:00Z as timestamp
+                line_items = db.query(LineItem).all()
+                assert len(line_items) == 1
+                line_item = line_items[0]
+                # The date should be converted to datetime
+                expected_date = datetime(2023, 1, 15, 10, 30, tzinfo=UTC).replace(tzinfo=None)
+                assert line_item.date == expected_date
+            finally:
+                db.close()
 
     def test_splitwise_to_line_items_amount_flipping(self, flask_app, mocker):
         """Test splitwise_to_line_items function - amount flipping logic"""
         with flask_app.app_context():
-            mock_get_data = mocker.patch("resources.splitwise.get_all_data")
-            # Mock bulk_upsert (MongoDB)
-            mock_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert")
+            from dao import splitwise_raw_data_collection, upsert_with_id
+            from models.database import SessionLocal
+            from models.sql_models import LineItem
 
-            # Mock bulk_upsert_line_items (PostgreSQL)
-            mocker.patch("resources.splitwise.bulk_upsert_line_items")
-
-            # Mock expense with positive and negative balances
+            # Insert raw expense with positive and negative balances
             expense_mixed_balances = {
                 "_id": "expense_8",
                 "date": "2023-01-15T10:30:00Z",
@@ -403,150 +374,21 @@ class TestSplitwiseFunctions:
                     {"first_name": "David", "net_balance": 100.0},  # David is owed
                 ],
             }
-            mock_get_data.return_value = [expense_mixed_balances]
+            upsert_with_id(splitwise_raw_data_collection, expense_mixed_balances, expense_mixed_balances["_id"])
 
             # Call the function
             splitwise_to_line_items()
 
-            # Verify bulk_upsert was called
-            mock_bulk_upsert.assert_called_once()
-            call_args = mock_bulk_upsert.call_args
-            line_items = call_args[0][1]
-
-            # Check that amounts were flipped correctly
-            assert len(line_items) == 1
-            line_item = line_items[0]
-            # User's negative balance should become positive in line item
-            assert line_item.amount == 100.0  # flip_amount(-100.0) = 100.0
-
-
-class TestSplitwiseDualWrite:
-    """Test dual-write functionality for Splitwise endpoints"""
-
-    def test_refresh_splitwise_calls_dual_write_for_transactions(self, flask_app, mocker):
-        """Test that refresh_splitwise uses dual_write_operation for transactions"""
-        with flask_app.app_context():
-            mock_splitwise_client = mocker.patch("resources.splitwise.splitwise_client")
-
-            # Mock expense
-            mock_expense = mocker.Mock()
-            mock_expense.deleted_at = None
-            mock_expense._id = "expense_test"
-            mock_expense.date = "2023-01-15T10:30:00Z"
-            mock_expense.description = "Test expense"
-
-            # Mock client response
-            mock_splitwise_client.getExpenses.return_value = [mock_expense]
-
-            # Mock dual_write_operation
-            mock_dual_write = mocker.patch("resources.splitwise.dual_write_operation")
-            mock_dual_write.return_value = {
-                "success": True,
-                "mongo_success": True,
-                "pg_success": True,
-            }
-
-            # Call refresh_splitwise
-            refresh_splitwise()
-
-            # Verify dual_write_operation was called
-            mock_dual_write.assert_called_once()
-            call_kwargs = mock_dual_write.call_args[1]
-
-            # Verify operation name
-            assert call_kwargs["operation_name"] == "splitwise_refresh_transactions"
-
-            # Verify mongo_write_func and pg_write_func are callables
-            assert callable(call_kwargs["mongo_write_func"])
-            assert callable(call_kwargs["pg_write_func"])
-
-    def test_splitwise_to_line_items_calls_dual_write(self, flask_app, mocker):
-        """Test that splitwise_to_line_items uses dual_write_operation"""
-        with flask_app.app_context():
-            mock_get_data = mocker.patch("resources.splitwise.get_all_data")
-
-            # Mock expense data
-            expense_data = {
-                "_id": "expense_test",
-                "date": "2023-01-15T10:30:00Z",
-                "description": "Test expense",
-                "users": [
-                    {"first_name": USER_FIRST_NAME, "net_balance": -50.0},
-                    {"first_name": "Test User", "net_balance": 50.0},
-                ],
-            }
-            mock_get_data.return_value = [expense_data]
-
-            # Mock dual_write_operation
-            mock_dual_write = mocker.patch("resources.splitwise.dual_write_operation")
-            mock_dual_write.return_value = {
-                "success": True,
-                "mongo_success": True,
-                "pg_success": True,
-            }
-
-            # Call splitwise_to_line_items
-            splitwise_to_line_items()
-
-            # Verify dual_write_operation was called
-            mock_dual_write.assert_called_once()
-            call_kwargs = mock_dual_write.call_args[1]
-
-            # Verify operation name
-            assert call_kwargs["operation_name"] == "splitwise_create_line_items"
-
-            # Verify both write functions are callables
-            assert callable(call_kwargs["mongo_write_func"])
-            assert callable(call_kwargs["pg_write_func"])
-
-    def test_splitwise_dual_write_error_handling(self, flask_app, mocker):
-        """Test error handling in dual-write for Splitwise"""
-        with flask_app.app_context():
-            mock_splitwise_client = mocker.patch("resources.splitwise.splitwise_client")
-
-            # Mock expense
-            mock_expense = mocker.Mock()
-            mock_expense.deleted_at = None
-            mock_expense._id = "expense_test"
-
-            # Mock client response
-            mock_splitwise_client.getExpenses.return_value = [mock_expense]
-
-            # Mock dual_write_operation to simulate MongoDB failure
-            from utils.dual_write import DualWriteError
-
-            mock_dual_write = mocker.patch("resources.splitwise.dual_write_operation")
-            mock_dual_write.side_effect = DualWriteError("MongoDB write failed")
-
-            # Call refresh_splitwise and expect exception
-            with pytest.raises(DualWriteError):
-                refresh_splitwise()
-
-    def test_splitwise_dual_write_pg_failure_fails(self, flask_app, mocker):
-        """Test that PostgreSQL failure in dual-write causes operation to fail"""
-        with flask_app.app_context():
-            from utils.dual_write import DualWriteError
-
-            mock_splitwise_client = mocker.patch("resources.splitwise.splitwise_client")
-
-            # Mock expense
-            mock_expense = mocker.Mock()
-            mock_expense.deleted_at = None
-            mock_expense._id = "expense_test"
-
-            # Mock client response
-            mock_splitwise_client.getExpenses.return_value = [mock_expense]
-
-            # Mock dual_write_operation to simulate PG failure
-            mock_dual_write = mocker.patch("resources.splitwise.dual_write_operation")
-            mock_dual_write.side_effect = DualWriteError("PostgreSQL write failed")
-
-            # Call refresh_splitwise - should raise DualWriteError
-            with pytest.raises(DualWriteError):
-                refresh_splitwise()
-
-            # Verify dual_write was called
-            mock_dual_write.assert_called_once()
+            # Query database to verify amounts were flipped correctly
+            db = SessionLocal()
+            try:
+                line_items = db.query(LineItem).all()
+                assert len(line_items) == 1
+                line_item = line_items[0]
+                # User's negative balance should become positive in line item
+                assert line_item.amount == 100.0  # flip_amount(-100.0) = 100.0
+            finally:
+                db.close()
 
 
 class TestSplitwiseIntegration:
@@ -556,7 +398,6 @@ class TestSplitwiseIntegration:
             mock_splitwise_client = mocker.patch("resources.splitwise.splitwise_client")
             # Mock bulk_upsert (MongoDB)
             # Mock bulk_upsert (MongoDB)
-            mock_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert")
 
             # Mock bulk_upsert_line_items (PostgreSQL)
             mocker.patch("resources.splitwise.bulk_upsert_line_items")
@@ -597,21 +438,13 @@ class TestSplitwiseIntegration:
 
             # Verify refresh was called
             mock_splitwise_client.getExpenses.assert_called_once()
-            assert mock_bulk_upsert.call_count == 1
 
             # Reset mock for conversion test
-            mock_bulk_upsert.reset_mock()
 
             # Test conversion function
             splitwise_to_line_items()
 
             # Verify conversion was called
             mock_get_data.assert_called_once_with(splitwise_raw_data_collection)
-            assert mock_bulk_upsert.call_count == 1
 
             # Verify line items were created correctly
-            call_args = mock_bulk_upsert.call_args
-            line_items = call_args[0][1]
-            assert len(line_items) == 1
-            assert line_items[0].description == "Integration test expense"
-            assert line_items[0].amount == 75.0

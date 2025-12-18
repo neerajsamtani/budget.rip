@@ -8,14 +8,12 @@ from venmo_api.models.user import User
 from clients import get_venmo_client
 from constants import MOVING_DATE_POSIX, PARTIES_TO_IGNORE, USER_FIRST_NAME
 from dao import (
-    bulk_upsert,
     get_all_data,
-    line_items_collection,
     venmo_raw_data_collection,
 )
 from helpers import flip_amount
+from models.database import SessionLocal
 from resources.line_item import LineItem
-from utils.dual_write import dual_write_operation
 from utils.pg_bulk_ops import bulk_upsert_line_items, bulk_upsert_transactions
 
 logger = logging.getLogger(__name__)
@@ -63,11 +61,17 @@ def refresh_venmo() -> None:
 
     # Bulk upsert all collected transactions at once
     if all_transactions:
-        dual_write_operation(
-            mongo_write_func=lambda: bulk_upsert(venmo_raw_data_collection, all_transactions),
-            pg_write_func=lambda db: bulk_upsert_transactions(db, all_transactions, source="venmo"),
-            operation_name="venmo_refresh_transactions",
-        )
+        db = SessionLocal()
+        try:
+            bulk_upsert_transactions(db, all_transactions, source="venmo")
+            db.commit()
+        except Exception as e:
+            db.rollback()
+            logger.error(f"Failed to refresh Venmo transactions: {e}")
+            raise
+        finally:
+            db.close()
+
         logger.info(f"Refreshed {len(all_transactions)} Venmo transactions")
     else:
         logger.info("No new Venmo transactions to refresh")
@@ -130,11 +134,17 @@ def venmo_to_line_items() -> None:
 
     # Bulk upsert all collected line items at once
     if all_line_items:
-        dual_write_operation(
-            mongo_write_func=lambda: bulk_upsert(line_items_collection, all_line_items),
-            pg_write_func=lambda db: bulk_upsert_line_items(db, all_line_items, source="venmo"),
-            operation_name="venmo_create_line_items",
-        )
+        db = SessionLocal()
+        try:
+            bulk_upsert_line_items(db, all_line_items, source="venmo")
+            db.commit()
+        except Exception as e:
+            db.rollback()
+            logger.error(f"Failed to convert Venmo transactions to line items: {e}")
+            raise
+        finally:
+            db.close()
+
         logger.info(f"Converted {len(all_line_items)} Venmo transactions to line items")
     else:
         logger.info("No Venmo transactions to convert to line items")

@@ -12,9 +12,9 @@ from flask_jwt_extended import (
 )
 
 from constants import GATED_USERS
-from dao import get_user_by_email, insert, users_collection
+from dao import get_user_by_email
 from helpers import check_password, hash_password
-from utils.dual_write import dual_write_operation
+from models.database import SessionLocal
 from utils.id_generator import generate_id
 from utils.pg_bulk_ops import upsert_user
 
@@ -47,11 +47,19 @@ def signup_user_api() -> tuple[Response, int]:
         user["last_name"] = body["last_name"]
         user["email"] = body["email"]
         user["password_hash"] = hash_password(body["password"])
-        dual_write_operation(
-            mongo_write_func=lambda: insert(users_collection, user),
-            pg_write_func=lambda db: upsert_user(db, user),
-            operation_name="create_user",
-        )
+
+        # PostgreSQL write
+        db = SessionLocal()
+        try:
+            upsert_user(db, user)
+            db.commit()
+        except Exception as e:
+            db.rollback()
+            logger.error(f"Failed to create user: {e}")
+            raise
+        finally:
+            db.close()
+
         logger.info(f"New user created: {body['email']}")
         return jsonify("Created User"), 201
 

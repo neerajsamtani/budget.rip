@@ -6,18 +6,14 @@ from flask_jwt_extended import get_current_user, jwt_required
 
 from constants import LARGEST_EPOCH_TIME, SMALLEST_EPOCH_TIME
 from dao import (
-    bulk_upsert,
-    delete_from_collection,
     events_collection,
     get_all_data,
     get_item_by_id,
     line_items_collection,
-    remove_event_from_line_item,
-    upsert_with_id,
 )
 from helpers import html_date_to_posix
+from models.database import SessionLocal
 from models.sql_models import Event
-from utils.dual_write import dual_write_operation
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +60,7 @@ def get_event_api(event_id: str) -> tuple[Response, int]:
 @jwt_required()
 def post_event_api() -> tuple[Response, int]:
     """
-    Create An Event (with dual-write to PostgreSQL)
+    Create An Event
     """
     new_event: Dict[str, Any] = request.get_json()
 
@@ -96,30 +92,19 @@ def post_event_api() -> tuple[Response, int]:
     # Ensure tags is always a list
     new_event["tags"] = new_event.get("tags", [])
 
-    # MongoDB write function
-    def mongo_write():
-        upsert_with_id(events_collection, new_event, new_event["id"])
-        # Update all line items with event_id and bulk upsert
-        for line_item in line_items:
-            line_item["event_id"] = new_event["id"]
-        bulk_upsert(line_items_collection, line_items)
-
-    # PostgreSQL write function
-    def pg_write(db_session):
+    # PostgreSQL write
+    db = SessionLocal()
+    try:
         from utils.pg_event_operations import upsert_event_to_postgresql
 
-        # Use extracted helper function
-        # This will raise ValueError if category missing/not found
-        # The dual_write_operation will catch and handle appropriately
-        upsert_event_to_postgresql(new_event, db_session)
-        # Note: No explicit commit needed - dual_write_operation handles it
-
-    # Execute dual-write
-    dual_write_operation(
-        operation_name="create_event",
-        mongo_write_func=mongo_write,
-        pg_write_func=pg_write,
-    )
+        upsert_event_to_postgresql(new_event, db)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Failed to create event: {e}")
+        raise
+    finally:
+        db.close()
 
     logger.info(f"Created event: {new_event['id']} with {len(line_items)} line items (amount: ${new_event['amount']:.2f})")
     return jsonify(new_event), 201
@@ -129,9 +114,9 @@ def post_event_api() -> tuple[Response, int]:
 @jwt_required()
 def delete_event_api(event_id: str) -> tuple[Response, int]:
     """
-    Delete An Event (with dual-write to PostgreSQL and ID coexistence)
+    Delete An Event
     """
-    # Use ID coexistence to get event from either database
+    # Check if event exists
     event: Optional[Dict[str, Any]] = get_item_by_id(events_collection, event_id)
     if event is None:
         logger.warning(f"Event deletion attempt for non-existent event: {event_id}")
@@ -139,31 +124,26 @@ def delete_event_api(event_id: str) -> tuple[Response, int]:
 
     line_item_ids: List[str] = event["line_items"]
 
-    # MongoDB write function
-    def mongo_write():
-        delete_from_collection(events_collection, event_id)
-        for line_item_id in line_item_ids:
-            remove_event_from_line_item(line_item_id)
-
-    # PostgreSQL write function
-    def pg_write(db_session):
-        # Find event by exact ID first, then by mongo_id
-        # Unique constraint on mongo_id ensures at most one event per ID
-        pg_event = db_session.query(Event).filter(Event.id == event_id).first()
+    # PostgreSQL delete
+    db = SessionLocal()
+    try:
+        # Find event by ID (with mongo_id fallback during transition)
+        pg_event = db.query(Event).filter(Event.id == event_id).first()
         if not pg_event:
-            pg_event = db_session.query(Event).filter(Event.mongo_id == event_id).first()
+            pg_event = db.query(Event).filter(Event.mongo_id == event_id).first()
 
         if pg_event:
-            db_session.delete(pg_event)
+            db.delete(pg_event)
+            db.commit()
         else:
-            logger.info(f"Event {event_id} not in PostgreSQL yet")
-
-    # Execute dual-write
-    dual_write_operation(
-        operation_name="delete_event",
-        mongo_write_func=mongo_write,
-        pg_write_func=pg_write,
-    )
+            logger.warning(f"Event {event_id} not found in database")
+            return jsonify({"error": "Event not found"}), 404
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Failed to delete event: {e}")
+        raise
+    finally:
+        db.close()
 
     logger.info(f"Deleted event: {event_id} with {len(line_item_ids)} line items")
     return jsonify("Deleted Event"), 200

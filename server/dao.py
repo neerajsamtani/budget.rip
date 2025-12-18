@@ -66,36 +66,33 @@ def delete_from_collection(cur_collection_str: str, id: Union[str, int]) -> None
 
 def remove_event_from_line_item(line_item_id: Union[str, int, ObjectId]) -> None:
     """
-    Remove event_id from a line item by its ID.
+    Remove event association from a line item by its ID (PostgreSQL only).
 
     Args:
         line_item_id: The ID of the line item (can be string, int, or ObjectId)
     """
+    from models.database import SessionLocal
+    from models.sql_models import EventLineItem, LineItem
 
-    def mongo_write():
-        collection = get_collection(line_items_collection)
-        # Try to unset event_id using the provided ID as-is
-        result = collection.update_one({"_id": line_item_id}, {"$unset": {"event_id": ""}})
-        if result.matched_count == 0:
-            logger.warning(f"Could not find line item with ID {line_item_id} to remove event_id")
+    db = SessionLocal()
+    try:
+        # Find the line item by ID (with mongo_id fallback during transition)
+        line_item = db.query(LineItem).filter(LineItem.id == str(line_item_id)).first()
+        if not line_item:
+            line_item = db.query(LineItem).filter(LineItem.mongo_id == str(line_item_id)).first()
 
-    def pg_write(db_session):
-        from models.sql_models import EventLineItem, LineItem
-
-        # Find the line item by mongo_id (the original MongoDB ID)
-        line_item = db_session.query(LineItem).filter(LineItem.mongo_id == str(line_item_id)).first()
         if line_item:
             # Delete all EventLineItem junctions for this line item
-            db_session.query(EventLineItem).filter(EventLineItem.line_item_id == line_item.id).delete()
+            db.query(EventLineItem).filter(EventLineItem.line_item_id == line_item.id).delete()
+            db.commit()
         else:
-            logger.info(f"Line item {line_item_id} not in PostgreSQL yet")
-
-    # dual_write_operation handles transaction management (commit/rollback)
-    dual_write_operation(
-        mongo_write,
-        pg_write,
-        line_items_collection,
-    )
+            logger.warning(f"Could not find line item with ID {line_item_id}")
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Failed to remove event from line item: {e}")
+        raise
+    finally:
+        db.close()
 
 
 def get_user_by_email(email: str) -> Optional[Dict[str, Any]]:
@@ -113,54 +110,64 @@ def upsert(cur_collection_str: str, item: Any) -> None:
 
 
 def upsert_with_id(cur_collection_str: str, item: Dict[str, Any], id: Union[str, int, ObjectId]) -> None:
-    """Upsert item to MongoDB and also to PostgreSQL for migrated collections (dual-write)"""
+    """Upsert item to PostgreSQL for migrated collections"""
+    from models.database import SessionLocal
 
-    def mongo_write():
-        cur_collection: Collection = get_collection(cur_collection_str)
-        item["_id"] = item["id"]
-        cur_collection.replace_one({"_id": id}, item, upsert=True)
+    db = SessionLocal()
+    try:
+        # PostgreSQL write for transaction collections
+        if cur_collection_str in [
+            venmo_raw_data_collection,
+            splitwise_raw_data_collection,
+            stripe_raw_transaction_data_collection,
+            cash_raw_data_collection,
+        ]:
+            from utils.pg_bulk_ops import bulk_upsert_transactions
 
-    # PostgreSQL write for transaction collections
-    if cur_collection_str in [
-        venmo_raw_data_collection,
-        splitwise_raw_data_collection,
-        stripe_raw_transaction_data_collection,
-        cash_raw_data_collection,
-    ]:
-        from utils.pg_bulk_ops import bulk_upsert_transactions
+            source_map = {
+                venmo_raw_data_collection: "venmo",
+                splitwise_raw_data_collection: "splitwise",
+                stripe_raw_transaction_data_collection: "stripe",
+                cash_raw_data_collection: "cash",
+            }
+            source = source_map[cur_collection_str]
+            bulk_upsert_transactions(db, [item], source=source)
 
-        source_map = {
-            venmo_raw_data_collection: "venmo",
-            splitwise_raw_data_collection: "splitwise",
-            stripe_raw_transaction_data_collection: "stripe",
-            cash_raw_data_collection: "cash",
-        }
-        source = source_map[cur_collection_str]
+        elif cur_collection_str == events_collection:
+            from utils.pg_event_operations import upsert_event_to_postgresql
 
-        def pg_write(db_session):
-            bulk_upsert_transactions(db_session, [item], source=source)
+            upsert_event_to_postgresql(item, db)
 
-        dual_write_operation(mongo_write, pg_write, f"{source}_transaction_{item.get('id')}")
+        elif cur_collection_str == bank_accounts_collection:
+            from utils.pg_bulk_ops import bulk_upsert_bank_accounts
 
-    elif cur_collection_str == events_collection:
-        from utils.pg_event_operations import upsert_event_to_postgresql
+            bulk_upsert_bank_accounts(db, [item])
 
-        def pg_write(db_session):
-            upsert_event_to_postgresql(item, db_session)
+        elif cur_collection_str == line_items_collection:
+            from utils.pg_bulk_ops import bulk_upsert_line_items
 
-        dual_write_operation(mongo_write, pg_write, f"event_{item.get('id')}")
+            # Derive source from payment_method if not explicitly provided
+            payment_method = item.get("payment_method", "cash").lower()
+            source_map = {
+                "venmo": "venmo",
+                "splitwise": "splitwise",
+                "credit card": "stripe",
+                "debit card": "stripe",
+                "cash": "cash",
+            }
+            source = source_map.get(payment_method, "cash")
+            bulk_upsert_line_items(db, [item], source=source)
 
-    elif cur_collection_str == bank_accounts_collection:
-        from utils.pg_bulk_ops import bulk_upsert_bank_accounts
+        else:
+            raise NotImplementedError(f"Collection {cur_collection_str} not supported for upsert_with_id")
 
-        def pg_write(db_session):
-            bulk_upsert_bank_accounts(db_session, [item])
-
-        dual_write_operation(mongo_write, pg_write, f"bank_account_{item.get('id')}")
-
-    else:
-        # Collections not yet migrated to PostgreSQL - MongoDB only
-        mongo_write()
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Failed to upsert item to {cur_collection_str}: {e}")
+        raise
+    finally:
+        db.close()
 
 
 def bulk_upsert(cur_collection_str: str, items: List[Any]) -> None:

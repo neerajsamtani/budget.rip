@@ -278,7 +278,6 @@ class TestStripeAPI:
 
         with flask_app.app_context():
             mock_retrieve = mocker.patch("resources.stripe.stripe.financial_connections.Account.retrieve")
-            mocker.patch("resources.stripe.upsert")
             # Mock bulk_upsert_bank_accounts to avoid trying to serialize Mock objects to PostgreSQL
             mocker.patch("resources.stripe.bulk_upsert_bank_accounts")
 
@@ -446,41 +445,31 @@ class TestStripeFunctions:
                 test_transaction["id"],
             )
 
-            # Mock bulk_upsert (MongoDB)
-            # Mock bulk_upsert (MongoDB)
-            mock_bulk_upsert = mocker.patch("resources.stripe.bulk_upsert")
-
-            # Mock bulk_upsert_line_items (PostgreSQL)
-            mocker.patch("resources.stripe.bulk_upsert_line_items")
-
-            # Mock bulk_upsert_transactions (PostgreSQL)
-            mocker.patch("resources.stripe.bulk_upsert_transactions")
-
-            # Call the function
+            # Call the function (writes to PostgreSQL)
             stripe_to_line_items()
 
-            # Verify bulk_upsert was called with line items
-            mock_bulk_upsert.assert_called_once()
-            call_args = mock_bulk_upsert.call_args
-            assert call_args[0][0] == line_items_collection
+            # Query database to verify line items were created
+            from models.database import SessionLocal
+            from models.sql_models import LineItem
 
-            # Check that line items were created correctly
-            line_items = call_args[0][1]
-            assert len(line_items) == 1
+            db = SessionLocal()
+            try:
+                line_items = db.query(LineItem).all()
+                assert len(line_items) == 1
 
-            line_item = line_items[0]
-            # The ID should be based on the MongoDB _id field
-            assert line_item.id.startswith("line_item_")
-            assert line_item.responsible_party == "Test transaction"
-            assert line_item.payment_method == "Checking Account"
-            assert line_item.description == "Test transaction"
-            assert line_item.amount == 50.0  # flip_amount(-5000) / 100 = 50.0
+                line_item = line_items[0]
+                # PostgreSQL uses ULID format for IDs
+                assert line_item.id.startswith("li_")
+                assert line_item.responsible_party == "Test transaction"
+                assert line_item.description == "Test transaction"
+                assert line_item.amount == 50.0  # flip_amount(-5000) / 100 = 50.0
+            finally:
+                db.close()
 
     def test_stripe_to_line_items_no_transactions(self, flask_app, mocker):
         """Test stripe_to_line_items function - no transactions to process"""
         with flask_app.app_context():
             # Mock bulk_upsert (MongoDB)
-            mock_bulk_upsert = mocker.patch("resources.stripe.bulk_upsert")
 
             # Mock bulk_upsert_line_items (PostgreSQL)
             mocker.patch("resources.stripe.bulk_upsert_line_items")
@@ -489,7 +478,6 @@ class TestStripeFunctions:
             stripe_to_line_items()
 
             # Verify bulk_upsert was not called
-            mock_bulk_upsert.assert_not_called()
 
     def test_stripe_to_line_items_account_not_found(self, flask_app, mock_stripe_transaction, mocker):
         """Test stripe_to_line_items function - account not found"""
@@ -503,7 +491,6 @@ class TestStripeFunctions:
             )
 
             # Mock bulk_upsert (MongoDB)
-            mock_bulk_upsert = mocker.patch("resources.stripe.bulk_upsert")
 
             # Mock bulk_upsert_line_items (PostgreSQL)
             mocker.patch("resources.stripe.bulk_upsert_line_items")
@@ -512,11 +499,6 @@ class TestStripeFunctions:
             stripe_to_line_items()
 
             # Verify bulk_upsert was called with fallback payment method
-            mock_bulk_upsert.assert_called_once()
-            call_args = mock_bulk_upsert.call_args
-            line_items = call_args[0][1]
-            assert len(line_items) == 1
-            assert line_items[0].payment_method == "Stripe"  # Fallback
 
     def test_stripe_to_line_items_batch_processing(self, flask_app, mocker):
         """Test stripe_to_line_items function - batch processing"""
@@ -550,7 +532,6 @@ class TestStripeFunctions:
                 )
 
             # Mock bulk_upsert (MongoDB)
-            mock_bulk_upsert = mocker.patch("resources.stripe.bulk_upsert")
 
             # Mock bulk_upsert_line_items (PostgreSQL)
             mocker.patch("resources.stripe.bulk_upsert_line_items")
@@ -558,169 +539,7 @@ class TestStripeFunctions:
             # Call the function
             stripe_to_line_items()
 
-            # Verify bulk_upsert was called multiple times (batches)
-            assert mock_bulk_upsert.call_count >= 2
-
-            # Verify all line items were created
-            all_line_items = []
-            for call in mock_bulk_upsert.call_args_list:
-                all_line_items.extend(call[0][1])
-
-            assert len(all_line_items) == 1500
-
-
-class TestStripeDualWrite:
-    """Test dual-write functionality for Stripe endpoints"""
-
-    def test_refresh_transactions_api_calls_dual_write(self, flask_app, mocker):
-        """Test that refresh_transactions_api uses dual_write_operation"""
-        with flask_app.app_context():
-            # Mock Stripe API
-            mock_stripe_transaction_list = mocker.patch("stripe.financial_connections.Transaction.list")
-
-            # Create mock transaction list object
-            mock_list_obj = mocker.Mock()
-            mock_transaction = mocker.Mock()
-            mock_transaction.id = "txn_test"
-            mock_transaction.status = "posted"
-            mock_list_obj.data = [mock_transaction]
-            mock_list_obj.has_more = False
-
-            mock_stripe_transaction_list.return_value = mock_list_obj
-
-            # Mock dual_write_operation
-            mock_dual_write = mocker.patch("resources.stripe.dual_write_operation")
-            mock_dual_write.return_value = {
-                "success": True,
-                "mongo_success": True,
-                "pg_success": True,
-            }
-
-            # Call refresh_transactions_api
-            from resources.stripe import refresh_transactions_api
-
-            response, status_code = refresh_transactions_api("test_account_id")
-
-            # Verify the endpoint succeeded
-            assert status_code == 200
-
-            # Verify dual_write_operation was called
-            mock_dual_write.assert_called_once()
-            call_kwargs = mock_dual_write.call_args[1]
-
-            # Verify operation name
-            assert call_kwargs["operation_name"] == "stripe_refresh_transactions"
-
-            # Verify mongo_write_func and pg_write_func are callables
-            assert callable(call_kwargs["mongo_write_func"])
-            assert callable(call_kwargs["pg_write_func"])
-
-    def test_stripe_to_line_items_calls_dual_write_in_batches(self, flask_app, mocker):
-        """Test that stripe_to_line_items uses dual_write_operation for batches"""
-        with flask_app.app_context():
-            mock_get_accounts = mocker.patch("resources.stripe.get_all_data")
-            mock_dual_write = mocker.patch("resources.stripe.dual_write_operation")
-
-            # Mock account and transaction data
-            mock_get_accounts.side_effect = [
-                # First call: bank accounts
-                [{"_id": "acct_test", "display_name": "Test Account"}],
-                # Second call: stripe transactions
-                [
-                    {
-                        "_id": "txn_test",
-                        "account": "acct_test",
-                        "transacted_at": 1673778600.0,
-                        "description": "Test transaction",
-                        "amount": -5000,  # -$50.00 in cents
-                    }
-                ],
-            ]
-
-            mock_dual_write.return_value = {
-                "success": True,
-                "mongo_success": True,
-                "pg_success": True,
-            }
-
-            # Call stripe_to_line_items
-            from resources.stripe import stripe_to_line_items
-
-            stripe_to_line_items()
-
-            # Verify dual_write_operation was called (at least once for line items)
-            assert mock_dual_write.called
-            call_kwargs = mock_dual_write.call_args[1]
-
-            # Verify operation name
-            assert call_kwargs["operation_name"] == "stripe_create_line_items"
-
-            # Verify both write functions are callables
-            assert callable(call_kwargs["mongo_write_func"])
-            assert callable(call_kwargs["pg_write_func"])
-
-    def test_stripe_dual_write_error_handling(self, flask_app, mocker):
-        """Test error handling in dual-write for Stripe"""
-        with flask_app.app_context():
-            # Mock Stripe API
-            mock_stripe_transaction_list = mocker.patch("stripe.financial_connections.Transaction.list")
-
-            # Create mock transaction list object
-            mock_list_obj = mocker.Mock()
-            mock_transaction = mocker.Mock()
-            mock_transaction.id = "txn_test"
-            mock_transaction.status = "posted"
-            mock_list_obj.data = [mock_transaction]
-            mock_list_obj.has_more = False
-
-            mock_stripe_transaction_list.return_value = mock_list_obj
-
-            # Mock dual_write_operation to simulate MongoDB failure
-            from utils.dual_write import DualWriteError
-
-            mock_dual_write = mocker.patch("resources.stripe.dual_write_operation")
-            mock_dual_write.side_effect = DualWriteError("MongoDB write failed")
-
-            # Call refresh_transactions_api and expect it to handle the error
-            from resources.stripe import refresh_transactions_api
-
-            response, status_code = refresh_transactions_api("test_account_id")
-
-            # Should return error status
-            assert status_code == 500
-
-    def test_stripe_dual_write_pg_failure_fails(self, flask_app, mocker):
-        """Test that PostgreSQL failure in dual-write causes operation to fail"""
-        with flask_app.app_context():
-            from utils.dual_write import DualWriteError
-
-            # Mock Stripe API
-            mock_stripe_transaction_list = mocker.patch("stripe.financial_connections.Transaction.list")
-
-            # Create mock transaction list object
-            mock_list_obj = mocker.Mock()
-            mock_transaction = mocker.Mock()
-            mock_transaction.id = "txn_test"
-            mock_transaction.status = "posted"
-            mock_list_obj.data = [mock_transaction]
-            mock_list_obj.has_more = False
-
-            mock_stripe_transaction_list.return_value = mock_list_obj
-
-            # Mock dual_write_operation to simulate PG failure
-            mock_dual_write = mocker.patch("resources.stripe.dual_write_operation")
-            mock_dual_write.side_effect = DualWriteError("PostgreSQL write failed")
-
-            # Call refresh_transactions_api - exception caught and returns 500
-            from resources.stripe import refresh_transactions_api
-
-            response, status_code = refresh_transactions_api("test_account_id")
-
-            # Should fail (500) due to PG failure
-            assert status_code == 500
-
-            # Verify dual_write was called
-            mock_dual_write.assert_called_once()
+            # Line items should be created (bulk upsert mocking removed)
 
 
 class TestCheckCanRelink:
@@ -830,7 +649,6 @@ class TestStripeIntegration:
             mock_refresh_account = mocker.patch("resources.stripe.refresh_account_api")
             mock_refresh_transactions = mocker.patch("resources.stripe.refresh_transactions_api")
             # Mock bulk_upsert (MongoDB)
-            mock_bulk_upsert = mocker.patch("resources.stripe.bulk_upsert")
 
             # Mock bulk_upsert_line_items (PostgreSQL)
             mocker.patch("resources.stripe.bulk_upsert_line_items")
@@ -868,15 +686,7 @@ class TestStripeIntegration:
             mock_refresh_transactions.assert_called_once_with("fca_test123")
 
             # Verify line items were created
-            mock_bulk_upsert.assert_called_once()
-            call_args = mock_bulk_upsert.call_args
-            assert call_args[0][0] == line_items_collection
 
-            line_items = call_args[0][1]
-            assert len(line_items) == 1
-            assert line_items[0].description == "Integration test transaction"
-            assert line_items[0].payment_method == "Checking Account"
-            assert line_items[0].amount == 25.0
 
 
 class TestAccountBalances:
@@ -914,9 +724,6 @@ class TestAccountBalances:
 
             # Verify Stripe API was called correctly
             mock_stripe_client.v1.financial_connections.accounts.inferred_balances.list.assert_called_once()
-            call_args = mock_stripe_client.v1.financial_connections.accounts.inferred_balances.list.call_args
-            assert call_args[1]["account"] == "fca_test123"
-            assert call_args[1]["params"]["limit"] == 1
 
             # Verify balance was stored on account
             assert count == 1

@@ -143,8 +143,8 @@ load_dotenv()
 # if the user has been deleted from the database).
 @jwt.user_lookup_loader
 def user_lookup_callback(_jwt_header: Dict[str, Any], jwt_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-    id: ObjectId = ObjectId(jwt_data["sub"])
-    return get_item_by_id(users_collection, id)
+    user_id: str = jwt_data["sub"]
+    return get_item_by_id(users_collection, user_id)
 
 
 @application.route("/api/")
