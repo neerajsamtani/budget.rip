@@ -1,6 +1,9 @@
 import pytest
 
-from dao import get_all_data, get_collection, insert, test_collection
+pytestmark = pytest.mark.skip(reason="MongoDB-only dao functions removed")
+
+# Imports disabled - functions no longer exist after MongoDB removal
+# from dao import get_all_data, get_collection, insert, test_collection
 
 
 @pytest.fixture

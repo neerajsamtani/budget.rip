@@ -8,17 +8,18 @@ Tests:
 - Verification checks
 """
 
+import pytest
+
+pytestmark = pytest.mark.skip(reason="Phase 3 migration complete - dual_write.py removed")
+
 from datetime import UTC, datetime
 from decimal import Decimal
 from unittest.mock import MagicMock
 
-import mongomock
-import pytest
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 
 from models.sql_models import Base, LineItem, PaymentMethod, Transaction
-from utils.dual_write import DualWriteError, dual_write_operation
 from utils.id_generator import generate_id
 
 
@@ -125,6 +126,7 @@ class TestDualWriteUtility:
             )
 
 
+@pytest.mark.skip(reason="Phase 3 migration scripts obsolete - MONGO_URI removed")
 class TestTransactionMigration:
     """Test transaction migration logic"""
 
@@ -238,6 +240,7 @@ class TestTransactionMigration:
             pg_session.commit()
 
 
+@pytest.mark.skip(reason="Phase 3 migration scripts obsolete - MONGO_URI removed")
 class TestLineItemMigration:
     """Test line item migration logic"""
 
@@ -331,6 +334,7 @@ class TestLineItemMigration:
         assert saved_item is None
 
 
+@pytest.mark.skip(reason="Phase 3 migration scripts obsolete - MONGO_URI removed")
 class TestMigrationIntegration:
     """Integration tests for complete migration flow"""
 

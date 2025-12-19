@@ -15,7 +15,14 @@ Test coverage:
 
 NOTE: This test file uses the shared database setup from conftest.py.
 The DATABASE_HOST and DATABASE_NAME env vars are set in conftest.py before any imports.
+
+OBSOLETE: These tests verified the READ_FROM_POSTGRESQL flag behavior during migration.
+Since the migration is complete and we now exclusively use PostgreSQL, these tests are no longer relevant.
 """
+
+import pytest
+
+pytestmark = pytest.mark.skip(reason="Phase 5 tests obsolete - READ_FROM_POSTGRESQL flag removed, now exclusively PostgreSQL")
 
 from datetime import UTC, datetime
 from decimal import Decimal

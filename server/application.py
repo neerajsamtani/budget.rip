@@ -3,13 +3,11 @@ import sys
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from bson import ObjectId
 from dotenv import load_dotenv
 from flask import Flask, Response, jsonify, request
 from flask_bcrypt import Bcrypt
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager, jwt_required
-from flask_pymongo import PyMongo
 from venmo_api.models.user import User
 
 from clients import get_venmo_client, splitwise_client
@@ -22,7 +20,6 @@ from constants import (
     JWT_COOKIE_DOMAIN,
     JWT_SECRET_KEY,
     LOG_LEVEL,
-    MONGO_URI,
     SPLITWISE_API_KEY,
     SPLITWISE_CONSUMER_KEY,
     SPLITWISE_CONSUMER_SECRET,
@@ -33,10 +30,8 @@ from constants import (
 )
 from dao import (
     bank_accounts_collection,
-    bulk_upsert,
     events_collection,
     get_all_data,
-    get_collection,
     get_item_by_id,
     line_items_collection,
     users_collection,
@@ -120,9 +115,6 @@ application.config["JWT_COOKIE_CSRF_PROTECT"] = True
 # should likely be True
 application.config["JWT_COOKIE_SECURE"] = True
 
-application.config["MONGO_URI"] = MONGO_URI
-application.config["MONGO"] = PyMongo(application)
-
 application.register_blueprint(auth_blueprint)
 application.register_blueprint(line_items_blueprint)
 application.register_blueprint(events_blueprint)
@@ -202,7 +194,6 @@ def refresh_single_account_api() -> tuple[Response, int]:
         else:
             return jsonify({"error": f"Invalid source: {source}"}), 400
 
-        add_event_ids_to_line_items()
         return jsonify({"message": "success"}), 200
 
     except Exception as e:
@@ -248,60 +239,6 @@ def get_payment_methods_api() -> tuple[Response, int]:
 # TODO: Need to add webhooks for updates after the server has started
 
 
-def add_event_ids_to_line_items() -> None:
-    """
-    Add event IDs to MongoDB line items (MongoDB-specific denormalization).
-
-    PostgreSQL uses event_line_items junction table instead and doesn't need this.
-    This function always reads/writes directly to MongoDB to maintain consistency
-    during the dual-write migration phase.
-
-    Uses only 2 database queries regardless of event count:
-    1. Fetch all events from MongoDB
-    2. Fetch all line items that belong to events (single query)
-    """
-    import time
-
-    start_time = time.time()
-    logger.debug("Starting add_event_ids_to_line_items")
-
-    # Always read directly from MongoDB - this is MongoDB-specific denormalization
-    # PostgreSQL relationships are handled via event_line_items junction table
-    events_coll = get_collection(events_collection)
-    line_items_coll = get_collection(line_items_collection)
-
-    events: List[Dict[str, Any]] = list(events_coll.find())
-    logger.debug(f"Fetched {len(events)} events from MongoDB in {time.time() - start_time:.3f}s")
-
-    # Build a mapping of line_item_id -> event_id
-    line_item_to_event: Dict[str, str] = {}
-    for event in events:
-        event_id = event.get("id") or event.get("_id")
-        for line_item_id in event.get("line_items", []):
-            line_item_to_event[line_item_id] = event_id
-
-    if not line_item_to_event:
-        logger.debug(f"No line items to update, exiting early after {time.time() - start_time:.3f}s")
-        return
-
-    # Single query to fetch all relevant line items from MongoDB
-    all_line_item_ids = list(line_item_to_event.keys())
-    logger.debug(f"Fetching {len(all_line_item_ids)} line items in single query")
-    line_items: List[Dict[str, Any]] = list(line_items_coll.find({"_id": {"$in": all_line_item_ids}}))
-    logger.debug(f"Fetched {len(line_items)} line items from MongoDB in {time.time() - start_time:.3f}s")
-
-    # Add event_id to each line item
-    for line_item in line_items:
-        line_item["event_id"] = line_item_to_event[line_item["_id"]]
-
-    # Bulk upsert to MongoDB only
-    if line_items:
-        logger.debug(f"Bulk upserting {len(line_items)} line items to MongoDB")
-        bulk_upsert(line_items_collection, line_items)
-
-    logger.debug(f"Completed add_event_ids_to_line_items in {time.time() - start_time:.3f}s")
-
-
 def refresh_all() -> None:
     logger.info("Refreshing All Data")
     refresh_splitwise()
@@ -315,7 +252,6 @@ def create_consistent_line_items() -> None:
     venmo_to_line_items()
     stripe_to_line_items()
     cash_to_line_items()
-    add_event_ids_to_line_items()
     logger.info("Created consistent line items")
 
 

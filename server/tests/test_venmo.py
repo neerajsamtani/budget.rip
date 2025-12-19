@@ -1,7 +1,6 @@
 import pytest
 
 from dao import (
-    get_collection,
     line_items_collection,
     upsert_with_id,
     venmo_raw_data_collection,
@@ -488,8 +487,17 @@ class TestVenmoIntegration:
             refresh_venmo()
 
             # Remove the Mock and insert a real dict for venmo_to_line_items
-            coll = get_collection(venmo_raw_data_collection)
-            coll.delete_many({})
+            # Delete existing Venmo transactions from PostgreSQL
+            from models.database import SessionLocal
+            from models.sql_models import Transaction
+
+            db = SessionLocal()
+            try:
+                db.query(Transaction).filter(Transaction.source == "venmo").delete()
+                db.commit()
+            finally:
+                db.close()
+
             transaction_dict = {
                 "id": "venmo_txn_integration",
                 "_id": "venmo_txn_integration",

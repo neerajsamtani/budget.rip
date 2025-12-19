@@ -23,28 +23,14 @@ os.environ["TESTING"] = "true"
 os.environ["DATABASE_HOST"] = "sqlite"
 # Use a unique name for the shared in-memory database to avoid file creation
 os.environ["DATABASE_NAME"] = ":memory:"
-# Read from PostgreSQL (SQLite in-memory for tests) instead of MongoDB
-os.environ["READ_FROM_POSTGRESQL"] = "true"
 
-import mongomock
 from flask import Flask
 from flask_jwt_extended import JWTManager, create_access_token
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 
 from constants import JWT_SECRET_KEY
-from dao import (
-    bank_accounts_collection,
-    cash_raw_data_collection,
-    events_collection,
-    line_items_collection,
-    splitwise_raw_data_collection,
-    stripe_raw_account_data_collection,
-    stripe_raw_transaction_data_collection,
-    test_collection,
-    users_collection,
-    venmo_raw_data_collection,
-)
+from dao import users_collection
 from models.sql_models import Base
 from resources.auth import auth_blueprint
 from resources.cash import cash_blueprint
@@ -54,15 +40,6 @@ from resources.monthly_breakdown import monthly_breakdown_blueprint
 from resources.splitwise import splitwise_blueprint
 from resources.stripe import stripe_blueprint
 from resources.venmo import venmo_blueprint
-
-# Import test configuration
-try:
-    from test_config import TEST_DB_NAME, TEST_MONGO_URI
-except ImportError:
-    # Fallback if test_config doesn't exist
-    TEST_MONGO_URI = os.getenv("TEST_MONGO_URI", "mongodb://localhost:27017/budgit_test")
-    TEST_DB_NAME = "budgit_test"
-
 
 # Global test database engine and session
 test_engine = None
@@ -125,20 +102,6 @@ def setup_test_database():
         test_engine.dispose()
 
 
-@pytest.fixture(autouse=True)
-def cleanup_databases():
-    """Clean up PostgreSQL database before each test"""
-    # Clean PostgreSQL tables
-    cleanup_test_db()
-
-    # Re-seed base data
-    seed_postgresql_base_data()
-
-    yield
-
-    # MongoDB cleanup happens per-test via mongomock's in-memory database
-
-
 @pytest.fixture
 def flask_app():
     app = Flask(__name__)
@@ -152,20 +115,7 @@ def flask_app():
     app.register_blueprint(stripe_blueprint)
     app.register_blueprint(venmo_blueprint)
 
-    # Use a separate test database
-    app.config["MONGO_URI"] = TEST_MONGO_URI
-    app.config["MONGO_DB_NAME"] = TEST_DB_NAME
-
     with app.app_context():
-        # Use mongomock for testing - no real MongoDB server required
-        mongo_client = mongomock.MongoClient()
-
-        # Create a mock MongoDB object that mimics PyMongo's structure
-        class MockMongo:
-            def __init__(self, client):
-                self.cx = client
-
-        app.config["MONGO"] = MockMongo(mongo_client)
         jwt = JWTManager(app)
         app.config["JWT_SECRET_KEY"] = JWT_SECRET_KEY
         app.config["JWT_TOKEN_LOCATION"] = ["cookies", "headers"]
@@ -320,42 +270,16 @@ def seed_postgresql_base_data():
 def setup_teardown(flask_app, request):
     # This fixture will be used for setup and teardown
     with flask_app.app_context():
-        # Clean up MongoDB collections before each test
-        test_db = flask_app.config["MONGO"].cx[flask_app.config["MONGO_DB_NAME"]]
-        test_db.drop_collection(test_collection)
-        test_db.drop_collection(cash_raw_data_collection)
-        test_db.drop_collection(line_items_collection)
-        test_db.drop_collection(splitwise_raw_data_collection)
-        test_db.drop_collection(stripe_raw_account_data_collection)
-        test_db.drop_collection(stripe_raw_transaction_data_collection)
-        test_db.drop_collection(bank_accounts_collection)
-        test_db.drop_collection(events_collection)
-        test_db.drop_collection(users_collection)
-        test_db.drop_collection(venmo_raw_data_collection)
-
         # Clean up PostgreSQL tables before each test
         cleanup_test_db()
 
-        # Seed PostgreSQL with base data if READ_FROM_POSTGRESQL=true
+        # Seed PostgreSQL with base data
         # Skip for phase5 tests as they have their own fixtures
         if "test_phase5" not in request.node.fspath.basename:
             seed_postgresql_base_data()
 
     def teardown():
         with flask_app.app_context():
-            # Clean up MongoDB collections after each test
-            test_db = flask_app.config["MONGO"].cx[flask_app.config["MONGO_DB_NAME"]]
-            test_db.drop_collection(test_collection)
-            test_db.drop_collection(cash_raw_data_collection)
-            test_db.drop_collection(line_items_collection)
-            test_db.drop_collection(splitwise_raw_data_collection)
-            test_db.drop_collection(stripe_raw_account_data_collection)
-            test_db.drop_collection(stripe_raw_transaction_data_collection)
-            test_db.drop_collection(bank_accounts_collection)
-            test_db.drop_collection(events_collection)
-            test_db.drop_collection(users_collection)
-            test_db.drop_collection(venmo_raw_data_collection)
-
             # Clean up PostgreSQL tables after each test
             cleanup_test_db()
 
