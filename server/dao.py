@@ -104,7 +104,7 @@ def upsert_with_id(cur_collection_str: str, item: Dict[str, Any], id: Union[str,
             stripe_raw_transaction_data_collection,
             cash_raw_data_collection,
         ]:
-            from utils.pg_bulk_ops import bulk_upsert_transactions
+            from utils.pg_bulk_ops import _bulk_upsert_transactions
 
             source_map = {
                 venmo_raw_data_collection: "venmo",
@@ -113,7 +113,7 @@ def upsert_with_id(cur_collection_str: str, item: Dict[str, Any], id: Union[str,
                 cash_raw_data_collection: "cash",
             }
             source = source_map[cur_collection_str]
-            bulk_upsert_transactions(db, [item], source=source)
+            _bulk_upsert_transactions(db, [item], source=source)
 
         elif cur_collection_str == events_collection:
             from utils.pg_event_operations import upsert_event_to_postgresql
@@ -121,12 +121,12 @@ def upsert_with_id(cur_collection_str: str, item: Dict[str, Any], id: Union[str,
             upsert_event_to_postgresql(item, db)
 
         elif cur_collection_str == bank_accounts_collection:
-            from utils.pg_bulk_ops import bulk_upsert_bank_accounts
+            from utils.pg_bulk_ops import _bulk_upsert_bank_accounts
 
-            bulk_upsert_bank_accounts(db, [item])
+            _bulk_upsert_bank_accounts(db, [item])
 
         elif cur_collection_str == line_items_collection:
-            from utils.pg_bulk_ops import bulk_upsert_line_items
+            from utils.pg_bulk_ops import _bulk_upsert_line_items
 
             # Derive source from payment_method if not explicitly provided
             payment_method = item.get("payment_method", "cash").lower()
@@ -138,7 +138,7 @@ def upsert_with_id(cur_collection_str: str, item: Dict[str, Any], id: Union[str,
                 "cash": "cash",
             }
             source = source_map.get(payment_method, "cash")
-            bulk_upsert_line_items(db, [item], source=source)
+            _bulk_upsert_line_items(db, [item], source=source)
 
         else:
             raise NotImplementedError(f"Collection {cur_collection_str} not supported for upsert_with_id")

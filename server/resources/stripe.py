@@ -16,12 +16,11 @@ from dao import (
     upsert_with_id,
 )
 from helpers import cents_to_dollars, flip_amount
-from models.database import SessionLocal
 from resources.line_item import LineItem
 from utils.pg_bulk_ops import (
-    bulk_upsert_bank_accounts,
-    bulk_upsert_line_items,
-    bulk_upsert_transactions,
+    upsert_bank_accounts,
+    upsert_line_items,
+    upsert_transactions,
 )
 
 logger = logging.getLogger(__name__)
@@ -122,17 +121,7 @@ def refresh_account_balances(account_ids: Optional[List[str]] = None) -> int:
                 account["latest_balance"] = balance_cents / 100  # Convert from cents
                 account["balance_as_of"] = datetime.fromtimestamp(balance_data.as_of, tz=timezone.utc)
 
-                # PostgreSQL write
-                db = SessionLocal()
-                try:
-                    bulk_upsert_bank_accounts(db, [account])
-                    db.commit()
-                except Exception as e:
-                    db.rollback()
-                    logger.error(f"Failed to update balance for account {account_id}: {e}")
-                    raise
-                finally:
-                    db.close()
+                upsert_bank_accounts([account])
 
                 updated_count += 1
                 logger.info(f"Updated balance for account {account_id}: {balance_cents / 100} {currency}")
@@ -185,17 +174,7 @@ def create_accounts_api() -> tuple[Response, int]:
     if len(new_accounts) == 0:
         return jsonify("Failed to Create Accounts: No Accounts Submitted"), 400
 
-    # PostgreSQL write
-    db = SessionLocal()
-    try:
-        bulk_upsert_bank_accounts(db, new_accounts)
-        db.commit()
-    except Exception as e:
-        db.rollback()
-        logger.error(f"Failed to create bank accounts: {e}")
-        raise
-    finally:
-        db.close()
+    upsert_bank_accounts(new_accounts)
 
     return jsonify({"data": new_accounts}), 201
 
@@ -274,17 +253,7 @@ def refresh_account_api(account_id: str) -> tuple[Response, int]:
         account: stripe.financial_connections.Account = stripe.financial_connections.Account.retrieve(account_id)
         account["can_relink"] = check_can_relink(account)
 
-        # PostgreSQL write
-        db = SessionLocal()
-        try:
-            bulk_upsert_bank_accounts(db, [account])
-            db.commit()
-        except Exception as e:
-            db.rollback()
-            logger.error(f"Failed to refresh bank account: {e}")
-            raise
-        finally:
-            db.close()
+        upsert_bank_accounts([account])
 
         return jsonify({"data": "success"}), 200
     except Exception as e:
@@ -345,16 +314,7 @@ def refresh_transactions_api(account_id: str) -> tuple[Response, int]:
             starting_after = transactions[-1].id if transactions else ""
 
         if all_transactions:
-            db = SessionLocal()
-            try:
-                bulk_upsert_transactions(db, all_transactions, source="stripe")
-                db.commit()
-            except Exception as e:
-                db.rollback()
-                logger.error(f"Failed to refresh Stripe transactions: {e}")
-                raise
-            finally:
-                db.close()
+            upsert_transactions(all_transactions, source="stripe")
 
         # Best-effort: fetch latest balance for this account (won't fail transaction refresh)
         refresh_account_balances(account_ids=[account_id])
@@ -413,26 +373,8 @@ def stripe_to_line_items() -> None:
         line_items_batch.append(line_item)
 
         if len(line_items_batch) >= BATCH_SIZE:
-            db = SessionLocal()
-            try:
-                bulk_upsert_line_items(db, line_items_batch, source="stripe")
-                db.commit()
-            except Exception as e:
-                db.rollback()
-                logger.error(f"Failed to upsert Stripe line items batch: {e}")
-                raise
-            finally:
-                db.close()
+            upsert_line_items(line_items_batch, source="stripe")
             line_items_batch = []
 
     if line_items_batch:
-        db = SessionLocal()
-        try:
-            bulk_upsert_line_items(db, line_items_batch, source="stripe")
-            db.commit()
-        except Exception as e:
-            db.rollback()
-            logger.error(f"Failed to upsert final Stripe line items batch: {e}")
-            raise
-        finally:
-            db.close()
+        upsert_line_items(line_items_batch, source="stripe")

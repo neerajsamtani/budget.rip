@@ -7,14 +7,10 @@ from venmo_api.models.user import User
 
 from clients import get_venmo_client
 from constants import MOVING_DATE_POSIX, PARTIES_TO_IGNORE, USER_FIRST_NAME
-from dao import (
-    get_all_data,
-    venmo_raw_data_collection,
-)
+from dao import get_all_data, venmo_raw_data_collection
 from helpers import flip_amount
-from models.database import SessionLocal
 from resources.line_item import LineItem
-from utils.pg_bulk_ops import bulk_upsert_line_items, bulk_upsert_transactions
+from utils.pg_bulk_ops import upsert_line_items, upsert_transactions
 
 logger = logging.getLogger(__name__)
 
@@ -61,17 +57,7 @@ def refresh_venmo() -> None:
 
     # Bulk upsert all collected transactions at once
     if all_transactions:
-        db = SessionLocal()
-        try:
-            bulk_upsert_transactions(db, all_transactions, source="venmo")
-            db.commit()
-        except Exception as e:
-            db.rollback()
-            logger.error(f"Failed to refresh Venmo transactions: {e}")
-            raise
-        finally:
-            db.close()
-
+        upsert_transactions(all_transactions, source="venmo")
         logger.info(f"Refreshed {len(all_transactions)} Venmo transactions")
     else:
         logger.info("No new Venmo transactions to refresh")
@@ -134,17 +120,7 @@ def venmo_to_line_items() -> None:
 
     # Bulk upsert all collected line items at once
     if all_line_items:
-        db = SessionLocal()
-        try:
-            bulk_upsert_line_items(db, all_line_items, source="venmo")
-            db.commit()
-        except Exception as e:
-            db.rollback()
-            logger.error(f"Failed to convert Venmo transactions to line items: {e}")
-            raise
-        finally:
-            db.close()
-
+        upsert_line_items(all_line_items, source="venmo")
         logger.info(f"Converted {len(all_line_items)} Venmo transactions to line items")
     else:
         logger.info("No Venmo transactions to convert to line items")

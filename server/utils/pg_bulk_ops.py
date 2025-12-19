@@ -38,7 +38,7 @@ def get_transaction_date(transaction: Dict[str, Any], source: str) -> datetime:
         return datetime.now(UTC)
 
 
-def bulk_upsert_transactions(db_session, transactions_data: List[Any], source: str) -> int:
+def _bulk_upsert_transactions(db_session, transactions_data: List[Any], source: str) -> int:
     """
     Bulk upsert transactions to PostgreSQL.
 
@@ -167,7 +167,7 @@ def _build_line_item_insert_mapping(
     }
 
 
-def bulk_upsert_line_items(db_session, line_items_data: List[Any], source: str) -> int:
+def _bulk_upsert_line_items(db_session, line_items_data: List[Any], source: str) -> int:
     """
     Bulk upsert line items to PostgreSQL.
 
@@ -295,7 +295,7 @@ def bulk_upsert_line_items(db_session, line_items_data: List[Any], source: str) 
     return 0
 
 
-def bulk_upsert_bank_accounts(db_session, accounts_data: List[Any]) -> int:
+def _bulk_upsert_bank_accounts(db_session, accounts_data: List[Any]) -> int:
     """
     Bulk upsert bank accounts to PostgreSQL.
 
@@ -361,6 +361,57 @@ def bulk_upsert_bank_accounts(db_session, accounts_data: List[Any]) -> int:
         count += len(bulk_updates)
 
     return count
+
+
+def upsert_transactions(transactions_data: List[Any], source: str) -> int:
+    """
+    Wrapper around bulk_upsert_transactions that manages the session lifecycle.
+    """
+    db_session = SessionLocal()
+    try:
+        count = _bulk_upsert_transactions(db_session, transactions_data, source)
+        db_session.commit()
+        return count
+    except Exception as e:
+        db_session.rollback()
+        logger.error(f"Failed to upsert {source} transactions: {e}")
+        raise
+    finally:
+        db_session.close()
+
+
+def upsert_line_items(line_items_data: List[Any], source: str) -> int:
+    """
+    Wrapper around bulk_upsert_line_items that manages the session lifecycle.
+    """
+    db_session = SessionLocal()
+    try:
+        count = _bulk_upsert_line_items(db_session, line_items_data, source)
+        db_session.commit()
+        return count
+    except Exception as e:
+        db_session.rollback()
+        logger.error(f"Failed to upsert {source} line items: {e}")
+        raise
+    finally:
+        db_session.close()
+
+
+def upsert_bank_accounts(accounts_data: List[Any]) -> int:
+    """
+    Wrapper around bulk_upsert_bank_accounts that manages the session lifecycle.
+    """
+    db_session = SessionLocal()
+    try:
+        count = _bulk_upsert_bank_accounts(db_session, accounts_data)
+        db_session.commit()
+        return count
+    except Exception as e:
+        db_session.rollback()
+        logger.error(f"Failed to upsert bank accounts: {e}")
+        raise
+    finally:
+        db_session.close()
 
 
 def upsert_user(user_data: Dict[str, Any]) -> bool:

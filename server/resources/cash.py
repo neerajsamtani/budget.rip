@@ -4,15 +4,11 @@ from typing import Any, Dict, List
 from flask import Blueprint, Response, jsonify, request
 from flask_jwt_extended import jwt_required
 
-from dao import (
-    cash_raw_data_collection,
-    get_all_data,
-)
+from dao import cash_raw_data_collection, get_all_data
 from helpers import html_date_to_posix
-from models.database import SessionLocal
 from resources.line_item import LineItem
 from utils.id_generator import generate_id
-from utils.pg_bulk_ops import bulk_upsert_line_items, bulk_upsert_transactions
+from utils.pg_bulk_ops import upsert_line_items, upsert_transactions
 
 logger = logging.getLogger(__name__)
 
@@ -37,17 +33,7 @@ def create_cash_transaction_api() -> tuple[Response, int]:
     transaction["date"] = html_date_to_posix(transaction["date"])
     transaction["amount"] = float(transaction["amount"])
 
-    # PostgreSQL write
-    db = SessionLocal()
-    try:
-        bulk_upsert_transactions(db, [transaction], source="cash")
-        db.commit()
-    except Exception as e:
-        db.rollback()
-        logger.error(f"Failed to create cash transaction: {e}")
-        raise
-    finally:
-        db.close()
+    upsert_transactions([transaction], source="cash")
 
     logger.info(f"Cash transaction created: {transaction['description']} - ${transaction['amount']}")
     cash_to_line_items()
@@ -82,17 +68,7 @@ def cash_to_line_items() -> None:
 
     # Bulk upsert all collected line items at once
     if all_line_items:
-        db = SessionLocal()
-        try:
-            bulk_upsert_line_items(db, all_line_items, source="cash")
-            db.commit()
-        except Exception as e:
-            db.rollback()
-            logger.error(f"Failed to convert cash transactions to line items: {e}")
-            raise
-        finally:
-            db.close()
-
+        upsert_line_items(all_line_items, source="cash")
         logger.info(f"Converted {len(all_line_items)} cash transactions to line items")
     else:
         logger.info("No cash transactions to convert to line items")

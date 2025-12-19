@@ -12,8 +12,6 @@ from dao import (
     line_items_collection,
 )
 from helpers import html_date_to_posix
-from models.database import SessionLocal
-from models.sql_models import Event
 
 logger = logging.getLogger(__name__)
 
@@ -92,22 +90,10 @@ def post_event_api() -> tuple[Response, int]:
     # Ensure tags is always a list
     new_event["tags"] = new_event.get("tags", [])
 
-    # PostgreSQL write
-    db = SessionLocal()
-    try:
-        from utils.pg_event_operations import upsert_event_to_postgresql
+    from utils.pg_event_operations import upsert_event
 
-        # upsert_event_to_postgresql returns the actual PostgreSQL ID that was created
-        pg_event_id = upsert_event_to_postgresql(new_event, db)
-        # Update the event dict with the actual PostgreSQL ID
-        new_event["id"] = pg_event_id
-        db.commit()
-    except Exception as e:
-        db.rollback()
-        logger.error(f"Failed to create event: {e}")
-        raise
-    finally:
-        db.close()
+    pg_event_id = upsert_event(new_event)
+    new_event["id"] = pg_event_id
 
     logger.info(f"Created event: {new_event['id']} with {len(line_items)} line items (amount: ${new_event['amount']:.2f})")
     return jsonify(new_event), 201
@@ -127,26 +113,12 @@ def delete_event_api(event_id: str) -> tuple[Response, int]:
 
     line_item_ids: List[str] = event["line_items"]
 
-    # PostgreSQL delete
-    db = SessionLocal()
-    try:
-        # Find event by ID (with mongo_id fallback during transition)
-        pg_event = db.query(Event).filter(Event.id == event_id).first()
-        if not pg_event:
-            pg_event = db.query(Event).filter(Event.mongo_id == event_id).first()
+    from utils.pg_event_operations import delete_event_from_postgresql
 
-        if pg_event:
-            db.delete(pg_event)
-            db.commit()
-        else:
-            logger.warning(f"Event {event_id} not found in database")
-            return jsonify({"error": "Event not found"}), 404
-    except Exception as e:
-        db.rollback()
-        logger.error(f"Failed to delete event: {e}")
-        raise
-    finally:
-        db.close()
+    deleted = delete_event_from_postgresql(event_id)
+    if not deleted:
+        logger.warning(f"Event {event_id} not found in database")
+        return jsonify({"error": "Event not found"}), 404
 
     logger.info(f"Deleted event: {event_id} with {len(line_item_ids)} line items")
     return jsonify("Deleted Event"), 200

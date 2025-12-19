@@ -14,7 +14,6 @@ from flask_jwt_extended import (
 from constants import GATED_USERS
 from dao import get_user_by_email
 from helpers import check_password, hash_password
-from models.database import SessionLocal
 from utils.id_generator import generate_id
 from utils.pg_bulk_ops import upsert_user
 
@@ -55,7 +54,6 @@ def signup_user_api() -> tuple[Response, int]:
         else:
             logger.warning(f"User already exists: {body['email']}")
             return jsonify("User Already Exists"), 400
-
 
 
 @auth_blueprint.route("/api/auth/login", methods=["POST"])
