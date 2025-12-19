@@ -48,20 +48,14 @@ def signup_user_api() -> tuple[Response, int]:
         user["email"] = body["email"]
         user["password_hash"] = hash_password(body["password"])
 
-        # PostgreSQL write
-        db = SessionLocal()
-        try:
-            upsert_user(db, user)
-            db.commit()
-        except Exception as e:
-            db.rollback()
-            logger.error(f"Failed to create user: {e}")
-            raise
-        finally:
-            db.close()
+        user_created = upsert_user(user)
+        if user_created:
+            logger.info(f"New user created: {body['email']}")
+            return jsonify("Created User"), 201
+        else:
+            logger.warning(f"User already exists: {body['email']}")
+            return jsonify("User Already Exists"), 400
 
-        logger.info(f"New user created: {body['email']}")
-        return jsonify("Created User"), 201
 
 
 @auth_blueprint.route("/api/auth/login", methods=["POST"])

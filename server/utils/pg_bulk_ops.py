@@ -11,6 +11,7 @@ from decimal import Decimal
 from typing import Any, Dict, List, Optional
 
 from helpers import iso_8601_to_posix, to_dict_robust
+from models.database import SessionLocal
 from models.sql_models import BankAccount, LineItem, PaymentMethod, Transaction, User
 from utils.id_generator import generate_id
 
@@ -362,12 +363,11 @@ def bulk_upsert_bank_accounts(db_session, accounts_data: List[Any]) -> int:
     return count
 
 
-def upsert_user(db_session, user_data: Dict[str, Any]) -> bool:
+def upsert_user(user_data: Dict[str, Any]) -> bool:
     """
     Upsert a single user to PostgreSQL.
 
     Args:
-        db_session: SQLAlchemy session
         user_data: User dict
 
     Returns:
@@ -378,20 +378,30 @@ def upsert_user(db_session, user_data: Dict[str, Any]) -> bool:
 
     if not user_id:
         logger.warning("Cannot upsert user without id")
-        return False
+        raise ValueError("Cannot upsert user without id")
 
-    existing = db_session.query(User).filter(User.id == user_id).first()
-    if existing:
-        return False
+    db_session = SessionLocal()
+    try:
+        existing = db_session.query(User).filter(User.id == user_id).first()
+        if existing:
+            return False
 
-    user = User(
-        id=user_id,
-        first_name=user_dict.get("first_name", ""),
-        last_name=user_dict.get("last_name", ""),
-        email=user_dict.get("email", ""),
-        password_hash=user_dict.get("password_hash", ""),
-    )
+        user = User(
+            id=user_id,
+            first_name=user_dict.get("first_name", ""),
+            last_name=user_dict.get("last_name", ""),
+            email=user_dict.get("email", ""),
+            password_hash=user_dict.get("password_hash", ""),
+        )
 
-    db_session.add(user)
+        db_session.add(user)
+        db_session.commit()
+    except Exception as e:
+        db_session.rollback()
+        logger.error(f"Failed to create user: {e}")
+        raise
+    finally:
+        db_session.close()
+
     logger.info(f"Inserted user {user_id} to PostgreSQL")
     return True
