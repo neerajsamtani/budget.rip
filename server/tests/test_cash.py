@@ -114,7 +114,8 @@ def test_cash_to_line_items(flask_app, mock_cash_raw_data, expected_line_item):
         line_items_db = get_all_data(line_items_collection)
         assert len(line_items_db) == 1
         item_in_db = line_items_db[0]
-        assert item_in_db["id"] == expected_line_item.id
+        # PostgreSQL generates IDs with "li_" prefix
+        assert item_in_db["id"].startswith("li_")
         assert item_in_db["date"] == expected_line_item.date
         assert item_in_db["responsible_party"] == expected_line_item.responsible_party
         assert item_in_db["description"] == expected_line_item.description

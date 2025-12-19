@@ -571,9 +571,14 @@ class TestEventAPI:
             }
             upsert_with_id(events_collection, test_event, test_event["id"])
 
-        # Test API call
+            # Get the actual PostgreSQL event ID that was created
+            all_events = get_all_data(events_collection)
+            assert len(all_events) == 1
+            actual_event_id = all_events[0]["id"]
+
+        # Test API call with actual PostgreSQL event ID
         response = test_client.get(
-            "/api/events/event_test/line_items_for_event",
+            f"/api/events/{actual_event_id}/line_items_for_event",
             headers={"Authorization": "Bearer " + jwt_token},
         )
 
@@ -584,7 +589,7 @@ class TestEventAPI:
         assert data["data"][0]["id"] == line_item_ids[0]
 
     def test_remove_event_from_line_item_different_id_types(self, flask_app, pg_session):
-        """Test remove_event_from_line_item function with different ID types"""
+        """Test remove_event_from_line_item function"""
         from tests.test_helpers import setup_test_event, setup_test_line_item_with_event
 
         with flask_app.app_context():
@@ -619,8 +624,8 @@ class TestEventAPI:
                 },
             )
 
-            # Create line items with events - test different ID types
-            setup_test_line_item_with_event(
+            # Create line items with events - capture the actual PostgreSQL objects
+            line_item1 = setup_test_line_item_with_event(
                 pg_session,
                 {
                     "id": "line_item_str",
@@ -634,7 +639,7 @@ class TestEventAPI:
                 event1.id,
             )
 
-            setup_test_line_item_with_event(
+            line_item2 = setup_test_line_item_with_event(
                 pg_session,
                 {
                     "id": 12345,
@@ -648,7 +653,7 @@ class TestEventAPI:
                 event2.id,
             )
 
-            setup_test_line_item_with_event(
+            line_item3 = setup_test_line_item_with_event(
                 pg_session,
                 {
                     "id": "line_item_str2_uuid",
@@ -664,32 +669,32 @@ class TestEventAPI:
 
             pg_session.commit()
 
-            # Verify all line items have event_id
-            line_item_str = get_item_by_id(line_items_collection, "line_item_str")
-            line_item_int = get_item_by_id(line_items_collection, 12345)
-            line_item_str2 = get_item_by_id(line_items_collection, "line_item_str2_uuid")
+            # Verify all line items have event_id using actual PostgreSQL IDs
+            line_item_data1 = get_item_by_id(line_items_collection, line_item1.id)
+            line_item_data2 = get_item_by_id(line_items_collection, line_item2.id)
+            line_item_data3 = get_item_by_id(line_items_collection, line_item3.id)
 
-            assert line_item_str is not None
-            assert line_item_int is not None
-            assert line_item_str2 is not None
-            assert line_item_str["event_id"] == "event_1"
-            assert line_item_int["event_id"] == "event_2"
-            assert line_item_str2["event_id"] == "event_3"
+            assert line_item_data1 is not None
+            assert line_item_data2 is not None
+            assert line_item_data3 is not None
+            assert line_item_data1["event_id"] == event1.id
+            assert line_item_data2["event_id"] == event2.id
+            assert line_item_data3["event_id"] == event3.id
 
-            # Test removing event_id with string ID
-            remove_event_from_line_item("line_item_str")
-            line_item_str_after = get_item_by_id(line_items_collection, "line_item_str")
-            assert line_item_str_after is not None
-            assert "event_id" not in line_item_str_after
+            # Test removing event_id from first line item
+            remove_event_from_line_item(line_item1.id)
+            line_item_data1_after = get_item_by_id(line_items_collection, line_item1.id)
+            assert line_item_data1_after is not None
+            assert "event_id" not in line_item_data1_after
 
-            # Test removing event_id with integer ID
-            remove_event_from_line_item(12345)
-            line_item_int_after = get_item_by_id(line_items_collection, 12345)
-            assert line_item_int_after is not None
-            assert "event_id" not in line_item_int_after
+            # Test removing event_id from second line item
+            remove_event_from_line_item(line_item2.id)
+            line_item_data2_after = get_item_by_id(line_items_collection, line_item2.id)
+            assert line_item_data2_after is not None
+            assert "event_id" not in line_item_data2_after
 
-            # Test removing event_id with another string ID
-            remove_event_from_line_item("line_item_str2_uuid")
-            line_item_str2_after = get_item_by_id(line_items_collection, "line_item_str2_uuid")
-            assert line_item_str2_after is not None
-            assert "event_id" not in line_item_str2_after
+            # Test removing event_id from third line item
+            remove_event_from_line_item(line_item3.id)
+            line_item_data3_after = get_item_by_id(line_items_collection, line_item3.id)
+            assert line_item_data3_after is not None
+            assert "event_id" not in line_item_data3_after

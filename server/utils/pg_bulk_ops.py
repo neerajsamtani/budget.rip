@@ -138,7 +138,6 @@ def _build_line_item_insert_mapping(
     li_dict: Dict[str, Any],
     transaction_id: str,
     payment_method_id: str,
-    mongo_id: str,
 ) -> Dict[str, Any]:
     """Build bulk insert mapping for a single line item."""
     date_value = li_dict.get("date", 0)
@@ -158,7 +157,6 @@ def _build_line_item_insert_mapping(
     return {
         "id": generate_id("li"),
         "transaction_id": transaction_id,
-        "mongo_id": mongo_id,
         "date": li_date,
         "amount": li_amount,
         "description": li_dict.get("description", ""),
@@ -186,8 +184,8 @@ def bulk_upsert_line_items(db_session, line_items_data: List[Any], source: str) 
     payment_methods = db_session.query(PaymentMethod).all()
     payment_method_map = {pm.name: pm.id for pm in payment_methods}
 
-    # Extract mongo_ids from line items to find matching transactions
-    line_item_mongo_ids = []
+    # Extract IDs from line items to find matching transactions
+    line_item_source_ids = []
     for li in line_items_data:
         if hasattr(li, "id"):
             li_id = li.id
@@ -196,17 +194,17 @@ def bulk_upsert_line_items(db_session, line_items_data: List[Any], source: str) 
         else:
             continue
 
-        # Expected format: "line_item_{txn_mongo_id}"
+        # Expected format: "line_item_{txn_source_id}"
         if li_id.startswith("line_item_"):
-            txn_mongo_id = li_id.replace("line_item_", "")
-            line_item_mongo_ids.append(txn_mongo_id)
+            txn_source_id = li_id.replace("line_item_", "")
+            line_item_source_ids.append(txn_source_id)
 
-    if line_item_mongo_ids:
+    if line_item_source_ids:
         transactions = (
             db_session.query(Transaction)
             .filter(
                 Transaction.source == source,
-                Transaction.source_id.in_(line_item_mongo_ids),
+                Transaction.source_id.in_(line_item_source_ids),
             )
             .all()
         )
@@ -215,7 +213,7 @@ def bulk_upsert_line_items(db_session, line_items_data: List[Any], source: str) 
         transaction_lookup = {}
 
     line_item_dicts = []
-    line_item_mongo_ids_check = []
+    transaction_ids_to_check = []
     for li in line_items_data:
         li_dict = _convert_line_item_to_dict(li)
         if not li_dict:
@@ -223,36 +221,59 @@ def bulk_upsert_line_items(db_session, line_items_data: List[Any], source: str) 
 
         li_id = li_dict.get("id", "")
         if li_id.startswith("line_item_"):
-            txn_mongo_id = li_id.replace("line_item_", "")
-            line_item_mongo_ids_check.append(f"line_item_{txn_mongo_id}")
-            li_dict["_mongo_id"] = f"line_item_{txn_mongo_id}"
-            li_dict["_txn_mongo_id"] = txn_mongo_id
+            txn_source_id = li_id.replace("line_item_", "")
+            li_dict["_txn_source_id"] = txn_source_id
+            transaction_ids_to_check.append(txn_source_id)
         else:
-            logger.warning(f"Skipping line item with unexpected id format: {li_id}")
-            continue
+            # For PostgreSQL IDs, line item already exists
+            li_dict["_txn_source_id"] = None
 
         line_item_dicts.append(li_dict)
 
     if not line_item_dicts:
         return 0
 
-    existing_mongo_ids = set()
-    if line_item_mongo_ids_check:
-        existing = db_session.query(LineItem.mongo_id).filter(LineItem.mongo_id.in_(line_item_mongo_ids_check)).all()
-        existing_mongo_ids = {row[0] for row in existing}
+    # Check which transactions already have line items
+    existing_transaction_ids = set()
+    if transaction_ids_to_check:
+        # Find line items that already exist for these transactions
+        transactions_with_items = (
+            db_session.query(Transaction.source_id)
+            .join(LineItem, Transaction.id == LineItem.transaction_id)
+            .filter(
+                Transaction.source == source,
+                Transaction.source_id.in_(transaction_ids_to_check)
+            )
+            .all()
+        )
+        existing_transaction_ids = {row[0] for row in transactions_with_items}
 
     bulk_inserts = []
     for li_dict in line_item_dicts:
-        mongo_id = li_dict.get("_mongo_id", "")
-        if mongo_id in existing_mongo_ids:
+        txn_source_id = li_dict.get("_txn_source_id")
+
+        # Skip if this transaction already has a line item
+        if txn_source_id and txn_source_id in existing_transaction_ids:
             continue
 
-        txn_mongo_id = li_dict.get("_txn_mongo_id", "")
-        transaction_id = transaction_lookup.get(txn_mongo_id)
-
-        if not transaction_id:
-            logger.warning(f"Transaction not found for line item {mongo_id} (source={source}, txn_mongo_id={txn_mongo_id})")
-            continue
+        if txn_source_id:
+            transaction_id = transaction_lookup.get(txn_source_id)
+            if not transaction_id:
+                logger.warning(f"Transaction not found for line item (source={source}, txn_source_id={txn_source_id})")
+                continue
+        else:
+            # For line items without transaction reference, create a manual transaction
+            manual_txn_id = generate_id("txn")
+            manual_txn = Transaction(
+                id=manual_txn_id,
+                source="manual",
+                source_id=f"manual_{manual_txn_id}",
+                source_data={},
+                transaction_date=datetime.now(UTC),
+            )
+            db_session.add(manual_txn)
+            db_session.flush()
+            transaction_id = manual_txn.id
 
         payment_method_name = li_dict.get("payment_method", "Unknown")
         payment_method_id = payment_method_map.get(payment_method_name)
@@ -266,7 +287,7 @@ def bulk_upsert_line_items(db_session, line_items_data: List[Any], source: str) 
                 payment_method_map["Unknown"] = unknown_pm.id
             payment_method_id = unknown_pm.id
 
-        bulk_inserts.append(_build_line_item_insert_mapping(li_dict, transaction_id, payment_method_id, mongo_id))
+        bulk_inserts.append(_build_line_item_insert_mapping(li_dict, transaction_id, payment_method_id))
 
     if bulk_inserts:
         db_session.bulk_insert_mappings(LineItem, bulk_inserts)
@@ -306,7 +327,6 @@ def bulk_upsert_bank_accounts(db_session, accounts_data: List[Any]) -> int:
         if not account_id:
             continue
 
-        mongo_id = acc_dict.get("_id")
         account_data = {
             "id": account_id,
             "institution_name": acc_dict.get("institution_name", ""),
@@ -315,10 +335,6 @@ def bulk_upsert_bank_accounts(db_session, accounts_data: List[Any]) -> int:
             "status": acc_dict.get("status", "active"),
             "can_relink": acc_dict.get("can_relink", True),
         }
-
-        # Only include mongo_id if it exists (for inserts or when updating from MongoDB)
-        if mongo_id:
-            account_data["mongo_id"] = str(mongo_id)
 
         if "currency" in acc_dict:
             account_data["currency"] = acc_dict["currency"]
@@ -373,7 +389,6 @@ def upsert_user(db_session, user_data: Dict[str, Any]) -> bool:
 
     user = User(
         id=user_id,
-        mongo_id=str(user_dict.get("_id", "")),
         first_name=user_dict.get("first_name", ""),
         last_name=user_dict.get("last_name", ""),
         email=user_dict.get("email", ""),

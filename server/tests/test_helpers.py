@@ -56,7 +56,6 @@ def setup_test_line_item(pg_session, item_data: Dict[str, Any], mongo_only: bool
     pg_line_item = LineItem(
         id=generate_id("li"),
         transaction_id=pg_transaction.id,
-        mongo_id=item_data["id"],
         date=datetime.fromtimestamp(item_data["date"], UTC),
         description=item_data["description"],
         amount=item_data["amount"],
@@ -99,7 +98,6 @@ def setup_test_event(
 
     pg_event = Event(
         id=generate_id("event"),
-        mongo_id=event_data["id"],
         date=datetime.fromtimestamp(event_data["date"], UTC),
         description=event_data.get("description", ""),
         category_id=category.id,
@@ -158,7 +156,6 @@ def setup_test_user(pg_session, user_data: Dict[str, Any], mongo_only: bool = Fa
     # Write to PostgreSQL
     pg_user = User(
         id=generate_id("user"),
-        mongo_id=user_data["id"],
         email=user_data["email"],
         first_name=user_data["first_name"],
         last_name=user_data["last_name"],

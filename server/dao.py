@@ -5,7 +5,6 @@ from typing import Any, Dict, List, Optional, Union
 from sqlalchemy.orm import joinedload, subqueryload
 
 from helpers import to_dict
-from utils.id_utils import is_postgres_id
 
 logger = logging.getLogger(__name__)
 
@@ -65,10 +64,8 @@ def remove_event_from_line_item(line_item_id: Union[str, int]) -> None:
 
     db = SessionLocal()
     try:
-        # Find the line item by ID (with mongo_id fallback during transition)
+        # Find the line item by ID
         line_item = db.query(LineItem).filter(LineItem.id == str(line_item_id)).first()
-        if not line_item:
-            line_item = db.query(LineItem).filter(LineItem.mongo_id == str(line_item_id)).first()
 
         if line_item:
             # Delete all EventLineItem junctions for this line item
@@ -174,11 +171,9 @@ def _serialize_datetime(dt: Optional[Any]) -> float:
 
 def _pg_serialize_line_item(li: Any) -> Dict[str, Any]:
     """Convert LineItem ORM to dict matching MongoDB format"""
-    mongo_id = li.mongo_id or li.id
-
     data = {
-        "_id": mongo_id,
-        "id": mongo_id,
+        "_id": li.id,
+        "id": li.id,
         "date": _serialize_datetime(li.date),
         "payment_method": li.payment_method.name if li.payment_method else "Unknown",
         "description": li.description or "",
@@ -187,16 +182,15 @@ def _pg_serialize_line_item(li: Any) -> Dict[str, Any]:
         "notes": li.notes,
     }
     if li.events:
-        data["event_id"] = li.events[0].mongo_id or li.events[0].id
+        data["event_id"] = li.events[0].id
     return data
 
 
 def _pg_serialize_user(user: Any) -> Dict[str, Any]:
     """Convert User ORM to dict matching MongoDB format"""
-    id = user.mongo_id or user.id
     return {
-        "_id": id,
-        "id": id,
+        "_id": user.id,
+        "id": user.id,
         "first_name": user.first_name,
         "last_name": user.last_name,
         "email": user.email,
@@ -206,13 +200,12 @@ def _pg_serialize_user(user: Any) -> Dict[str, Any]:
 def _pg_serialize_event(event: Any) -> Dict[str, Any]:
     """Convert Event ORM to dict matching MongoDB format"""
     amount = float(event.total_amount) if event.total_amount else 0.0
-    line_item_ids = [li.mongo_id or li.id for li in event.line_items]
+    line_item_ids = [li.id for li in event.line_items]
     tag_names = [tag.name for tag in event.tags] if event.tags else []
 
-    mongo_id = event.mongo_id or event.id
     return {
-        "_id": mongo_id,
-        "id": mongo_id,
+        "_id": event.id,
+        "id": event.id,
         "date": _serialize_datetime(event.date),
         "name": event.description or "",
         "category": event.category.name if event.category else "Unknown",
@@ -238,8 +231,7 @@ def _pg_get_all_line_items(filters: Optional[Dict[str, Any]]) -> List[Dict[str, 
                 id_filter = filters["_id"]
                 if isinstance(id_filter, dict) and "$in" in id_filter:
                     ids = [str(id) for id in id_filter["$in"]]
-                    # Try both mongo_id and PostgreSQL id
-                    query = query.filter((LineItem.mongo_id.in_(ids)) | (LineItem.id.in_(ids)))
+                    query = query.filter(LineItem.id.in_(ids))
 
             if "payment_method" in filters and filters["payment_method"] not in [
                 "All",
@@ -260,36 +252,28 @@ def _pg_get_all_line_items(filters: Optional[Dict[str, Any]]) -> List[Dict[str, 
 
 
 def _pg_get_line_item_by_id(id: str) -> Optional[Dict[str, Any]]:
-    """Get line item from PostgreSQL by PostgreSQL or MongoDB ID"""
+    """Get line item from PostgreSQL by ID"""
     from models.database import SessionLocal
     from models.sql_models import LineItem
 
     db_session = SessionLocal()
     try:
         query = db_session.query(LineItem).options(joinedload(LineItem.payment_method), joinedload(LineItem.events))
-
-        line_item = (
-            query.filter(LineItem.id == id).first()
-            if is_postgres_id(id, "li")
-            else query.filter(LineItem.mongo_id == id).first()
-        )
-
+        line_item = query.filter(LineItem.id == id).first()
         return _pg_serialize_line_item(line_item) if line_item else None
     finally:
         db_session.close()
 
 
 def _pg_get_user_by_id(id: str) -> Optional[Dict[str, Any]]:
-    """Get user from PostgreSQL by PostgreSQL or MongoDB ID"""
+    """Get user from PostgreSQL by ID"""
     from models.database import SessionLocal
     from models.sql_models import User
 
     db_session = SessionLocal()
     try:
         query = db_session.query(User)
-
-        user = query.filter(User.id == id).first() if is_postgres_id(id, "user") else query.filter(User.mongo_id == id).first()
-
+        user = query.filter(User.id == id).first()
         return _pg_serialize_user(user) if user else None
     finally:
         db_session.close()
@@ -329,7 +313,7 @@ def _pg_get_all_events(filters: Optional[Dict[str, Any]]) -> List[Dict[str, Any]
 
 
 def _pg_get_event_by_id(id: str) -> Optional[Dict[str, Any]]:
-    """Get event from PostgreSQL by PostgreSQL or MongoDB ID"""
+    """Get event from PostgreSQL by ID"""
     from models.database import SessionLocal
     from models.sql_models import Event, LineItem
 
@@ -341,12 +325,7 @@ def _pg_get_event_by_id(id: str) -> Optional[Dict[str, Any]]:
             joinedload(Event.tags),
         )
 
-        # PostgreSQL event IDs use "evt_" prefix with ULID (e.g., "evt_01K...")
-        # MongoDB event IDs follow different patterns (e.g., "event_cash_...", "event{hash}")
-        event = (
-            query.filter(Event.id == id).first() if is_postgres_id(id, "evt") else query.filter(Event.mongo_id == id).first()
-        )
-
+        event = query.filter(Event.id == id).first()
         return _pg_serialize_event(event) if event else None
     finally:
         db_session.close()
@@ -359,7 +338,7 @@ def _pg_get_line_items_for_event(event_id: str) -> List[Dict[str, Any]]:
 
     db_session = SessionLocal()
     try:
-        pg_event = db_session.query(Event).filter((Event.id == event_id) | (Event.mongo_id == event_id)).first()
+        pg_event = db_session.query(Event).filter(Event.id == event_id).first()
 
         if not pg_event:
             return []
@@ -459,7 +438,7 @@ def _pg_get_all_bank_accounts(
         accounts = query.all()
         return [
             {
-                "_id": acc.mongo_id or acc.id,
+                "_id": acc.id,
                 "id": acc.id,
                 "institution_name": acc.institution_name,
                 "display_name": acc.display_name,
@@ -487,7 +466,7 @@ def _pg_get_user_by_email(email: str) -> Optional[Dict[str, Any]]:
         if not user:
             return None
         return {
-            "_id": user.mongo_id or user.id,
+            "_id": user.id,
             "id": user.id,
             "first_name": user.first_name,
             "last_name": user.last_name,

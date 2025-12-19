@@ -97,7 +97,10 @@ def post_event_api() -> tuple[Response, int]:
     try:
         from utils.pg_event_operations import upsert_event_to_postgresql
 
-        upsert_event_to_postgresql(new_event, db)
+        # upsert_event_to_postgresql returns the actual PostgreSQL ID that was created
+        pg_event_id = upsert_event_to_postgresql(new_event, db)
+        # Update the event dict with the actual PostgreSQL ID
+        new_event["id"] = pg_event_id
         db.commit()
     except Exception as e:
         db.rollback()
