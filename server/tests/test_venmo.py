@@ -1,7 +1,6 @@
 import pytest
 
 from dao import (
-    line_items_collection,
     upsert_with_id,
     venmo_raw_data_collection,
 )
@@ -518,7 +517,6 @@ class TestVenmoIntegration:
             venmo_to_line_items()
 
             # Verify bulk_upsert was called for line items
-
 
     def test_venmo_edge_cases(self, flask_app, mock_venmo_user, mocker):
         """Test various edge cases in Venmo processing"""

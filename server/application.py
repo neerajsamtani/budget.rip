@@ -30,10 +30,8 @@ from constants import (
 )
 from dao import (
     bank_accounts_collection,
-    events_collection,
     get_all_data,
     get_item_by_id,
-    line_items_collection,
     users_collection,
 )
 from resources.auth import auth_blueprint

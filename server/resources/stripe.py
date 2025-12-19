@@ -13,6 +13,7 @@ from dao import (
     get_all_data,
     stripe_raw_account_data_collection,
     stripe_raw_transaction_data_collection,
+    upsert_with_id,
 )
 from helpers import cents_to_dollars, flip_amount
 from models.database import SessionLocal
@@ -206,7 +207,8 @@ def get_accounts_api(session_id: str) -> tuple[Response, int]:
         session: stripe.financial_connections.Session = stripe.financial_connections.Session.retrieve(session_id)
         accounts: List[Dict[str, Any]] = session["accounts"]
 
-        bulk_upsert(stripe_raw_account_data_collection, accounts)
+        for account in accounts:
+            upsert_with_id(stripe_raw_account_data_collection, account, account["id"])
 
         return jsonify({"accounts": accounts}), 200
     except Exception as e:

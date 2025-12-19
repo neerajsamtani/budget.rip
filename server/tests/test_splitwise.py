@@ -1,7 +1,7 @@
 import pytest
 
 from constants import PARTIES_TO_IGNORE, USER_FIRST_NAME
-from dao import line_items_collection, splitwise_raw_data_collection
+from dao import splitwise_raw_data_collection
 from resources.splitwise import refresh_splitwise, splitwise_to_line_items
 
 
@@ -346,7 +346,7 @@ class TestSplitwiseFunctions:
             # Query database to verify date was converted correctly
             db = SessionLocal()
             try:
-                from datetime import datetime, UTC
+                from datetime import UTC, datetime
 
                 line_items = db.query(LineItem).all()
                 assert len(line_items) == 1

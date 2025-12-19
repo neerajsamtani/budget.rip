@@ -1,18 +1,6 @@
-from datetime import UTC, datetime
-
 import pytest
 
 from dao import events_collection, line_items_collection, upsert_with_id
-from models.sql_models import (
-    Event,
-    EventLineItem,
-    EventTag,
-    LineItem,
-    PaymentMethod,
-    Tag,
-    Transaction,
-)
-from utils.id_generator import generate_id
 
 
 @pytest.fixture

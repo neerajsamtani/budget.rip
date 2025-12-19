@@ -240,10 +240,7 @@ def bulk_upsert_line_items(db_session, line_items_data: List[Any], source: str) 
         transactions_with_items = (
             db_session.query(Transaction.source_id)
             .join(LineItem, Transaction.id == LineItem.transaction_id)
-            .filter(
-                Transaction.source == source,
-                Transaction.source_id.in_(transaction_ids_to_check)
-            )
+            .filter(Transaction.source == source, Transaction.source_id.in_(transaction_ids_to_check))
             .all()
         )
         existing_transaction_ids = {row[0] for row in transactions_with_items}

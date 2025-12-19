@@ -30,7 +30,6 @@ from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 
 from constants import JWT_SECRET_KEY
-from dao import users_collection
 from models.sql_models import Base
 from resources.auth import auth_blueprint
 from resources.cash import cash_blueprint

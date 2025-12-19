@@ -3,7 +3,6 @@ import stripe
 
 from dao import (
     bank_accounts_collection,
-    line_items_collection,
     stripe_raw_transaction_data_collection,
     upsert_with_id,
 )
@@ -686,7 +685,6 @@ class TestStripeIntegration:
             mock_refresh_transactions.assert_called_once_with("fca_test123")
 
             # Verify line items were created
-
 
 
 class TestAccountBalances:
