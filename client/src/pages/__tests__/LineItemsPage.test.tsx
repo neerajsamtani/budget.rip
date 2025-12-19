@@ -20,7 +20,7 @@ jest.mock('sonner', () => {
 jest.mock('../../components/LineItem', () => {
     const MockLineItem = function MockLineItem({ lineItem }: any) {
         return (
-            <tr data-testid={`line-item-${lineItem._id}`}>
+            <tr data-testid={`line-item-${lineItem.id}`}>
                 <td>{new Date(lineItem.date * 1000).toLocaleDateString()}</td>
                 <td>{lineItem.payment_method || ''}</td>
                 <td>{lineItem.description || ''}</td>
@@ -31,7 +31,7 @@ jest.mock('../../components/LineItem', () => {
     };
     const MockLineItemCard = function MockLineItemCard({ lineItem }: any) {
         return (
-            <div data-testid={`line-item-card-${lineItem._id}`}>
+            <div data-testid={`line-item-card-${lineItem.id}`}>
                 <span>{new Date(lineItem.date * 1000).toLocaleDateString()}</span>
                 <span>{lineItem.description || ''}</span>
                 <span>${(lineItem.amount || 0).toFixed(2)}</span>

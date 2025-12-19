@@ -5,7 +5,6 @@ import { useAuth } from './AuthContext';
 
 // Define TypeScript interfaces for the line item and props
 export interface LineItemInterface {
-    _id: string;
     id: string;
     date: number; // Assuming date is a UNIX timestamp in seconds
     payment_method: string;
