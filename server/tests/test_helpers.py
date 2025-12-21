@@ -176,7 +176,7 @@ def setup_test_line_item_with_event(pg_session, item_data: Dict[str, Any], event
     Args:
         pg_session: PostgreSQL session
         item_data: Line item data (must include 'id', 'date', etc.)
-        event_id: ID of existing event (mongo_id or pg id)
+        event_id: ID of existing event
 
     Returns:
         PostgreSQL LineItem object
@@ -186,8 +186,6 @@ def setup_test_line_item_with_event(pg_session, item_data: Dict[str, Any], event
 
     # Find event
     pg_event = pg_session.query(Event).filter(Event.id == event_id).first()
-    if not pg_event:
-        pg_event = pg_session.query(Event).filter(Event.mongo_id == event_id).first()
 
     if not pg_event:
         raise ValueError(f"Event {event_id} not found")

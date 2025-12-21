@@ -54,7 +54,7 @@ def _bulk_upsert_transactions(db_session, transactions_data: List[Any], source: 
         return 0
 
     transaction_dicts = []
-    mongo_ids = []
+    source_ids = []
     for txn in transactions_data:
         txn_dict = to_dict_robust(txn)
 
@@ -66,29 +66,29 @@ def _bulk_upsert_transactions(db_session, transactions_data: List[Any], source: 
             elif hasattr(txn, "id"):
                 txn_dict["_id"] = str(txn.id)
 
-        mongo_id = str(txn_dict.get("_id", ""))
-        if not mongo_id:
+        source_id = str(txn_dict.get("_id", ""))
+        if not source_id:
             logger.warning(f"Skipping transaction without _id: {txn_dict}")
             continue
 
-        mongo_ids.append((source, mongo_id))
+        source_ids.append((source, source_id))
         transaction_dicts.append(txn_dict)
 
     if not transaction_dicts:
         return 0
 
     existing_query = db_session.query(Transaction.source, Transaction.source_id).filter(Transaction.source == source)
-    if mongo_ids:
+    if source_ids:
         existing_pairs = set(
             (row.source, row.source_id)
-            for row in existing_query.filter(Transaction.source_id.in_([mid for _, mid in mongo_ids])).all()
+            for row in existing_query.filter(Transaction.source_id.in_([sid for _, sid in source_ids])).all()
         )
     else:
         existing_pairs = set()
 
     bulk_inserts = []
-    for txn_dict, (src, mongo_id) in zip(transaction_dicts, mongo_ids):
-        if (src, mongo_id) in existing_pairs:
+    for txn_dict, (src, source_id) in zip(transaction_dicts, source_ids):
+        if (src, source_id) in existing_pairs:
             continue
 
         transaction_date = get_transaction_date(txn_dict, source)
@@ -99,7 +99,7 @@ def _bulk_upsert_transactions(db_session, transactions_data: List[Any], source: 
             {
                 "id": generate_id("txn"),
                 "source": source,
-                "source_id": mongo_id,
+                "source_id": source_id,
                 "source_data": source_data,
                 "transaction_date": transaction_date,
             }
