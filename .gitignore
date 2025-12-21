@@ -9,6 +9,7 @@ venv
 dist
 coverage
 *.md
+!README.md
 .cursorignore
 migrations/
 migration_examples/
