@@ -2,7 +2,6 @@ import pytest
 
 from dao import (
     bank_accounts_collection,
-    events_collection,
     line_items_collection,
     upsert_with_id,
 )
@@ -313,74 +312,6 @@ class TestApplicationRoutes:
 
 
 class TestApplicationFunctions:
-    @pytest.mark.skipif(
-        __import__("os").environ.get("READ_FROM_POSTGRESQL", "false").lower() == "true",
-        reason="add_event_ids_to_line_items is a MongoDB-specific legacy function",
-    )
-    def test_add_event_ids_to_line_items_success(self, flask_app, mock_event, mock_line_item, pg_session):
-        """Test add_event_ids_to_line_items function - success case"""
-        from tests.test_helpers import setup_test_event, setup_test_line_item
-
-        with flask_app.app_context():
-            # Create event
-            setup_test_event(pg_session, mock_event)
-
-            # Create line items referenced by the event
-            line_item_1 = mock_line_item.copy()
-            line_item_1["id"] = "line_item_1"
-            setup_test_line_item(pg_session, line_item_1)
-
-            line_item_2 = mock_line_item.copy()
-            line_item_2["id"] = "line_item_2"
-            setup_test_line_item(pg_session, line_item_2)
-
-            pg_session.commit()
-
-            # Import and call the function
-            from application import add_event_ids_to_line_items
-
-            add_event_ids_to_line_items()
-
-            # Verify line items were updated with event_id
-            from dao import get_all_data
-
-            all_line_items = get_all_data(line_items_collection)
-
-            updated_line_item_1 = next((li for li in all_line_items if li["id"] == "line_item_1"), None)
-            updated_line_item_2 = next((li for li in all_line_items if li["id"] == "line_item_2"), None)
-
-            assert updated_line_item_1 is not None
-            assert updated_line_item_2 is not None
-            assert updated_line_item_1["event_id"] == "event_1"
-            assert updated_line_item_2["event_id"] == "event_1"
-
-    @pytest.mark.skip(
-        reason="add_event_ids_to_line_items is a MongoDB-specific legacy function",
-    )
-    def test_add_event_ids_to_line_items_no_events(self, flask_app):
-        """Test add_event_ids_to_line_items function - no events"""
-        with flask_app.app_context():
-            from application import add_event_ids_to_line_items
-
-            # Should not raise any exceptions
-            add_event_ids_to_line_items()
-
-    @pytest.mark.skip(
-        reason="add_event_ids_to_line_items is a MongoDB-specific legacy function",
-    )
-    def test_add_event_ids_to_line_items_no_line_items(self, flask_app, mock_event):
-        """Test add_event_ids_to_line_items function - event with no line items"""
-        with flask_app.app_context():
-            # Insert event with empty line_items list
-            event_no_line_items = mock_event.copy()
-            event_no_line_items["line_items"] = []
-            upsert_with_id(events_collection, event_no_line_items, event_no_line_items["id"])
-
-            from application import add_event_ids_to_line_items
-
-            # Should not raise any exceptions
-            add_event_ids_to_line_items()
-
     def test_refresh_all_success(self, flask_app, mocker):
         """Test refresh_all function - success case"""
         with flask_app.app_context():
