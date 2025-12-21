@@ -1,4 +1,4 @@
-.PHONY: help test test-phase3 test-watch test-coverage test-quick install lint lint-fix clean dev-setup
+.PHONY: help test test-phase3 test-watch test-coverage test-quick install lint lint-fix clean dev-setup pg-dump
 
 help: ## Show this help message
 	@echo "Available commands:"
@@ -62,3 +62,16 @@ dev-setup: install ## Set up development environment
 	@echo ""
 	@echo "To run the server:"
 	@echo "  uv run python application.py"
+
+pg-dump: ## Create PostgreSQL database dump (requires PGPASSWORD env var)
+	@if [ -z "$$PGPASSWORD" ]; then \
+		echo "Error: PGPASSWORD environment variable is not set"; \
+		echo "Usage: PGPASSWORD=your_password make pg-dump"; \
+		exit 1; \
+	fi
+	@echo "Creating PostgreSQL dump..."
+	@pg_dump -h us-west-3.pg.psdb.cloud -p 5432 \
+		-U pscale_api_jlyfrqc8m3a2.msciuxoprsk4 \
+		-d postgres --clean --if-exists \
+		> budgit_postgres_dump_$$(date +%Y_%m_%d).sql
+	@echo "✓ Dump created: budgit_postgres_dump_$$(date +%Y_%m_%d).sql"

@@ -100,7 +100,7 @@ class TestSplitwiseFunctions:
             # Mock bulk_upsert (MongoDB)
 
             # Mock bulk_upsert_transactions (PostgreSQL)
-            mocker.patch("resources.splitwise.bulk_upsert_transactions")
+            mocker.patch("resources.splitwise.upsert_transactions")
 
             # Mock the getExpenses method
             mock_splitwise_client.getExpenses.return_value = [mock_splitwise_expense]
@@ -122,7 +122,7 @@ class TestSplitwiseFunctions:
             # Mock bulk_upsert (MongoDB)
 
             # Mock bulk_upsert_transactions (PostgreSQL)
-            mocker.patch("resources.splitwise.bulk_upsert_transactions")
+            mocker.patch("resources.splitwise.upsert_transactions")
 
             # Mock the getExpenses method to return both regular and deleted expenses
             mock_splitwise_client.getExpenses.return_value = [
@@ -142,7 +142,7 @@ class TestSplitwiseFunctions:
             # Mock bulk_upsert (MongoDB)
 
             # Mock bulk_upsert_transactions (PostgreSQL)
-            mocker.patch("resources.splitwise.bulk_upsert_transactions")
+            mocker.patch("resources.splitwise.upsert_transactions")
 
             # Mock the getExpenses method to return empty list
             mock_splitwise_client.getExpenses.return_value = []
@@ -186,7 +186,7 @@ class TestSplitwiseFunctions:
             # Mock bulk_upsert (MongoDB)
 
             # Mock bulk_upsert_line_items (PostgreSQL)
-            mocker.patch("resources.splitwise.bulk_upsert_line_items")
+            mocker.patch("resources.splitwise.upsert_line_items")
 
             # Mock expense where the responsible party is in the ignore list
             expense_with_ignored = {
@@ -285,7 +285,7 @@ class TestSplitwiseFunctions:
             # Mock bulk_upsert (MongoDB)
 
             # Mock bulk_upsert_line_items (PostgreSQL)
-            mocker.patch("resources.splitwise.bulk_upsert_line_items")
+            mocker.patch("resources.splitwise.upsert_line_items")
 
             # Mock get_all_data to return empty list
             mock_get_data.return_value = []
@@ -302,7 +302,7 @@ class TestSplitwiseFunctions:
             # Mock bulk_upsert (MongoDB)
 
             # Mock bulk_upsert_line_items (PostgreSQL)
-            mocker.patch("resources.splitwise.bulk_upsert_line_items")
+            mocker.patch("resources.splitwise.upsert_line_items")
 
             # Mock expense without the current user
             expense_no_user = {
@@ -400,10 +400,10 @@ class TestSplitwiseIntegration:
             # Mock bulk_upsert (MongoDB)
 
             # Mock bulk_upsert_line_items (PostgreSQL)
-            mocker.patch("resources.splitwise.bulk_upsert_line_items")
+            mocker.patch("resources.splitwise.upsert_line_items")
 
             # Mock bulk_upsert_transactions (PostgreSQL)
-            mocker.patch("resources.splitwise.bulk_upsert_transactions")
+            mocker.patch("resources.splitwise.upsert_transactions")
             mock_get_data = mocker.patch("resources.splitwise.get_all_data")
 
             # Mock expense for refresh

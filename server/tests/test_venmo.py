@@ -159,7 +159,7 @@ class TestVenmoFunctions:
             # Mock bulk_upsert (MongoDB)
 
             # Mock bulk_upsert_transactions (PostgreSQL)
-            mocker.patch("resources.venmo.bulk_upsert_transactions")
+            mocker.patch("resources.venmo.upsert_transactions")
 
             # Mock transactions - all before moving date (1659510000.0)
             mock_transactions = mocker.Mock()
@@ -192,7 +192,7 @@ class TestVenmoFunctions:
             # Mock bulk_upsert (MongoDB)
 
             # Mock bulk_upsert_transactions (PostgreSQL)
-            mocker.patch("resources.venmo.bulk_upsert_transactions")
+            mocker.patch("resources.venmo.upsert_transactions")
 
             # Mock transactions - one with ignored party
             mock_transactions = mocker.Mock()
@@ -386,7 +386,7 @@ class TestVenmoFunctions:
             # Mock bulk_upsert (MongoDB)
 
             # Mock bulk_upsert_line_items (PostgreSQL)
-            mocker.patch("resources.venmo.bulk_upsert_line_items")
+            mocker.patch("resources.venmo.upsert_line_items")
 
             # Call the function with no transactions
             venmo_to_line_items()
@@ -480,7 +480,7 @@ class TestVenmoIntegration:
             mock_venmo_client.user.get_user_transactions.return_value = mock_transactions
 
             # Mock bulk_upsert_transactions to avoid trying to serialize Mock objects to PostgreSQL
-            mocker.patch("resources.venmo.bulk_upsert_transactions")
+            mocker.patch("resources.venmo.upsert_transactions")
 
             # Call refresh function (PostgreSQL write mocked to avoid Mock serialization issues)
             refresh_venmo()

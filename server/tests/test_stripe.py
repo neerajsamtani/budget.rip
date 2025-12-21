@@ -278,7 +278,7 @@ class TestStripeAPI:
         with flask_app.app_context():
             mock_retrieve = mocker.patch("resources.stripe.stripe.financial_connections.Account.retrieve")
             # Mock bulk_upsert_bank_accounts to avoid trying to serialize Mock objects to PostgreSQL
-            mocker.patch("resources.stripe.bulk_upsert_bank_accounts")
+            mocker.patch("resources.stripe.upsert_bank_accounts")
 
             # Mock account
             mock_account = mocker.MagicMock()
@@ -471,7 +471,7 @@ class TestStripeFunctions:
             # Mock bulk_upsert (MongoDB)
 
             # Mock bulk_upsert_line_items (PostgreSQL)
-            mocker.patch("resources.stripe.bulk_upsert_line_items")
+            mocker.patch("resources.stripe.upsert_line_items")
 
             # Call the function with no transactions
             stripe_to_line_items()
@@ -492,7 +492,7 @@ class TestStripeFunctions:
             # Mock bulk_upsert (MongoDB)
 
             # Mock bulk_upsert_line_items (PostgreSQL)
-            mocker.patch("resources.stripe.bulk_upsert_line_items")
+            mocker.patch("resources.stripe.upsert_line_items")
 
             # Call the function
             stripe_to_line_items()
@@ -533,7 +533,7 @@ class TestStripeFunctions:
             # Mock bulk_upsert (MongoDB)
 
             # Mock bulk_upsert_line_items (PostgreSQL)
-            mocker.patch("resources.stripe.bulk_upsert_line_items")
+            mocker.patch("resources.stripe.upsert_line_items")
 
             # Call the function
             stripe_to_line_items()
@@ -650,7 +650,7 @@ class TestStripeIntegration:
             # Mock bulk_upsert (MongoDB)
 
             # Mock bulk_upsert_line_items (PostgreSQL)
-            mocker.patch("resources.stripe.bulk_upsert_line_items")
+            mocker.patch("resources.stripe.upsert_line_items")
 
             # Insert test account
             test_account = {
