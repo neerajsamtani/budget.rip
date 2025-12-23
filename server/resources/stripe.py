@@ -343,7 +343,7 @@ def stripe_to_line_items() -> None:
     3. Process transactions in batches to handle large datasets efficiently
     """
     all_bank_accounts: List[Dict[str, Any]] = get_all_data(bank_accounts_collection)
-    bank_account_lookup: Dict[str, Dict[str, Any]] = {account["_id"]: account for account in all_bank_accounts}
+    bank_account_lookup: Dict[str, Dict[str, Any]] = {account["id"]: account for account in all_bank_accounts}
 
     stripe_raw_data: List[Dict[str, Any]] = get_all_data(stripe_raw_transaction_data_collection)
 

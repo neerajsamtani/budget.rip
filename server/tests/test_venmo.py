@@ -23,7 +23,6 @@ def mock_venmo_transaction():
     """Mock Venmo transaction"""
     return {
         "id": "venmo_txn_123",
-        "_id": "venmo_txn_123",
         "date_created": 1673778600.0,
         "actor": {"first_name": "Neeraj"},
         "target": {"first_name": "John"},
@@ -38,7 +37,7 @@ def mock_venmo_transaction_charge():
     """Mock Venmo charge transaction"""
     return {
         "id": "venmo_txn_456",
-        "_id": "venmo_txn_456",
+        "id": "venmo_txn_456",
         "date_created": 1673778601.0,
         "actor": {"first_name": "Jane"},
         "target": {"first_name": "Neeraj"},
@@ -53,7 +52,7 @@ def mock_venmo_transaction_received():
     """Mock Venmo received transaction"""
     return {
         "id": "venmo_txn_789",
-        "_id": "venmo_txn_789",
+        "id": "venmo_txn_789",
         "date_created": 1673778602.0,
         "actor": {"first_name": "Bob"},
         "target": {"first_name": "Neeraj"},
@@ -68,7 +67,7 @@ def mock_venmo_transaction_ignored():
     """Mock Venmo transaction with ignored party"""
     return {
         "id": "venmo_txn_ignored",
-        "_id": "venmo_txn_ignored",
+        "id": "venmo_txn_ignored",
         "date_created": 1673778600.0,
         "actor": {"first_name": "Pink Palace Babes"},  # Ignored party
         "target": {"first_name": "Neeraj"},
@@ -392,7 +391,7 @@ class TestVenmoFunctions:
             transactions = [
                 {
                     "id": "venmo_txn_1",
-                    "_id": "venmo_txn_1",
+                    "id": "venmo_txn_1",
                     "date_created": 1673778600.0,
                     "actor": {"first_name": "Neeraj"},
                     "target": {"first_name": "John"},
@@ -402,7 +401,7 @@ class TestVenmoFunctions:
                 },
                 {
                     "id": "venmo_txn_2",
-                    "_id": "venmo_txn_2",
+                    "id": "venmo_txn_2",
                     "date_created": 1673778601.0,
                     "actor": {"first_name": "Jane"},
                     "target": {"first_name": "Neeraj"},
@@ -412,7 +411,7 @@ class TestVenmoFunctions:
                 },
                 {
                     "id": "venmo_txn_3",
-                    "_id": "venmo_txn_3",
+                    "id": "venmo_txn_3",
                     "date_created": 1673778602.0,
                     "actor": {"first_name": "Bob"},
                     "target": {"first_name": "Neeraj"},
@@ -488,7 +487,7 @@ class TestVenmoIntegration:
 
             transaction_dict = {
                 "id": "venmo_txn_integration",
-                "_id": "venmo_txn_integration",
+                "id": "venmo_txn_integration",
                 "date_created": 1673778600.0,
                 "actor": {"first_name": "Neeraj"},
                 "target": {"first_name": "John"},

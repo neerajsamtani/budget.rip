@@ -72,7 +72,7 @@ def post_event_api() -> tuple[Response, int]:
         return jsonify("Failed to Create Event: No Line Items Submitted"), 400
 
     filters: Dict[str, Any] = {}
-    filters["_id"] = {"$in": new_event["line_items"]}
+    filters["id"] = {"$in": new_event["line_items"]}
     line_items: List[Dict[str, Any]] = get_all_data(line_items_collection, filters)
     earliest_line_item: Dict[str, Any] = min(line_items, key=lambda line_item: line_item["date"])
 

@@ -74,7 +74,7 @@ def login_user_api() -> tuple[Response, int]:
         return jsonify({"error": "Email or password invalid"}), 401
 
     expires: timedelta = timedelta(days=3)
-    access_token: str = create_access_token(identity=str(user["_id"]), expires_delta=expires)
+    access_token: str = create_access_token(identity=str(user["id"]), expires_delta=expires)
 
     # Set the JWT cookies in the response
     resp: Response = jsonify({"login": True})
@@ -106,7 +106,7 @@ def get_current_user_api() -> tuple[Response, int]:
 
     return jsonify(
         {
-            "id": str(user.get("_id")),
+            "id": str(user.get("id")),
             "email": user.get("email"),
             "first_name": user.get("first_name"),
             "last_name": user.get("last_name"),

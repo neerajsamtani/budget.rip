@@ -170,9 +170,8 @@ def _serialize_datetime(dt: Optional[Any]) -> float:
 
 
 def _pg_serialize_line_item(li: Any) -> Dict[str, Any]:
-    """Convert LineItem ORM to dict matching MongoDB format"""
+    """Convert LineItem ORM to dict"""
     data = {
-        "_id": li.id,
         "id": li.id,
         "date": _serialize_datetime(li.date),
         "payment_method": li.payment_method.name if li.payment_method else "Unknown",
@@ -187,24 +186,23 @@ def _pg_serialize_line_item(li: Any) -> Dict[str, Any]:
 
 
 def _pg_serialize_user(user: Any) -> Dict[str, Any]:
-    """Convert User ORM to dict matching MongoDB format"""
+    """Convert User ORM to dict"""
     return {
-        "_id": user.id,
         "id": user.id,
         "first_name": user.first_name,
         "last_name": user.last_name,
         "email": user.email,
+        "password_hash": user.password_hash,
     }
 
 
 def _pg_serialize_event(event: Any) -> Dict[str, Any]:
-    """Convert Event ORM to dict matching MongoDB format"""
+    """Convert Event ORM to dict"""
     amount = float(event.total_amount) if event.total_amount else 0.0
     line_item_ids = [li.id for li in event.line_items]
     tag_names = [tag.name for tag in event.tags] if event.tags else []
 
     return {
-        "_id": event.id,
         "id": event.id,
         "date": _serialize_datetime(event.date),
         "name": event.description or "",
@@ -226,9 +224,9 @@ def _pg_get_all_line_items(filters: Optional[Dict[str, Any]]) -> List[Dict[str, 
         query = db_session.query(LineItem).options(joinedload(LineItem.payment_method), joinedload(LineItem.events))
 
         if filters:
-            # Handle _id: {$in: [...]} pattern (used in event creation)
-            if "_id" in filters:
-                id_filter = filters["_id"]
+            # Handle id: {$in: [...]} pattern (used in event creation)
+            if "id" in filters:
+                id_filter = filters["id"]
                 if isinstance(id_filter, dict) and "$in" in id_filter:
                     ids = [str(id) for id in id_filter["$in"]]
                     query = query.filter(LineItem.id.in_(ids))
@@ -437,7 +435,6 @@ def _pg_get_all_bank_accounts(
         accounts = query.all()
         return [
             {
-                "_id": acc.id,
                 "id": acc.id,
                 "institution_name": acc.institution_name,
                 "display_name": acc.display_name,

@@ -57,7 +57,7 @@ def mock_splitwise_expense_ignored_party(mocker):
 def mock_splitwise_expense_dict():
     """Mock Splitwise expense as dictionary"""
     return {
-        "_id": "expense_1",
+        "id": "expense_1",
         "date": "2023-01-15T10:30:00Z",
         "description": "Test expense",
         "users": [
@@ -145,7 +145,7 @@ class TestSplitwiseFunctions:
             from models.sql_models import LineItem
 
             # Insert raw transaction data into database first
-            upsert_with_id(splitwise_raw_data_collection, mock_splitwise_expense_dict, mock_splitwise_expense_dict["_id"])
+            upsert_with_id(splitwise_raw_data_collection, mock_splitwise_expense_dict, mock_splitwise_expense_dict["id"])
 
             # Call the function (writes to PostgreSQL)
             splitwise_to_line_items()
@@ -172,7 +172,7 @@ class TestSplitwiseFunctions:
 
             # Mock expense where the responsible party is in the ignore list
             expense_with_ignored = {
-                "_id": "expense_3",
+                "id": "expense_3",
                 "date": "2023-01-15T10:30:00Z",
                 "description": "Expense with ignored party",
                 "users": [
@@ -197,7 +197,7 @@ class TestSplitwiseFunctions:
 
             # Insert raw expense with non-ignored party
             expense_with_non_ignored = {
-                "_id": "expense_4",
+                "id": "expense_4",
                 "date": "2023-01-15T10:30:00Z",
                 "description": "Expense with non-ignored party",
                 "users": [
@@ -205,7 +205,7 @@ class TestSplitwiseFunctions:
                     {"first_name": "Regular Person", "net_balance": 40.0},
                 ],
             }
-            upsert_with_id(splitwise_raw_data_collection, expense_with_non_ignored, expense_with_non_ignored["_id"])
+            upsert_with_id(splitwise_raw_data_collection, expense_with_non_ignored, expense_with_non_ignored["id"])
 
             # Call the function
             splitwise_to_line_items()
@@ -230,7 +230,7 @@ class TestSplitwiseFunctions:
 
             # Insert raw expense with multiple users
             expense_multiple_users = {
-                "_id": "expense_5",
+                "id": "expense_5",
                 "date": "2023-01-15T10:30:00Z",
                 "description": "Expense with multiple users",
                 "users": [
@@ -239,7 +239,7 @@ class TestSplitwiseFunctions:
                     {"first_name": "Bob", "net_balance": 30.0},
                 ],
             }
-            upsert_with_id(splitwise_raw_data_collection, expense_multiple_users, expense_multiple_users["_id"])
+            upsert_with_id(splitwise_raw_data_collection, expense_multiple_users, expense_multiple_users["id"])
 
             # Call the function
             splitwise_to_line_items()
@@ -277,7 +277,7 @@ class TestSplitwiseFunctions:
 
             # Mock expense without the current user
             expense_no_user = {
-                "_id": "expense_6",
+                "id": "expense_6",
                 "date": "2023-01-15T10:30:00Z",
                 "description": "Expense without current user",
                 "users": [
@@ -299,7 +299,7 @@ class TestSplitwiseFunctions:
 
             # Insert raw expense with specific date
             expense_with_date = {
-                "_id": "expense_7",
+                "id": "expense_7",
                 "date": "2023-01-15T10:30:00Z",
                 "description": "Expense with date",
                 "users": [
@@ -307,7 +307,7 @@ class TestSplitwiseFunctions:
                     {"first_name": "Charlie", "net_balance": 25.0},
                 ],
             }
-            upsert_with_id(splitwise_raw_data_collection, expense_with_date, expense_with_date["_id"])
+            upsert_with_id(splitwise_raw_data_collection, expense_with_date, expense_with_date["id"])
 
             # Call the function
             splitwise_to_line_items()
@@ -335,7 +335,7 @@ class TestSplitwiseFunctions:
 
             # Insert raw expense with positive and negative balances
             expense_mixed_balances = {
-                "_id": "expense_8",
+                "id": "expense_8",
                 "date": "2023-01-15T10:30:00Z",
                 "description": "Expense with mixed balances",
                 "users": [
@@ -343,7 +343,7 @@ class TestSplitwiseFunctions:
                     {"first_name": "David", "net_balance": 100.0},  # David is owed
                 ],
             }
-            upsert_with_id(splitwise_raw_data_collection, expense_mixed_balances, expense_mixed_balances["_id"])
+            upsert_with_id(splitwise_raw_data_collection, expense_mixed_balances, expense_mixed_balances["id"])
 
             # Call the function
             splitwise_to_line_items()

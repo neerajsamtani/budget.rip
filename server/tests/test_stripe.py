@@ -224,7 +224,6 @@ class TestStripeAPI:
             # Insert test account with balance
             test_account = {
                 "id": "fca_test123",
-                "_id": "fca_test123",  # For refresh_stripe function
                 "institution_name": "Test Bank",
                 "display_name": "Checking Account",
                 "last4": "1234",
@@ -394,7 +393,6 @@ class TestStripeFunctions:
             # Insert test account data
             test_account = {
                 "id": "fca_test123",
-                "_id": "fca_test123",  # For refresh_stripe function
                 "institution_name": "Test Bank",
                 "display_name": "Checking Account",
                 "last4": "1234",
@@ -430,7 +428,6 @@ class TestStripeFunctions:
             # Insert test data
             test_account = {
                 "id": "fca_test123",
-                "_id": "fca_test123",
                 "institution_name": "Test Bank",
                 "display_name": "Checking Account",
                 "last4": "1234",
@@ -494,7 +491,6 @@ class TestStripeFunctions:
             # Insert test account
             test_account = {
                 "id": "fca_test123",
-                "_id": "fca_test123",
                 "institution_name": "Test Bank",
                 "display_name": "Checking Account",
                 "last4": "1234",
@@ -636,7 +632,6 @@ class TestStripeIntegration:
             # Insert test account
             test_account = {
                 "id": "fca_test123",
-                "_id": "fca_test123",  # For refresh_stripe function
                 "institution_name": "Test Bank",
                 "display_name": "Checking Account",
                 "last4": "1234",

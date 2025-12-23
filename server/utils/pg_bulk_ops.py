@@ -58,17 +58,14 @@ def _bulk_upsert_transactions(db_session, transactions_data: List[Any], source: 
     for txn in transactions_data:
         txn_dict = to_dict_robust(txn)
 
-        if "_id" not in txn_dict:
-            if "id" in txn_dict:
-                txn_dict["_id"] = txn_dict["id"]
-            elif hasattr(txn, "_id"):
-                txn_dict["_id"] = str(txn._id)
-            elif hasattr(txn, "id"):
-                txn_dict["_id"] = str(txn.id)
+        # Ensure we have an 'id' field from various possible sources
+        if "id" not in txn_dict:
+            if hasattr(txn, "id"):
+                txn_dict["id"] = str(txn.id)
 
-        source_id = str(txn_dict.get("_id", ""))
+        source_id = str(txn_dict.get("id", ""))
         if not source_id:
-            logger.warning(f"Skipping transaction without _id: {txn_dict}")
+            logger.warning(f"Skipping transaction without id: {txn_dict}")
             continue
 
         source_ids.append((source, source_id))
@@ -93,7 +90,7 @@ def _bulk_upsert_transactions(db_session, transactions_data: List[Any], source: 
 
         transaction_date = get_transaction_date(txn_dict, source)
 
-        source_data = {k: v for k, v in txn_dict.items() if k != "_id"}
+        source_data = {k: v for k, v in txn_dict.items() if k != "id"}
 
         bulk_inserts.append(
             {
