@@ -156,9 +156,6 @@ class TestVenmoFunctions:
             mock_venmo_client.my_profile.return_value = mock_venmo_user
             mocker.patch("resources.venmo.get_venmo_client", return_value=mock_venmo_client)
 
-            # Mock bulk_upsert (MongoDB)
-
-            # Mock bulk_upsert_transactions (PostgreSQL)
             mocker.patch("resources.venmo.upsert_transactions")
 
             # Mock transactions - all before moving date (1659510000.0)
@@ -189,9 +186,6 @@ class TestVenmoFunctions:
             mock_venmo_client.my_profile.return_value = mock_venmo_user
             mocker.patch("resources.venmo.get_venmo_client", return_value=mock_venmo_client)
 
-            # Mock bulk_upsert (MongoDB)
-
-            # Mock bulk_upsert_transactions (PostgreSQL)
             mocker.patch("resources.venmo.upsert_transactions")
 
             # Mock transactions - one with ignored party
@@ -383,15 +377,10 @@ class TestVenmoFunctions:
     def test_venmo_to_line_items_no_transactions(self, flask_app, mocker):
         """Test venmo_to_line_items function - no transactions to process"""
         with flask_app.app_context():
-            # Mock bulk_upsert (MongoDB)
-
-            # Mock bulk_upsert_line_items (PostgreSQL)
             mocker.patch("resources.venmo.upsert_line_items")
 
             # Call the function with no transactions
             venmo_to_line_items()
-
-            # Verify bulk_upsert was not called
 
     def test_venmo_to_line_items_multiple_transactions(self, flask_app, mocker):
         """Test venmo_to_line_items function - multiple transactions"""

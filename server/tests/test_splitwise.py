@@ -97,9 +97,6 @@ class TestSplitwiseFunctions:
         """Test refresh_splitwise function - success case"""
         with flask_app.app_context():
             mock_splitwise_client = mocker.patch("resources.splitwise.splitwise_client")
-            # Mock bulk_upsert (MongoDB)
-
-            # Mock bulk_upsert_transactions (PostgreSQL)
             mocker.patch("resources.splitwise.upsert_transactions")
 
             # Mock the getExpenses method
@@ -111,17 +108,12 @@ class TestSplitwiseFunctions:
             # Verify getExpenses was called with correct parameters
             mock_splitwise_client.getExpenses.assert_called_once_with(limit=1000, dated_after="2022-08-03T00:00:00Z")
 
-            # Verify bulk_upsert was called with the non-deleted expense
-
     def test_refresh_splitwise_with_deleted_expense(
         self, flask_app, mock_splitwise_expense, mock_splitwise_expense_deleted, mocker
     ):
         """Test refresh_splitwise function - filters out deleted expenses"""
         with flask_app.app_context():
             mock_splitwise_client = mocker.patch("resources.splitwise.splitwise_client")
-            # Mock bulk_upsert (MongoDB)
-
-            # Mock bulk_upsert_transactions (PostgreSQL)
             mocker.patch("resources.splitwise.upsert_transactions")
 
             # Mock the getExpenses method to return both regular and deleted expenses
@@ -133,15 +125,10 @@ class TestSplitwiseFunctions:
             # Call the function
             refresh_splitwise()
 
-            # Verify bulk_upsert was called only with the non-deleted expense
-
     def test_refresh_splitwise_no_expenses(self, flask_app, mocker):
         """Test refresh_splitwise function - no expenses returned"""
         with flask_app.app_context():
             mock_splitwise_client = mocker.patch("resources.splitwise.splitwise_client")
-            # Mock bulk_upsert (MongoDB)
-
-            # Mock bulk_upsert_transactions (PostgreSQL)
             mocker.patch("resources.splitwise.upsert_transactions")
 
             # Mock the getExpenses method to return empty list
@@ -149,8 +136,6 @@ class TestSplitwiseFunctions:
 
             # Call the function
             refresh_splitwise()
-
-            # Verify bulk_upsert was not called (no expenses to upsert)
 
     def test_splitwise_to_line_items_success(self, flask_app, mock_splitwise_expense_dict, mocker):
         """Test splitwise_to_line_items function - success case"""
@@ -183,9 +168,6 @@ class TestSplitwiseFunctions:
         """Test splitwise_to_line_items function - filters out ignored parties"""
         with flask_app.app_context():
             mock_get_data = mocker.patch("resources.splitwise.get_all_data")
-            # Mock bulk_upsert (MongoDB)
-
-            # Mock bulk_upsert_line_items (PostgreSQL)
             mocker.patch("resources.splitwise.upsert_line_items")
 
             # Mock expense where the responsible party is in the ignore list
@@ -205,8 +187,6 @@ class TestSplitwiseFunctions:
 
             # Call the function
             splitwise_to_line_items()
-
-            # Verify bulk_upsert was NOT called because the responsible party is ignored
 
     def test_splitwise_to_line_items_with_non_ignored_party(self, flask_app, mocker):
         """Test splitwise_to_line_items function - handles non-ignored parties correctly"""
@@ -281,9 +261,6 @@ class TestSplitwiseFunctions:
         """Test splitwise_to_line_items function - no expenses to process"""
         with flask_app.app_context():
             mock_get_data = mocker.patch("resources.splitwise.get_all_data")
-            # Mock bulk_upsert (MongoDB)
-
-            # Mock bulk_upsert_line_items (PostgreSQL)
             mocker.patch("resources.splitwise.upsert_line_items")
 
             # Mock get_all_data to return empty list
@@ -292,15 +269,10 @@ class TestSplitwiseFunctions:
             # Call the function
             splitwise_to_line_items()
 
-            # Verify bulk_upsert was not called
-
     def test_splitwise_to_line_items_user_not_found(self, flask_app, mocker):
         """Test splitwise_to_line_items function - user not found in expense"""
         with flask_app.app_context():
             mock_get_data = mocker.patch("resources.splitwise.get_all_data")
-            # Mock bulk_upsert (MongoDB)
-
-            # Mock bulk_upsert_line_items (PostgreSQL)
             mocker.patch("resources.splitwise.upsert_line_items")
 
             # Mock expense without the current user
@@ -317,8 +289,6 @@ class TestSplitwiseFunctions:
 
             # Call the function
             splitwise_to_line_items()
-
-            # Verify bulk_upsert was not called (no valid expenses)
 
     def test_splitwise_to_line_items_date_conversion(self, flask_app, mocker):
         """Test splitwise_to_line_items function - date conversion"""
@@ -395,13 +365,7 @@ class TestSplitwiseIntegration:
         """Test the complete refresh workflow from API to database"""
         with flask_app.app_context():
             mock_splitwise_client = mocker.patch("resources.splitwise.splitwise_client")
-            # Mock bulk_upsert (MongoDB)
-            # Mock bulk_upsert (MongoDB)
-
-            # Mock bulk_upsert_line_items (PostgreSQL)
             mocker.patch("resources.splitwise.upsert_line_items")
-
-            # Mock bulk_upsert_transactions (PostgreSQL)
             mocker.patch("resources.splitwise.upsert_transactions")
             mock_get_data = mocker.patch("resources.splitwise.get_all_data")
 
@@ -438,12 +402,8 @@ class TestSplitwiseIntegration:
             # Verify refresh was called
             mock_splitwise_client.getExpenses.assert_called_once()
 
-            # Reset mock for conversion test
-
             # Test conversion function
             splitwise_to_line_items()
 
             # Verify conversion was called
             mock_get_data.assert_called_once_with(splitwise_raw_data_collection)
-
-            # Verify line items were created correctly

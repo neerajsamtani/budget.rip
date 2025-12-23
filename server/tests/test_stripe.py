@@ -467,15 +467,10 @@ class TestStripeFunctions:
     def test_stripe_to_line_items_no_transactions(self, flask_app, mocker):
         """Test stripe_to_line_items function - no transactions to process"""
         with flask_app.app_context():
-            # Mock bulk_upsert (MongoDB)
-
-            # Mock bulk_upsert_line_items (PostgreSQL)
             mocker.patch("resources.stripe.upsert_line_items")
 
             # Call the function with no transactions
             stripe_to_line_items()
-
-            # Verify bulk_upsert was not called
 
     def test_stripe_to_line_items_account_not_found(self, flask_app, mock_stripe_transaction, mocker):
         """Test stripe_to_line_items function - account not found"""
@@ -488,15 +483,10 @@ class TestStripeFunctions:
                 test_transaction["id"],
             )
 
-            # Mock bulk_upsert (MongoDB)
-
-            # Mock bulk_upsert_line_items (PostgreSQL)
             mocker.patch("resources.stripe.upsert_line_items")
 
             # Call the function
             stripe_to_line_items()
-
-            # Verify bulk_upsert was called with fallback payment method
 
     def test_stripe_to_line_items_batch_processing(self, flask_app, mocker):
         """Test stripe_to_line_items function - batch processing"""
@@ -529,15 +519,10 @@ class TestStripeFunctions:
                     transaction["id"],
                 )
 
-            # Mock bulk_upsert (MongoDB)
-
-            # Mock bulk_upsert_line_items (PostgreSQL)
             mocker.patch("resources.stripe.upsert_line_items")
 
             # Call the function
             stripe_to_line_items()
-
-            # Line items should be created (bulk upsert mocking removed)
 
 
 class TestCheckCanRelink:
@@ -646,9 +631,6 @@ class TestStripeIntegration:
         with flask_app.app_context():
             mock_refresh_account = mocker.patch("resources.stripe.refresh_account_api")
             mock_refresh_transactions = mocker.patch("resources.stripe.refresh_transactions_api")
-            # Mock bulk_upsert (MongoDB)
-
-            # Mock bulk_upsert_line_items (PostgreSQL)
             mocker.patch("resources.stripe.upsert_line_items")
 
             # Insert test account
@@ -737,7 +719,7 @@ class TestAccountBalances:
         from dao import bank_accounts_collection, upsert_with_id
 
         with flask_app.app_context():
-            # Setup test account with balance in MongoDB
+            # Setup test account with balance
             test_account = {
                 "id": "fca_test789",
                 "institution_name": "Test Bank",
