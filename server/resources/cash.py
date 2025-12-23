@@ -57,12 +57,12 @@ def cash_to_line_items() -> None:
 
     for transaction in cash_raw_data:
         line_item = LineItem(
-            f"line_item_{transaction['_id']}",
             transaction["date"],
             transaction["person"],
             payment_method,
             transaction["description"],
             transaction["amount"],
+            source_transaction_id=str(transaction["_id"]),
         )
         all_line_items.append(line_item)
 

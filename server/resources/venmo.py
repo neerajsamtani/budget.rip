@@ -84,22 +84,22 @@ def venmo_to_line_items() -> None:
         if transaction["actor"]["first_name"] == USER_FIRST_NAME and transaction["payment_type"] == "pay":
             # current user paid money
             line_item = LineItem(
-                f"line_item_{transaction['_id']}",
                 posix_date,
                 transaction["target"]["first_name"],
                 payment_method,
                 transaction["note"],
                 transaction["amount"],
+                source_transaction_id=str(transaction["_id"]),
             )
         elif transaction["target"]["first_name"] == USER_FIRST_NAME and transaction["payment_type"] == "charge":
             # current user paid money
             line_item = LineItem(
-                f"line_item_{transaction['_id']}",
                 posix_date,
                 transaction["actor"]["first_name"],
                 payment_method,
                 transaction["note"],
                 transaction["amount"],
+                source_transaction_id=str(transaction["_id"]),
             )
         else:
             # current user gets money
@@ -108,12 +108,12 @@ def venmo_to_line_items() -> None:
             else:
                 other_name: str = transaction["target"]["first_name"]
             line_item = LineItem(
-                f"line_item_{transaction['_id']}",
                 posix_date,
                 other_name,
                 payment_method,
                 transaction["note"],
                 flip_amount(transaction["amount"]),
+                source_transaction_id=str(transaction["_id"]),
             )
 
         all_line_items.append(line_item)

@@ -457,11 +457,10 @@ class TestStripeFunctions:
                 assert len(line_items) == 1
 
                 line_item = line_items[0]
-                # PostgreSQL uses ULID format for IDs
                 assert line_item.id.startswith("li_")
                 assert line_item.responsible_party == "Test transaction"
                 assert line_item.description == "Test transaction"
-                assert line_item.amount == 50.0  # flip_amount(-5000) / 100 = 50.0
+                assert line_item.amount == 50.0
             finally:
                 db.close()
 

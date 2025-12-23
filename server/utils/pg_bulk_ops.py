@@ -127,6 +127,7 @@ def _convert_line_item_to_dict(li: Any) -> Optional[Dict[str, Any]]:
             "description": li.description,
             "amount": li.amount,
             "responsible_party": getattr(li, "responsible_party", ""),
+            "source_transaction_id": getattr(li, "source_transaction_id", ""),
         }
     elif isinstance(li, dict):
         return li.copy()
@@ -185,20 +186,13 @@ def _bulk_upsert_line_items(db_session, line_items_data: List[Any], source: str)
     payment_methods = db_session.query(PaymentMethod).all()
     payment_method_map = {pm.name: pm.id for pm in payment_methods}
 
-    # Extract IDs from line items to find matching transactions
+    # Extract transaction IDs from line items to find matching transactions
     line_item_source_ids = []
     for li in line_items_data:
-        if hasattr(li, "id"):
-            li_id = li.id
-        elif isinstance(li, dict):
-            li_id = li.get("id", "")
-        else:
-            continue
-
-        # Expected format: "line_item_{txn_source_id}"
-        if li_id.startswith("line_item_"):
-            txn_source_id = li_id.replace("line_item_", "")
-            line_item_source_ids.append(txn_source_id)
+        if hasattr(li, "source_transaction_id") and li.source_transaction_id:
+            line_item_source_ids.append(li.source_transaction_id)
+        elif isinstance(li, dict) and li.get("source_transaction_id"):
+            line_item_source_ids.append(li.get("source_transaction_id"))
 
     if line_item_source_ids:
         transactions = (
@@ -220,14 +214,11 @@ def _bulk_upsert_line_items(db_session, line_items_data: List[Any], source: str)
         if not li_dict:
             continue
 
-        li_id = li_dict.get("id", "")
-        if li_id.startswith("line_item_"):
-            txn_source_id = li_id.replace("line_item_", "")
-            li_dict["_txn_source_id"] = txn_source_id
+        txn_source_id = li_dict.get("source_transaction_id", "")
+        li_dict["_txn_source_id"] = txn_source_id if txn_source_id else None
+
+        if txn_source_id:
             transaction_ids_to_check.append(txn_source_id)
-        else:
-            # For PostgreSQL IDs, line item already exists
-            li_dict["_txn_source_id"] = None
 
         line_item_dicts.append(li_dict)
 

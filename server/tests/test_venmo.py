@@ -318,7 +318,7 @@ class TestVenmoFunctions:
                 line_items = db.query(LineItem).all()
                 assert len(line_items) == 1
                 line_item = line_items[0]
-                assert line_item.id.startswith("li_")  # PostgreSQL ULID format
+                assert line_item.id.startswith("li_")
                 assert line_item.responsible_party == "John"
                 assert line_item.payment_method_id is not None
                 assert line_item.description == "Test payment"
@@ -376,7 +376,7 @@ class TestVenmoFunctions:
                 assert line_item.responsible_party == "Bob"
                 assert line_item.payment_method_id is not None
                 assert line_item.description == "Test received payment"
-                assert line_item.amount == -10.0  # Flipped amount
+                assert line_item.amount == -10.0
             finally:
                 db.close()
 

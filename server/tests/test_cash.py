@@ -25,7 +25,6 @@ def mock_cash_raw_data():
 @pytest.fixture
 def expected_line_item():
     return LineItem(
-        "line_item_1",
         1234567890,
         "John Doe",
         "Cash",
@@ -114,7 +113,6 @@ def test_cash_to_line_items(flask_app, mock_cash_raw_data, expected_line_item):
         line_items_db = get_all_data(line_items_collection)
         assert len(line_items_db) == 1
         item_in_db = line_items_db[0]
-        # PostgreSQL generates IDs with "li_" prefix
         assert item_in_db["id"].startswith("li_")
         assert item_in_db["date"] == expected_line_item.date
         assert item_in_db["responsible_party"] == expected_line_item.responsible_party

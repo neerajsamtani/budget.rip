@@ -171,11 +171,11 @@ class TestSplitwiseFunctions:
                 line_items = db.query(LineItem).all()
                 assert len(line_items) == 1
                 line_item = line_items[0]
-                assert line_item.id.startswith("li_")  # PostgreSQL ULID format
+                assert line_item.id.startswith("li_")
                 assert line_item.responsible_party == "John Doe "
                 assert line_item.payment_method_id is not None
                 assert line_item.description == "Test expense"
-                assert line_item.amount == 50.0  # flip_amount(-50.0) = 50.0
+                assert line_item.amount == 50.0
             finally:
                 db.close()
 
@@ -270,11 +270,10 @@ class TestSplitwiseFunctions:
                 line_items = db.query(LineItem).all()
                 assert len(line_items) == 1
                 line_item = line_items[0]
-                assert line_item.id.startswith("li_")  # PostgreSQL ULID format
-                # The responsible party should be "Alice Bob " (both non-current users)
+                assert line_item.id.startswith("li_")
                 assert "Alice" in line_item.responsible_party
                 assert "Bob" in line_item.responsible_party
-                assert line_item.amount == 60.0  # flip_amount(-60.0) = 60.0
+                assert line_item.amount == 60.0
             finally:
                 db.close()
 

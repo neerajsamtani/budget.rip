@@ -32,12 +32,12 @@ def mock_line_item_with_event():
 @pytest.fixture
 def line_item_instance():
     return LineItem(
-        "line_item_1",
         1234567890,
         "John Doe",
         "Cash",
         "Test transaction",
         100,
+        id="line_item_1",
     )
 
 
@@ -267,20 +267,19 @@ class TestLineItemFunctions:
                 },
             ]
 
+            created_items = []
             for item in test_line_items:
-                setup_test_line_item(pg_session, item)
+                created_items.append(setup_test_line_item(pg_session, item))
             pg_session.commit()
 
             # Test function call
             result = all_line_items()
 
             assert len(result) == 2
-            # Should be sorted by date (reverse=True, so newest first)
-            assert result[0]["description"] == "Test transaction 2"  # Newer date (1234567891)
-            assert result[1]["description"] == "Test transaction 1"  # Older date (1234567890)
-            # Verify PostgreSQL IDs
-            assert result[0]["id"].startswith("li_")
-            assert result[1]["id"].startswith("li_")
+            assert result[0]["description"] == "Test transaction 2"
+            assert result[1]["description"] == "Test transaction 1"
+            assert result[0]["id"] == created_items[1].id
+            assert result[1]["id"] == created_items[0].id
 
     def test_all_line_items_with_payment_method_filter(self, flask_app, pg_session):
         """Test all_line_items function with payment_method filter"""
@@ -306,8 +305,9 @@ class TestLineItemFunctions:
                 },
             ]
 
+            created_items = []
             for item in test_line_items:
-                setup_test_line_item(pg_session, item)
+                created_items.append(setup_test_line_item(pg_session, item))
             pg_session.commit()
 
             # Test function call with payment_method filter
@@ -315,8 +315,8 @@ class TestLineItemFunctions:
 
             assert len(result) == 1
             assert result[0]["payment_method"] == "Cash"
-            assert result[0]["description"] == "Test transaction 1"  # The Cash item
-            assert result[0]["id"].startswith("li_")
+            assert result[0]["description"] == "Test transaction 1"
+            assert result[0]["id"] == created_items[0].id
 
     def test_all_line_items_with_review_filter(self, flask_app, pg_session):
         """Test all_line_items function with only_line_items_to_review filter"""
@@ -328,7 +328,7 @@ class TestLineItemFunctions:
 
         with flask_app.app_context():
             # Line item without event - should be included in review
-            setup_test_line_item(
+            line_item_without_event = setup_test_line_item(
                 pg_session,
                 {
                     "id": "line_item_1",
@@ -371,8 +371,8 @@ class TestLineItemFunctions:
             result = all_line_items(only_line_items_to_review=True)
 
             assert len(result) == 1
-            assert result[0]["description"] == "Test transaction 1"  # Only the one without event_id
-            assert result[0]["id"].startswith("li_")
+            assert result[0]["description"] == "Test transaction 1"
+            assert result[0]["id"] == line_item_without_event.id
 
     def test_all_line_items_with_both_filters(self, flask_app, pg_session):
         """Test all_line_items function with both payment_method and review filters"""
@@ -384,7 +384,7 @@ class TestLineItemFunctions:
 
         with flask_app.app_context():
             # Cash without event - should be included
-            setup_test_line_item(
+            cash_without_event = setup_test_line_item(
                 pg_session,
                 {
                     "id": "line_item_1",
@@ -440,8 +440,8 @@ class TestLineItemFunctions:
             result = all_line_items(payment_method="Cash", only_line_items_to_review=True)
 
             assert len(result) == 1
-            assert result[0]["description"] == "Test transaction 1"  # Only Cash payment method without event_id
-            assert result[0]["id"].startswith("li_")
+            assert result[0]["description"] == "Test transaction 1"
+            assert result[0]["id"] == cash_without_event.id
 
     def test_all_line_items_empty_result(self, flask_app):
         """Test all_line_items function with no matching data"""

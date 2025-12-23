@@ -362,12 +362,12 @@ def stripe_to_line_items() -> None:
             payment_method = "Stripe"
 
         line_item = LineItem(
-            f"line_item_{transaction['_id']}",
             transaction["transacted_at"],
             transaction["description"],
             payment_method,
             transaction["description"],
             flip_amount(transaction["amount"]) / 100,
+            source_transaction_id=str(transaction["_id"]),
         )
 
         line_items_batch.append(line_item)

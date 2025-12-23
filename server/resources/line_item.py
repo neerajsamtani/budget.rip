@@ -18,12 +18,13 @@ line_items_blueprint = Blueprint("line_items", __name__)
 class LineItem:
     def __init__(
         self,
-        id: str,
         date: float,
         responsible_party: str,
         payment_method: str,
         description: str,
         amount: float,
+        id: str = "",
+        source_transaction_id: str = "",
     ) -> None:
         self.id = id
         self.date = date
@@ -31,6 +32,7 @@ class LineItem:
         self.payment_method = payment_method
         self.description = description
         self.amount = amount
+        self.source_transaction_id = source_transaction_id
 
     def serialize(self) -> Dict[str, Any]:
         return {
