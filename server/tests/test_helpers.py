@@ -19,7 +19,7 @@ from models.sql_models import (
 from utils.id_generator import generate_id
 
 
-def setup_test_line_item(pg_session, item_data: Dict[str, Any], mongo_only: bool = False) -> Optional[LineItem]:
+def setup_test_line_item(pg_session, item_data: Dict[str, Any]) -> LineItem:
     """
     Create a line item in PostgreSQL.
 
@@ -27,7 +27,6 @@ def setup_test_line_item(pg_session, item_data: Dict[str, Any], mongo_only: bool
         pg_session: PostgreSQL session
         item_data: Dict with keys: id, date, payment_method, description,
                    responsible_party, amount, and optionally event_id, notes
-        mongo_only: Deprecated parameter, ignored (kept for backward compatibility)
 
     Returns:
         PostgreSQL LineItem object
@@ -75,8 +74,7 @@ def setup_test_event(
     pg_session,
     event_data: Dict[str, Any],
     line_items: Optional[List[LineItem]] = None,
-    mongo_only: bool = False,
-) -> Optional[Event]:
+) -> Event:
     """
     Create an event in PostgreSQL.
 
@@ -85,7 +83,6 @@ def setup_test_event(
         event_data: Dict with keys: id, date, description, category,
                     and optionally is_duplicate, tags
         line_items: List of PostgreSQL LineItem objects to associate with event
-        mongo_only: Deprecated parameter, ignored (kept for backward compatibility)
 
     Returns:
         PostgreSQL Event object
@@ -141,14 +138,13 @@ def setup_test_event(
     return pg_event
 
 
-def setup_test_user(pg_session, user_data: Dict[str, Any], mongo_only: bool = False) -> Optional[User]:
+def setup_test_user(pg_session, user_data: Dict[str, Any]) -> User:
     """
     Create a user in PostgreSQL.
 
     Args:
         pg_session: PostgreSQL session
         user_data: Dict with keys: id, email, first_name, last_name, password_hash
-        mongo_only: Deprecated parameter, ignored (kept for backward compatibility)
 
     Returns:
         PostgreSQL User object
