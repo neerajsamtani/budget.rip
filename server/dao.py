@@ -409,10 +409,9 @@ def _pg_get_transactions(source: str, filters: Optional[Dict[str, Any]]) -> List
         query = query.order_by(Transaction.transaction_date.desc())
         transactions = query.all()
 
-        # Return in MongoDB format: source_data with _id = source_id
         return [
             {
-                "_id": txn.source_id,
+                "source_id": txn.source_id,
                 **txn.source_data,  # Unpack the JSONB data
             }
             for txn in transactions

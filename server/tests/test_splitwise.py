@@ -10,7 +10,7 @@ def mock_splitwise_expense(mocker):
     """Mock Splitwise expense object"""
     expense = mocker.Mock()
     expense.deleted_at = None
-    expense._id = "expense_1"
+    expense.source_id = "expense_1"
     expense.date = "2023-01-15T10:30:00Z"
     expense.description = "Test expense"
     expense.users = [
@@ -25,7 +25,7 @@ def mock_splitwise_expense_deleted(mocker):
     """Mock deleted Splitwise expense object"""
     expense = mocker.Mock()
     expense.deleted_at = "2023-01-16T10:30:00Z"  # Has deletion date
-    expense._id = "expense_2"
+    expense.source_id = "expense_2"
     expense.date = "2023-01-15T10:30:00Z"
     expense.description = "Deleted expense"
     expense.users = [
@@ -40,7 +40,7 @@ def mock_splitwise_expense_ignored_party(mocker):
     """Mock Splitwise expense with ignored party"""
     expense = mocker.Mock()
     expense.deleted_at = None
-    expense._id = "expense_3"
+    expense.source_id = "expense_3"
     expense.date = "2023-01-15T10:30:00Z"
     expense.description = "Expense with ignored party"
     expense.users = [
@@ -372,7 +372,7 @@ class TestSplitwiseIntegration:
             # Mock expense for refresh
             mock_expense = mocker.Mock()
             mock_expense.deleted_at = None
-            mock_expense._id = "expense_integration"
+            mock_expense.source_id = "expense_integration"
             mock_expense.date = "2023-01-15T10:30:00Z"
             mock_expense.description = "Integration test expense"
             mock_expense.users = [
@@ -386,7 +386,7 @@ class TestSplitwiseIntegration:
             # Mock get_all_data for conversion
             mock_get_data.return_value = [
                 {
-                    "_id": "expense_integration",
+                    "source_id": "expense_integration",
                     "date": "2023-01-15T10:30:00Z",
                     "description": "Integration test expense",
                     "users": [

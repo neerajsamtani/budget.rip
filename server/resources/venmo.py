@@ -78,42 +78,42 @@ def venmo_to_line_items() -> None:
     # Collect all line items for bulk upsert
     all_line_items: List[LineItem] = []
 
-    for transaction in venmo_raw_data:
-        posix_date: float = float(transaction["date_created"])
+    for venmo_transaction in venmo_raw_data:
+        posix_date: float = float(venmo_transaction["date_created"])
 
-        if transaction["actor"]["first_name"] == USER_FIRST_NAME and transaction["payment_type"] == "pay":
+        if venmo_transaction["actor"]["first_name"] == USER_FIRST_NAME and venmo_transaction["payment_type"] == "pay":
             # current user paid money
             line_item = LineItem(
                 posix_date,
-                transaction["target"]["first_name"],
+                venmo_transaction["target"]["first_name"],
                 payment_method,
-                transaction["note"],
-                transaction["amount"],
-                transaction_id=str(transaction["_id"]),
+                venmo_transaction["note"],
+                venmo_transaction["amount"],
+                source_id=str(venmo_transaction["source_id"]),
             )
-        elif transaction["target"]["first_name"] == USER_FIRST_NAME and transaction["payment_type"] == "charge":
+        elif venmo_transaction["target"]["first_name"] == USER_FIRST_NAME and venmo_transaction["payment_type"] == "charge":
             # current user paid money
             line_item = LineItem(
                 posix_date,
-                transaction["actor"]["first_name"],
+                venmo_transaction["actor"]["first_name"],
                 payment_method,
-                transaction["note"],
-                transaction["amount"],
-                transaction_id=str(transaction["_id"]),
+                venmo_transaction["note"],
+                venmo_transaction["amount"],
+                source_id=str(venmo_transaction["source_id"]),
             )
         else:
             # current user gets money
-            if transaction["target"]["first_name"] == USER_FIRST_NAME:
-                other_name: str = transaction["actor"]["first_name"]
+            if venmo_transaction["target"]["first_name"] == USER_FIRST_NAME:
+                other_name: str = venmo_transaction["actor"]["first_name"]
             else:
-                other_name: str = transaction["target"]["first_name"]
+                other_name: str = venmo_transaction["target"]["first_name"]
             line_item = LineItem(
                 posix_date,
                 other_name,
                 payment_method,
-                transaction["note"],
-                flip_amount(transaction["amount"]),
-                transaction_id=str(transaction["_id"]),
+                venmo_transaction["note"],
+                flip_amount(venmo_transaction["amount"]),
+                source_id=str(venmo_transaction["source_id"]),
             )
 
         all_line_items.append(line_item)

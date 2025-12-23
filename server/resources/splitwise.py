@@ -65,16 +65,16 @@ def splitwise_to_line_items() -> None:
     3. Improved logic flow for better performance
     """
     payment_method: str = "Splitwise"
-    expenses: List[Dict[str, Any]] = get_all_data(splitwise_raw_data_collection)
+    splitwise_raw_data: List[Dict[str, Any]] = get_all_data(splitwise_raw_data_collection)
 
     # Collect all line items for bulk upsert
     all_line_items: List[LineItem] = []
     ignored_count = 0
 
-    for expense in expenses:
+    for splitwise_transaction in splitwise_raw_data:
         # Determine responsible party
         responsible_party: str = ""
-        for user in expense["users"]:
+        for user in splitwise_transaction["users"]:
             if user["first_name"] != USER_FIRST_NAME:
                 # TODO: Set up comma separated list of responsible parties
                 responsible_party += f"{user['first_name']} "
@@ -84,10 +84,10 @@ def splitwise_to_line_items() -> None:
             ignored_count += 1
             continue
 
-        posix_date: float = iso_8601_to_posix(expense["date"])
+        posix_date: float = iso_8601_to_posix(splitwise_transaction["date"])
 
         # Find the current user's data and create line item
-        for user in expense["users"]:
+        for user in splitwise_transaction["users"]:
             if user["first_name"] != USER_FIRST_NAME:
                 continue
 
@@ -95,9 +95,9 @@ def splitwise_to_line_items() -> None:
                 posix_date,
                 responsible_party,
                 payment_method,
-                expense["description"],
+                splitwise_transaction["description"],
                 flip_amount(user["net_balance"]),
-                transaction_id=str(expense["_id"]),
+                source_id=str(splitwise_transaction["source_id"]),
             )
             all_line_items.append(line_item)
             break  # Found the user, no need to continue loop

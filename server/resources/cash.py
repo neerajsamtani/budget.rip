@@ -62,7 +62,7 @@ def cash_to_line_items() -> None:
             payment_method,
             transaction["description"],
             transaction["amount"],
-            transaction_id=str(transaction["_id"]),
+            source_id=str(transaction["source_id"]),
         )
         all_line_items.append(line_item)
 

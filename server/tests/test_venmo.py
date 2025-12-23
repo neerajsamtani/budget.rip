@@ -460,7 +460,7 @@ class TestVenmoIntegration:
             mock_transaction.payment_type = "pay"
             mock_transaction.note = "Integration test payment"
             mock_transaction.amount = 25.0
-            mock_transaction._id = "venmo_txn_integration"
+            mock_transaction.source_id = "venmo_txn_integration"
             mock_transaction.id = "venmo_txn_integration"
 
             mock_transactions = mocker.Mock()

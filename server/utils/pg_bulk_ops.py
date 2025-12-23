@@ -127,6 +127,7 @@ def _convert_line_item_to_dict(li: Any) -> Optional[Dict[str, Any]]:
             "description": li.description,
             "amount": li.amount,
             "responsible_party": getattr(li, "responsible_party", ""),
+            "source_id": getattr(li, "source_id", ""),
             "transaction_id": getattr(li, "transaction_id", ""),
         }
     elif isinstance(li, dict):
@@ -172,9 +173,18 @@ def _bulk_upsert_line_items(db_session, line_items_data: List[Any], source: str)
     """
     Bulk upsert line items to PostgreSQL.
 
+    Process:
+    1. Extracts source_id (external API ID) from incoming line items
+    2. Looks up matching database transactions to get transaction_id (database FK)
+    3. Checks for duplicates based on source_id to prevent re-importing
+    4. Inserts line items with transaction_id (database FK) to maintain referential integrity
+
+    Deduplication strategy: Uses source_id to ensure each external transaction
+    only creates one line item, even if the same API data is imported multiple times.
+
     Args:
         db_session: SQLAlchemy session
-        line_items_data: List of LineItem objects
+        line_items_data: List of LineItem objects with source_id populated
         source: Transaction source type (venmo, splitwise, stripe, cash)
 
     Returns:
@@ -186,13 +196,13 @@ def _bulk_upsert_line_items(db_session, line_items_data: List[Any], source: str)
     payment_methods = db_session.query(PaymentMethod).all()
     payment_method_map = {pm.name: pm.id for pm in payment_methods}
 
-    # Extract transaction IDs from line items to find matching transactions
+    # Extract source IDs (external API IDs) from line items to find matching transactions
     line_item_source_ids = []
     for li in line_items_data:
-        if hasattr(li, "transaction_id") and li.transaction_id:
-            line_item_source_ids.append(li.transaction_id)
-        elif isinstance(li, dict) and li.get("transaction_id"):
-            line_item_source_ids.append(li.get("transaction_id"))
+        if hasattr(li, "source_id") and li.source_id:
+            line_item_source_ids.append(li.source_id)
+        elif isinstance(li, dict) and li.get("source_id"):
+            line_item_source_ids.append(li.get("source_id"))
 
     if line_item_source_ids:
         transactions = (
@@ -203,55 +213,57 @@ def _bulk_upsert_line_items(db_session, line_items_data: List[Any], source: str)
             )
             .all()
         )
+        # Map external API ID (source_id) to database ID (txn.id)
         transaction_lookup = {txn.source_id: txn.id for txn in transactions}
     else:
         transaction_lookup = {}
 
     line_item_dicts = []
-    transaction_ids_to_check = []
+    source_ids_to_check = []
     for li in line_items_data:
         li_dict = _convert_line_item_to_dict(li)
         if not li_dict:
             continue
 
-        txn_source_id = li_dict.get("transaction_id", "")
-        li_dict["_txn_source_id"] = txn_source_id if txn_source_id else None
-
-        if txn_source_id:
-            transaction_ids_to_check.append(txn_source_id)
+        source_id = li_dict.get("source_id", "")
+        if source_id:
+            source_ids_to_check.append(source_id)
 
         line_item_dicts.append(li_dict)
 
     if not line_item_dicts:
         return 0
 
-    # Check which transactions already have line items
-    existing_transaction_ids = set()
-    if transaction_ids_to_check:
+    # Prevent duplicates: Skip line items for transactions that already have them.
+    # This allows safe re-importing of API data without creating duplicate line items.
+    existing_source_ids = set()
+    if source_ids_to_check:
         # Find line items that already exist for these transactions
         transactions_with_items = (
             db_session.query(Transaction.source_id)
             .join(LineItem, Transaction.id == LineItem.transaction_id)
-            .filter(Transaction.source == source, Transaction.source_id.in_(transaction_ids_to_check))
+            .filter(Transaction.source == source, Transaction.source_id.in_(source_ids_to_check))
             .all()
         )
-        existing_transaction_ids = {row[0] for row in transactions_with_items}
+        existing_source_ids = {row[0] for row in transactions_with_items}
 
     bulk_inserts = []
     for li_dict in line_item_dicts:
-        txn_source_id = li_dict.get("_txn_source_id")
+        source_id = li_dict.get("source_id", "")
 
         # Skip if this transaction already has a line item
-        if txn_source_id and txn_source_id in existing_transaction_ids:
+        if source_id and source_id in existing_source_ids:
             continue
 
-        if txn_source_id:
-            transaction_id = transaction_lookup.get(txn_source_id)
+        if source_id:
+            # Look up the database transaction ID using the external source ID
+            transaction_id = transaction_lookup.get(source_id)
             if not transaction_id:
-                logger.warning(f"Transaction not found for line item (source={source}, txn_source_id={txn_source_id})")
+                logger.warning(f"Transaction not found for line item (source={source}, source_id={source_id})")
                 continue
         else:
-            # For line items without transaction reference, create a manual transaction
+            # Orphaned line items (no transaction reference) get a stub transaction.
+            # This handles edge cases like manually-created line items or data inconsistencies.
             manual_txn_id = generate_id("txn")
             manual_txn = Transaction(
                 id=manual_txn_id,

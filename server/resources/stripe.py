@@ -345,29 +345,29 @@ def stripe_to_line_items() -> None:
     2. Use bulk upsert operations instead of individual upserts
     3. Process transactions in batches to handle large datasets efficiently
     """
-    all_accounts: List[Dict[str, Any]] = get_all_data(bank_accounts_collection)
-    account_lookup: Dict[str, Dict[str, Any]] = {account["_id"]: account for account in all_accounts}
+    all_bank_accounts: List[Dict[str, Any]] = get_all_data(bank_accounts_collection)
+    bank_account_lookup: Dict[str, Dict[str, Any]] = {account["_id"]: account for account in all_bank_accounts}
 
     stripe_raw_data: List[Dict[str, Any]] = get_all_data(stripe_raw_transaction_data_collection)
 
     line_items_batch: List[LineItem] = []
 
-    for transaction in stripe_raw_data:
+    for stripe_transaction in stripe_raw_data:
         # Use memoized account lookup instead of database call
-        transaction_account: Optional[Dict[str, Any]] = account_lookup.get(transaction["account"])
+        stripe_account: Optional[Dict[str, Any]] = bank_account_lookup.get(stripe_transaction["account"])
 
-        if transaction_account:
-            payment_method: str = transaction_account["display_name"]
+        if stripe_account:
+            payment_method: str = stripe_account["display_name"]
         else:
             payment_method = "Stripe"
 
         line_item = LineItem(
-            transaction["transacted_at"],
-            transaction["description"],
+            stripe_transaction["transacted_at"],
+            stripe_transaction["description"],
             payment_method,
-            transaction["description"],
-            flip_amount(transaction["amount"]) / 100,
-            transaction_id=str(transaction["_id"]),
+            stripe_transaction["description"],
+            flip_amount(stripe_transaction["amount"]) / 100,
+            source_id=str(stripe_transaction["source_id"]),
         )
 
         line_items_batch.append(line_item)
