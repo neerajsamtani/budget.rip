@@ -32,7 +32,7 @@ class LineItem:
         self.payment_method = payment_method
         self.description = description
         self.amount = amount
-        self.source_transaction_id = transaction_id
+        self.transaction_id = transaction_id
 
     def serialize(self) -> Dict[str, Any]:
         return {
