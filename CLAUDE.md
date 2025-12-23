@@ -164,7 +164,7 @@ External API data follows this flow:
 3. **Line item creation**: Normalized data stored in `line_items` table with foreign keys to:
    - `transaction_id` - links to source transaction
    - `payment_method_id` - links to payment method lookup table
-4. **Deduplication**: Line items are deduplicated based on `source_transaction_id` to prevent duplicates from API re-fetches
+4. **Deduplication**: Line items are deduplicated based on `transaction_id` to prevent duplicates from API re-fetches
 5. **User review**: Line items reviewed and assigned to events via UI
 6. **Event groupings**: Many-to-many relationship via `event_line_items` junction table
 

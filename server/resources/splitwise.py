@@ -97,7 +97,7 @@ def splitwise_to_line_items() -> None:
                 payment_method,
                 expense["description"],
                 flip_amount(user["net_balance"]),
-                source_transaction_id=str(expense["_id"]),
+                transaction_id=str(expense["_id"]),
             )
             all_line_items.append(line_item)
             break  # Found the user, no need to continue loop
