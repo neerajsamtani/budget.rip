@@ -43,7 +43,7 @@ def upsert_event_to_postgresql(event_dict: Dict[str, Any], db_session) -> str:
     event_date = datetime.fromtimestamp(event_dict["date"], UTC)
 
     # Check if event already exists by ID (upsert logic)
-    existing_event = db_session.query(Event).filter(Event.id == event_dict["id"]).first()
+    existing_event = db_session.query(Event).filter(Event.id == event_dict.get("id")).first() if event_dict.get("id") else None
 
     if existing_event:
         # Update existing event
@@ -61,7 +61,7 @@ def upsert_event_to_postgresql(event_dict: Dict[str, Any], db_session) -> str:
     else:
         # Create new Event record
         event = Event(
-            id=event_dict["id"] if event_dict.get("id") and event_dict["id"].startswith("evt_") else pg_event_id,
+            id=pg_event_id,
             date=event_date,
             description=event_dict.get("name", event_dict.get("description", "")),  # Handle both fields
             category_id=category.id,

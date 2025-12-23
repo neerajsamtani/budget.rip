@@ -76,7 +76,6 @@ def post_event_api() -> tuple[Response, int]:
     line_items: List[Dict[str, Any]] = get_all_data(line_items_collection, filters)
     earliest_line_item: Dict[str, Any] = min(line_items, key=lambda line_item: line_item["date"])
 
-    new_event["id"] = f"event{earliest_line_item['id'][9:]}"
     if new_event.get("date"):
         new_event["date"] = html_date_to_posix(new_event["date"])
     else:

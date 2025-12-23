@@ -11,9 +11,7 @@ from constants import BATCH_SIZE, STRIPE_API_KEY, STRIPE_CUSTOMER_EMAIL, STRIPE_
 from dao import (
     bank_accounts_collection,
     get_all_data,
-    stripe_raw_account_data_collection,
     stripe_raw_transaction_data_collection,
-    upsert_with_id,
 )
 from helpers import cents_to_dollars, flip_amount
 from resources.line_item import LineItem
@@ -186,8 +184,7 @@ def get_accounts_api(session_id: str) -> tuple[Response, int]:
         session: stripe.financial_connections.Session = stripe.financial_connections.Session.retrieve(session_id)
         accounts: List[Dict[str, Any]] = session["accounts"]
 
-        for account in accounts:
-            upsert_with_id(stripe_raw_account_data_collection, account, account["id"])
+        upsert_bank_accounts(accounts)
 
         return jsonify({"accounts": accounts}), 200
     except Exception as e:
