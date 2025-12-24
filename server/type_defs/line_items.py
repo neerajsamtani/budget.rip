@@ -1,6 +1,6 @@
 """TypedDict definitions for line item data."""
 
-from typing import TypedDict, NotRequired
+from typing import NotRequired, TypedDict
 
 
 class LineItemDict(TypedDict):
@@ -9,6 +9,7 @@ class LineItemDict(TypedDict):
     This represents the standardized format for financial transactions
     across all sources (Venmo, Stripe, Splitwise, Cash).
     """
+
     # Required fields
     date: float  # POSIX timestamp
     payment_method: str

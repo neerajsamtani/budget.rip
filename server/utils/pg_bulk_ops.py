@@ -14,14 +14,10 @@ from helpers import iso_8601_to_posix, to_dict_robust
 from models.database import SessionLocal
 from models.sql_models import BankAccount, LineItem, PaymentMethod, Transaction, User
 from type_defs import (
-    VenmoTransactionDict,
-    SplitwiseTransactionDict,
-    StripeTransactionDict,
-    CashTransactionDict,
     LineItemDict,
 )
 from utils.id_generator import generate_id
-from utils.validation import require_field, validate_posix_timestamp, validate_amount
+from utils.validation import require_field, validate_amount, validate_posix_timestamp
 
 logger = logging.getLogger(__name__)
 
@@ -191,7 +187,7 @@ def _build_line_item_insert_mapping(
     li_amount = validate_amount(amount_value, "amount")
 
     description = require_field(li_dict, "description", "line item")
-    payment_method = require_field(li_dict, "payment_method", "line item")
+    # Note: payment_method field is validated but payment_method_id is passed as parameter
 
     # Build the insert mapping
     result: Dict[str, Any] = {

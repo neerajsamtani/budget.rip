@@ -7,8 +7,6 @@ from flask import Blueprint, Response, jsonify, request
 from flask_jwt_extended import jwt_required
 
 from constants import BATCH_SIZE, STRIPE_API_KEY, STRIPE_CUSTOMER_EMAIL, STRIPE_CUSTOMER_ID, STRIPE_CUSTOMER_NAME
-from type_defs import StripeAuthorizationDict
-from utils.validation import require_field
 from dao import (
     bank_accounts_collection,
     get_all_data,
@@ -16,11 +14,13 @@ from dao import (
 )
 from helpers import cents_to_dollars, flip_amount
 from resources.line_item import LineItem
+from type_defs import StripeAuthorizationDict
 from utils.pg_bulk_ops import (
     upsert_bank_accounts,
     upsert_line_items,
     upsert_transactions,
 )
+from utils.validation import require_field
 
 logger = logging.getLogger(__name__)
 

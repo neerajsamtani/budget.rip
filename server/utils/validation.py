@@ -5,10 +5,10 @@ data structures early in the processing pipeline, preventing silent failures
 in financial data processing.
 """
 
-from typing import Any
-from decimal import Decimal, InvalidOperation
-from datetime import datetime, UTC
 import logging
+from datetime import UTC, datetime
+from decimal import Decimal, InvalidOperation
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -30,10 +30,7 @@ def require_field(data: dict, field: str, context: str = "") -> Any:
     if field not in data:
         available_fields = list(data.keys())
         context_str = f" in {context}" if context else ""
-        raise ValueError(
-            f"Missing required field '{field}'{context_str}. "
-            f"Available fields: {available_fields}"
-        )
+        raise ValueError(f"Missing required field '{field}'{context_str}. Available fields: {available_fields}")
     return data[field]
 
 
@@ -53,9 +50,7 @@ def validate_posix_timestamp(value: Any, field_name: str) -> float:
     try:
         timestamp = float(value)
     except (TypeError, ValueError) as e:
-        raise ValueError(
-            f"Invalid timestamp for '{field_name}': {value} (type: {type(value).__name__})"
-        ) from e
+        raise ValueError(f"Invalid timestamp for '{field_name}': {value} (type: {type(value).__name__})") from e
 
     if timestamp < 0:
         raise ValueError(f"Timestamp cannot be negative: {timestamp}")
@@ -80,9 +75,7 @@ def validate_amount(value: Any, field_name: str) -> Decimal:
         amount = Decimal(str(value))
         return amount
     except (ValueError, TypeError, InvalidOperation) as e:
-        raise ValueError(
-            f"Invalid amount for '{field_name}': {value} (type: {type(value).__name__})"
-        ) from e
+        raise ValueError(f"Invalid amount for '{field_name}': {value} (type: {type(value).__name__})") from e
 
 
 def validate_date_to_timestamp(date_value: Any, field_name: str) -> datetime:
@@ -112,15 +105,11 @@ def validate_date_to_timestamp(date_value: Any, field_name: str) -> datetime:
     if isinstance(date_value, str):
         # ISO 8601 string
         try:
-            dt = datetime.fromisoformat(date_value.replace('Z', '+00:00'))
+            dt = datetime.fromisoformat(date_value.replace("Z", "+00:00"))
             if dt.tzinfo is None:
                 return dt.replace(tzinfo=UTC)
             return dt.astimezone(UTC)
         except ValueError as e:
-            raise ValueError(
-                f"Invalid ISO date string for '{field_name}': {date_value}"
-            ) from e
+            raise ValueError(f"Invalid ISO date string for '{field_name}': {date_value}") from e
 
-    raise ValueError(
-        f"Unsupported date type for '{field_name}': {type(date_value).__name__}"
-    )
+    raise ValueError(f"Unsupported date type for '{field_name}': {type(date_value).__name__}")

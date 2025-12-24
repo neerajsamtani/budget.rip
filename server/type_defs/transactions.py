@@ -1,10 +1,11 @@
 """TypedDict definitions for transaction data from various sources."""
 
-from typing import TypedDict, NotRequired, Union, Any
+from typing import Any, NotRequired, TypedDict, Union
 
 
 class VenmoTransactionDict(TypedDict):
     """Venmo transaction data structure."""
+
     _id: str
     date_created: float  # POSIX timestamp
     amount: float
@@ -16,6 +17,7 @@ class VenmoTransactionDict(TypedDict):
 
 class SplitwiseTransactionDict(TypedDict):
     """Splitwise transaction data structure."""
+
     _id: str
     date: str  # ISO 8601 format
     description: str
@@ -25,6 +27,7 @@ class SplitwiseTransactionDict(TypedDict):
 
 class StripeTransactionDict(TypedDict):
     """Stripe transaction data structure."""
+
     _id: str
     transacted_at: float  # POSIX timestamp
     amount: int  # Amount in cents
@@ -35,6 +38,7 @@ class StripeTransactionDict(TypedDict):
 
 class CashTransactionDict(TypedDict):
     """Cash transaction data structure."""
+
     _id: str
     date: float  # POSIX timestamp
     amount: float

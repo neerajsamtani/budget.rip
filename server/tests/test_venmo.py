@@ -217,37 +217,43 @@ class TestVenmoFunctions:
 
             # Mock first page of transactions
             class MockActor1:
-                first_name = "Neeraj"
+                def __init__(self):
+                    self.first_name = "Neeraj"
 
             class MockTarget1:
-                first_name = "John"
+                def __init__(self):
+                    self.first_name = "John"
 
             class MockTransaction1:
-                id = "venmo_test_pagination_1"
-                date_created = 1673778600.0
-                actor = MockActor1()
-                target = MockTarget1()
-                payment_type = "pay"
-                note = "Page 1 transaction"
-                amount = 25.0
+                def __init__(self):
+                    self.id = "venmo_test_pagination_1"
+                    self.date_created = 1673778600.0
+                    self.actor = MockActor1()
+                    self.target = MockTarget1()
+                    self.payment_type = "pay"
+                    self.note = "Page 1 transaction"
+                    self.amount = 25.0
 
             mock_transaction1 = MockTransaction1()
 
             # Mock second page of transactions
             class MockActor2:
-                first_name = "Neeraj"
+                def __init__(self):
+                    self.first_name = "Neeraj"
 
             class MockTarget2:
-                first_name = "Jane"
+                def __init__(self):
+                    self.first_name = "Jane"
 
             class MockTransaction2:
-                id = "venmo_test_pagination_2"
-                date_created = 1673778601.0
-                actor = MockActor2()
-                target = MockTarget2()
-                payment_type = "pay"
-                note = "Page 2 transaction"
-                amount = 15.0
+                def __init__(self):
+                    self.id = "venmo_test_pagination_2"
+                    self.date_created = 1673778601.0
+                    self.actor = MockActor2()
+                    self.target = MockTarget2()
+                    self.payment_type = "pay"
+                    self.note = "Page 2 transaction"
+                    self.amount = 15.0
 
             mock_transaction2 = MockTransaction2()
 
@@ -512,34 +518,40 @@ class TestVenmoIntegration:
 
             # Mock edge case transactions with simple classes to avoid circular references
             class MockActor1:
-                first_name = "Neeraj"
+                def __init__(self):
+                    self.first_name = "Neeraj"
 
             class MockTarget1:
-                first_name = "John"
+                def __init__(self):
+                    self.first_name = "John"
 
             class MockTransaction1:
-                id = "venmo_edge_1"
-                date_created = 1673778600.0
-                actor = MockActor1()
-                target = MockTarget1()
-                payment_type = "pay"
-                note = ""
-                amount = 0.0
+                def __init__(self):
+                    self.id = "venmo_edge_1"
+                    self.date_created = 1673778600.0
+                    self.actor = MockActor1()
+                    self.target = MockTarget1()
+                    self.payment_type = "pay"
+                    self.note = ""
+                    self.amount = 0.0
 
             class MockActor2:
-                first_name = "Jane"
+                def __init__(self):
+                    self.first_name = "Jane"
 
             class MockTarget2:
-                first_name = "Neeraj"
+                def __init__(self):
+                    self.first_name = "Neeraj"
 
             class MockTransaction2:
-                id = "venmo_edge_2"
-                date_created = 1673778601.0
-                actor = MockActor2()
-                target = MockTarget2()
-                payment_type = "charge"
-                note = "Zero amount"
-                amount = 0.0
+                def __init__(self):
+                    self.id = "venmo_edge_2"
+                    self.date_created = 1673778601.0
+                    self.actor = MockActor2()
+                    self.target = MockTarget2()
+                    self.payment_type = "charge"
+                    self.note = "Zero amount"
+                    self.amount = 0.0
 
             mock_transaction1 = MockTransaction1()
             mock_transaction2 = MockTransaction2()

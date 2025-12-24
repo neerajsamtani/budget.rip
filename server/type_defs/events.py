@@ -1,6 +1,6 @@
 """TypedDict definitions for event data."""
 
-from typing import TypedDict, NotRequired
+from typing import NotRequired, TypedDict
 
 
 class EventDict(TypedDict):
@@ -8,6 +8,7 @@ class EventDict(TypedDict):
 
     Events represent higher-level groupings like trips, shared expenses, etc.
     """
+
     id: str
     date: float  # POSIX timestamp
     name: str
