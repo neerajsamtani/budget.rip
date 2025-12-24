@@ -38,24 +38,24 @@ def get_transaction_date(transaction: Dict[str, Any], source: str) -> datetime:
         return datetime.now(UTC)
 
 
-def _bulk_upsert_transactions(db_session, transactions_data: List[Any], source: str) -> int:
+def _bulk_upsert_transactions(db_session, transactions_source_data: List[Any], source: str) -> int:
     """
     Bulk upsert transactions to PostgreSQL.
 
     Args:
         db_session: SQLAlchemy session
-        transactions_data: List of transaction objects/dicts
+        transactions_source_data: List of transaction objects/dicts
         source: Transaction source type (venmo, splitwise, stripe, cash)
 
     Returns:
         Count of inserted transactions
     """
-    if not transactions_data:
+    if not transactions_source_data:
         return 0
 
     transaction_dicts = []
     source_ids = []
-    for txn in transactions_data:
+    for txn in transactions_source_data:
         txn_dict = to_dict_robust(txn)
 
         # Ensure we have an 'id' field from various possible sources
@@ -363,13 +363,13 @@ def _bulk_upsert_bank_accounts(db_session, accounts_data: List[Any]) -> int:
     return count
 
 
-def upsert_transactions(transactions_data: List[Any], source: str) -> int:
+def upsert_transactions(transactions_source_data: List[Any], source: str) -> int:
     """
     Wrapper around bulk_upsert_transactions that manages the session lifecycle.
     """
     db_session = SessionLocal()
     try:
-        count = _bulk_upsert_transactions(db_session, transactions_data, source)
+        count = _bulk_upsert_transactions(db_session, transactions_source_data, source)
         db_session.commit()
         return count
     except Exception as e:
