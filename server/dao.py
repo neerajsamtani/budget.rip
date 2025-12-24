@@ -462,7 +462,6 @@ def _pg_get_user_by_email(email: str) -> Optional[Dict[str, Any]]:
         if not user:
             return None
         return {
-            "_id": user.id,
             "id": user.id,
             "first_name": user.first_name,
             "last_name": user.last_name,
