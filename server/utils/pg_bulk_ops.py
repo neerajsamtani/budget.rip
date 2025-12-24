@@ -11,6 +11,7 @@ from decimal import Decimal
 from typing import Any, Dict, List, Optional
 
 from helpers import iso_8601_to_posix, to_dict_robust
+from models.database import SessionLocal
 from models.sql_models import BankAccount, LineItem, PaymentMethod, Transaction, User
 from utils.id_generator import generate_id
 
@@ -37,68 +38,65 @@ def get_transaction_date(transaction: Dict[str, Any], source: str) -> datetime:
         return datetime.now(UTC)
 
 
-def bulk_upsert_transactions(db_session, transactions_data: List[Any], source: str) -> int:
+def _bulk_upsert_transactions(db_session, transactions_source_data: List[Any], source: str) -> int:
     """
     Bulk upsert transactions to PostgreSQL.
 
     Args:
         db_session: SQLAlchemy session
-        transactions_data: List of transaction objects/dicts
+        transactions_source_data: List of transaction objects/dicts
         source: Transaction source type (venmo, splitwise, stripe, cash)
 
     Returns:
         Count of inserted transactions
     """
-    if not transactions_data:
+    if not transactions_source_data:
         return 0
 
     transaction_dicts = []
-    mongo_ids = []
-    for txn in transactions_data:
+    source_ids = []
+    for txn in transactions_source_data:
         txn_dict = to_dict_robust(txn)
 
-        if "_id" not in txn_dict:
-            if "id" in txn_dict:
-                txn_dict["_id"] = txn_dict["id"]
-            elif hasattr(txn, "_id"):
-                txn_dict["_id"] = str(txn._id)
-            elif hasattr(txn, "id"):
-                txn_dict["_id"] = str(txn.id)
+        # Ensure we have an 'id' field from various possible sources
+        if "id" not in txn_dict:
+            if hasattr(txn, "id"):
+                txn_dict["id"] = str(txn.id)
 
-        mongo_id = str(txn_dict.get("_id", ""))
-        if not mongo_id:
-            logger.warning(f"Skipping transaction without _id: {txn_dict}")
+        source_id = str(txn_dict.get("id", ""))
+        if not source_id:
+            logger.warning(f"Skipping transaction without id: {txn_dict}")
             continue
 
-        mongo_ids.append((source, mongo_id))
+        source_ids.append((source, source_id))
         transaction_dicts.append(txn_dict)
 
     if not transaction_dicts:
         return 0
 
     existing_query = db_session.query(Transaction.source, Transaction.source_id).filter(Transaction.source == source)
-    if mongo_ids:
+    if source_ids:
         existing_pairs = set(
             (row.source, row.source_id)
-            for row in existing_query.filter(Transaction.source_id.in_([mid for _, mid in mongo_ids])).all()
+            for row in existing_query.filter(Transaction.source_id.in_([sid for _, sid in source_ids])).all()
         )
     else:
         existing_pairs = set()
 
     bulk_inserts = []
-    for txn_dict, (src, mongo_id) in zip(transaction_dicts, mongo_ids):
-        if (src, mongo_id) in existing_pairs:
+    for txn_dict, (src, source_id) in zip(transaction_dicts, source_ids):
+        if (src, source_id) in existing_pairs:
             continue
 
         transaction_date = get_transaction_date(txn_dict, source)
 
-        source_data = {k: v for k, v in txn_dict.items() if k != "_id"}
+        source_data = {k: v for k, v in txn_dict.items() if k != "id"}
 
         bulk_inserts.append(
             {
                 "id": generate_id("txn"),
                 "source": source,
-                "source_id": mongo_id,
+                "source_id": source_id,
                 "source_data": source_data,
                 "transaction_date": transaction_date,
             }
@@ -126,6 +124,8 @@ def _convert_line_item_to_dict(li: Any) -> Optional[Dict[str, Any]]:
             "description": li.description,
             "amount": li.amount,
             "responsible_party": getattr(li, "responsible_party", ""),
+            "source_id": getattr(li, "source_id", ""),
+            "transaction_id": getattr(li, "transaction_id", ""),
         }
     elif isinstance(li, dict):
         return li.copy()
@@ -138,7 +138,6 @@ def _build_line_item_insert_mapping(
     li_dict: Dict[str, Any],
     transaction_id: str,
     payment_method_id: str,
-    mongo_id: str,
 ) -> Dict[str, Any]:
     """Build bulk insert mapping for a single line item."""
     date_value = li_dict.get("date", 0)
@@ -158,7 +157,6 @@ def _build_line_item_insert_mapping(
     return {
         "id": generate_id("li"),
         "transaction_id": transaction_id,
-        "mongo_id": mongo_id,
         "date": li_date,
         "amount": li_amount,
         "description": li_dict.get("description", ""),
@@ -168,13 +166,22 @@ def _build_line_item_insert_mapping(
     }
 
 
-def bulk_upsert_line_items(db_session, line_items_data: List[Any], source: str) -> int:
+def _bulk_upsert_line_items(db_session, line_items_data: List[Any], source: str) -> int:
     """
     Bulk upsert line items to PostgreSQL.
 
+    Process:
+    1. Extracts source_id (external API ID) from incoming line items
+    2. Looks up matching database transactions to get transaction_id (database FK)
+    3. Checks for duplicates based on source_id to prevent re-importing
+    4. Inserts line items with transaction_id (database FK) to maintain referential integrity
+
+    Deduplication strategy: Uses source_id to ensure each external transaction
+    only creates one line item, even if the same API data is imported multiple times.
+
     Args:
         db_session: SQLAlchemy session
-        line_items_data: List of LineItem objects
+        line_items_data: List of LineItem objects with source_id populated
         source: Transaction source type (venmo, splitwise, stripe, cash)
 
     Returns:
@@ -186,73 +193,85 @@ def bulk_upsert_line_items(db_session, line_items_data: List[Any], source: str) 
     payment_methods = db_session.query(PaymentMethod).all()
     payment_method_map = {pm.name: pm.id for pm in payment_methods}
 
-    # Extract mongo_ids from line items to find matching transactions
-    line_item_mongo_ids = []
+    # Extract source IDs (external API IDs) from line items to find matching transactions
+    line_item_source_ids = []
     for li in line_items_data:
-        if hasattr(li, "id"):
-            li_id = li.id
-        elif isinstance(li, dict):
-            li_id = li.get("id", "")
-        else:
-            continue
+        if hasattr(li, "source_id") and li.source_id:
+            line_item_source_ids.append(li.source_id)
+        elif isinstance(li, dict) and li.get("source_id"):
+            line_item_source_ids.append(li.get("source_id"))
 
-        # Expected format: "line_item_{txn_mongo_id}"
-        if li_id.startswith("line_item_"):
-            txn_mongo_id = li_id.replace("line_item_", "")
-            line_item_mongo_ids.append(txn_mongo_id)
-
-    if line_item_mongo_ids:
+    if line_item_source_ids:
         transactions = (
             db_session.query(Transaction)
             .filter(
                 Transaction.source == source,
-                Transaction.source_id.in_(line_item_mongo_ids),
+                Transaction.source_id.in_(line_item_source_ids),
             )
             .all()
         )
+        # Map external API ID (source_id) to database ID (txn.id)
         transaction_lookup = {txn.source_id: txn.id for txn in transactions}
     else:
         transaction_lookup = {}
 
     line_item_dicts = []
-    line_item_mongo_ids_check = []
+    source_ids_to_check = []
     for li in line_items_data:
         li_dict = _convert_line_item_to_dict(li)
         if not li_dict:
             continue
 
-        li_id = li_dict.get("id", "")
-        if li_id.startswith("line_item_"):
-            txn_mongo_id = li_id.replace("line_item_", "")
-            line_item_mongo_ids_check.append(f"line_item_{txn_mongo_id}")
-            li_dict["_mongo_id"] = f"line_item_{txn_mongo_id}"
-            li_dict["_txn_mongo_id"] = txn_mongo_id
-        else:
-            logger.warning(f"Skipping line item with unexpected id format: {li_id}")
-            continue
+        source_id = li_dict.get("source_id", "")
+        if source_id:
+            source_ids_to_check.append(source_id)
 
         line_item_dicts.append(li_dict)
 
     if not line_item_dicts:
         return 0
 
-    existing_mongo_ids = set()
-    if line_item_mongo_ids_check:
-        existing = db_session.query(LineItem.mongo_id).filter(LineItem.mongo_id.in_(line_item_mongo_ids_check)).all()
-        existing_mongo_ids = {row[0] for row in existing}
+    # Prevent duplicates: Skip line items for transactions that already have them.
+    # This allows safe re-importing of API data without creating duplicate line items.
+    existing_source_ids = set()
+    if source_ids_to_check:
+        # Find line items that already exist for these transactions
+        transactions_with_items = (
+            db_session.query(Transaction.source_id)
+            .join(LineItem, Transaction.id == LineItem.transaction_id)
+            .filter(Transaction.source == source, Transaction.source_id.in_(source_ids_to_check))
+            .all()
+        )
+        existing_source_ids = {row[0] for row in transactions_with_items}
 
     bulk_inserts = []
     for li_dict in line_item_dicts:
-        mongo_id = li_dict.get("_mongo_id", "")
-        if mongo_id in existing_mongo_ids:
+        source_id = li_dict.get("source_id", "")
+
+        # Skip if this transaction already has a line item
+        if source_id and source_id in existing_source_ids:
             continue
 
-        txn_mongo_id = li_dict.get("_txn_mongo_id", "")
-        transaction_id = transaction_lookup.get(txn_mongo_id)
-
-        if not transaction_id:
-            logger.warning(f"Transaction not found for line item {mongo_id} (source={source}, txn_mongo_id={txn_mongo_id})")
-            continue
+        if source_id:
+            # Look up the database transaction ID using the external source ID
+            transaction_id = transaction_lookup.get(source_id)
+            if not transaction_id:
+                logger.warning(f"Transaction not found for line item (source={source}, source_id={source_id})")
+                continue
+        else:
+            # Orphaned line items (no transaction reference) get a stub transaction.
+            # This handles edge cases like manually-created line items or data inconsistencies.
+            manual_txn_id = generate_id("txn")
+            manual_txn = Transaction(
+                id=manual_txn_id,
+                source="manual",
+                source_id=f"manual_{manual_txn_id}",
+                source_data={},
+                transaction_date=datetime.now(UTC),
+            )
+            db_session.add(manual_txn)
+            db_session.flush()
+            transaction_id = manual_txn.id
 
         payment_method_name = li_dict.get("payment_method", "Unknown")
         payment_method_id = payment_method_map.get(payment_method_name)
@@ -266,7 +285,7 @@ def bulk_upsert_line_items(db_session, line_items_data: List[Any], source: str) 
                 payment_method_map["Unknown"] = unknown_pm.id
             payment_method_id = unknown_pm.id
 
-        bulk_inserts.append(_build_line_item_insert_mapping(li_dict, transaction_id, payment_method_id, mongo_id))
+        bulk_inserts.append(_build_line_item_insert_mapping(li_dict, transaction_id, payment_method_id))
 
     if bulk_inserts:
         db_session.bulk_insert_mappings(LineItem, bulk_inserts)
@@ -276,7 +295,7 @@ def bulk_upsert_line_items(db_session, line_items_data: List[Any], source: str) 
     return 0
 
 
-def bulk_upsert_bank_accounts(db_session, accounts_data: List[Any]) -> int:
+def _bulk_upsert_bank_accounts(db_session, accounts_data: List[Any]) -> int:
     """
     Bulk upsert bank accounts to PostgreSQL.
 
@@ -306,7 +325,6 @@ def bulk_upsert_bank_accounts(db_session, accounts_data: List[Any]) -> int:
         if not account_id:
             continue
 
-        mongo_id = acc_dict.get("_id")
         account_data = {
             "id": account_id,
             "institution_name": acc_dict.get("institution_name", ""),
@@ -315,10 +333,6 @@ def bulk_upsert_bank_accounts(db_session, accounts_data: List[Any]) -> int:
             "status": acc_dict.get("status", "active"),
             "can_relink": acc_dict.get("can_relink", True),
         }
-
-        # Only include mongo_id if it exists (for inserts or when updating from MongoDB)
-        if mongo_id:
-            account_data["mongo_id"] = str(mongo_id)
 
         if "currency" in acc_dict:
             account_data["currency"] = acc_dict["currency"]
@@ -349,12 +363,62 @@ def bulk_upsert_bank_accounts(db_session, accounts_data: List[Any]) -> int:
     return count
 
 
-def upsert_user(db_session, user_data: Dict[str, Any]) -> bool:
+def upsert_transactions(transactions_source_data: List[Any], source: str) -> int:
+    """
+    Wrapper around bulk_upsert_transactions that manages the session lifecycle.
+    """
+    db_session = SessionLocal()
+    try:
+        count = _bulk_upsert_transactions(db_session, transactions_source_data, source)
+        db_session.commit()
+        return count
+    except Exception as e:
+        db_session.rollback()
+        logger.error(f"Failed to upsert {source} transactions: {e}")
+        raise
+    finally:
+        db_session.close()
+
+
+def upsert_line_items(line_items_data: List[Any], source: str) -> int:
+    """
+    Wrapper around bulk_upsert_line_items that manages the session lifecycle.
+    """
+    db_session = SessionLocal()
+    try:
+        count = _bulk_upsert_line_items(db_session, line_items_data, source)
+        db_session.commit()
+        return count
+    except Exception as e:
+        db_session.rollback()
+        logger.error(f"Failed to upsert {source} line items: {e}")
+        raise
+    finally:
+        db_session.close()
+
+
+def upsert_bank_accounts(accounts_data: List[Any]) -> int:
+    """
+    Wrapper around bulk_upsert_bank_accounts that manages the session lifecycle.
+    """
+    db_session = SessionLocal()
+    try:
+        count = _bulk_upsert_bank_accounts(db_session, accounts_data)
+        db_session.commit()
+        return count
+    except Exception as e:
+        db_session.rollback()
+        logger.error(f"Failed to upsert bank accounts: {e}")
+        raise
+    finally:
+        db_session.close()
+
+
+def upsert_user(user_data: Dict[str, Any]) -> bool:
     """
     Upsert a single user to PostgreSQL.
 
     Args:
-        db_session: SQLAlchemy session
         user_data: User dict
 
     Returns:
@@ -365,21 +429,30 @@ def upsert_user(db_session, user_data: Dict[str, Any]) -> bool:
 
     if not user_id:
         logger.warning("Cannot upsert user without id")
-        return False
+        raise ValueError("Cannot upsert user without id")
 
-    existing = db_session.query(User).filter(User.id == user_id).first()
-    if existing:
-        return False
+    db_session = SessionLocal()
+    try:
+        existing = db_session.query(User).filter(User.id == user_id).first()
+        if existing:
+            return False
 
-    user = User(
-        id=user_id,
-        mongo_id=str(user_dict.get("_id", "")),
-        first_name=user_dict.get("first_name", ""),
-        last_name=user_dict.get("last_name", ""),
-        email=user_dict.get("email", ""),
-        password_hash=user_dict.get("password_hash", ""),
-    )
+        user = User(
+            id=user_id,
+            first_name=user_dict.get("first_name", ""),
+            last_name=user_dict.get("last_name", ""),
+            email=user_dict.get("email", ""),
+            password_hash=user_dict.get("password_hash", ""),
+        )
 
-    db_session.add(user)
+        db_session.add(user)
+        db_session.commit()
+    except Exception as e:
+        db_session.rollback()
+        logger.error(f"Failed to create user: {e}")
+        raise
+    finally:
+        db_session.close()
+
     logger.info(f"Inserted user {user_id} to PostgreSQL")
     return True

@@ -2,19 +2,9 @@ import logging
 from datetime import timezone as tz
 from typing import Any, Dict, List, Optional, Union
 
-from bson import ObjectId
-from flask import current_app
-from pymongo import UpdateOne
-from pymongo.collection import Collection
-from pymongo.database import Database
-from pymongo.errors import BulkWriteError
 from sqlalchemy.orm import joinedload, subqueryload
 
-from constants import READ_FROM_POSTGRESQL
-from helpers import to_dict, to_dict_robust
-from utils.database_handlers import get_collection_handler
-from utils.dual_write import dual_write_operation
-from utils.id_utils import is_postgres_id
+from helpers import to_dict
 
 logger = logging.getLogger(__name__)
 
@@ -30,81 +20,70 @@ users_collection: str = "users"
 test_collection: str = "test_data"
 
 
-def get_collection(cur_collection_str: str) -> Collection:
-    # Access the MongoDB collection using current_app
-    mongo: Any = current_app.config["MONGO"]
-    # Use the configured database name, fallback to "flask_db" for backward compatibility
-    db_name: str = current_app.config.get("MONGO_DB_NAME", "flask_db")
-    client: Database = mongo.cx[db_name]
-    return client[cur_collection_str]
-
-
 def get_all_data(cur_collection_str: str, filters: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
-    """Uses handler registry to route reads to PostgreSQL or MongoDB based on migration state"""
-    handler = get_collection_handler(cur_collection_str)
-    return handler.get_all(filters)
+    """Get all data from PostgreSQL for the specified collection"""
+    if cur_collection_str == line_items_collection:
+        return _pg_get_all_line_items(filters)
+    elif cur_collection_str == events_collection:
+        return _pg_get_all_events(filters)
+    elif cur_collection_str == bank_accounts_collection:
+        return _pg_get_all_bank_accounts(filters)
+    elif cur_collection_str == venmo_raw_data_collection:
+        return _pg_get_transactions("venmo", filters)
+    elif cur_collection_str == splitwise_raw_data_collection:
+        return _pg_get_transactions("splitwise", filters)
+    elif cur_collection_str == stripe_raw_transaction_data_collection:
+        return _pg_get_transactions("stripe", filters)
+    elif cur_collection_str == cash_raw_data_collection:
+        return _pg_get_transactions("cash", filters)
+    else:
+        raise NotImplementedError(f"Collection {cur_collection_str} not supported for get_all_data")
 
 
-def get_item_by_id(cur_collection_str: str, id: Union[str, int, ObjectId]) -> Optional[Dict[str, Any]]:
-    """Uses handler registry to route reads to PostgreSQL or MongoDB based on migration state"""
-    handler = get_collection_handler(cur_collection_str)
-    return handler.get_by_id(id)
+def get_item_by_id(cur_collection_str: str, id: Union[str, int]) -> Optional[Dict[str, Any]]:
+    """Get item by ID from PostgreSQL for the specified collection"""
+    if cur_collection_str == line_items_collection:
+        return _pg_get_line_item_by_id(str(id))
+    elif cur_collection_str == events_collection:
+        return _pg_get_event_by_id(str(id))
+    elif cur_collection_str == users_collection:
+        return _pg_get_user_by_id(str(id))
+    else:
+        raise NotImplementedError(f"Collection {cur_collection_str} not supported for get_item_by_id")
 
 
-def insert(cur_collection_str: str, item: Any) -> None:
-    cur_collection: Collection = get_collection(cur_collection_str)
-    item_dict: Dict[str, Any] = to_dict(item)
-    if "id" in item_dict:
-        item_dict["_id"] = item_dict["id"]
-    cur_collection.insert_one(item_dict)
-
-
-def delete_from_collection(cur_collection_str: str, id: Union[str, int]) -> None:
-    cur_collection: Collection = get_collection(cur_collection_str)
-    cur_collection.delete_one({"_id": id})
-
-
-def remove_event_from_line_item(line_item_id: Union[str, int, ObjectId]) -> None:
+def remove_event_from_line_item(line_item_id: Union[str, int]) -> None:
     """
-    Remove event_id from a line item by its ID.
+    Remove event association from a line item by its ID (PostgreSQL only).
 
     Args:
         line_item_id: The ID of the line item (can be string, int, or ObjectId)
     """
+    from models.database import SessionLocal
+    from models.sql_models import EventLineItem, LineItem
 
-    def mongo_write():
-        collection = get_collection(line_items_collection)
-        # Try to unset event_id using the provided ID as-is
-        result = collection.update_one({"_id": line_item_id}, {"$unset": {"event_id": ""}})
-        if result.matched_count == 0:
-            logger.warning(f"Could not find line item with ID {line_item_id} to remove event_id")
+    db = SessionLocal()
+    try:
+        # Find the line item by ID
+        line_item = db.query(LineItem).filter(LineItem.id == str(line_item_id)).first()
 
-    def pg_write(db_session):
-        from models.sql_models import EventLineItem, LineItem
-
-        # Find the line item by mongo_id (the original MongoDB ID)
-        line_item = db_session.query(LineItem).filter(LineItem.mongo_id == str(line_item_id)).first()
         if line_item:
             # Delete all EventLineItem junctions for this line item
-            db_session.query(EventLineItem).filter(EventLineItem.line_item_id == line_item.id).delete()
+            db.query(EventLineItem).filter(EventLineItem.line_item_id == line_item.id).delete()
+            db.commit()
         else:
-            logger.info(f"Line item {line_item_id} not in PostgreSQL yet")
-
-    # dual_write_operation handles transaction management (commit/rollback)
-    dual_write_operation(
-        mongo_write,
-        pg_write,
-        line_items_collection,
-    )
+            logger.warning(f"Could not find line item with ID {line_item_id}")
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Failed to remove event from line item: {e}")
+        raise
+    finally:
+        db.close()
 
 
 def get_user_by_email(email: str) -> Optional[Dict[str, Any]]:
-    if READ_FROM_POSTGRESQL:
-        logger.debug("Reading user by email from PostgreSQL")
-        return _pg_get_user_by_email(email)
-    logger.debug("Reading user by email from MongoDB")
-    cur_collection: Collection = get_collection(users_collection)
-    return cur_collection.find_one({"email": {"$eq": email}})
+    logger.debug("Reading user by email from PostgreSQL")
+    return _pg_get_user_by_email(email)
 
 
 def upsert(cur_collection_str: str, item: Any) -> None:
@@ -112,151 +91,71 @@ def upsert(cur_collection_str: str, item: Any) -> None:
     upsert_with_id(cur_collection_str, item_dict, item_dict["id"])
 
 
-def upsert_with_id(cur_collection_str: str, item: Dict[str, Any], id: Union[str, int, ObjectId]) -> None:
-    """Upsert item to MongoDB and also to PostgreSQL for migrated collections (dual-write)"""
+def upsert_with_id(cur_collection_str: str, item: Dict[str, Any], id: Union[str, int]) -> None:
+    """Upsert item to PostgreSQL for migrated collections"""
+    from models.database import SessionLocal
 
-    def mongo_write():
-        cur_collection: Collection = get_collection(cur_collection_str)
-        item["_id"] = item["id"]
-        cur_collection.replace_one({"_id": id}, item, upsert=True)
+    db = SessionLocal()
+    try:
+        # PostgreSQL write for transaction collections
+        if cur_collection_str in [
+            venmo_raw_data_collection,
+            splitwise_raw_data_collection,
+            stripe_raw_transaction_data_collection,
+            cash_raw_data_collection,
+        ]:
+            from utils.pg_bulk_ops import _bulk_upsert_transactions
 
-    # PostgreSQL write for transaction collections
-    if cur_collection_str in [
-        venmo_raw_data_collection,
-        splitwise_raw_data_collection,
-        stripe_raw_transaction_data_collection,
-        cash_raw_data_collection,
-    ]:
-        from utils.pg_bulk_ops import bulk_upsert_transactions
+            source_map = {
+                venmo_raw_data_collection: "venmo",
+                splitwise_raw_data_collection: "splitwise",
+                stripe_raw_transaction_data_collection: "stripe",
+                cash_raw_data_collection: "cash",
+            }
+            source = source_map[cur_collection_str]
+            _bulk_upsert_transactions(db, [item], source=source)
 
-        source_map = {
-            venmo_raw_data_collection: "venmo",
-            splitwise_raw_data_collection: "splitwise",
-            stripe_raw_transaction_data_collection: "stripe",
-            cash_raw_data_collection: "cash",
-        }
-        source = source_map[cur_collection_str]
+        elif cur_collection_str == events_collection:
+            from utils.pg_event_operations import upsert_event_to_postgresql
 
-        def pg_write(db_session):
-            bulk_upsert_transactions(db_session, [item], source=source)
+            upsert_event_to_postgresql(item, db)
 
-        dual_write_operation(mongo_write, pg_write, f"{source}_transaction_{item.get('id')}")
+        elif cur_collection_str == bank_accounts_collection:
+            from utils.pg_bulk_ops import _bulk_upsert_bank_accounts
 
-    elif cur_collection_str == events_collection:
-        from utils.pg_event_operations import upsert_event_to_postgresql
+            _bulk_upsert_bank_accounts(db, [item])
 
-        def pg_write(db_session):
-            upsert_event_to_postgresql(item, db_session)
+        elif cur_collection_str == line_items_collection:
+            from utils.pg_bulk_ops import _bulk_upsert_line_items
 
-        dual_write_operation(mongo_write, pg_write, f"event_{item.get('id')}")
+            # Derive source from payment_method if not explicitly provided
+            payment_method = item.get("payment_method", "cash").lower()
+            source_map = {
+                "venmo": "venmo",
+                "splitwise": "splitwise",
+                "credit card": "stripe",
+                "debit card": "stripe",
+                "cash": "cash",
+            }
+            source = source_map.get(payment_method, "cash")
+            _bulk_upsert_line_items(db, [item], source=source)
 
-    elif cur_collection_str == bank_accounts_collection:
-        from utils.pg_bulk_ops import bulk_upsert_bank_accounts
+        else:
+            raise NotImplementedError(f"Collection {cur_collection_str} not supported for upsert_with_id")
 
-        def pg_write(db_session):
-            bulk_upsert_bank_accounts(db_session, [item])
-
-        dual_write_operation(mongo_write, pg_write, f"bank_account_{item.get('id')}")
-
-    else:
-        # Collections not yet migrated to PostgreSQL - MongoDB only
-        mongo_write()
-
-
-def bulk_upsert(cur_collection_str: str, items: List[Any]) -> None:
-    """
-    Bulk upsert multiple items for better performance.
-
-    This function handles both insert (new items) and update (existing items) operations
-    using MongoDB's UpdateOne with upsert=True, which is equivalent to the single upsert operation.
-
-    Args:
-        cur_collection_str: Collection name
-        items: List of items to upsert
-    """
-    if not items:
-        return
-
-    cur_collection: Collection = get_collection(cur_collection_str)
-
-    # Prepare bulk operations using PyMongo's UpdateOne class
-    bulk_operations: List[UpdateOne] = []
-    for item in items:
-        try:
-            # Convert item to dictionary using robust serialization
-            item_dict: Dict[str, Any] = to_dict_robust(item)
-
-            # Ensure _id field is set correctly
-            if "id" in item_dict:
-                item_dict["_id"] = item_dict["id"]
-            elif hasattr(item, "id"):
-                item_dict["_id"] = item.id
-            elif hasattr(item, "_id"):
-                item_dict["_id"] = item._id
-
-            # Use PyMongo's UpdateOne class for proper bulk operations
-            bulk_operations.append(UpdateOne({"_id": item_dict["_id"]}, {"$set": item_dict}, upsert=True))
-        except Exception as e:
-            logger.error(f"Error preparing item for bulk upsert: {e}")
-            logger.error(f"Item type: {type(item)}")
-            logger.error(f"Item: {item}")
-            continue
-
-    # Execute bulk operations
-    if bulk_operations:
-        try:
-            result: Any = cur_collection.bulk_write(bulk_operations, ordered=False)
-            logger.info(f"Bulk upsert completed: {result.upserted_count} inserted, {result.modified_count} updated")
-        except Exception as e:
-            logger.error(f"Error in bulk upsert: {e}")
-            if isinstance(e, BulkWriteError):
-                logger.error(f"BulkWriteError: {e.details}")
-            # Fallback to individual upserts for better error isolation
-            for item in items:
-                try:
-                    upsert(cur_collection_str, item)
-                except Exception as individual_error:
-                    logger.error(f"Error upserting individual item: {individual_error}")
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Failed to upsert item to {cur_collection_str}: {e}")
+        raise
+    finally:
+        db.close()
 
 
 def get_categorized_data() -> List[Dict[str, Any]]:
     """Group totalExpense by month, year, and category"""
-    if READ_FROM_POSTGRESQL:
-        logger.debug("Reading categorized data from PostgreSQL")
-        return _pg_get_categorized_data()
-
-    logger.debug("Reading categorized data from MongoDB")
-    cur_collection: Collection = get_collection(events_collection)
-    query_result: Any = cur_collection.aggregate(
-        [
-            {"$addFields": {"date": {"$toDate": {"$multiply": ["$date", 1000]}}}},
-            {
-                "$group": {
-                    "_id": {
-                        "year": {"$year": "$date"},
-                        "month": {"$month": "$date"},
-                        "category": "$category",
-                    },
-                    "totalExpense": {"$sum": "$amount"},
-                }
-            },
-            {
-                "$project": {
-                    "_id": 0,
-                    "year": "$_id.year",
-                    "month": "$_id.month",
-                    "category": "$_id.category",
-                    "totalExpense": 1,
-                }
-            },
-            {"$sort": {"year": 1, "month": 1, "category": 1}},
-        ]
-    )
-
-    response: List[Dict[str, Any]] = []
-    for document in query_result:
-        response.append(dict(document))
-    return response
+    logger.debug("Reading categorized data from PostgreSQL")
+    return _pg_get_categorized_data()
 
 
 def _serialize_datetime(dt: Optional[Any]) -> float:
@@ -271,12 +170,9 @@ def _serialize_datetime(dt: Optional[Any]) -> float:
 
 
 def _pg_serialize_line_item(li: Any) -> Dict[str, Any]:
-    """Convert LineItem ORM to dict matching MongoDB format"""
-    mongo_id = li.mongo_id or li.id
-
+    """Convert LineItem ORM to dict"""
     data = {
-        "_id": mongo_id,
-        "id": mongo_id,
+        "id": li.id,
         "date": _serialize_datetime(li.date),
         "payment_method": li.payment_method.name if li.payment_method else "Unknown",
         "description": li.description or "",
@@ -285,32 +181,29 @@ def _pg_serialize_line_item(li: Any) -> Dict[str, Any]:
         "notes": li.notes,
     }
     if li.events:
-        data["event_id"] = li.events[0].mongo_id or li.events[0].id
+        data["event_id"] = li.events[0].id
     return data
 
 
 def _pg_serialize_user(user: Any) -> Dict[str, Any]:
-    """Convert User ORM to dict matching MongoDB format"""
-    id = user.mongo_id or user.id
+    """Convert User ORM to dict"""
     return {
-        "_id": id,
-        "id": id,
+        "id": user.id,
         "first_name": user.first_name,
         "last_name": user.last_name,
         "email": user.email,
+        "password_hash": user.password_hash,
     }
 
 
 def _pg_serialize_event(event: Any) -> Dict[str, Any]:
-    """Convert Event ORM to dict matching MongoDB format"""
+    """Convert Event ORM to dict"""
     amount = float(event.total_amount) if event.total_amount else 0.0
-    line_item_ids = [li.mongo_id or li.id for li in event.line_items]
+    line_item_ids = [li.id for li in event.line_items]
     tag_names = [tag.name for tag in event.tags] if event.tags else []
 
-    mongo_id = event.mongo_id or event.id
     return {
-        "_id": mongo_id,
-        "id": mongo_id,
+        "id": event.id,
         "date": _serialize_datetime(event.date),
         "name": event.description or "",
         "category": event.category.name if event.category else "Unknown",
@@ -331,13 +224,12 @@ def _pg_get_all_line_items(filters: Optional[Dict[str, Any]]) -> List[Dict[str, 
         query = db_session.query(LineItem).options(joinedload(LineItem.payment_method), joinedload(LineItem.events))
 
         if filters:
-            # Handle _id: {$in: [...]} pattern (used in event creation)
-            if "_id" in filters:
-                id_filter = filters["_id"]
+            # Handle id: {$in: [...]} pattern (used in event creation)
+            if "id" in filters:
+                id_filter = filters["id"]
                 if isinstance(id_filter, dict) and "$in" in id_filter:
                     ids = [str(id) for id in id_filter["$in"]]
-                    # Try both mongo_id and PostgreSQL id
-                    query = query.filter((LineItem.mongo_id.in_(ids)) | (LineItem.id.in_(ids)))
+                    query = query.filter(LineItem.id.in_(ids))
 
             if "payment_method" in filters and filters["payment_method"] not in [
                 "All",
@@ -358,36 +250,28 @@ def _pg_get_all_line_items(filters: Optional[Dict[str, Any]]) -> List[Dict[str, 
 
 
 def _pg_get_line_item_by_id(id: str) -> Optional[Dict[str, Any]]:
-    """Get line item from PostgreSQL by PostgreSQL or MongoDB ID"""
+    """Get line item from PostgreSQL by ID"""
     from models.database import SessionLocal
     from models.sql_models import LineItem
 
     db_session = SessionLocal()
     try:
         query = db_session.query(LineItem).options(joinedload(LineItem.payment_method), joinedload(LineItem.events))
-
-        line_item = (
-            query.filter(LineItem.id == id).first()
-            if is_postgres_id(id, "li")
-            else query.filter(LineItem.mongo_id == id).first()
-        )
-
+        line_item = query.filter(LineItem.id == id).first()
         return _pg_serialize_line_item(line_item) if line_item else None
     finally:
         db_session.close()
 
 
 def _pg_get_user_by_id(id: str) -> Optional[Dict[str, Any]]:
-    """Get user from PostgreSQL by PostgreSQL or MongoDB ID"""
+    """Get user from PostgreSQL by ID"""
     from models.database import SessionLocal
     from models.sql_models import User
 
     db_session = SessionLocal()
     try:
         query = db_session.query(User)
-
-        user = query.filter(User.id == id).first() if is_postgres_id(id, "user") else query.filter(User.mongo_id == id).first()
-
+        user = query.filter(User.id == id).first()
         return _pg_serialize_user(user) if user else None
     finally:
         db_session.close()
@@ -427,7 +311,7 @@ def _pg_get_all_events(filters: Optional[Dict[str, Any]]) -> List[Dict[str, Any]
 
 
 def _pg_get_event_by_id(id: str) -> Optional[Dict[str, Any]]:
-    """Get event from PostgreSQL by PostgreSQL or MongoDB ID"""
+    """Get event from PostgreSQL by ID"""
     from models.database import SessionLocal
     from models.sql_models import Event, LineItem
 
@@ -439,12 +323,7 @@ def _pg_get_event_by_id(id: str) -> Optional[Dict[str, Any]]:
             joinedload(Event.tags),
         )
 
-        # PostgreSQL event IDs use "evt_" prefix with ULID (e.g., "evt_01K...")
-        # MongoDB event IDs follow different patterns (e.g., "event_cash_...", "event{hash}")
-        event = (
-            query.filter(Event.id == id).first() if is_postgres_id(id, "evt") else query.filter(Event.mongo_id == id).first()
-        )
-
+        event = query.filter(Event.id == id).first()
         return _pg_serialize_event(event) if event else None
     finally:
         db_session.close()
@@ -457,7 +336,7 @@ def _pg_get_line_items_for_event(event_id: str) -> List[Dict[str, Any]]:
 
     db_session = SessionLocal()
     try:
-        pg_event = db_session.query(Event).filter((Event.id == event_id) | (Event.mongo_id == event_id)).first()
+        pg_event = db_session.query(Event).filter(Event.id == event_id).first()
 
         if not pg_event:
             return []
@@ -528,10 +407,9 @@ def _pg_get_transactions(source: str, filters: Optional[Dict[str, Any]]) -> List
         query = query.order_by(Transaction.transaction_date.desc())
         transactions = query.all()
 
-        # Return in MongoDB format: source_data with _id = source_id
         return [
             {
-                "_id": txn.source_id,
+                "source_id": txn.source_id,
                 **txn.source_data,  # Unpack the JSONB data
             }
             for txn in transactions
@@ -557,7 +435,6 @@ def _pg_get_all_bank_accounts(
         accounts = query.all()
         return [
             {
-                "_id": acc.mongo_id or acc.id,
                 "id": acc.id,
                 "institution_name": acc.institution_name,
                 "display_name": acc.display_name,
@@ -585,7 +462,6 @@ def _pg_get_user_by_email(email: str) -> Optional[Dict[str, Any]]:
         if not user:
             return None
         return {
-            "_id": user.mongo_id or user.id,
             "id": user.id,
             "first_name": user.first_name,
             "last_name": user.last_name,

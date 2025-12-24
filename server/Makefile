@@ -1,4 +1,4 @@
-.PHONY: help test test-phase3 test-watch test-coverage test-quick install lint lint-fix clean dev-setup
+.PHONY: help test test-phase3 test-watch test-coverage test-quick install lint lint-fix clean dev-setup pg-dump
 
 help: ## Show this help message
 	@echo "Available commands:"
@@ -9,11 +9,9 @@ install: ## Install/update dependencies
 	@uv sync
 	@echo "✓ Dependencies installed"
 
-test: ## Run all tests (dual-run: MongoDB then PostgreSQL)
-	@echo "Running tests with READ_FROM_POSTGRESQL=false..."
-	@READ_FROM_POSTGRESQL=false uv run pytest tests/ -v
-	@echo "Running tests with READ_FROM_POSTGRESQL=true..."
-	@READ_FROM_POSTGRESQL=true uv run pytest tests/ -v
+test: ## Run all tests
+	@echo "Running tests..."
+	@uv run pytest tests/ -v
 
 test-phase3: ## Run Phase 3 migration tests only
 	@uv run pytest tests/test_phase3_migration.py -v
@@ -59,8 +57,21 @@ dev-setup: install ## Set up development environment
 	@echo "  uv add --dev <package>     # Add a development dependency"
 	@echo ""
 	@echo "To run tests:"
-	@echo "  make test                  # Run all tests (dual-run)"
+	@echo "  make test                  # Run all tests"
 	@echo "  make test-quick            # Run tests without verbose output"
 	@echo ""
 	@echo "To run the server:"
 	@echo "  uv run python application.py"
+
+pg-dump: ## Create PostgreSQL database dump (requires PGPASSWORD env var)
+	@if [ -z "$$PGPASSWORD" ]; then \
+		echo "Error: PGPASSWORD environment variable is not set"; \
+		echo "Usage: PGPASSWORD=your_password make pg-dump"; \
+		exit 1; \
+	fi
+	@echo "Creating PostgreSQL dump..."
+	@pg_dump -h us-west-3.pg.psdb.cloud -p 5432 \
+		-U pscale_api_jlyfrqc8m3a2.msciuxoprsk4 \
+		-d postgres --clean --if-exists \
+		> budgit_postgres_dump_$$(date +%Y_%m_%d).sql
+	@echo "✓ Dump created: budgit_postgres_dump_$$(date +%Y_%m_%d).sql"

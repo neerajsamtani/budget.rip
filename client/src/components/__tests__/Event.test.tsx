@@ -25,7 +25,6 @@ jest.mock('../EventDetailsModal', () => {
 });
 
 const mockEvent: EventInterface = {
-    _id: '1',
     id: '1',
     name: 'Test Event',
     category: 'Entertainment',
@@ -37,7 +36,6 @@ const mockEvent: EventInterface = {
 
 const mockLineItems = [
     {
-        _id: '1',
         id: '1',
         date: 1640995200,
         payment_method: 'credit_card',
@@ -47,7 +45,6 @@ const mockLineItems = [
         isSelected: false,
     },
     {
-        _id: '2',
         id: '2',
         date: 1640995200,
         payment_method: 'cash',
@@ -146,7 +143,7 @@ describe('Event', () => {
 
             await waitFor(() => {
                 expect(mockAxiosInstance.get).toHaveBeenCalledWith(
-                    expect.stringContaining(`api/events/${mockEvent._id}/line_items_for_event`)
+                    expect.stringContaining(`api/events/${mockEvent.id}/line_items_for_event`)
                 );
             });
         });

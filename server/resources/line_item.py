@@ -16,14 +16,26 @@ line_items_blueprint = Blueprint("line_items", __name__)
 
 
 class LineItem:
+    """
+    Line item data transfer object.
+
+    Fields:
+        source_id: External API transaction ID (e.g., Venmo's ID). Used during creation
+                   to link line items to their source transactions.
+        transaction_id: Database transaction foreign key (txn_xxx). Populated after
+                       line items are inserted into the database.
+    """
+
     def __init__(
         self,
-        id: str,
         date: float,
         responsible_party: str,
         payment_method: str,
         description: str,
         amount: float,
+        id: str = "",
+        source_id: str = "",
+        transaction_id: str = "",
     ) -> None:
         self.id = id
         self.date = date
@@ -31,6 +43,8 @@ class LineItem:
         self.payment_method = payment_method
         self.description = description
         self.amount = amount
+        self.source_id = source_id  # External API ID (e.g., Venmo's transaction ID)
+        self.transaction_id = transaction_id  # Database transaction FK (e.g., txn_abc123)
 
     def serialize(self) -> Dict[str, Any]:
         return {

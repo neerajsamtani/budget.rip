@@ -22,7 +22,7 @@ jest.mock('sonner', () => {
 jest.mock('../LineItem', () => {
     const MockLineItem = function MockLineItem({ lineItem }: { lineItem: LineItemInterface }) {
         return (
-            <tr data-testid={`line-item-${lineItem._id}`}>
+            <tr data-testid={`line-item-${lineItem.id}`}>
                 <td>{new Date(lineItem.date * 1000).toLocaleDateString()}</td>
                 <td>{lineItem.payment_method}</td>
                 <td>{lineItem.description}</td>
@@ -33,7 +33,7 @@ jest.mock('../LineItem', () => {
     };
     const MockLineItemCard = function MockLineItemCard({ lineItem }: any) {
         return (
-            <div data-testid={`line-item-card-${lineItem._id}`}>
+            <div data-testid={`line-item-card-${lineItem.id}`}>
                 <span>{lineItem.description}</span>
                 <span>${lineItem.amount.toFixed(2)}</span>
             </div>
@@ -50,7 +50,6 @@ describe('EventDetailsModal', () => {
     const mockOnHide = jest.fn();
 
     const mockEvent: EventInterface = {
-        _id: 'event-1',
         id: 'event-1',
         name: 'Test Event',
         category: 'Dining',
@@ -62,7 +61,6 @@ describe('EventDetailsModal', () => {
 
     const mockLineItems: LineItemInterface[] = [
         {
-            _id: 'line-1',
             id: 'line-1',
             date: 1640995200,
             payment_method: 'credit_card',
@@ -72,7 +70,6 @@ describe('EventDetailsModal', () => {
             isSelected: false
         },
         {
-            _id: 'line-2',
             id: 'line-2',
             date: 1640995200,
             payment_method: 'cash',
@@ -304,7 +301,7 @@ describe('EventDetailsModal', () => {
 
             await waitFor(() => {
                 expect(mockAxiosInstance.delete).toHaveBeenCalledWith(
-                    expect.stringContaining(`api/events/${mockEvent._id}`)
+                    expect.stringContaining(`api/events/${mockEvent.id}`)
                 );
             });
         });

@@ -9,7 +9,6 @@ import { showErrorToast } from "../utils/toast-helpers";
 import EventDetailsModal from "./EventDetailsModal";
 
 export interface EventInterface {
-    _id: string;
     id: string;
     name: string;
     category: string;

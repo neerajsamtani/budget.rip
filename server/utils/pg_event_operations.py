@@ -4,6 +4,7 @@ import logging
 from datetime import UTC, datetime
 from typing import Any, Dict
 
+from models.database import SessionLocal
 from models.sql_models import Category, Event, EventLineItem, EventTag, LineItem, Tag
 from utils.id_generator import generate_id
 
@@ -41,8 +42,8 @@ def upsert_event_to_postgresql(event_dict: Dict[str, Any], db_session) -> str:
     # Convert date to datetime
     event_date = datetime.fromtimestamp(event_dict["date"], UTC)
 
-    # Check if event already exists by mongo_id (upsert logic)
-    existing_event = db_session.query(Event).filter(Event.mongo_id == event_dict["id"]).first()
+    # Check if event already exists by ID (upsert logic)
+    existing_event = db_session.query(Event).filter(Event.id == event_dict.get("id")).first() if event_dict.get("id") else None
 
     if existing_event:
         # Update existing event
@@ -61,7 +62,6 @@ def upsert_event_to_postgresql(event_dict: Dict[str, Any], db_session) -> str:
         # Create new Event record
         event = Event(
             id=pg_event_id,
-            mongo_id=event_dict["id"],
             date=event_date,
             description=event_dict.get("name", event_dict.get("description", "")),  # Handle both fields
             category_id=category.id,
@@ -71,10 +71,11 @@ def upsert_event_to_postgresql(event_dict: Dict[str, Any], db_session) -> str:
         )
         db_session.add(event)
         db_session.flush()  # Get the event ID
+        pg_event_id = event.id
 
     # Create EventLineItem junctions
-    for line_item_mongo_id in event_dict.get("line_items", []):
-        pg_line_item = db_session.query(LineItem).filter(LineItem.mongo_id == str(line_item_mongo_id)).first()
+    for line_item_id in event_dict.get("line_items", []):
+        pg_line_item = db_session.query(LineItem).filter(LineItem.id == str(line_item_id)).first()
 
         if pg_line_item:
             event_line_item = EventLineItem(
@@ -85,7 +86,7 @@ def upsert_event_to_postgresql(event_dict: Dict[str, Any], db_session) -> str:
             )
             db_session.add(event_line_item)
         else:
-            logger.warning(f"Line item {line_item_mongo_id} not in PostgreSQL yet - skipping junction")
+            logger.warning(f"Line item {line_item_id} not in PostgreSQL yet - skipping junction")
 
     # Create EventTag junctions
     for tag_name in event_dict.get("tags", []):
@@ -109,3 +110,45 @@ def upsert_event_to_postgresql(event_dict: Dict[str, Any], db_session) -> str:
         db_session.add(event_tag)
 
     return pg_event_id
+
+
+def upsert_event(event_dict: Dict[str, Any]) -> str:
+    """
+    Upsert an event while managing the session lifecycle.
+    """
+    db_session = SessionLocal()
+    try:
+        pg_event_id = upsert_event_to_postgresql(event_dict, db_session)
+        db_session.commit()
+        return pg_event_id
+    except Exception as e:
+        db_session.rollback()
+        logger.error(f"Failed to upsert event {event_dict.get('id')}: {e}")
+        raise
+    finally:
+        db_session.close()
+
+
+def delete_event_from_postgresql(event_id: str) -> bool:
+    """
+    Delete an event while managing the session lifecycle.
+
+    Returns:
+        True if an event was deleted, False if not found.
+    """
+    db_session = SessionLocal()
+    try:
+        pg_event = db_session.query(Event).filter(Event.id == event_id).first()
+
+        if not pg_event:
+            return False
+
+        db_session.delete(pg_event)
+        db_session.commit()
+        return True
+    except Exception as e:
+        db_session.rollback()
+        logger.error(f"Failed to delete event {event_id}: {e}")
+        raise
+    finally:
+        db_session.close()

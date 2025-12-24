@@ -1,19 +1,12 @@
 """
-Test helper utilities for creating test data in both MongoDB and PostgreSQL.
+Test helper utilities for creating test data in PostgreSQL.
 
-These factories reduce boilerplate in tests by handling the complex dual-database
-setup and foreign key relationships.
+These factories reduce boilerplate in tests by handling foreign key relationships.
 """
 
 from datetime import UTC, datetime
 from typing import Any, Dict, List, Optional
 
-from dao import (
-    events_collection,
-    get_collection,
-    line_items_collection,
-    users_collection,
-)
 from models.sql_models import (
     Category,
     Event,
@@ -26,27 +19,18 @@ from models.sql_models import (
 from utils.id_generator import generate_id
 
 
-def setup_test_line_item(pg_session, item_data: Dict[str, Any], mongo_only: bool = False) -> Optional[LineItem]:
+def setup_test_line_item(pg_session, item_data: Dict[str, Any]) -> LineItem:
     """
-    Create a line item in MongoDB and optionally PostgreSQL.
+    Create a line item in PostgreSQL.
 
     Args:
         pg_session: PostgreSQL session
         item_data: Dict with keys: id, date, payment_method, description,
                    responsible_party, amount, and optionally event_id, notes
-        mongo_only: If True, only write to MongoDB (for migration tests)
 
     Returns:
-        PostgreSQL LineItem object if created, None if mongo_only
+        PostgreSQL LineItem object
     """
-    # Write directly to MongoDB without triggering dual-write
-    collection = get_collection(line_items_collection)
-    mongo_item = {**item_data, "_id": item_data["id"]}
-    collection.insert_one(mongo_item)
-
-    if mongo_only:
-        return None
-
     # Write to PostgreSQL
     payment_method = pg_session.query(PaymentMethod).filter(PaymentMethod.name == item_data["payment_method"]).first()
 
@@ -71,7 +55,6 @@ def setup_test_line_item(pg_session, item_data: Dict[str, Any], mongo_only: bool
     pg_line_item = LineItem(
         id=generate_id("li"),
         transaction_id=pg_transaction.id,
-        mongo_id=item_data["id"],
         date=datetime.fromtimestamp(item_data["date"], UTC),
         description=item_data["description"],
         amount=item_data["amount"],
@@ -91,29 +74,19 @@ def setup_test_event(
     pg_session,
     event_data: Dict[str, Any],
     line_items: Optional[List[LineItem]] = None,
-    mongo_only: bool = False,
-) -> Optional[Event]:
+) -> Event:
     """
-    Create an event in MongoDB and optionally PostgreSQL.
+    Create an event in PostgreSQL.
 
     Args:
         pg_session: PostgreSQL session
         event_data: Dict with keys: id, date, description, category,
                     and optionally is_duplicate, tags
         line_items: List of PostgreSQL LineItem objects to associate with event
-        mongo_only: If True, only write to MongoDB (for migration tests)
 
     Returns:
-        PostgreSQL Event object if created, None if mongo_only
+        PostgreSQL Event object
     """
-    # Write directly to MongoDB without triggering dual-write
-    collection = get_collection(events_collection)
-    mongo_item = {**event_data, "_id": event_data["id"]}
-    collection.insert_one(mongo_item)
-
-    if mongo_only:
-        return None
-
     # Write to PostgreSQL
     category = pg_session.query(Category).filter(Category.name == event_data["category"]).first()
 
@@ -122,7 +95,6 @@ def setup_test_event(
 
     pg_event = Event(
         id=generate_id("event"),
-        mongo_id=event_data["id"],
         date=datetime.fromtimestamp(event_data["date"], UTC),
         description=event_data.get("description", ""),
         category_id=category.id,
@@ -166,30 +138,20 @@ def setup_test_event(
     return pg_event
 
 
-def setup_test_user(pg_session, user_data: Dict[str, Any], mongo_only: bool = False) -> Optional[User]:
+def setup_test_user(pg_session, user_data: Dict[str, Any]) -> User:
     """
-    Create a user in MongoDB and optionally PostgreSQL.
+    Create a user in PostgreSQL.
 
     Args:
         pg_session: PostgreSQL session
         user_data: Dict with keys: id, email, first_name, last_name, password_hash
-        mongo_only: If True, only write to MongoDB (for migration tests)
 
     Returns:
-        PostgreSQL User object if created, None if mongo_only
+        PostgreSQL User object
     """
-    # Write directly to MongoDB without triggering dual-write
-    collection = get_collection(users_collection)
-    mongo_item = {**user_data, "_id": user_data["id"]}
-    collection.insert_one(mongo_item)
-
-    if mongo_only:
-        return None
-
     # Write to PostgreSQL
     pg_user = User(
         id=generate_id("user"),
-        mongo_id=user_data["id"],
         email=user_data["email"],
         first_name=user_data["first_name"],
         last_name=user_data["last_name"],
@@ -210,7 +172,7 @@ def setup_test_line_item_with_event(pg_session, item_data: Dict[str, Any], event
     Args:
         pg_session: PostgreSQL session
         item_data: Line item data (must include 'id', 'date', etc.)
-        event_id: ID of existing event (mongo_id or pg id)
+        event_id: ID of existing event
 
     Returns:
         PostgreSQL LineItem object
@@ -220,8 +182,6 @@ def setup_test_line_item_with_event(pg_session, item_data: Dict[str, Any], event
 
     # Find event
     pg_event = pg_session.query(Event).filter(Event.id == event_id).first()
-    if not pg_event:
-        pg_event = pg_session.query(Event).filter(Event.mongo_id == event_id).first()
 
     if not pg_event:
         raise ValueError(f"Event {event_id} not found")

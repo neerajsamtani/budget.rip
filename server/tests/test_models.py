@@ -30,7 +30,7 @@ from utils.id_generator import generate_id
 @pytest.fixture
 def db_session():
     # Use SQLite in-memory database for testing
-    # This provides fast tests without external dependencies (consistent with mongomock approach)
+    # This provides fast tests without external dependencies
     # SQLite tests basic model logic, relationships, and constraints
     engine = create_engine("sqlite:///:memory:")
 

@@ -33,7 +33,6 @@ class BankAccount(Base):
     __tablename__ = "bank_accounts"
 
     id = Column(String(255), primary_key=True)  # fca_xxx or account ID from source
-    mongo_id = Column(String(255), unique=True, nullable=True, index=True)
     institution_name = Column(String(255), nullable=False)
     display_name = Column(String(255), nullable=False)
     last4 = Column(String(4), nullable=False)
@@ -54,7 +53,6 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(String(255), primary_key=True)  # user_xxx
-    mongo_id = Column(String(255), unique=True, nullable=True, index=True)  # Original MongoDB _id
     first_name = Column(String(255), nullable=False)
     last_name = Column(String(255), nullable=False)
     email = Column(String(255), unique=True, nullable=False, index=True)
@@ -72,7 +70,6 @@ class Category(Base):
 
     id = Column(String(255), primary_key=True)  # cat_xxx
     name = Column(String(100), nullable=False, unique=True)
-    mongo_id = Column(String(255), nullable=True, index=True)  # Original MongoDB _id
     is_active = Column(Boolean, default=True)
     created_at = Column(TIMESTAMP(timezone=True), default=lambda: datetime.now(UTC))
     updated_at = Column(
@@ -139,7 +136,6 @@ class LineItem(Base):
 
     id = Column(String(255), primary_key=True)  # li_xxx
     transaction_id = Column(String(255), ForeignKey("transactions.id", ondelete="CASCADE"), nullable=False)
-    mongo_id = Column(String(255), nullable=True, index=True)  # Original MongoDB _id
     date = Column(TIMESTAMP(timezone=True), nullable=False)
     amount = Column(DECIMAL(12, 2), nullable=False)
     description = Column(Text, nullable=False)
@@ -167,7 +163,6 @@ class Event(Base):
     __tablename__ = "events"
 
     id = Column(String(255), primary_key=True)  # evt_xxx
-    mongo_id = Column(String(255), nullable=True, unique=True)  # Original MongoDB _id
     date = Column(TIMESTAMP(timezone=True), nullable=False)
     description = Column(Text, nullable=False)
     category_id = Column(String(255), ForeignKey("categories.id", ondelete="RESTRICT"), nullable=False)

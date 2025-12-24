@@ -12,9 +12,8 @@ from flask_jwt_extended import (
 )
 
 from constants import GATED_USERS
-from dao import get_user_by_email, insert, users_collection
+from dao import get_user_by_email
 from helpers import check_password, hash_password
-from utils.dual_write import dual_write_operation
 from utils.id_generator import generate_id
 from utils.pg_bulk_ops import upsert_user
 
@@ -47,13 +46,14 @@ def signup_user_api() -> tuple[Response, int]:
         user["last_name"] = body["last_name"]
         user["email"] = body["email"]
         user["password_hash"] = hash_password(body["password"])
-        dual_write_operation(
-            mongo_write_func=lambda: insert(users_collection, user),
-            pg_write_func=lambda db: upsert_user(db, user),
-            operation_name="create_user",
-        )
-        logger.info(f"New user created: {body['email']}")
-        return jsonify("Created User"), 201
+
+        user_created = upsert_user(user)
+        if user_created:
+            logger.info(f"New user created: {body['email']}")
+            return jsonify("Created User"), 201
+        else:
+            logger.warning(f"User already exists: {body['email']}")
+            return jsonify("User Already Exists"), 400
 
 
 @auth_blueprint.route("/api/auth/login", methods=["POST"])
@@ -74,7 +74,7 @@ def login_user_api() -> tuple[Response, int]:
         return jsonify({"error": "Email or password invalid"}), 401
 
     expires: timedelta = timedelta(days=3)
-    access_token: str = create_access_token(identity=str(user["_id"]), expires_delta=expires)
+    access_token: str = create_access_token(identity=str(user["id"]), expires_delta=expires)
 
     # Set the JWT cookies in the response
     resp: Response = jsonify({"login": True})
@@ -106,7 +106,7 @@ def get_current_user_api() -> tuple[Response, int]:
 
     return jsonify(
         {
-            "id": str(user.get("_id")),
+            "id": str(user.get("id")),
             "email": user.get("email"),
             "first_name": user.get("first_name"),
             "last_name": user.get("last_name"),

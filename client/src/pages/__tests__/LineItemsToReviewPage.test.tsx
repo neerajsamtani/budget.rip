@@ -35,8 +35,7 @@ jest.mock('../../components/CreateEventModal', () => {
 jest.mock('../../components/LineItem', () => {
     interface MockLineItemProps {
         lineItem: {
-            _id?: string;
-            id?: string;
+            id: string;
             date: number;
             payment_method?: string;
             description?: string;
@@ -51,7 +50,7 @@ jest.mock('../../components/LineItem', () => {
 
     const MockLineItem = function({ lineItem, showCheckBox }: MockLineItemProps) {
         return (
-            <tr data-testid={`line-item-${lineItem._id}`}>
+            <tr data-testid={`line-item-${lineItem.id}`}>
                 <td>{showCheckBox ? 'Checkbox' : 'No Checkbox'}</td>
                 <td>{new Date(lineItem.date * 1000).toLocaleDateString()}</td>
                 <td>{lineItem.payment_method || ''}</td>
@@ -64,7 +63,7 @@ jest.mock('../../components/LineItem', () => {
     // Export LineItemCard for mobile view
     const MockLineItemCard = function({ lineItem }: MockLineItemProps) {
         return (
-            <div data-testid={`line-item-card-${lineItem._id || lineItem.id}`}>
+            <div data-testid={`line-item-card-${lineItem.id}`}>
                 <span>{lineItem.description || ''}</span>
                 <span>${(lineItem.amount || 0).toFixed(2)}</span>
             </div>
