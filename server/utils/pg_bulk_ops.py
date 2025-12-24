@@ -13,29 +13,50 @@ from typing import Any, Dict, List, Optional
 from helpers import iso_8601_to_posix, to_dict_robust
 from models.database import SessionLocal
 from models.sql_models import BankAccount, LineItem, PaymentMethod, Transaction, User
+from type_defs import (
+    VenmoTransactionDict,
+    SplitwiseTransactionDict,
+    StripeTransactionDict,
+    CashTransactionDict,
+    LineItemDict,
+)
 from utils.id_generator import generate_id
+from utils.validation import require_field, validate_posix_timestamp, validate_amount
 
 logger = logging.getLogger(__name__)
 
 
 def get_transaction_date(transaction: Dict[str, Any], source: str) -> datetime:
-    """Extract transaction date based on source type."""
+    """Extract transaction date based on source type.
+
+    Args:
+        transaction: Transaction dictionary
+        source: Source type (venmo, splitwise, stripe, cash)
+
+    Returns:
+        datetime in UTC
+
+    Raises:
+        ValueError: If required date field is missing or invalid
+    """
     if source == "venmo":
-        posix_timestamp = float(transaction.get("date_created", 0))
-        return datetime.fromtimestamp(posix_timestamp, UTC)
+        date_created = require_field(transaction, "date_created", f"{source} transaction")
+        timestamp = validate_posix_timestamp(date_created, "date_created")
+        return datetime.fromtimestamp(timestamp, UTC)
     elif source == "splitwise":
-        iso_date = transaction.get("date", "")
+        iso_date = require_field(transaction, "date", f"{source} transaction")
         posix_timestamp = iso_8601_to_posix(iso_date)
         return datetime.fromtimestamp(posix_timestamp, UTC)
     elif source == "stripe":
-        posix_timestamp = float(transaction.get("transacted_at", 0))
-        return datetime.fromtimestamp(posix_timestamp, UTC)
+        transacted_at = require_field(transaction, "transacted_at", f"{source} transaction")
+        timestamp = validate_posix_timestamp(transacted_at, "transacted_at")
+        return datetime.fromtimestamp(timestamp, UTC)
     elif source == "cash":
-        posix_timestamp = float(transaction.get("date", 0))
-        return datetime.fromtimestamp(posix_timestamp, UTC)
+        date = require_field(transaction, "date", f"{source} transaction")
+        timestamp = validate_posix_timestamp(date, "date")
+        return datetime.fromtimestamp(timestamp, UTC)
     else:
-        logger.warning(f"Unknown source type: {source}, using current time")
-        return datetime.now(UTC)
+        raise ValueError(f"Unknown source type: {source}")
 
 
 def _bulk_upsert_transactions(db_session, transactions_source_data: List[Any], source: str) -> int:
@@ -63,10 +84,11 @@ def _bulk_upsert_transactions(db_session, transactions_source_data: List[Any], s
             if hasattr(txn, "id"):
                 txn_dict["id"] = str(txn.id)
 
-        source_id = str(txn_dict.get("id", ""))
-        if not source_id:
+        if "id" not in txn_dict or not txn_dict["id"]:
             logger.warning(f"Skipping transaction without id: {txn_dict}")
             continue
+
+        source_id = str(txn_dict["id"])
 
         source_ids.append((source, source_id))
         transaction_dicts.append(txn_dict)
@@ -111,22 +133,30 @@ def _bulk_upsert_transactions(db_session, transactions_source_data: List[Any], s
 
 
 def _convert_line_item_to_dict(li: Any) -> Optional[Dict[str, Any]]:
-    """
-    Convert a line item (object or dict) to a standardized dict format.
+    """Convert a line item (object or dict) to a standardized dict format.
 
-    Returns None if the line item format is unsupported.
+    Note: This returns Dict[str, Any] instead of LineItemDict because it may
+    include additional fields like 'source_id' that aren't in LineItemDict.
+    Validation of required fields happens in _build_line_item_insert_mapping.
+
+    Returns:
+        Dictionary with line item data, or None if format is unsupported
     """
     if hasattr(li, "id") and hasattr(li, "date") and hasattr(li, "payment_method"):
-        return {
+        result: Dict[str, Any] = {
             "id": li.id,
             "date": li.date,
             "payment_method": li.payment_method,
             "description": li.description,
             "amount": li.amount,
             "responsible_party": getattr(li, "responsible_party", ""),
-            "source_id": getattr(li, "source_id", ""),
-            "transaction_id": getattr(li, "transaction_id", ""),
         }
+        # Add optional fields if present
+        if hasattr(li, "source_id") and li.source_id:
+            result["source_id"] = li.source_id
+        if hasattr(li, "transaction_id") and li.transaction_id:
+            result["transaction_id"] = li.transaction_id
+        return result
     elif isinstance(li, dict):
         return li.copy()
     else:
@@ -135,35 +165,47 @@ def _convert_line_item_to_dict(li: Any) -> Optional[Dict[str, Any]]:
 
 
 def _build_line_item_insert_mapping(
-    li_dict: Dict[str, Any],
+    li_dict: LineItemDict,
     transaction_id: str,
     payment_method_id: str,
 ) -> Dict[str, Any]:
-    """Build bulk insert mapping for a single line item."""
-    date_value = li_dict.get("date", 0)
-    if isinstance(date_value, (int, float)):
-        li_date = datetime.fromtimestamp(float(date_value), UTC)
-    else:
-        logger.warning(f"Unexpected date type: {type(date_value)}, using current time")
-        li_date = datetime.now(UTC)
+    """Build bulk insert mapping for a single line item.
 
-    amount_value = li_dict.get("amount", 0)
-    try:
-        li_amount = Decimal(str(amount_value))
-    except (ValueError, TypeError):
-        logger.warning(f"Invalid amount: {amount_value}, using 0")
-        li_amount = Decimal("0.00")
+    Args:
+        li_dict: Normalized line item dictionary
+        transaction_id: Database transaction ID
+        payment_method_id: Payment method ID
 
-    return {
+    Returns:
+        Dictionary ready for SQLAlchemy bulk insert
+
+    Raises:
+        ValueError: If required fields are missing or invalid
+    """
+    # Required fields - will raise ValueError if missing or invalid
+    date_value = require_field(li_dict, "date", "line item")
+    timestamp = validate_posix_timestamp(date_value, "date")
+    li_date = datetime.fromtimestamp(timestamp, UTC)
+
+    amount_value = require_field(li_dict, "amount", "line item")
+    li_amount = validate_amount(amount_value, "amount")
+
+    description = require_field(li_dict, "description", "line item")
+    payment_method = require_field(li_dict, "payment_method", "line item")
+
+    # Build the insert mapping
+    result: Dict[str, Any] = {
         "id": generate_id("li"),
         "transaction_id": transaction_id,
         "date": li_date,
         "amount": li_amount,
-        "description": li_dict.get("description", ""),
+        "description": description,
         "payment_method_id": payment_method_id,
         "responsible_party": li_dict.get("responsible_party", ""),
         "notes": li_dict.get("notes"),
     }
+
+    return result
 
 
 def _bulk_upsert_line_items(db_session, line_items_data: List[Any], source: str) -> int:
@@ -415,21 +457,23 @@ def upsert_bank_accounts(accounts_data: List[Any]) -> int:
 
 
 def upsert_user(user_data: Dict[str, Any]) -> bool:
-    """
-    Upsert a single user to PostgreSQL.
+    """Upsert a single user to PostgreSQL.
 
     Args:
-        user_data: User dict
+        user_data: User dict with required fields (id, email, password_hash)
 
     Returns:
         True if inserted, False if already exists
+
+    Raises:
+        ValueError: If required fields are missing
     """
     user_dict = to_dict_robust(user_data)
-    user_id = user_dict.get("id")
 
-    if not user_id:
-        logger.warning("Cannot upsert user without id")
-        raise ValueError("Cannot upsert user without id")
+    # Validate required fields
+    user_id = require_field(user_dict, "id", "user data")
+    email = require_field(user_dict, "email", "user data")
+    password_hash = require_field(user_dict, "password_hash", "user data")
 
     db_session = SessionLocal()
     try:
@@ -441,8 +485,8 @@ def upsert_user(user_data: Dict[str, Any]) -> bool:
             id=user_id,
             first_name=user_dict.get("first_name", ""),
             last_name=user_dict.get("last_name", ""),
-            email=user_dict.get("email", ""),
-            password_hash=user_dict.get("password_hash", ""),
+            email=email,
+            password_hash=password_hash,
         )
 
         db_session.add(user)

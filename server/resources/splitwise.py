@@ -10,6 +10,7 @@ from dao import get_all_data, splitwise_raw_data_collection
 from helpers import flip_amount, iso_8601_to_posix
 from resources.line_item import LineItem
 from utils.pg_bulk_ops import upsert_line_items, upsert_transactions
+from utils.validation import require_field
 
 logger = logging.getLogger(__name__)
 
@@ -56,13 +57,17 @@ def refresh_splitwise() -> None:
 
 
 def splitwise_to_line_items() -> None:
-    """
-    Convert Splitwise expenses to line items with optimized database operations.
+    """Convert Splitwise expenses to line items with optimized database operations.
+
+    Validates required fields and fails fast if data is malformed.
 
     Optimizations:
     1. Use bulk upsert operations instead of individual upserts
     2. Collect all line items before bulk upserting
     3. Improved logic flow for better performance
+
+    Raises:
+        ValueError: If required expense fields are missing or invalid
     """
     payment_method: str = "Splitwise"
     splitwise_raw_data: List[Dict[str, Any]] = get_all_data(splitwise_raw_data_collection)
@@ -72,32 +77,41 @@ def splitwise_to_line_items() -> None:
     ignored_count = 0
 
     for splitwise_transaction in splitwise_raw_data:
+        # Validate required fields
+        users = require_field(splitwise_transaction, "users", "Splitwise transaction")
+        date = require_field(splitwise_transaction, "date", "Splitwise transaction")
+        description = require_field(splitwise_transaction, "description", "Splitwise transaction")
+        source_id = require_field(splitwise_transaction, "source_id", "Splitwise transaction")
+
         # Determine responsible party
         responsible_party: str = ""
-        for user in splitwise_transaction["users"]:
-            if user["first_name"] != USER_FIRST_NAME:
+        for user in users:
+            first_name = require_field(user, "first_name", "Splitwise user")
+            if first_name != USER_FIRST_NAME:
                 # TODO: Set up comma separated list of responsible parties
-                responsible_party += f"{user['first_name']} "
+                responsible_party += f"{first_name} "
 
         # Skip if responsible party is in ignore list
         if responsible_party.strip() in PARTIES_TO_IGNORE:
             ignored_count += 1
             continue
 
-        posix_date: float = iso_8601_to_posix(splitwise_transaction["date"])
+        posix_date: float = iso_8601_to_posix(date)
 
         # Find the current user's data and create line item
-        for user in splitwise_transaction["users"]:
-            if user["first_name"] != USER_FIRST_NAME:
+        for user in users:
+            first_name = require_field(user, "first_name", "Splitwise user")
+            if first_name != USER_FIRST_NAME:
                 continue
 
+            net_balance = require_field(user, "net_balance", "Splitwise user")
             line_item = LineItem(
                 posix_date,
                 responsible_party,
                 payment_method,
-                splitwise_transaction["description"],
-                flip_amount(user["net_balance"]),
-                source_id=str(splitwise_transaction["source_id"]),
+                description,
+                flip_amount(net_balance),
+                source_id=str(source_id),
             )
             all_line_items.append(line_item)
             break  # Found the user, no need to continue loop

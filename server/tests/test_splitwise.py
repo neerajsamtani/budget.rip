@@ -173,6 +173,7 @@ class TestSplitwiseFunctions:
             # Mock expense where the responsible party is in the ignore list
             expense_with_ignored = {
                 "id": "expense_3",
+                "source_id": "splitwise_exp_3",
                 "date": "2023-01-15T10:30:00Z",
                 "description": "Expense with ignored party",
                 "users": [
@@ -198,6 +199,7 @@ class TestSplitwiseFunctions:
             # Insert raw expense with non-ignored party
             expense_with_non_ignored = {
                 "id": "expense_4",
+                "source_id": "splitwise_exp_4",
                 "date": "2023-01-15T10:30:00Z",
                 "description": "Expense with non-ignored party",
                 "users": [

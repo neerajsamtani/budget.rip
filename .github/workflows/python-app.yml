@@ -64,6 +64,11 @@ jobs:
         cd server
         make lint
 
+    - name: Type check with mypy
+      run: |
+        cd server
+        make type-check
+
     - name: Test with pytest
       run: |
         cd server

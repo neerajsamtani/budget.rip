@@ -11,6 +11,7 @@ from dao import get_all_data, venmo_raw_data_collection
 from helpers import flip_amount
 from resources.line_item import LineItem
 from utils.pg_bulk_ops import upsert_line_items, upsert_transactions
+from utils.validation import require_field, validate_posix_timestamp
 
 logger = logging.getLogger(__name__)
 
@@ -64,13 +65,17 @@ def refresh_venmo() -> None:
 
 
 def venmo_to_line_items() -> None:
-    """
-    Convert Venmo transactions to line items with optimized database operations.
+    """Convert Venmo transactions to line items with optimized database operations.
+
+    Validates required fields and fails fast if data is malformed.
 
     Optimizations:
     1. Use bulk upsert operations instead of individual upserts
     2. Collect all line items before bulk upserting
     3. Improved logic flow for better performance
+
+    Raises:
+        ValueError: If required transaction fields are missing or invalid
     """
     payment_method: str = "Venmo"
     venmo_raw_data: List[Dict[str, Any]] = get_all_data(venmo_raw_data_collection)
@@ -79,41 +84,53 @@ def venmo_to_line_items() -> None:
     all_line_items: List[LineItem] = []
 
     for venmo_transaction in venmo_raw_data:
-        posix_date: float = float(venmo_transaction["date_created"])
+        # Validate required fields
+        date_created = require_field(venmo_transaction, "date_created", "Venmo transaction")
+        posix_date = validate_posix_timestamp(date_created, "date_created")
 
-        if venmo_transaction["actor"]["first_name"] == USER_FIRST_NAME and venmo_transaction["payment_type"] == "pay":
+        actor = require_field(venmo_transaction, "actor", "Venmo transaction")
+        target = require_field(venmo_transaction, "target", "Venmo transaction")
+        actor_first_name = require_field(actor, "first_name", "Venmo actor")
+        target_first_name = require_field(target, "first_name", "Venmo target")
+
+        payment_type = require_field(venmo_transaction, "payment_type", "Venmo transaction")
+        note = require_field(venmo_transaction, "note", "Venmo transaction")
+        amount = require_field(venmo_transaction, "amount", "Venmo transaction")
+        source_id = require_field(venmo_transaction, "source_id", "Venmo transaction")
+
+        if actor_first_name == USER_FIRST_NAME and payment_type == "pay":
             # current user paid money
             line_item = LineItem(
                 posix_date,
-                venmo_transaction["target"]["first_name"],
+                target_first_name,
                 payment_method,
-                venmo_transaction["note"],
-                venmo_transaction["amount"],
-                source_id=str(venmo_transaction["source_id"]),
+                note,
+                amount,
+                source_id=str(source_id),
             )
-        elif venmo_transaction["target"]["first_name"] == USER_FIRST_NAME and venmo_transaction["payment_type"] == "charge":
+        elif target_first_name == USER_FIRST_NAME and payment_type == "charge":
             # current user paid money
             line_item = LineItem(
                 posix_date,
-                venmo_transaction["actor"]["first_name"],
+                actor_first_name,
                 payment_method,
-                venmo_transaction["note"],
-                venmo_transaction["amount"],
-                source_id=str(venmo_transaction["source_id"]),
+                note,
+                amount,
+                source_id=str(source_id),
             )
         else:
             # current user gets money
-            if venmo_transaction["target"]["first_name"] == USER_FIRST_NAME:
-                other_name: str = venmo_transaction["actor"]["first_name"]
+            if target_first_name == USER_FIRST_NAME:
+                other_name = actor_first_name
             else:
-                other_name: str = venmo_transaction["target"]["first_name"]
+                other_name = target_first_name
             line_item = LineItem(
                 posix_date,
                 other_name,
                 payment_method,
-                venmo_transaction["note"],
-                flip_amount(venmo_transaction["amount"]),
-                source_id=str(venmo_transaction["source_id"]),
+                note,
+                flip_amount(amount),
+                source_id=str(source_id),
             )
 
         all_line_items.append(line_item)

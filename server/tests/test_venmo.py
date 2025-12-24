@@ -105,19 +105,22 @@ class TestVenmoFunctions:
 
             # Mock transactions with dict objects to avoid circular reference
             class MockActor:
-                first_name = "Neeraj"
+                def __init__(self):
+                    self.first_name = "Neeraj"
 
             class MockTarget:
-                first_name = "John"
+                def __init__(self):
+                    self.first_name = "John"
 
             class MockTransaction:
-                id = "venmo_test_txn_1"
-                date_created = 1673778600.0
-                actor = MockActor()
-                target = MockTarget()
-                payment_type = "pay"
-                note = "Test payment"
-                amount = 25.0
+                def __init__(self):
+                    self.id = "venmo_test_txn_1"
+                    self.date_created = 1673778600.0
+                    self.actor = MockActor()
+                    self.target = MockTarget()
+                    self.payment_type = "pay"
+                    self.note = "Test payment"
+                    self.amount = 25.0
 
             mock_transaction1 = MockTransaction()
 

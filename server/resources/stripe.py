@@ -7,6 +7,8 @@ from flask import Blueprint, Response, jsonify, request
 from flask_jwt_extended import jwt_required
 
 from constants import BATCH_SIZE, STRIPE_API_KEY, STRIPE_CUSTOMER_EMAIL, STRIPE_CUSTOMER_ID, STRIPE_CUSTOMER_NAME
+from type_defs import StripeAuthorizationDict
+from utils.validation import require_field
 from dao import (
     bank_accounts_collection,
     get_all_data,
@@ -36,14 +38,24 @@ stripe_client = stripe.StripeClient(api_key=STRIPE_API_KEY)
 
 
 def check_can_relink(account: stripe.financial_connections.Account) -> bool:
-    """Check if inactive account can be relinked. Active accounts return False (don't need relink)."""
-    if account.get("status") == "active":
+    """Check if inactive account can be relinked. Active accounts return False (don't need relink).
+
+    Args:
+        account: Stripe financial connections account
+
+    Returns:
+        True if account is inactive and can be relinked, False otherwise
+    """
+    # Active accounts don't need relinking
+    status = account.get("status")
+    if status == "active":
         return False
 
-    if account.get("status") == "inactive":
+    if status == "inactive":
         try:
             auth_id = account.get("authorization")
             if not auth_id:
+                logger.warning(f"Inactive account {account.get('id')} has no authorization ID")
                 return False
 
             response = requests.get(
@@ -51,15 +63,23 @@ def check_can_relink(account: stripe.financial_connections.Account) -> bool:
                 headers={"Stripe-Version": "2022-08-01; financial_connections_relink_api_beta=v1"},
                 auth=(STRIPE_API_KEY, ""),
             )
-            authorization = response.json()
+            authorization: StripeAuthorizationDict = response.json()
 
             # Account closed at institution - can't relink even if auth is still active
-            if authorization.get("status") == "active":
+            auth_status = authorization.get("status")
+            if auth_status == "active":
                 return False
 
-            if authorization.get("status") == "inactive":
-                status_details = authorization.get("status_details", {})
-                inactive_details = status_details.get("inactive", {})
+            if auth_status == "inactive":
+                # Use nested get() with explicit None checks for optional Stripe API fields
+                status_details = authorization.get("status_details")
+                if not status_details:
+                    return False
+
+                inactive_details = status_details.get("inactive")
+                if not inactive_details:
+                    return False
+
                 return inactive_details.get("action") == "relink_required"
 
             return False
@@ -231,13 +251,17 @@ def get_accounts_and_balances_api() -> tuple[Response, int]:
 @jwt_required()
 def subscribe_to_account_api() -> tuple[Response, int]:
     try:
-        account_id: str = request.json.get("account_id")
-        if not account_id:
-            return jsonify({"error": "account_id is required"}), 400
+        request_data = request.get_json()
+        if not request_data:
+            return jsonify({"error": "Request body is required"}), 400
+
+        account_id = require_field(request_data, "account_id", "subscribe request")
 
         response = stripe.financial_connections.Account.subscribe(account_id, features=["transactions", "inferred_balances"])
         refresh_status: str = response.get("transaction_refresh", {}).get("status", "unknown")
         return jsonify(str(refresh_status)), 200
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
     except Exception as e:
         return jsonify(error=str(e)), 500
 
