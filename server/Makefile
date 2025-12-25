@@ -1,4 +1,4 @@
-.PHONY: help test test-phase3 test-watch test-coverage test-quick install lint lint-fix clean dev-setup pg-dump
+.PHONY: help test test-phase3 test-watch test-coverage test-quick install lint lint-fix type-check clean dev-setup pg-dump
 
 help: ## Show this help message
 	@echo "Available commands:"
@@ -36,6 +36,11 @@ lint-fix: ## Fix code issues with ruff (auto-fix + format)
 	@uv run ruff check --fix .
 	@uv run ruff format .
 	@echo "✓ Code fixed and formatted"
+
+type-check: ## Run mypy type checker
+	@echo "Running mypy type checker..."
+	@uv run mypy . --config-file=pyproject.toml
+	@echo "✓ Type checking passed"
 
 clean: ## Remove virtual environment and cache files
 	rm -rf .venv

@@ -173,6 +173,7 @@ class TestSplitwiseFunctions:
             # Mock expense where the responsible party is in the ignore list
             expense_with_ignored = {
                 "id": "expense_3",
+                "source_id": "expense_3",  # source_id should match id for transaction lookup
                 "date": "2023-01-15T10:30:00Z",
                 "description": "Expense with ignored party",
                 "users": [
@@ -194,10 +195,12 @@ class TestSplitwiseFunctions:
             from dao import splitwise_raw_data_collection, upsert_with_id
             from models.database import SessionLocal
             from models.sql_models import LineItem
+            from utils.pg_bulk_ops import upsert_transactions
 
             # Insert raw expense with non-ignored party
             expense_with_non_ignored = {
                 "id": "expense_4",
+                "source_id": "expense_4",  # source_id should match id for transaction lookup
                 "date": "2023-01-15T10:30:00Z",
                 "description": "Expense with non-ignored party",
                 "users": [
@@ -206,6 +209,9 @@ class TestSplitwiseFunctions:
                 ],
             }
             upsert_with_id(splitwise_raw_data_collection, expense_with_non_ignored, expense_with_non_ignored["id"])
+
+            # Create the transaction first
+            upsert_transactions([expense_with_non_ignored], source="splitwise")
 
             # Call the function
             splitwise_to_line_items()
@@ -278,6 +284,7 @@ class TestSplitwiseFunctions:
             # Mock expense without the current user
             expense_no_user = {
                 "id": "expense_6",
+                "source_id": "expense_6",  # source_id should match id for transaction lookup
                 "date": "2023-01-15T10:30:00Z",
                 "description": "Expense without current user",
                 "users": [
