@@ -96,7 +96,11 @@ export const AutoComplete = ({
     [selectOption],
   )
 
-  const shouldShowDropdown = isOpen && inputValue.length > 0 && (options.length > 0 || isLoading)
+  const filteredOptions = options.filter((option) =>
+    option.label.toLowerCase().includes(inputValue.toLowerCase())
+  )
+
+  const shouldShowDropdown = isOpen && inputValue.length > 0 && (filteredOptions.length > 0 || isLoading)
 
   return (
     <CommandPrimitive onKeyDown={handleKeyDown} className="relative">
@@ -134,9 +138,9 @@ export const AutoComplete = ({
                 </div>
               </CommandPrimitive.Loading>
             ) : null}
-            {options.length > 0 && !isLoading ? (
+            {filteredOptions.length > 0 && !isLoading ? (
               <CommandGroup>
-                {options.map((option) => {
+                {filteredOptions.map((option) => {
                   const isSelected = selected?.value === option.value
                   return (
                     <CommandItem

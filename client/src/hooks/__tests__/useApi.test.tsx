@@ -279,6 +279,7 @@ describe('useApi hooks', () => {
             expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['events'] });
             expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['lineItems'] });
             expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['monthlyBreakdown'] });
+            expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['tags'] });
         });
 
         it('handles mutation errors', async () => {
@@ -342,6 +343,7 @@ describe('useApi hooks', () => {
             expect(mockDelete).toHaveBeenCalledWith('api/events/event-to-delete');
             expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['events'] });
             expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['lineItems'] });
+            expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['tags'] });
         });
     });
 

@@ -166,6 +166,7 @@ export function useCreateEvent(): UseMutationResult<unknown, Error, CreateEventD
       queryClient.invalidateQueries({ queryKey: ['events'] });
       queryClient.invalidateQueries({ queryKey: ['lineItems'] });
       queryClient.invalidateQueries({ queryKey: ['monthlyBreakdown'] });
+      queryClient.invalidateQueries({ queryKey: ['tags'] });
     },
   });
 }
@@ -204,6 +205,7 @@ export function useDeleteEvent(): UseMutationResult<void, Error, string> {
       queryClient.invalidateQueries({ queryKey: ['events'] });
       queryClient.invalidateQueries({ queryKey: ['lineItems'] });
       queryClient.invalidateQueries({ queryKey: ['monthlyBreakdown'] });
+      queryClient.invalidateQueries({ queryKey: ['tags'] });
     },
   });
 }
