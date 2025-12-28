@@ -118,8 +118,8 @@ describe('CreateEventModal', () => {
         it('renders all category options', async () => {
             render(<CreateEventModal show={true} onHide={mockOnHide} />);
 
-            const trigger = screen.getByRole('combobox');
-            await userEvent.click(trigger);
+            const categorySelect = screen.getByRole('combobox', { name: /category/i });
+            await userEvent.click(categorySelect);
 
             const options = [
                 'All', 'Alcohol', 'Dining', 'Entertainment', 'Forma', 'Groceries',
@@ -162,7 +162,7 @@ describe('CreateEventModal', () => {
         it('allows selecting category', async () => {
             render(<CreateEventModal show={true} onHide={mockOnHide} />);
 
-            const categorySelect = screen.getByRole('combobox');
+            const categorySelect = screen.getByRole('combobox', { name: /category/i });
             await userEvent.click(categorySelect);
             await userEvent.click(screen.getByRole('option', { name: 'Dining' }));
 
@@ -204,16 +204,31 @@ describe('CreateEventModal', () => {
     });
 
     describe('Tag Management', () => {
+        beforeEach(() => {
+            jest.spyOn(require('@/hooks/useApi'), 'useTags').mockReturnValue({
+                data: [],
+                isLoading: false,
+                isError: false
+            });
+        });
+
         it('allows adding tags by pressing Enter', async () => {
             mockDefaultNameCleanup.mockImplementation((str) => str);
-            render(<CreateEventModal show={true} onHide={mockOnHide} />);
+            await act(async () => {
+                render(<CreateEventModal show={true} onHide={mockOnHide} />);
+            });
 
             const tagInput = screen.getByPlaceholderText('Type a tag and press Enter to add');
-            fireEvent.change(tagInput, { target: { value: 'important' } });
-            fireEvent.keyDown(tagInput, { key: 'Enter' });
+
+            await act(async () => {
+                fireEvent.change(tagInput, { target: { value: 'important' } });
+                fireEvent.keyDown(tagInput, { key: 'Enter', code: 'Enter' });
+            });
 
             // Look for the tag badge specifically
-            expect(screen.getByText('important')).toBeInTheDocument();
+            await waitFor(() => {
+                expect(screen.getByText('important')).toBeInTheDocument();
+            });
             expect(tagInput).toHaveValue('');
         });
 
@@ -232,29 +247,47 @@ describe('CreateEventModal', () => {
 
         it('allows removing tags by clicking X', async () => {
             mockDefaultNameCleanup.mockImplementation((str) => str);
-            render(<CreateEventModal show={true} onHide={mockOnHide} />);
+            await act(async () => {
+                render(<CreateEventModal show={true} onHide={mockOnHide} />);
+            });
 
             const tagInput = screen.getByPlaceholderText('Type a tag and press Enter to add');
-            fireEvent.change(tagInput, { target: { value: 'important' } });
-            fireEvent.keyDown(tagInput, { key: 'Enter' });
 
-            expect(screen.getByText('important')).toBeInTheDocument();
+            await act(async () => {
+                fireEvent.change(tagInput, { target: { value: 'important' } });
+                fireEvent.keyDown(tagInput, { key: 'Enter', code: 'Enter' });
+            });
+
+            await waitFor(() => {
+                expect(screen.getByText('important')).toBeInTheDocument();
+            });
 
             const removeButton = screen.getByText('×');
-            await userEvent.click(removeButton);
+            await act(async () => {
+                fireEvent.click(removeButton);
+            });
 
-            expect(screen.queryByText('important')).not.toBeInTheDocument();
+            await waitFor(() => {
+                expect(screen.queryByText('important')).not.toBeInTheDocument();
+            });
         });
 
         it('trims whitespace from tags', async () => {
             mockDefaultNameCleanup.mockImplementation((str) => str);
-            render(<CreateEventModal show={true} onHide={mockOnHide} />);
+            await act(async () => {
+                render(<CreateEventModal show={true} onHide={mockOnHide} />);
+            });
 
             const tagInput = screen.getByPlaceholderText('Type a tag and press Enter to add');
-            fireEvent.change(tagInput, { target: { value: '  important tag  ' } });
-            fireEvent.keyDown(tagInput, { key: 'Enter' });
 
-            expect(screen.getByText('important tag')).toBeInTheDocument();
+            await act(async () => {
+                fireEvent.change(tagInput, { target: { value: '  important tag  ' } });
+                fireEvent.keyDown(tagInput, { key: 'Enter', code: 'Enter' });
+            });
+
+            await waitFor(() => {
+                expect(screen.getByText('important tag')).toBeInTheDocument();
+            });
         });
     });
 
@@ -282,7 +315,7 @@ describe('CreateEventModal', () => {
             const nameInput = screen.getAllByDisplayValue('')[0]; // First input is name
             fireEvent.change(nameInput, { target: { value: 'Test Event' } });
 
-            const categorySelect = screen.getByRole('combobox');
+            const categorySelect = screen.getByRole('combobox', { name: /category/i });
             await userEvent.click(categorySelect);
             await userEvent.click(screen.getByRole('option', { name: 'Dining' }));
 
@@ -305,7 +338,7 @@ describe('CreateEventModal', () => {
             rerender(<CreateEventModal show={true} onHide={mockOnHide} />);
 
             expect(screen.getByDisplayValue('Suggested Name')).toBeInTheDocument();
-            const categorySelect = screen.getByRole('combobox');
+            const categorySelect = screen.getByRole('combobox', { name: /category/i });
             expect(categorySelect).toHaveTextContent('Dining');
         });
 
@@ -332,12 +365,20 @@ describe('CreateEventModal', () => {
             rerender(<CreateEventModal show={true} onHide={mockOnHide} />);
 
             expect(screen.getAllByDisplayValue('')[0]).toBeInTheDocument(); // Name input
-            const categorySelect = screen.getByRole('combobox');
+            const categorySelect = screen.getByRole('combobox', { name: /category/i });
             expect(categorySelect).toHaveTextContent('Select a category'); // Category select placeholder
         });
     });
 
     describe('Event Creation', () => {
+        beforeEach(() => {
+            jest.spyOn(require('@/hooks/useApi'), 'useTags').mockReturnValue({
+                data: [],
+                isLoading: false,
+                isError: false
+            });
+        });
+
         it('creates event successfully', async () => {
             mockDefaultNameCleanup.mockImplementation((str) => str);
             render(<CreateEventModal show={true} onHide={mockOnHide} />);
@@ -346,7 +387,7 @@ describe('CreateEventModal', () => {
             const nameInput = screen.getAllByDisplayValue('')[0]; // First input is name
             fireEvent.change(nameInput, { target: { value: 'Test Event' } });
 
-            const categorySelect = screen.getByRole('combobox');
+            const categorySelect = screen.getByRole('combobox', { name: /category/i });
             await userEvent.click(categorySelect);
             await userEvent.click(screen.getByRole('option', { name: 'Dining' }));
 
@@ -355,8 +396,15 @@ describe('CreateEventModal', () => {
 
             // Add a tag
             const tagInput = screen.getByPlaceholderText('Type a tag and press Enter to add');
-            fireEvent.change(tagInput, { target: { value: 'important' } });
-            fireEvent.keyDown(tagInput, { key: 'Enter' });
+            await act(async () => {
+                fireEvent.change(tagInput, { target: { value: 'important' } });
+                fireEvent.keyDown(tagInput, { key: 'Enter', code: 'Enter' });
+            });
+
+            // Wait for tag to be added
+            await waitFor(() => {
+                expect(screen.getByText('important')).toBeInTheDocument();
+            });
 
             // Submit form
             const submitButton = screen.getByRole('button', { name: /create event/i });
@@ -384,7 +432,7 @@ describe('CreateEventModal', () => {
             const nameInput = screen.getAllByDisplayValue('')[0]; // First input is name
             fireEvent.change(nameInput, { target: { value: 'Test Event' } });
 
-            const categorySelect = screen.getByRole('combobox');
+            const categorySelect = screen.getByRole('combobox', { name: /category/i });
             await userEvent.click(categorySelect);
             await userEvent.click(screen.getByRole('option', { name: 'Dining' }));
 
@@ -413,7 +461,7 @@ describe('CreateEventModal', () => {
             const nameInput = screen.getAllByDisplayValue('')[0]; // First input is name
             fireEvent.change(nameInput, { target: { value: 'Test Event' } });
 
-            const categorySelect = screen.getByRole('combobox');
+            const categorySelect = screen.getByRole('combobox', { name: /category/i });
             await userEvent.click(categorySelect);
             await userEvent.click(screen.getByRole('option', { name: 'Dining' }));
 
@@ -436,7 +484,7 @@ describe('CreateEventModal', () => {
             const nameInput = screen.getAllByDisplayValue('')[0]; // First input is name
             fireEvent.change(nameInput, { target: { value: 'Test Event' } });
 
-            const categorySelect = screen.getByRole('combobox');
+            const categorySelect = screen.getByRole('combobox', { name: /category/i });
             await userEvent.click(categorySelect);
             await userEvent.click(screen.getByRole('option', { name: 'Dining' }));
 
@@ -463,7 +511,7 @@ describe('CreateEventModal', () => {
             const nameInput = screen.getAllByDisplayValue('')[0]; // First input is name
             fireEvent.change(nameInput, { target: { value: 'Test Event' } });
 
-            const categorySelect = screen.getByRole('combobox');
+            const categorySelect = screen.getByRole('combobox', { name: /category/i });
             await userEvent.click(categorySelect);
             await userEvent.click(screen.getByRole('option', { name: 'Dining' }));
 
@@ -506,7 +554,7 @@ describe('CreateEventModal', () => {
             const nameInput = screen.getAllByDisplayValue('')[0]; // First input is name
             fireEvent.change(nameInput, { target: { value: 'Test Event' } });
 
-            const categorySelect = screen.getByRole('combobox');
+            const categorySelect = screen.getByRole('combobox', { name: /category/i });
             await userEvent.click(categorySelect);
             await userEvent.click(screen.getByRole('option', { name: 'Dining' }));
 
@@ -527,7 +575,7 @@ describe('CreateEventModal', () => {
             rerender(<CreateEventModal show={true} onHide={mockOnHide} />);
 
             expect(screen.getAllByDisplayValue('')[0]).toBeInTheDocument(); // Name input
-            const categorySelectReset = screen.getByRole('combobox');
+            const categorySelectReset = screen.getByRole('combobox', { name: /category/i });
             expect(categorySelectReset).toHaveTextContent('All'); // Category select default value
             expect(screen.queryByText('important')).not.toBeInTheDocument();
         });
@@ -582,14 +630,14 @@ describe('CreateEventModal', () => {
                 render(<CreateEventModal show={true} onHide={mockOnHide} />);
             });
 
-            const nameInput = screen.getAllByDisplayValue('')[0]; // First input is name
+            const nameInput = screen.getByPlaceholderText('Enter a descriptive name for this event');
             const dateInput = screen.getByLabelText('Override Date (optional)');
             const submitButton = screen.getByRole('button', { name: /create event/i });
 
             fireEvent.change(nameInput, { target: { value: 'Test Event' } });
             fireEvent.change(dateInput, { target: { value: '2024-01-15' } });
 
-            const categorySelect = screen.getByRole('combobox');
+            const categorySelect = screen.getByRole('combobox', { name: /category/i });
             await userEvent.click(categorySelect);
             await userEvent.click(screen.getByRole('option', { name: 'Dining' }));
 
@@ -601,6 +649,210 @@ describe('CreateEventModal', () => {
                 expect(nameInput).toHaveValue('');
                 expect(dateInput).toHaveValue('');
             });
+        });
+    });
+
+    describe('Tag Autocomplete', () => {
+        const mockTags = [
+            { id: 'tag_1', name: 'vacation' },
+            { id: 'tag_2', name: 'groceries' },
+            { id: 'tag_3', name: 'birthday' }
+        ];
+
+        beforeEach(() => {
+            jest.spyOn(require('@/hooks/useApi'), 'useTags').mockReturnValue({
+                data: mockTags,
+                isLoading: false,
+                isError: false
+            });
+        });
+
+        it('shows autocomplete suggestions when typing', async () => {
+            await act(async () => {
+                render(<CreateEventModal show={true} onHide={mockOnHide} />);
+            });
+
+            const tagInput = screen.getByPlaceholderText('Type a tag and press Enter to add');
+
+            await act(async () => {
+                fireEvent.change(tagInput, { target: { value: 'vac' } });
+                fireEvent.focus(tagInput);
+            });
+
+            await waitFor(() => {
+                expect(screen.getByText('vacation')).toBeInTheDocument();
+            });
+        });
+
+        it('adds existing tag from autocomplete on selection', async () => {
+            await act(async () => {
+                render(<CreateEventModal show={true} onHide={mockOnHide} />);
+            });
+
+            const tagInput = screen.getByPlaceholderText('Type a tag and press Enter to add');
+
+            await act(async () => {
+                fireEvent.change(tagInput, { target: { value: 'vacation' } });
+                fireEvent.focus(tagInput);
+            });
+
+            await waitFor(() => {
+                expect(screen.getByText('vacation')).toBeInTheDocument();
+            });
+
+            await act(async () => {
+                fireEvent.click(screen.getByText('vacation'));
+            });
+
+            await waitFor(() => {
+                expect(screen.getByText('×')).toBeInTheDocument();
+            });
+        });
+
+        it('creates new tag when pressing Enter with non-existing tag', async () => {
+            await act(async () => {
+                render(<CreateEventModal show={true} onHide={mockOnHide} />);
+            });
+
+            const tagInput = screen.getByPlaceholderText('Type a tag and press Enter to add');
+
+            await act(async () => {
+                fireEvent.change(tagInput, { target: { value: 'newtag' } });
+                fireEvent.keyDown(tagInput, { key: 'Enter', code: 'Enter' });
+            });
+
+            await waitFor(() => {
+                expect(screen.getByText('newtag')).toBeInTheDocument();
+            });
+        });
+
+        it('clears input after adding tag', async () => {
+            await act(async () => {
+                render(<CreateEventModal show={true} onHide={mockOnHide} />);
+            });
+
+            const tagInput = screen.getByPlaceholderText('Type a tag and press Enter to add');
+
+            await act(async () => {
+                fireEvent.change(tagInput, { target: { value: 'vacation' } });
+                fireEvent.keyDown(tagInput, { key: 'Enter', code: 'Enter' });
+            });
+
+            await waitFor(() => {
+                expect(tagInput).toHaveValue('');
+            });
+        });
+
+        it('removes selected tag from autocomplete suggestions', async () => {
+            await act(async () => {
+                render(<CreateEventModal show={true} onHide={mockOnHide} />);
+            });
+
+            const tagInput = screen.getByPlaceholderText('Type a tag and press Enter to add');
+
+            await act(async () => {
+                fireEvent.change(tagInput, { target: { value: 'vacation' } });
+                fireEvent.keyDown(tagInput, { key: 'Enter', code: 'Enter' });
+            });
+
+            await waitFor(() => {
+                expect(screen.getByText('vacation')).toBeInTheDocument();
+            });
+
+            await act(async () => {
+                fireEvent.change(tagInput, { target: { value: 'v' } });
+                fireEvent.focus(tagInput);
+            });
+
+            await waitFor(() => {
+                expect(screen.queryByRole('option', { name: 'vacation' })).not.toBeInTheDocument();
+            });
+        });
+
+        it('prevents duplicate tags from being added', async () => {
+            await act(async () => {
+                render(<CreateEventModal show={true} onHide={mockOnHide} />);
+            });
+
+            const tagInput = screen.getByPlaceholderText('Type a tag and press Enter to add');
+
+            await act(async () => {
+                fireEvent.change(tagInput, { target: { value: 'vacation' } });
+                fireEvent.keyDown(tagInput, { key: 'Enter', code: 'Enter' });
+            });
+
+            await waitFor(() => {
+                expect(screen.getByText('vacation')).toBeInTheDocument();
+            });
+
+            await act(async () => {
+                fireEvent.change(tagInput, { target: { value: 'vacation' } });
+                fireEvent.keyDown(tagInput, { key: 'Enter', code: 'Enter' });
+            });
+
+            const vacationTags = screen.getAllByText('vacation');
+            expect(vacationTags).toHaveLength(1);
+        });
+
+        it('removes tag when clicking X button', async () => {
+            await act(async () => {
+                render(<CreateEventModal show={true} onHide={mockOnHide} />);
+            });
+
+            const tagInput = screen.getByPlaceholderText('Type a tag and press Enter to add');
+
+            await act(async () => {
+                fireEvent.change(tagInput, { target: { value: 'vacation' } });
+                fireEvent.keyDown(tagInput, { key: 'Enter', code: 'Enter' });
+            });
+
+            await waitFor(() => {
+                expect(screen.getByText('vacation')).toBeInTheDocument();
+            });
+
+            const removeButton = screen.getByText('×');
+            await act(async () => {
+                fireEvent.click(removeButton);
+            });
+
+            await waitFor(() => {
+                expect(screen.queryByText('vacation')).not.toBeInTheDocument();
+            });
+        });
+
+        it('handles loading state', async () => {
+            jest.spyOn(require('@/hooks/useApi'), 'useTags').mockReturnValue({
+                data: undefined,
+                isLoading: true,
+                isError: false
+            });
+
+            await act(async () => {
+                render(<CreateEventModal show={true} onHide={mockOnHide} />);
+            });
+
+            const tagInput = screen.getByPlaceholderText('Type a tag and press Enter to add');
+            expect(tagInput).toBeInTheDocument();
+        });
+
+        it('handles error state gracefully', async () => {
+            jest.spyOn(require('@/hooks/useApi'), 'useTags').mockReturnValue({
+                data: undefined,
+                isLoading: false,
+                isError: true
+            });
+
+            await act(async () => {
+                render(<CreateEventModal show={true} onHide={mockOnHide} />);
+            });
+
+            const tagInput = screen.getByPlaceholderText('Type a tag and press Enter to add');
+
+            await act(async () => {
+                fireEvent.change(tagInput, { target: { value: 'test' } });
+            });
+
+            expect(screen.queryByRole('option')).not.toBeInTheDocument();
         });
     });
 }); 

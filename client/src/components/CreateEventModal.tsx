@@ -152,11 +152,11 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
         </div>
 
         <div className="space-y-3">
-          <Label htmlFor="event-category" className="text-sm font-medium text-foreground">
+          <Label id="category-label" className="text-sm font-medium text-foreground">
             Category
           </Label>
           <Select value={category.value} onValueChange={(value) => category.setCustomValue(value)}>
-            <SelectTrigger className="w-full">
+            <SelectTrigger className="w-full" aria-labelledby="category-label">
               <SelectValue placeholder="Select a category" />
             </SelectTrigger>
             <SelectContent className="bg-white border">
