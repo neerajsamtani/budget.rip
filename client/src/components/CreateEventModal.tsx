@@ -14,7 +14,8 @@ import { FormField, useField } from '../hooks/useField';
 import { CurrencyFormatter } from '../utils/formatters';
 import defaultNameCleanup from '../utils/stringHelpers';
 import { showSuccessToast, showErrorToast } from '../utils/toast-helpers';
-import { useCreateEvent } from '../hooks/useApi';
+import { useCreateEvent, useTags } from '../hooks/useApi';
+import { AutoComplete, Option } from './Autocomplete';
 
 interface Tag {
   id: string;
@@ -52,7 +53,17 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
   const date = useField<string>("date", "" as string)
   const isDuplicateTransaction = useField<boolean>("checkbox", false)
   const [tags, setTags] = useState<Tag[]>([]);
-  const [tagInput, setTagInput] = useState('');
+  const { data: existingTags, isLoading: isLoadingTags } = useTags();
+
+  const tagOptions: Option[] = (existingTags || [])
+    .filter(tag => !tags.some(t => t.text === tag.name))
+    .map(tag => ({ value: tag.id, label: tag.name }));
+
+  const handleTagSelect = (option: Option) => {
+    if (!tags.some(tag => tag.text === option.label)) {
+      setTags([...tags, { id: option.value, text: option.label }]);
+    }
+  };
 
   const disableSubmit = name.value === "" || category.value === "" || category.value === "All"
 
@@ -71,22 +82,9 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
     category.setEmpty()
     date.setEmpty()
     setTags([])
-    setTagInput('')
     isDuplicateTransaction.setCustomValue(false);
     onHide()
   }
-
-  const handleTagInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && tagInput.trim()) {
-      e.preventDefault();
-      const newTag = {
-        id: Math.random().toString(36).substring(2, 9),
-        text: tagInput.trim()
-      };
-      setTags([...tags, newTag]);
-      setTagInput('');
-    }
-  };
 
   const removeTag = (tagId: string) => {
     setTags(tags.filter(tag => tag.id !== tagId));
@@ -142,11 +140,11 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
         </div>
 
         <div className="space-y-3">
-          <Label htmlFor="event-category" className="text-sm font-medium text-foreground">
+          <Label id="category-label" className="text-sm font-medium text-foreground">
             Category
           </Label>
           <Select value={category.value} onValueChange={(value) => category.setCustomValue(value)}>
-            <SelectTrigger className="w-full">
+            <SelectTrigger className="w-full" aria-labelledby="category-label">
               <SelectValue placeholder="Select a category" />
             </SelectTrigger>
             <SelectContent className="bg-white border">
@@ -181,14 +179,13 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
                 ))}
               </div>
             )}
-            <Input
-              id="event-tags"
-              type="text"
-              value={tagInput}
-              onChange={(e) => setTagInput(e.target.value)}
-              onKeyDown={handleTagInputKeyDown}
+            <AutoComplete
+              options={tagOptions}
               placeholder="Type a tag and press Enter to add"
-              className="w-full"
+              onValueChange={handleTagSelect}
+              isLoading={isLoadingTags}
+              allowCreate={true}
+              clearOnSelect={true}
             />
           </div>
         </div>

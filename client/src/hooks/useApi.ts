@@ -13,6 +13,7 @@ export const queryKeys = {
   connectedAccounts: () => ['connectedAccounts'] as const,
   accountsAndBalances: () => ['accountsAndBalances'] as const,
   paymentMethods: () => ['paymentMethods'] as const,
+  tags: () => ['tags'] as const,
 };
 
 // Query Hooks
@@ -128,6 +129,21 @@ export function usePaymentMethods(): UseQueryResult<string[]> {
   });
 }
 
+export interface Tag {
+  id: string;
+  name: string;
+}
+
+export function useTags(): UseQueryResult<Tag[]> {
+  return useQuery({
+    queryKey: queryKeys.tags(),
+    queryFn: async () => {
+      const response = await axiosInstance.get('api/tags');
+      return response.data.data as Tag[];
+    },
+  });
+}
+
 // Mutation Hooks
 interface CreateEventData {
   name: string;
@@ -150,6 +166,7 @@ export function useCreateEvent(): UseMutationResult<unknown, Error, CreateEventD
       queryClient.invalidateQueries({ queryKey: ['events'] });
       queryClient.invalidateQueries({ queryKey: ['lineItems'] });
       queryClient.invalidateQueries({ queryKey: ['monthlyBreakdown'] });
+      queryClient.invalidateQueries({ queryKey: ['tags'] });
     },
   });
 }
@@ -188,6 +205,7 @@ export function useDeleteEvent(): UseMutationResult<void, Error, string> {
       queryClient.invalidateQueries({ queryKey: ['events'] });
       queryClient.invalidateQueries({ queryKey: ['lineItems'] });
       queryClient.invalidateQueries({ queryKey: ['monthlyBreakdown'] });
+      queryClient.invalidateQueries({ queryKey: ['tags'] });
     },
   });
 }

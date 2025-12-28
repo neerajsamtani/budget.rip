@@ -1,6 +1,7 @@
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useTags } from '@/hooks/useApi';
 import React from 'react';
+import { AutoComplete, Option } from './Autocomplete';
 
 interface TagsFilterProps {
     tagFilter: string;
@@ -9,19 +10,22 @@ interface TagsFilterProps {
 }
 
 export default function TagsFilter({ tagFilter, setTagFilter }: TagsFilterProps) {
-    const handleTagChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        setTagFilter(event.target.value);
-    }
+    const { data: tags, isLoading } = useTags();
+
+    const tagOptions: Option[] = (tags || []).map(tag => ({
+        value: tag.id,
+        label: tag.name,
+    }));
 
     return (
         <div className="space-y-2">
             <Label className="text-sm font-medium text-foreground">Tags</Label>
-            <Input
-                type="text"
+            <AutoComplete
+                options={tagOptions}
                 placeholder="Search by tag..."
-                value={tagFilter}
-                onChange={handleTagChange}
-                className="w-full h-11"
+                value={tagOptions.find(option => option.label === tagFilter)}
+                onValueChange={(option) => setTagFilter(option?.label || "")}
+                isLoading={isLoading}
             />
         </div>
     );

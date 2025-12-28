@@ -38,6 +38,7 @@ from resources.line_item import line_items_blueprint
 from resources.monthly_breakdown import monthly_breakdown_blueprint
 from resources.splitwise import splitwise_blueprint
 from resources.stripe import stripe_blueprint
+from resources.tags import tags_blueprint
 from resources.venmo import venmo_blueprint
 
 # Global test database engine and session
@@ -112,6 +113,7 @@ def flask_app():
     app.register_blueprint(monthly_breakdown_blueprint)
     app.register_blueprint(splitwise_blueprint)
     app.register_blueprint(stripe_blueprint)
+    app.register_blueprint(tags_blueprint)
     app.register_blueprint(venmo_blueprint)
 
     with app.app_context():
