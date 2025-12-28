@@ -13,6 +13,7 @@ export const queryKeys = {
   connectedAccounts: () => ['connectedAccounts'] as const,
   accountsAndBalances: () => ['accountsAndBalances'] as const,
   paymentMethods: () => ['paymentMethods'] as const,
+  tags: () => ['tags'] as const,
 };
 
 // Query Hooks
@@ -124,6 +125,21 @@ export function usePaymentMethods(): UseQueryResult<string[]> {
     queryFn: async () => {
       const response = await axiosInstance.get('api/payment_methods');
       return Array.isArray(response.data) ? response.data : [];
+    },
+  });
+}
+
+export interface Tag {
+  id: string;
+  name: string;
+}
+
+export function useTags(): UseQueryResult<Tag[]> {
+  return useQuery({
+    queryKey: queryKeys.tags(),
+    queryFn: async () => {
+      const response = await axiosInstance.get('api/tags');
+      return response.data.data as Tag[];
     },
   });
 }

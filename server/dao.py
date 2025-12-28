@@ -470,3 +470,15 @@ def _pg_get_user_by_email(email: str) -> Optional[Dict[str, Any]]:
         }
     finally:
         db_session.close()
+
+
+def get_all_tags() -> List[Dict[str, Any]]:
+    from models.database import SessionLocal
+    from models.sql_models import Tag
+
+    db_session = SessionLocal()
+    try:
+        tags = db_session.query(Tag).order_by(Tag.name).all()
+        return [{"id": tag.id, "name": tag.name} for tag in tags]
+    finally:
+        db_session.close()

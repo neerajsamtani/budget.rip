@@ -1,6 +1,7 @@
-import { Input } from "@/components/ui/input";
+import React, { useMemo } from 'react';
 import { Label } from "@/components/ui/label";
-import React from 'react';
+import { AutoComplete, Option } from './Autocomplete';
+import { useTags } from '@/hooks/useApi';
 
 interface TagsFilterProps {
     tagFilter: string;
@@ -9,19 +10,35 @@ interface TagsFilterProps {
 }
 
 export default function TagsFilter({ tagFilter, setTagFilter }: TagsFilterProps) {
-    const handleTagChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        setTagFilter(event.target.value);
-    }
+    const { data: tags, isLoading, isError } = useTags();
+
+    const tagOptions: Option[] = useMemo(() => {
+        if (isError || !tags) return [];
+        return tags.map(tag => ({
+            value: tag.id,
+            label: tag.name,
+        }));
+    }, [tags, isError]);
+
+    const currentValue: Option | undefined = useMemo(() => {
+        if (!tagFilter) return undefined;
+        return tagOptions.find(option => option.label === tagFilter);
+    }, [tagFilter, tagOptions]);
+
+    const handleValueChange = (option: Option) => {
+        setTagFilter(option.label);
+    };
 
     return (
         <div className="space-y-2">
             <Label className="text-sm font-medium text-foreground">Tags</Label>
-            <Input
-                type="text"
+            <AutoComplete
+                options={tagOptions}
+                emptyMessage="No tags found"
                 placeholder="Search by tag..."
-                value={tagFilter}
-                onChange={handleTagChange}
-                className="w-full h-11"
+                value={currentValue}
+                onValueChange={handleValueChange}
+                isLoading={isLoading}
             />
         </div>
     );

@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { ResponsiveDialog, useIsMobile } from "@/components/ui/responsive-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CATEGORIES } from '@/constants/categories';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { getPrefillFromLineItems } from '.././data/EventHints';
 import { Body } from "../components/ui/typography";
 import { useLineItems, useLineItemsDispatch } from "../contexts/LineItemsContext";
@@ -14,7 +14,8 @@ import { FormField, useField } from '../hooks/useField';
 import { CurrencyFormatter } from '../utils/formatters';
 import defaultNameCleanup from '../utils/stringHelpers';
 import { showSuccessToast, showErrorToast } from '../utils/toast-helpers';
-import { useCreateEvent } from '../hooks/useApi';
+import { useCreateEvent, useTags } from '../hooks/useApi';
+import { AutoComplete, Option } from './Autocomplete';
 
 interface Tag {
   id: string;
@@ -52,7 +53,26 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
   const date = useField<string>("date", "" as string)
   const isDuplicateTransaction = useField<boolean>("checkbox", false)
   const [tags, setTags] = useState<Tag[]>([]);
-  const [tagInput, setTagInput] = useState('');
+  const { data: existingTags, isLoading: isLoadingTags, isError: isTagsError } = useTags();
+
+  const tagOptions: Option[] = useMemo(() => {
+    if (isTagsError || !existingTags) return [];
+    return existingTags.map(tag => ({
+      value: tag.id,
+      label: tag.name,
+    }));
+  }, [existingTags, isTagsError]);
+
+  const handleTagSelect = (option: Option) => {
+    const isDuplicate = tags.some(tag => tag.text === option.label);
+    if (!isDuplicate) {
+      const newTag = {
+        id: option.value,
+        text: option.label
+      };
+      setTags([...tags, newTag]);
+    }
+  };
 
   const disableSubmit = name.value === "" || category.value === "" || category.value === "All"
 
@@ -71,22 +91,9 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
     category.setEmpty()
     date.setEmpty()
     setTags([])
-    setTagInput('')
     isDuplicateTransaction.setCustomValue(false);
     onHide()
   }
-
-  const handleTagInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && tagInput.trim()) {
-      e.preventDefault();
-      const newTag = {
-        id: Math.random().toString(36).substring(2, 9),
-        text: tagInput.trim()
-      };
-      setTags([...tags, newTag]);
-      setTagInput('');
-    }
-  };
 
   const removeTag = (tagId: string) => {
     setTags(tags.filter(tag => tag.id !== tagId));
@@ -181,14 +188,14 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
                 ))}
               </div>
             )}
-            <Input
-              id="event-tags"
-              type="text"
-              value={tagInput}
-              onChange={(e) => setTagInput(e.target.value)}
-              onKeyDown={handleTagInputKeyDown}
+            <AutoComplete
+              options={tagOptions}
+              emptyMessage="No tags found. Type to create a new tag."
               placeholder="Type a tag and press Enter to add"
-              className="w-full"
+              onValueChange={handleTagSelect}
+              isLoading={isLoadingTags}
+              allowCreate={true}
+              clearOnSelect={true}
             />
           </div>
         </div>
