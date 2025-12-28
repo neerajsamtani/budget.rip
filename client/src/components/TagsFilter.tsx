@@ -25,8 +25,8 @@ export default function TagsFilter({ tagFilter, setTagFilter }: TagsFilterProps)
         return tagOptions.find(option => option.label === tagFilter);
     }, [tagFilter, tagOptions]);
 
-    const handleValueChange = (option: Option) => {
-        setTagFilter(option.label);
+    const handleValueChange = (option: Option | undefined) => {
+        setTagFilter(option?.label || "");
     };
 
     return (
@@ -34,7 +34,6 @@ export default function TagsFilter({ tagFilter, setTagFilter }: TagsFilterProps)
             <Label className="text-sm font-medium text-foreground">Tags</Label>
             <AutoComplete
                 options={tagOptions}
-                emptyMessage="No tags found"
                 placeholder="Search by tag..."
                 value={currentValue}
                 onValueChange={handleValueChange}

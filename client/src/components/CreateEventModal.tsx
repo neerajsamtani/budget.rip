@@ -57,11 +57,14 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
 
   const tagOptions: Option[] = useMemo(() => {
     if (isTagsError || !existingTags) return [];
-    return existingTags.map(tag => ({
-      value: tag.id,
-      label: tag.name,
-    }));
-  }, [existingTags, isTagsError]);
+    const selectedTagNames = new Set(tags.map(tag => tag.text));
+    return existingTags
+      .filter(tag => !selectedTagNames.has(tag.name))
+      .map(tag => ({
+        value: tag.id,
+        label: tag.name,
+      }));
+  }, [existingTags, isTagsError, tags]);
 
   const handleTagSelect = (option: Option) => {
     const isDuplicate = tags.some(tag => tag.text === option.label);
@@ -190,7 +193,6 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
             )}
             <AutoComplete
               options={tagOptions}
-              emptyMessage="No tags found. Type to create a new tag."
               placeholder="Type a tag and press Enter to add"
               onValueChange={handleTagSelect}
               isLoading={isLoadingTags}
