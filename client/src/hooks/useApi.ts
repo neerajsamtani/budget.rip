@@ -171,6 +171,34 @@ export function useCreateEvent(): UseMutationResult<unknown, Error, CreateEventD
   });
 }
 
+interface UpdateEventData {
+  eventId: string;
+  name: string;
+  category: string;
+  line_items: string[];
+  date?: string;
+  is_duplicate_transaction?: boolean;
+  tags?: string[];
+}
+
+export function useUpdateEvent(): UseMutationResult<unknown, Error, UpdateEventData> {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ eventId, ...eventData }: UpdateEventData) => {
+      const response = await axiosInstance.put(`api/events/${eventId}`, eventData);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['events'] });
+      queryClient.invalidateQueries({ queryKey: ['lineItems'] });
+      queryClient.invalidateQueries({ queryKey: ['eventLineItems'] });
+      queryClient.invalidateQueries({ queryKey: ['monthlyBreakdown'] });
+      queryClient.invalidateQueries({ queryKey: ['tags'] });
+    },
+  });
+}
+
 export interface CreateCashTransactionData {
   date: string;        // YYYY-MM-DD format
   person: string;

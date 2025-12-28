@@ -98,6 +98,66 @@ def post_event_api() -> tuple[Response, int]:
     return jsonify(new_event), 201
 
 
+@events_blueprint.route("/api/events/<event_id>", methods=["PUT"])
+@jwt_required()
+def update_event_api(event_id: str) -> tuple[Response, int]:
+    """
+    Update An Event
+    """
+    event: Optional[Dict[str, Any]] = get_item_by_id(events_collection, event_id)
+    if event is None:
+        logger.warning(f"Event update attempt for non-existent event: {event_id}")
+        return jsonify({"error": "Event not found"}), 404
+
+    update_data: Dict[str, Any] = request.get_json()
+
+    if "line_items" not in update_data or len(update_data["line_items"]) == 0:
+        logger.warning("Event update attempt with no line items")
+        return jsonify({"error": "Event must have at least one line item"}), 400
+
+    filters: Dict[str, Any] = {"id": {"$in": update_data["line_items"]}}
+    line_items: List[Dict[str, Any]] = get_all_data(line_items_collection, filters)
+    earliest_line_item: Dict[str, Any] = min(line_items, key=lambda li: li["date"])
+
+    # Build the event dict for upsert
+    event_dict: Dict[str, Any] = {
+        "id": event_id,
+        "name": update_data.get("name", event.get("name", "")),
+        "category": update_data.get("category", event.get("category")),
+        "line_items": update_data["line_items"],
+        "is_duplicate_transaction": update_data.get("is_duplicate_transaction", False),
+        "tags": update_data.get("tags", []),
+    }
+
+    if update_data.get("date"):
+        event_dict["date"] = html_date_to_posix(update_data["date"])
+    else:
+        event_dict["date"] = earliest_line_item["date"]
+
+    from utils.pg_event_operations import upsert_event
+
+    upsert_event(event_dict)
+
+    # Calculate updated amount for response
+    if event_dict.get("is_duplicate_transaction"):
+        updated_amount = line_items[0]["amount"]
+    else:
+        updated_amount = sum(li["amount"] for li in line_items)
+
+    logger.info(f"Updated event: {event_id} with {len(line_items)} line items")
+    return jsonify(
+        {
+            "id": event_id,
+            "name": event_dict["name"],
+            "category": event_dict["category"],
+            "amount": updated_amount,
+            "line_items": event_dict["line_items"],
+            "tags": event_dict["tags"],
+            "is_duplicate_transaction": event_dict["is_duplicate_transaction"],
+        }
+    ), 200
+
+
 @events_blueprint.route("/api/events/<event_id>", methods=["DELETE"])
 @jwt_required()
 def delete_event_api(event_id: str) -> tuple[Response, int]:
