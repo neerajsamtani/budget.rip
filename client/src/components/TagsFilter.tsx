@@ -1,7 +1,7 @@
-import React, { useMemo } from 'react';
 import { Label } from "@/components/ui/label";
-import { AutoComplete, Option } from './Autocomplete';
 import { useTags } from '@/hooks/useApi';
+import React from 'react';
+import { AutoComplete, Option } from './Autocomplete';
 
 interface TagsFilterProps {
     tagFilter: string;
@@ -10,24 +10,12 @@ interface TagsFilterProps {
 }
 
 export default function TagsFilter({ tagFilter, setTagFilter }: TagsFilterProps) {
-    const { data: tags, isLoading, isError } = useTags();
+    const { data: tags, isLoading } = useTags();
 
-    const tagOptions: Option[] = useMemo(() => {
-        if (isError || !tags) return [];
-        return tags.map(tag => ({
-            value: tag.id,
-            label: tag.name,
-        }));
-    }, [tags, isError]);
-
-    const currentValue: Option | undefined = useMemo(() => {
-        if (!tagFilter) return undefined;
-        return tagOptions.find(option => option.label === tagFilter);
-    }, [tagFilter, tagOptions]);
-
-    const handleValueChange = (option: Option | undefined) => {
-        setTagFilter(option?.label || "");
-    };
+    const tagOptions: Option[] = (tags || []).map(tag => ({
+        value: tag.id,
+        label: tag.name,
+    }));
 
     return (
         <div className="space-y-2">
@@ -35,8 +23,8 @@ export default function TagsFilter({ tagFilter, setTagFilter }: TagsFilterProps)
             <AutoComplete
                 options={tagOptions}
                 placeholder="Search by tag..."
-                value={currentValue}
-                onValueChange={handleValueChange}
+                value={tagOptions.find(option => option.label === tagFilter)}
+                onValueChange={(option) => setTagFilter(option?.label || "")}
                 isLoading={isLoading}
             />
         </div>

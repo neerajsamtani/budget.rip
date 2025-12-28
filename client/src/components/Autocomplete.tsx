@@ -36,15 +36,30 @@ export const AutoComplete = ({
   const inputRef = useRef<HTMLInputElement>(null)
 
   const [isOpen, setOpen] = useState(false)
-  const [selected, setSelected] = useState<Option>(value as Option)
+  const [selected, setSelected] = useState<Option | undefined>(value)
   const [inputValue, setInputValue] = useState<string>(value?.label || "")
+
+  const selectOption = useCallback(
+    (option: Option, shouldBlur = false) => {
+      onValueChange?.(option)
+      if (clearOnSelect) {
+        setInputValue("")
+        setSelected(undefined)
+      } else {
+        setInputValue(option.label)
+        setSelected(option)
+        if (shouldBlur) {
+          setTimeout(() => inputRef?.current?.blur(), 0)
+        }
+      }
+    },
+    [onValueChange, clearOnSelect],
+  )
 
   const handleKeyDown = useCallback(
     (event: KeyboardEvent<HTMLDivElement>) => {
       const input = inputRef.current
-      if (!input) {
-        return
-      }
+      if (!input) return
 
       if (!isOpen && inputValue.length > 0) {
         setOpen(true)
@@ -52,31 +67,12 @@ export const AutoComplete = ({
 
       if (event.key === "Enter" && input.value !== "") {
         event.preventDefault()
-        const optionToSelect = options.find(
-          (option) => option.label === input.value,
-        )
+        const existingOption = options.find((option) => option.label === input.value)
+        const optionToSelect = existingOption || (allowCreate && input.value.trim()
+          ? { value: input.value.trim(), label: input.value.trim() }
+          : null)
         if (optionToSelect) {
-          if (clearOnSelect) {
-            setInputValue("")
-            setSelected(undefined as unknown as Option)
-            onValueChange?.(optionToSelect)
-          } else {
-            setSelected(optionToSelect)
-            onValueChange?.(optionToSelect)
-          }
-        } else if (allowCreate && input.value.trim()) {
-          const newOption: Option = {
-            value: input.value.trim(),
-            label: input.value.trim(),
-          }
-          if (clearOnSelect) {
-            setInputValue("")
-            setSelected(undefined as unknown as Option)
-            onValueChange?.(newOption)
-          } else {
-            setSelected(newOption)
-            onValueChange?.(newOption)
-          }
+          selectOption(optionToSelect)
         }
       }
 
@@ -85,7 +81,7 @@ export const AutoComplete = ({
         setOpen(false)
       }
     },
-    [isOpen, options, onValueChange, clearOnSelect, allowCreate, inputValue],
+    [isOpen, options, allowCreate, inputValue, selectOption],
   )
 
   const handleBlur = useCallback(() => {
@@ -96,21 +92,8 @@ export const AutoComplete = ({
   }, [selected, clearOnSelect])
 
   const handleSelectOption = useCallback(
-    (selectedOption: Option) => {
-      if (clearOnSelect) {
-        setInputValue("")
-        setSelected(undefined as unknown as Option)
-        onValueChange?.(selectedOption)
-      } else {
-        setInputValue(selectedOption.label)
-        setSelected(selectedOption)
-        onValueChange?.(selectedOption)
-        setTimeout(() => {
-          inputRef?.current?.blur()
-        }, 0)
-      }
-    },
-    [onValueChange, clearOnSelect],
+    (selectedOption: Option) => selectOption(selectedOption, true),
+    [selectOption],
   )
 
   const shouldShowDropdown = isOpen && inputValue.length > 0 && (options.length > 0 || isLoading)
@@ -124,7 +107,7 @@ export const AutoComplete = ({
           if (!isLoading) {
             setInputValue(newValue)
             if (newValue === "" && !clearOnSelect) {
-              setSelected(undefined as unknown as Option)
+              setSelected(undefined)
               onValueChange?.(undefined)
             }
           }

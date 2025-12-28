@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { ResponsiveDialog, useIsMobile } from "@/components/ui/responsive-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CATEGORIES } from '@/constants/categories';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { getPrefillFromLineItems } from '.././data/EventHints';
 import { Body } from "../components/ui/typography";
 import { useLineItems, useLineItemsDispatch } from "../contexts/LineItemsContext";
@@ -53,27 +53,15 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
   const date = useField<string>("date", "" as string)
   const isDuplicateTransaction = useField<boolean>("checkbox", false)
   const [tags, setTags] = useState<Tag[]>([]);
-  const { data: existingTags, isLoading: isLoadingTags, isError: isTagsError } = useTags();
+  const { data: existingTags, isLoading: isLoadingTags } = useTags();
 
-  const tagOptions: Option[] = useMemo(() => {
-    if (isTagsError || !existingTags) return [];
-    const selectedTagNames = new Set(tags.map(tag => tag.text));
-    return existingTags
-      .filter(tag => !selectedTagNames.has(tag.name))
-      .map(tag => ({
-        value: tag.id,
-        label: tag.name,
-      }));
-  }, [existingTags, isTagsError, tags]);
+  const tagOptions: Option[] = (existingTags || [])
+    .filter(tag => !tags.some(t => t.text === tag.name))
+    .map(tag => ({ value: tag.id, label: tag.name }));
 
   const handleTagSelect = (option: Option) => {
-    const isDuplicate = tags.some(tag => tag.text === option.label);
-    if (!isDuplicate) {
-      const newTag = {
-        id: option.value,
-        text: option.label
-      };
-      setTags([...tags, newTag]);
+    if (!tags.some(tag => tag.text === option.label)) {
+      setTags([...tags, { id: option.value, text: option.label }]);
     }
   };
 
