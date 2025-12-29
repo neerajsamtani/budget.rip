@@ -3,20 +3,20 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ResponsiveDialog, ResponsiveDialogTitle, ResponsiveDialogDescription, useIsMobile } from "@/components/ui/responsive-dialog";
+import { ResponsiveDialog, ResponsiveDialogDescription, ResponsiveDialogTitle, useIsMobile } from "@/components/ui/responsive-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { CATEGORIES } from '@/constants/categories';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Body } from "../components/ui/typography";
 import { LineItemInterface } from '../contexts/LineItemsContext';
-import { useDeleteEvent, useUpdateEvent, useTags, useLineItems } from '../hooks/useApi';
-import { showErrorToast, showSuccessToast } from '../utils/toast-helpers';
+import { useDeleteEvent, useLineItems, useTags, useUpdateEvent } from '../hooks/useApi';
 import { CurrencyFormatter, DateFormatter } from '../utils/formatters';
+import { showErrorToast, showSuccessToast } from '../utils/toast-helpers';
+import { AutoComplete, Option } from './Autocomplete';
 import { EventInterface } from './Event';
 import LineItem, { LineItemCard } from './LineItem';
 import { Spinner } from "./ui/spinner";
-import { AutoComplete, Option } from './Autocomplete';
 
 interface Tag {
   id: string;
@@ -40,7 +40,7 @@ export default function EventDetailsModal({ show, event, lineItemsForEvent, isLo
   const updateEventMutation = useUpdateEvent();
   const isMobile = useIsMobile();
   const { data: existingTags, isLoading: isLoadingTags } = useTags();
-  const { data: unreviewedLineItems = [] } = useLineItems({ reviewed: false, enabled: isEditing });
+  const { data: unreviewedLineItems = [] } = useLineItems({ onlyLineItemsToReview: true, enabled: isEditing });
 
   // Reset form state when event changes or when entering edit mode
   useEffect(() => {
@@ -146,10 +146,12 @@ export default function EventDetailsModal({ show, event, lineItemsForEvent, isLo
     }
   };
 
-  // Line items currently in the event during editing
+  // Line items currently in the event during editing (from both original event and newly added unreviewed items)
   const currentLineItems = useMemo(() => {
-    return lineItemsForEvent.filter(li => editingLineItemIds.includes(li.id));
-  }, [lineItemsForEvent, editingLineItemIds]);
+    const fromEvent = lineItemsForEvent.filter(li => editingLineItemIds.includes(li.id));
+    const fromUnreviewed = unreviewedLineItems.filter(li => editingLineItemIds.includes(li.id));
+    return [...fromEvent, ...fromUnreviewed];
+  }, [lineItemsForEvent, unreviewedLineItems, editingLineItemIds]);
 
   // Line items that can be added (unreviewed + any that were removed from this event)
   const availableLineItems = useMemo(() => {
@@ -160,7 +162,7 @@ export default function EventDetailsModal({ show, event, lineItemsForEvent, isLo
 
   const lineItemOptions: Option[] = availableLineItems.map(li => ({
     value: li.id,
-    label: `${li.description} (${CurrencyFormatter.format(Math.abs(li.amount))})`,
+    label: `${li.description} - ${DateFormatter.format(li.date * 1000)} (${CurrencyFormatter.format(Math.abs(li.amount))})`,
   }));
 
   const total = useMemo(() => {
@@ -184,7 +186,7 @@ export default function EventDetailsModal({ show, event, lineItemsForEvent, isLo
             Modify event details and line items
           </ResponsiveDialogDescription>
         </div>
-        <div className="space-y-6 py-4 overflow-y-auto max-h-[60vh]">
+        <div className="space-y-6 pt-4 pb-4 px-1 -mx-1 overflow-y-auto max-h-[60vh]">
           {/* Name Field */}
           <div className="space-y-3">
             <Label htmlFor="edit-event-name" className="text-sm font-medium text-foreground">
@@ -290,6 +292,20 @@ export default function EventDetailsModal({ show, event, lineItemsForEvent, isLo
             <Label className="text-sm font-medium text-foreground">
               Line Items ({currentLineItems.length})
             </Label>
+            {/* Add Line Item */}
+            {availableLineItems.length > 0 && (
+              <div className="space-y-2">
+                <Label className="text-sm text-muted-foreground">Add line item</Label>
+                <AutoComplete
+                  options={lineItemOptions}
+                  placeholder="Search for line items to add..."
+                  onValueChange={(option) => addLineItem(option.value)}
+                  isLoading={false}
+                  allowCreate={false}
+                  clearOnSelect={true}
+                />
+              </div>
+            )}
             {isLoadingLineItemsForEvent ? (
               <div className="flex justify-center items-center p-4">
                 <Spinner size="sm" />
@@ -315,21 +331,6 @@ export default function EventDetailsModal({ show, event, lineItemsForEvent, isLo
                     </Button>
                   </div>
                 ))}
-              </div>
-            )}
-
-            {/* Add Line Item */}
-            {availableLineItems.length > 0 && (
-              <div className="space-y-2">
-                <Label className="text-sm text-muted-foreground">Add line item</Label>
-                <AutoComplete
-                  options={lineItemOptions}
-                  placeholder="Search for line items to add..."
-                  onValueChange={(option) => addLineItem(option.value)}
-                  isLoading={false}
-                  allowCreate={false}
-                  clearOnSelect={true}
-                />
               </div>
             )}
           </div>
@@ -425,14 +426,11 @@ export default function EventDetailsModal({ show, event, lineItemsForEvent, isLo
         )}
       </div>
       <div className={`flex pt-4 border-t border-muted gap-3 ${isMobile ? "flex-col" : "justify-end"}`}>
-        <Button onClick={onHide} variant="secondary" className={isMobile ? "w-full" : "min-w-[100px]"}>
-          Close
-        </Button>
-        <Button onClick={startEditing} variant="outline" className={isMobile ? "w-full" : "min-w-[100px]"}>
+        <Button onClick={startEditing} variant="secondary" className={isMobile ? "w-full" : "min-w-[100px]"}>
           Edit
         </Button>
         <Button onClick={deleteEvent} variant="destructive" className={isMobile ? "w-full" : "min-w-[100px]"}>
-          Delete Event
+          Delete
         </Button>
       </div>
     </ResponsiveDialog>

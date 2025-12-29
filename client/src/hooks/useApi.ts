@@ -6,7 +6,7 @@ import { LineItemInterface } from '../contexts/LineItemsContext';
 // Query Keys
 export const queryKeys = {
   events: (startTime?: number, endTime?: number) => ['events', startTime, endTime] as const,
-  lineItems: (params?: { reviewed?: boolean; paymentMethod?: string; eventId?: string }) =>
+  lineItems: (params?: { onlyLineItemsToReview?: boolean; paymentMethod?: string }) =>
     ['lineItems', params] as const,
   eventLineItems: (eventId: string) => ['eventLineItems', eventId] as const,
   monthlyBreakdown: () => ['monthlyBreakdown'] as const,
@@ -33,23 +33,17 @@ export function useEvents(startTime?: number, endTime?: number): UseQueryResult<
   });
 }
 
-export function useLineItems(params?: { reviewed?: boolean; paymentMethod?: string; eventId?: string; onlyLineItemsToReview?: boolean; enabled?: boolean }): UseQueryResult<LineItemInterface[]> {
+export function useLineItems(params?: { onlyLineItemsToReview?: boolean; paymentMethod?: string; enabled?: boolean }): UseQueryResult<LineItemInterface[]> {
   return useQuery({
-    queryKey: queryKeys.lineItems(params),
+    queryKey: queryKeys.lineItems(params ? { onlyLineItemsToReview: params.onlyLineItemsToReview, paymentMethod: params.paymentMethod } : undefined),
     queryFn: async () => {
       const queryParams: Record<string, string | boolean> = {};
 
-      if (params?.reviewed !== undefined) {
-        queryParams.reviewed = params.reviewed;
-      }
       if (params?.onlyLineItemsToReview) {
         queryParams.only_line_items_to_review = true;
       }
       if (params?.paymentMethod && params.paymentMethod !== 'All') {
         queryParams.payment_method = params.paymentMethod;
-      }
-      if (params?.eventId) {
-        queryParams.event_id = params.eventId;
       }
 
       const response = await axiosInstance.get('api/line_items', { params: queryParams });

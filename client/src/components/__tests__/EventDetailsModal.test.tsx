@@ -265,23 +265,6 @@ describe('EventDetailsModal', () => {
 
             expect(mockOnHide).toHaveBeenCalled();
         });
-
-        it('calls onHide when close button is clicked', async () => {
-            render(
-                <EventDetailsModal
-                    show={true}
-                    event={mockEvent}
-                    lineItemsForEvent={mockLineItems}
-                    isLoadingLineItemsForEvent={false}
-                    onHide={mockOnHide}
-                />
-            );
-
-            const closeButtons = screen.getAllByRole('button', { name: /close/i });
-            await userEvent.click(closeButtons[1]);
-
-            expect(mockOnHide).toHaveBeenCalled();
-        });
     });
 
     describe('Event Deletion', () => {
