@@ -110,24 +110,24 @@ function ViewEventContent({ event, lineItemsForEvent, isLoadingLineItemsForEvent
 
 interface EditEventContentProps {
   name: string;
-  setName: (name: string) => void;
+  setName: React.Dispatch<React.SetStateAction<string>>;
   category: string;
-  setCategory: (category: string) => void;
+  setCategory: React.Dispatch<React.SetStateAction<string>>;
   tags: Tag[];
   tagOptions: Option[];
   isLoadingTags: boolean;
-  onRemoveTag: (tagId: string) => void;
-  onAddTag: (option: Option) => void;
+  onRemoveTag: (tagId: string) => void; // eslint-disable-line no-unused-vars
+  onAddTag: (option: Option) => void; // eslint-disable-line no-unused-vars
   overrideDate: string;
-  setOverrideDate: (date: string) => void;
+  setOverrideDate: React.Dispatch<React.SetStateAction<string>>;
   isDuplicateTransaction: boolean;
-  setIsDuplicateTransaction: (value: boolean) => void;
+  setIsDuplicateTransaction: React.Dispatch<React.SetStateAction<boolean>>;
   currentLineItems: LineItemInterface[];
   availableLineItems: LineItemInterface[];
   lineItemOptions: Option[];
   isLoadingLineItemsForEvent: boolean;
-  onRemoveLineItem: (id: string) => void;
-  onAddLineItem: (id: string) => void;
+  onRemoveLineItem: (lineItemId: string) => void; // eslint-disable-line no-unused-vars
+  onAddLineItem: (lineItemId: string) => void; // eslint-disable-line no-unused-vars
   total: number;
   disableSave: boolean;
   isSaving: boolean;
