@@ -34,6 +34,7 @@ from models.sql_models import Base
 from resources.auth import auth_blueprint
 from resources.cash import cash_blueprint
 from resources.event import events_blueprint
+from resources.event_hint import event_hints_blueprint
 from resources.line_item import line_items_blueprint
 from resources.monthly_breakdown import monthly_breakdown_blueprint
 from resources.splitwise import splitwise_blueprint
@@ -108,6 +109,7 @@ def flask_app():
     app.debug = True
     app.register_blueprint(auth_blueprint)
     app.register_blueprint(cash_blueprint)
+    app.register_blueprint(event_hints_blueprint)
     app.register_blueprint(line_items_blueprint)
     app.register_blueprint(events_blueprint)
     app.register_blueprint(monthly_breakdown_blueprint)

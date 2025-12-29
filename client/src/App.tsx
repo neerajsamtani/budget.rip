@@ -16,6 +16,7 @@ import { useAuth } from "./contexts/AuthContext";
 import { useLineItemsDispatch } from "./contexts/LineItemsContext";
 import { useRefreshAllData } from "./hooks/useApi";
 import ConnectedAccountsPage from "./pages/ConnectedAccountsPage";
+import EventHintsSettingsPage from "./pages/EventHintsSettingsPage";
 import EventsPage from "./pages/EventsPage";
 import GraphsPage from "./pages/GraphsPage";
 import LineItemsPage from "./pages/LineItemsPage";
@@ -102,6 +103,12 @@ export default function App() {
                   >
                     Graphs
                   </Link>
+                  <Link
+                    className="text-foreground hover:text-primary px-2 xl:px-3 py-2 no-underline font-body font-medium transition-colors duration-150 text-sm xl:text-base whitespace-nowrap"
+                    to="/settings/event-hints"
+                  >
+                    Settings
+                  </Link>
                   <button
                     className="text-foreground hover:text-primary px-2 xl:px-3 py-2 no-underline font-body font-medium transition-colors duration-150 cursor-pointer text-sm xl:text-base whitespace-nowrap"
                     onClick={() => logout()}
@@ -170,6 +177,13 @@ export default function App() {
                         >
                           Graphs
                         </Link>
+                        <Link
+                          className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150 rounded-md hover:bg-muted"
+                          to="/settings/event-hints"
+                          onClick={() => setMobileMenuOpen(false)}
+                        >
+                          Settings
+                        </Link>
                         <button
                           className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150 rounded-md hover:bg-muted text-left cursor-pointer"
                           onClick={() => {
@@ -202,6 +216,7 @@ export default function App() {
           <Route path="/line_items" element={<ProtectedRoute><LineItemsPage /></ProtectedRoute>} />
           <Route path="/connected_accounts" element={<ProtectedRoute><ConnectedAccountsPage stripePromise={stripePromise} /></ProtectedRoute>} />
           <Route path="/graphs" element={<ProtectedRoute><GraphsPage /></ProtectedRoute>} />
+          <Route path="/settings/event-hints" element={<ProtectedRoute><EventHintsSettingsPage /></ProtectedRoute>} />
           <Route path="/login" element={<PublicOnlyRoute><LoginPage /></PublicOnlyRoute>} />
         </Routes>
       </Router>

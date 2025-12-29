@@ -10,6 +10,7 @@ from sqlalchemy import (
     Column,
     Enum,
     ForeignKey,
+    Integer,
     String,
     Text,
     UniqueConstraint,
@@ -207,3 +208,36 @@ class EventTag(Base):
     event_id = Column(String(255), ForeignKey("events.id", ondelete="CASCADE"), nullable=False)
     tag_id = Column(String(255), ForeignKey("tags.id", ondelete="CASCADE"), nullable=False)
     created_at = Column(TIMESTAMP(timezone=True), default=lambda: datetime.now(UTC))
+
+
+class EventHint(Base):
+    """
+    User-configurable rules for auto-filling event details.
+
+    Each hint contains a CEL expression that is evaluated against line items.
+    If the expression matches, the prefill_name and prefill_category are suggested.
+    Hints are evaluated in display_order; first match wins.
+    """
+
+    __tablename__ = "event_hints"
+
+    id = Column(String(255), primary_key=True)  # eh_xxx
+    user_id = Column(String(255), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    name = Column(String(255), nullable=False)
+    cel_expression = Column(Text, nullable=False)
+    prefill_name = Column(String(255), nullable=False)
+    prefill_category_id = Column(
+        String(255), ForeignKey("categories.id", ondelete="SET NULL"), nullable=True
+    )
+    display_order = Column(Integer, nullable=False, default=0)
+    is_active = Column(Boolean, nullable=False, default=True)
+    created_at = Column(TIMESTAMP(timezone=True), default=lambda: datetime.now(UTC))
+    updated_at = Column(
+        TIMESTAMP(timezone=True),
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
+    )
+
+    # Relationships
+    user = relationship("User")
+    prefill_category = relationship("Category")

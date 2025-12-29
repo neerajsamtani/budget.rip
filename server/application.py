@@ -51,6 +51,7 @@ from resources.stripe import (
     stripe_to_line_items,
 )
 from resources.tags import tags_blueprint
+from resources.event_hint import event_hints_blueprint
 from resources.venmo import refresh_venmo, venmo_blueprint, venmo_to_line_items
 
 # Configure logging to stdout for cloud compatibility
@@ -123,6 +124,7 @@ application.register_blueprint(splitwise_blueprint)
 application.register_blueprint(cash_blueprint)
 application.register_blueprint(stripe_blueprint)
 application.register_blueprint(tags_blueprint)
+application.register_blueprint(event_hints_blueprint)
 
 # If an environment variable is not found in the .env file,
 # load_dotenv will then search for a variable by the given name in the host environment.

@@ -2,7 +2,6 @@ import { act, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { useLineItems, useLineItemsDispatch } from '../../contexts/LineItemsContext';
-import { getPrefillFromLineItems } from '../../data/EventHints';
 import defaultNameCleanup from '../../utils/stringHelpers';
 import { mockAxiosInstance, render, screen, waitFor } from '../../utils/test-utils';
 import CreateEventModal from '../CreateEventModal';
@@ -32,15 +31,15 @@ jest.mock('../../contexts/LineItemsContext', () => ({
     useLineItemsDispatch: jest.fn(),
 }));
 
-// Mock the data utilities
-jest.mock('../../data/EventHints', () => ({
-    getPrefillFromLineItems: jest.fn(),
+// Mock the useEvaluateEventHints hook
+const mockUseEvaluateEventHints = jest.fn();
+jest.mock('../../hooks/useApi', () => ({
+    ...jest.requireActual('../../hooks/useApi'),
+    useEvaluateEventHints: (...args: unknown[]) => mockUseEvaluateEventHints(...args),
 }));
 
 const mockUseLineItems = useLineItems as jest.MockedFunction<typeof useLineItems>;
 const mockUseLineItemsDispatch = useLineItemsDispatch as jest.MockedFunction<typeof useLineItemsDispatch>;
-
-const mockGetPrefillFromLineItems = getPrefillFromLineItems as jest.MockedFunction<typeof getPrefillFromLineItems>;
 
 const mockLineItems = [
     {
@@ -86,7 +85,8 @@ describe('CreateEventModal', () => {
         jest.clearAllMocks();
         mockUseLineItems.mockReturnValue({ lineItems: mockLineItems, isLoading: false });
         mockUseLineItemsDispatch.mockReturnValue(mockDispatch);
-        mockGetPrefillFromLineItems.mockReturnValue(null);
+        // Default: no prefill suggestion from event hints
+        mockUseEvaluateEventHints.mockReturnValue({ data: null, isLoading: false, isError: false });
         mockDefaultNameCleanup.mockImplementation((str) => str);
         mockAxiosInstance.post.mockResolvedValue({ data: { name: 'Test Event', success: true } });
     });
@@ -326,9 +326,11 @@ describe('CreateEventModal', () => {
 
     describe('Prefill Logic', () => {
         it('prefills form when prefill suggestion is available', async () => {
-            mockGetPrefillFromLineItems.mockReturnValue({
-                name: 'Suggested Name',
-                category: 'Dining'
+            // Mock the hook to return a suggestion
+            mockUseEvaluateEventHints.mockReturnValue({
+                data: { name: 'Suggested Name', category: 'Dining' },
+                isLoading: false,
+                isError: false
             });
 
             // First render with show=false to trigger prefill
@@ -343,7 +345,12 @@ describe('CreateEventModal', () => {
         });
 
         it('uses cleaned description when no prefill suggestion', async () => {
-            mockGetPrefillFromLineItems.mockReturnValue(null);
+            // Mock the hook to return no suggestion
+            mockUseEvaluateEventHints.mockReturnValue({
+                data: null,
+                isLoading: false,
+                isError: false
+            });
             mockDefaultNameCleanup.mockReturnValue('Cleaned Description');
 
             // First render with show=false to trigger prefill
