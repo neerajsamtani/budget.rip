@@ -13,6 +13,7 @@ import { FormField, useField } from '../hooks/useField';
 import { CurrencyFormatter } from '../utils/formatters';
 import defaultNameCleanup from '../utils/stringHelpers';
 import { showSuccessToast, showErrorToast } from '../utils/toast-helpers';
+import { calculateEventTotal } from '../utils/eventHelpers';
 import { useCreateEvent, useTags } from '../hooks/useApi';
 import { Option } from './Autocomplete';
 import { Tag, TagsField } from './TagsField';
@@ -63,12 +64,8 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
   const disableSubmit = name.value === "" || category.value === "" || category.value === "All"
 
   const total = React.useMemo(() => {
-    if (selectedLineItems.length === 0) return 0;
-    if (isDuplicateTransaction.value) {
-      return selectedLineItems[0].amount;
-    }
-    return selectedLineItems.reduce((sum, item) => sum + item.amount, 0);
-  }, [selectedLineItems, isDuplicateTransaction]);
+    return calculateEventTotal(selectedLineItems, isDuplicateTransaction.value);
+  }, [selectedLineItems, isDuplicateTransaction.value]);
 
 
   const closeModal = () => {

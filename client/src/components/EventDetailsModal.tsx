@@ -13,6 +13,7 @@ import { LineItemInterface } from '../contexts/LineItemsContext';
 import { useDeleteEvent, useLineItems, useTags, useUpdateEvent } from '../hooks/useApi';
 import { CurrencyFormatter, DateFormatter } from '../utils/formatters';
 import { showErrorToast, showSuccessToast } from '../utils/toast-helpers';
+import { calculateEventTotal } from '../utils/eventHelpers';
 import { AutoComplete, Option } from './Autocomplete';
 import { EventInterface } from './Event';
 import LineItem, { LineItemCard } from './LineItem';
@@ -116,8 +117,8 @@ interface EditEventContentProps {
   tags: Tag[];
   tagOptions: Option[];
   isLoadingTags: boolean;
-  onRemoveTag: (tagId: string) => void; // eslint-disable-line no-unused-vars
-  onAddTag: (option: Option) => void; // eslint-disable-line no-unused-vars
+  onRemoveTag: (_tagId: string) => void;
+  onAddTag: (_option: Option) => void;
   overrideDate: string;
   setOverrideDate: React.Dispatch<React.SetStateAction<string>>;
   isDuplicateTransaction: boolean;
@@ -126,8 +127,8 @@ interface EditEventContentProps {
   availableLineItems: LineItemInterface[];
   lineItemOptions: Option[];
   isLoadingLineItemsForEvent: boolean;
-  onRemoveLineItem: (lineItemId: string) => void; // eslint-disable-line no-unused-vars
-  onAddLineItem: (lineItemId: string) => void; // eslint-disable-line no-unused-vars
+  onRemoveLineItem: (_lineItemId: string) => void;
+  onAddLineItem: (_lineItemId: string) => void;
   total: number;
   disableSave: boolean;
   isSaving: boolean;
@@ -435,11 +436,7 @@ export default function EventDetailsModal({ show, event, lineItemsForEvent, isLo
 
   const total = useMemo(() => {
     const items = isEditing ? currentLineItems : lineItemsForEvent;
-    if (items.length === 0) return 0;
-    if (isDuplicateTransaction) {
-      return items[0].amount;
-    }
-    return items.reduce((sum, item) => sum + item.amount, 0);
+    return calculateEventTotal(items, isDuplicateTransaction);
   }, [currentLineItems, lineItemsForEvent, isDuplicateTransaction, isEditing]);
 
   const disableSave = !name || !category || category === 'All' || editingLineItemIds.length === 0;

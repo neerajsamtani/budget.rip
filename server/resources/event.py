@@ -150,6 +150,7 @@ def update_event_api(event_id: str) -> tuple[Response, int]:
             "id": event_id,
             "name": event_dict["name"],
             "category": event_dict["category"],
+            "date": event_dict["date"],
             "amount": updated_amount,
             "line_items": event_dict["line_items"],
             "tags": event_dict["tags"],
