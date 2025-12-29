@@ -1,4 +1,3 @@
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -15,12 +14,8 @@ import { CurrencyFormatter } from '../utils/formatters';
 import defaultNameCleanup from '../utils/stringHelpers';
 import { showSuccessToast, showErrorToast } from '../utils/toast-helpers';
 import { useCreateEvent, useTags } from '../hooks/useApi';
-import { AutoComplete, Option } from './Autocomplete';
-
-interface Tag {
-  id: string;
-  text: string;
-}
+import { Option } from './Autocomplete';
+import { Tag, TagsField } from './TagsField';
 
 export default function CreateEventModal({ show, onHide }: { show: boolean, onHide: () => void }) {
 
@@ -156,38 +151,14 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
           </Select>
         </div>
 
-        <div className="space-y-3">
-          <Label htmlFor="event-tags" className="text-sm font-medium text-foreground">
-            Tags
-          </Label>
-          <div className="space-y-3">
-            {tags.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {tags.map(tag => (
-                  <Badge
-                    key={tag.id}
-                    className="bg-primary text-white hover:bg-primary-dark flex items-center gap-1 px-3 py-1">
-                    {tag.text}
-                    <span
-                      onClick={() => removeTag(tag.id)}
-                      className="ml-1 cursor-pointer hover:text-red-300 font-bold"
-                    >
-                      ×
-                    </span>
-                  </Badge>
-                ))}
-              </div>
-            )}
-            <AutoComplete
-              options={tagOptions}
-              placeholder="Type a tag and press Enter to add"
-              onValueChange={handleTagSelect}
-              isLoading={isLoadingTags}
-              allowCreate={true}
-              clearOnSelect={true}
-            />
-          </div>
-        </div>
+        <TagsField
+          id="event-tags"
+          tags={tags}
+          tagOptions={tagOptions}
+          isLoading={isLoadingTags}
+          onRemoveTag={removeTag}
+          onAddTag={handleTagSelect}
+        />
 
         <div className="space-y-3">
           <Label htmlFor="override-date-input" className="text-sm font-medium text-foreground">

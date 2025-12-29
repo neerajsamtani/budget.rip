@@ -16,12 +16,8 @@ import { showErrorToast, showSuccessToast } from '../utils/toast-helpers';
 import { AutoComplete, Option } from './Autocomplete';
 import { EventInterface } from './Event';
 import LineItem, { LineItemCard } from './LineItem';
+import { Tag, TagsField } from './TagsField';
 import { Spinner } from "./ui/spinner";
-
-interface Tag {
-  id: string;
-  text: string;
-}
 
 export default function EventDetailsModal({ show, event, lineItemsForEvent, isLoadingLineItemsForEvent, onHide }:
   { show: boolean, event: EventInterface, lineItemsForEvent: LineItemInterface[], isLoadingLineItemsForEvent: boolean, onHide: () => void }) {
@@ -214,38 +210,14 @@ export default function EventDetailsModal({ show, event, lineItemsForEvent, isLo
           </div>
 
           {/* Tags Field */}
-          <div className="space-y-3">
-            <Label htmlFor="edit-event-tags" className="text-sm font-medium text-foreground">
-              Tags
-            </Label>
-            <div className="space-y-3">
-              {tags.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {tags.map(tag => (
-                    <Badge
-                      key={tag.id}
-                      className="bg-primary text-white hover:bg-primary-dark flex items-center gap-1 px-3 py-1">
-                      {tag.text}
-                      <span
-                        onClick={() => removeTag(tag.id)}
-                        className="ml-1 cursor-pointer hover:text-red-300 font-bold"
-                      >
-                        ×
-                      </span>
-                    </Badge>
-                  ))}
-                </div>
-              )}
-              <AutoComplete
-                options={tagOptions}
-                placeholder="Type a tag and press Enter to add"
-                onValueChange={handleTagSelect}
-                isLoading={isLoadingTags}
-                allowCreate={true}
-                clearOnSelect={true}
-              />
-            </div>
-          </div>
+          <TagsField
+            id="edit-event-tags"
+            tags={tags}
+            tagOptions={tagOptions}
+            isLoading={isLoadingTags}
+            onRemoveTag={removeTag}
+            onAddTag={handleTagSelect}
+          />
 
           {/* Override Date */}
           <div className="space-y-3">
