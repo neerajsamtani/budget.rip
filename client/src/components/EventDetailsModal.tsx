@@ -54,13 +54,6 @@ export default function EventDetailsModal({ show, event, lineItemsForEvent, isLo
     }
   }, [show, event]);
 
-  // Update editing line item IDs when lineItemsForEvent changes
-  useEffect(() => {
-    if (lineItemsForEvent.length > 0 && !isEditing) {
-      setEditingLineItemIds(lineItemsForEvent.map(li => li.id));
-    }
-  }, [lineItemsForEvent, isEditing]);
-
   const handleOpenChange = (open: boolean) => {
     if (!open) {
       setIsEditing(false);
@@ -167,12 +160,11 @@ export default function EventDetailsModal({ show, event, lineItemsForEvent, isLo
 
   const total = useMemo(() => {
     const items = isEditing ? currentLineItems : lineItemsForEvent;
-    return items.reduce((prev, cur) => {
-      if (isDuplicateTransaction) {
-        return prev + cur.amount / 2;
-      }
-      return prev + cur.amount;
-    }, 0);
+    if (items.length === 0) return 0;
+    if (isDuplicateTransaction) {
+      return items[0].amount;
+    }
+    return items.reduce((sum, item) => sum + item.amount, 0);
   }, [currentLineItems, lineItemsForEvent, isDuplicateTransaction, isEditing]);
 
   const disableSave = !name || !category || category === 'All' || editingLineItemIds.length === 0;

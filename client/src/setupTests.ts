@@ -59,4 +59,15 @@ Object.defineProperty(window, 'matchMedia', {
         removeEventListener: jest.fn(),
         dispatchEvent: jest.fn(),
     })),
+});
+
+// Shim PointerEvent for Radix UI components
+// JSDom doesn't support PointerEvent which Radix relies on for dialogs/popovers
+// See: https://github.com/radix-ui/primitives/issues/1241
+window.PointerEvent = MouseEvent as typeof PointerEvent;
+
+// Clean up Radix dialog styles between tests to prevent pointer-events leakage
+afterEach(() => {
+    document.body.style.pointerEvents = '';
+    document.body.removeAttribute('data-scroll-locked');
 }); 

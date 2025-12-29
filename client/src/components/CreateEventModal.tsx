@@ -68,12 +68,11 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
   const disableSubmit = name.value === "" || category.value === "" || category.value === "All"
 
   const total = React.useMemo(() => {
-    return selectedLineItems.reduce((prev, cur) => {
-      if (isDuplicateTransaction.value) {
-        return prev + cur.amount / 2;
-      }
-      return prev + cur.amount;
-    }, 0);
+    if (selectedLineItems.length === 0) return 0;
+    if (isDuplicateTransaction.value) {
+      return selectedLineItems[0].amount;
+    }
+    return selectedLineItems.reduce((sum, item) => sum + item.amount, 0);
   }, [selectedLineItems, isDuplicateTransaction]);
 
 

@@ -1,7 +1,7 @@
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { LineItemInterface } from '../../contexts/LineItemsContext';
-import { mockAxiosInstance, render, screen, waitFor } from '../../utils/test-utils';
+import { fireEvent, mockAxiosInstance, render, screen, waitFor } from '../../utils/test-utils';
 import { EventInterface } from '../Event';
 import EventDetailsModal from '../EventDetailsModal';
 
@@ -17,6 +17,32 @@ jest.mock('sonner', () => {
         }),
     };
 });
+
+// Mock the API hooks
+const mockUpdateEvent = jest.fn();
+const mockDeleteEvent = jest.fn();
+jest.mock('../../hooks/useApi', () => ({
+    ...jest.requireActual('../../hooks/useApi'),
+    useDeleteEvent: () => ({
+        mutate: mockDeleteEvent,
+        isPending: false,
+    }),
+    useUpdateEvent: () => ({
+        mutate: mockUpdateEvent,
+        isPending: false,
+    }),
+    useTags: () => ({
+        data: [
+            { id: 'tag-1', name: 'food' },
+            { id: 'tag-2', name: 'travel' },
+        ],
+        isLoading: false,
+    }),
+    useLineItems: () => ({
+        data: [],
+        isLoading: false,
+    }),
+}));
 
 // Mock the LineItem component
 jest.mock('../LineItem', () => {
@@ -83,6 +109,13 @@ describe('EventDetailsModal', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         mockAxiosInstance.delete.mockResolvedValue({ data: { success: true } });
+        // Default mock implementation - calls onSuccess
+        mockDeleteEvent.mockImplementation((_eventId, options) => {
+            options?.onSuccess?.();
+        });
+        mockUpdateEvent.mockImplementation((_data, options) => {
+            options?.onSuccess?.();
+        });
     });
 
     describe('Rendering', () => {
@@ -283,8 +316,9 @@ describe('EventDetailsModal', () => {
             await userEvent.click(deleteButton);
 
             await waitFor(() => {
-                expect(mockAxiosInstance.delete).toHaveBeenCalledWith(
-                    expect.stringContaining(`api/events/${mockEvent.id}`)
+                expect(mockDeleteEvent).toHaveBeenCalledWith(
+                    'event-1',
+                    expect.any(Object)
                 );
             });
         });
@@ -334,7 +368,9 @@ describe('EventDetailsModal', () => {
 
         it('handles API error gracefully', async () => {
             const { toast } = require('sonner');
-            mockAxiosInstance.delete.mockRejectedValue(new Error('API Error'));
+            mockDeleteEvent.mockImplementation((eventId, options) => {
+                options?.onError?.(new Error('API Error'));
+            });
 
             render(
                 <EventDetailsModal
@@ -358,7 +394,9 @@ describe('EventDetailsModal', () => {
         });
 
         it('does not call onHide when deletion fails', async () => {
-            mockAxiosInstance.delete.mockRejectedValue(new Error('API Error'));
+            mockDeleteEvent.mockImplementation((eventId, options) => {
+                options?.onError?.(new Error('API Error'));
+            });
 
             render(
                 <EventDetailsModal
@@ -373,7 +411,7 @@ describe('EventDetailsModal', () => {
             const deleteButton = screen.getByRole('button', { name: /delete/i });
             await userEvent.click(deleteButton);
 
-            // Wait a bit to ensure the promise rejection is handled
+            // Wait a bit to ensure the error is handled
             await new Promise(resolve => setTimeout(resolve, 100));
 
             expect(mockOnHide).not.toHaveBeenCalled();
@@ -381,10 +419,7 @@ describe('EventDetailsModal', () => {
     });
 
     describe('Environment Configuration', () => {
-        it('uses VITE_API_ENDPOINT environment variable', async () => {
-            const originalEnv = process.env.VITE_API_ENDPOINT;
-            process.env.VITE_API_ENDPOINT = 'http://localhost:3000/';
-
+        it('calls delete mutation with event id', async () => {
             render(
                 <EventDetailsModal
                     show={true}
@@ -399,13 +434,11 @@ describe('EventDetailsModal', () => {
             await userEvent.click(deleteButton);
 
             await waitFor(() => {
-                expect(mockAxiosInstance.delete).toHaveBeenCalledWith(
-                    'api/events/event-1'
+                expect(mockDeleteEvent).toHaveBeenCalledWith(
+                    'event-1',
+                    expect.any(Object)
                 );
             });
-
-            // Restore original environment
-            process.env.VITE_API_ENDPOINT = originalEnv;
         });
     });
 
@@ -501,7 +534,6 @@ describe('EventDetailsModal', () => {
 
         it('handles event with different data types', () => {
             const eventWithDifferentData: EventInterface = {
-                _id: 'event-2',
                 id: 'event-2',
                 name: 'Another Event',
                 category: 'Shopping',
@@ -513,7 +545,6 @@ describe('EventDetailsModal', () => {
 
             const singleLineItem: LineItemInterface[] = [
                 {
-                    _id: 'line-3',
                     id: 'line-3',
                     date: 1640995200,
                     payment_method: 'debit_card',
@@ -581,6 +612,323 @@ describe('EventDetailsModal', () => {
                     duration: 3500,
                 });
             });
+        });
+    });
+
+    describe('Edit Mode', () => {
+        beforeEach(() => {
+            mockUpdateEvent.mockClear();
+        });
+
+        it('enters edit mode when Edit button is clicked', async () => {
+            render(
+                <EventDetailsModal
+                    show={true}
+                    event={mockEvent}
+                    lineItemsForEvent={mockLineItems}
+                    isLoadingLineItemsForEvent={false}
+                    onHide={mockOnHide}
+                />
+            );
+
+            // Should be in view mode initially
+            expect(screen.getByText('Test Event')).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: /edit/i })).toBeInTheDocument();
+
+            // Click Edit button
+            await userEvent.click(screen.getByRole('button', { name: /edit/i }));
+
+            // Should now be in edit mode
+            expect(screen.getByText('Edit Event')).toBeInTheDocument();
+            expect(screen.getByLabelText(/event name/i)).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: /cancel/i })).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: /save changes/i })).toBeInTheDocument();
+        });
+
+        it('populates form fields with event data when entering edit mode', async () => {
+            render(
+                <EventDetailsModal
+                    show={true}
+                    event={mockEvent}
+                    lineItemsForEvent={mockLineItems}
+                    isLoadingLineItemsForEvent={false}
+                    onHide={mockOnHide}
+                />
+            );
+
+            await userEvent.click(screen.getByRole('button', { name: /edit/i }));
+
+            // Check that name field is populated
+            expect(screen.getByLabelText(/event name/i)).toHaveValue('Test Event');
+
+            // Check that tags are displayed
+            expect(screen.getByText('important')).toBeInTheDocument();
+            expect(screen.getByText('business')).toBeInTheDocument();
+        });
+
+        it('cancels editing and returns to view mode', async () => {
+            render(
+                <EventDetailsModal
+                    show={true}
+                    event={mockEvent}
+                    lineItemsForEvent={mockLineItems}
+                    isLoadingLineItemsForEvent={false}
+                    onHide={mockOnHide}
+                />
+            );
+
+            // Enter edit mode
+            await userEvent.click(screen.getByRole('button', { name: /edit/i }));
+            expect(screen.getByText('Edit Event')).toBeInTheDocument();
+
+            // Make a change
+            const nameInput = screen.getByLabelText(/event name/i);
+            await userEvent.clear(nameInput);
+            await userEvent.type(nameInput, 'Modified Name');
+
+            // Cancel editing
+            await userEvent.click(screen.getByRole('button', { name: /cancel/i }));
+
+            // Should be back in view mode with original name
+            expect(screen.getByText('Test Event')).toBeInTheDocument();
+            expect(screen.queryByText('Edit Event')).not.toBeInTheDocument();
+        });
+
+        it('displays line items with remove buttons in edit mode', async () => {
+            render(
+                <EventDetailsModal
+                    show={true}
+                    event={mockEvent}
+                    lineItemsForEvent={mockLineItems}
+                    isLoadingLineItemsForEvent={false}
+                    onHide={mockOnHide}
+                />
+            );
+
+            await userEvent.click(screen.getByRole('button', { name: /edit/i }));
+
+            // Should show line items with descriptions
+            expect(screen.getByText('Lunch at restaurant')).toBeInTheDocument();
+            expect(screen.getByText('Dinner at cafe')).toBeInTheDocument();
+
+            // Should show remove buttons
+            const removeButtons = screen.getAllByRole('button', { name: /remove/i });
+            expect(removeButtons.length).toBe(2);
+        });
+
+        it('removes a line item when Remove is clicked', async () => {
+            render(
+                <EventDetailsModal
+                    show={true}
+                    event={mockEvent}
+                    lineItemsForEvent={mockLineItems}
+                    isLoadingLineItemsForEvent={false}
+                    onHide={mockOnHide}
+                />
+            );
+
+            await userEvent.click(screen.getByRole('button', { name: /edit/i }));
+
+            // Should show both line items initially
+            expect(screen.getByText('Lunch at restaurant')).toBeInTheDocument();
+            expect(screen.getByText('Dinner at cafe')).toBeInTheDocument();
+            expect(screen.getByText('Line Items (2)')).toBeInTheDocument();
+
+            // Remove the first line item
+            const removeButtons = screen.getAllByRole('button', { name: /remove/i });
+            await userEvent.click(removeButtons[0]);
+
+            // Should now show only one line item
+            expect(screen.queryByText('Lunch at restaurant')).not.toBeInTheDocument();
+            expect(screen.getByText('Dinner at cafe')).toBeInTheDocument();
+            expect(screen.getByText('Line Items (1)')).toBeInTheDocument();
+        });
+
+        it('disables remove button when only one line item remains', async () => {
+            const singleLineItem = [mockLineItems[0]];
+            const singleLineItemEvent = { ...mockEvent, line_items: ['line-1'] };
+
+            render(
+                <EventDetailsModal
+                    show={true}
+                    event={singleLineItemEvent}
+                    lineItemsForEvent={singleLineItem}
+                    isLoadingLineItemsForEvent={false}
+                    onHide={mockOnHide}
+                />
+            );
+
+            await userEvent.click(screen.getByRole('button', { name: /edit/i }));
+
+            // Remove button should be disabled
+            const removeButton = screen.getByRole('button', { name: /remove/i });
+            expect(removeButton).toBeDisabled();
+        });
+
+        it('adds a removed line item back to the event', async () => {
+            render(
+                <EventDetailsModal
+                    show={true}
+                    event={mockEvent}
+                    lineItemsForEvent={mockLineItems}
+                    isLoadingLineItemsForEvent={false}
+                    onHide={mockOnHide}
+                />
+            );
+
+            await userEvent.click(screen.getByRole('button', { name: /edit/i }));
+
+            // Remove the first line item
+            const removeButtons = screen.getAllByRole('button', { name: /remove/i });
+            await userEvent.click(removeButtons[0]);
+
+            // Should now show only one line item
+            expect(screen.queryByText('Lunch at restaurant')).not.toBeInTheDocument();
+            expect(screen.getByText('Line Items (1)')).toBeInTheDocument();
+
+            // The autocomplete for adding line items should now be visible
+            expect(screen.getByPlaceholderText(/search for line items/i)).toBeInTheDocument();
+
+            // Type in the autocomplete to search for the removed item
+            const autocomplete = screen.getByPlaceholderText(/search for line items/i);
+            await userEvent.type(autocomplete, 'Lunch');
+
+            // Click on the matching option to add it back
+            await waitFor(() => {
+                expect(screen.getByText(/Lunch at restaurant/)).toBeInTheDocument();
+            });
+            await userEvent.click(screen.getByText(/Lunch at restaurant/));
+
+            // Should now show both line items again
+            await waitFor(() => {
+                expect(screen.getByText('Line Items (2)')).toBeInTheDocument();
+            });
+        });
+
+        it('displays total in edit mode', async () => {
+            render(
+                <EventDetailsModal
+                    show={true}
+                    event={mockEvent}
+                    lineItemsForEvent={mockLineItems}
+                    isLoadingLineItemsForEvent={false}
+                    onHide={mockOnHide}
+                />
+            );
+
+            await userEvent.click(screen.getByRole('button', { name: /edit/i }));
+
+            // Total should be displayed (75 + 75 = 150)
+            expect(screen.getByText('Total:')).toBeInTheDocument();
+            expect(screen.getByText('$150.00')).toBeInTheDocument();
+        });
+
+        // Using fireEvent instead of userEvent due to Radix dialog + JSDom incompatibility.
+        // JSDom doesn't support PointerEvent which Radix needs for scroll lock cleanup,
+        // causing pointer-events: none to persist on body between tests.
+        // See: https://github.com/radix-ui/primitives/issues/1241
+        it('updates total when duplicate transaction is checked', () => {
+            render(
+                <EventDetailsModal
+                    show={true}
+                    event={mockEvent}
+                    lineItemsForEvent={mockLineItems}
+                    isLoadingLineItemsForEvent={false}
+                    onHide={mockOnHide}
+                />
+            );
+
+            fireEvent.click(screen.getByRole('button', { name: /edit/i }));
+
+            // Initial total should be $150.00
+            expect(screen.getByText('$150.00')).toBeInTheDocument();
+
+            // Check duplicate transaction checkbox
+            const checkbox = screen.getByRole('checkbox');
+            fireEvent.click(checkbox);
+
+            // Total should now be first item only ($75.00)
+            expect(screen.getByText('$75.00')).toBeInTheDocument();
+        });
+
+        it('calls update API with correct data when saving', async () => {
+            render(
+                <EventDetailsModal
+                    show={true}
+                    event={mockEvent}
+                    lineItemsForEvent={mockLineItems}
+                    isLoadingLineItemsForEvent={false}
+                    onHide={mockOnHide}
+                />
+            );
+
+            await userEvent.click(screen.getByRole('button', { name: /edit/i }));
+
+            // Modify the name
+            const nameInput = screen.getByLabelText(/event name/i);
+            await userEvent.clear(nameInput);
+            await userEvent.type(nameInput, 'Updated Event Name');
+
+            // Save changes
+            await userEvent.click(screen.getByRole('button', { name: /save changes/i }));
+
+            // Verify update was called with correct data
+            expect(mockUpdateEvent).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    eventId: 'event-1',
+                    name: 'Updated Event Name',
+                    category: 'Dining',
+                    line_items: ['line-1', 'line-2'],
+                }),
+                expect.any(Object)
+            );
+        });
+
+        it('disables save button when name is empty', async () => {
+            render(
+                <EventDetailsModal
+                    show={true}
+                    event={mockEvent}
+                    lineItemsForEvent={mockLineItems}
+                    isLoadingLineItemsForEvent={false}
+                    onHide={mockOnHide}
+                />
+            );
+
+            await userEvent.click(screen.getByRole('button', { name: /edit/i }));
+
+            // Clear the name
+            const nameInput = screen.getByLabelText(/event name/i);
+            await userEvent.clear(nameInput);
+
+            // Save button should be disabled
+            expect(screen.getByRole('button', { name: /save changes/i })).toBeDisabled();
+        });
+
+        it('removes tag when X is clicked', async () => {
+            render(
+                <EventDetailsModal
+                    show={true}
+                    event={mockEvent}
+                    lineItemsForEvent={mockLineItems}
+                    isLoadingLineItemsForEvent={false}
+                    onHide={mockOnHide}
+                />
+            );
+
+            await userEvent.click(screen.getByRole('button', { name: /edit/i }));
+
+            // Both tags should be visible
+            expect(screen.getByText('important')).toBeInTheDocument();
+            expect(screen.getByText('business')).toBeInTheDocument();
+
+            // Find and click the X button for the first tag
+            const tagBadges = screen.getAllByText('×');
+            await userEvent.click(tagBadges[0]);
+
+            // First tag should be removed
+            expect(screen.queryByText('important')).not.toBeInTheDocument();
+            expect(screen.getByText('business')).toBeInTheDocument();
         });
     });
 }); 
