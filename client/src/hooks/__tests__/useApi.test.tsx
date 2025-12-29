@@ -58,7 +58,7 @@ describe('useApi hooks', () => {
         });
 
         it('generates correct query keys for lineItems', () => {
-            expect(queryKeys.lineItems({ reviewed: true })).toEqual(['lineItems', { reviewed: true }]);
+            expect(queryKeys.lineItems({ onlyLineItemsToReview: true })).toEqual(['lineItems', { onlyLineItemsToReview: true }]);
             expect(queryKeys.lineItems({ paymentMethod: 'cash' })).toEqual(['lineItems', { paymentMethod: 'cash' }]);
             expect(queryKeys.lineItems()).toEqual(['lineItems', undefined]);
         });
@@ -125,17 +125,17 @@ describe('useApi hooks', () => {
             expect(result.current.data).toEqual(mockLineItems);
         });
 
-        it('fetches line items with reviewed filter', async () => {
+        it('fetches line items with onlyLineItemsToReview filter', async () => {
             mockGet.mockResolvedValue({ data: { data: [] } });
 
-            const { result } = renderHook(() => useLineItems({ reviewed: true }), {
+            const { result } = renderHook(() => useLineItems({ onlyLineItemsToReview: true }), {
                 wrapper: createWrapper(),
             });
 
             await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
             expect(mockGet).toHaveBeenCalledWith('api/line_items', {
-                params: { reviewed: true },
+                params: { only_line_items_to_review: true },
             });
         });
 

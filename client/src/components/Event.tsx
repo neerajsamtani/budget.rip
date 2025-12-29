@@ -16,6 +16,7 @@ export interface EventInterface {
     date: number;
     line_items: string[];
     tags?: string[];
+    is_duplicate_transaction?: boolean;
 }
 
 function useEventDetails(eventId: string) {

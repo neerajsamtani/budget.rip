@@ -197,9 +197,9 @@ describe('CreateEventModal', () => {
             const checkbox = screen.getByRole('checkbox');
             await userEvent.click(checkbox);
 
-            // Total should be $75 (half of 150)
+            // Total should be $50 (first line item only, matching server behavior)
             expect(screen.getByText('Total:')).toBeInTheDocument();
-            expect(screen.getByText('$75.00')).toBeInTheDocument();
+            expect(screen.getByText('$50.00')).toBeInTheDocument();
         });
     });
 

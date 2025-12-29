@@ -457,6 +457,139 @@ class TestEventAPI:
         data = response.get_json()
         assert data["error"] == "Event not found"
 
+    def test_update_event_api_success(
+        self,
+        test_client,
+        jwt_token,
+        flask_app,
+        create_line_item_via_cash,
+        create_event_via_api,
+    ):
+        """Test PUT /api/events/<event_id> endpoint - success case"""
+        # Create test line items via API
+        create_line_item_via_cash(date="2009-02-13", person="Person1", description="Transaction 1", amount=100)
+        create_line_item_via_cash(date="2009-02-14", person="Person2", description="Transaction 2", amount=50)
+
+        # Get created line item IDs
+        with flask_app.app_context():
+            from dao import get_all_data
+
+            all_line_items = get_all_data(line_items_collection)
+            line_item_ids = [item["id"] for item in all_line_items]
+            assert len(line_item_ids) == 2
+
+        # Create event via API
+        event_response = create_event_via_api(
+            {
+                "name": "Original Event",
+                "category": "Dining",
+                "date": "2009-02-13",
+                "line_items": [line_item_ids[0]],
+                "tags": ["original"],
+                "is_duplicate_transaction": False,
+            }
+        )
+        event_id = event_response["id"]
+
+        # Update event via API
+        update_data = {
+            "name": "Updated Event",
+            "category": "Shopping",
+            "line_items": line_item_ids,  # Add both line items
+            "tags": ["updated", "modified"],
+            "is_duplicate_transaction": False,
+        }
+
+        response = test_client.put(
+            f"/api/events/{event_id}",
+            json=update_data,
+            headers={"Authorization": "Bearer " + jwt_token},
+        )
+
+        assert response.status_code == 200
+        response_data = response.get_json()
+        assert response_data["name"] == "Updated Event"
+        assert response_data["category"] == "Shopping"
+        assert response_data["amount"] == 150  # 100 + 50
+        assert set(response_data["line_items"]) == set(line_item_ids)
+        assert set(response_data["tags"]) == {"updated", "modified"}
+
+        # Verify event was updated in database
+        with flask_app.app_context():
+            from dao import get_item_by_id
+
+            updated_event = get_item_by_id(events_collection, event_id)
+            assert updated_event is not None
+            assert updated_event["name"] == "Updated Event"
+            assert updated_event["category"] == "Shopping"
+
+    def test_update_event_api_not_found(self, test_client, jwt_token):
+        """Test PUT /api/events/<event_id> endpoint - not found case"""
+        update_data = {
+            "name": "Updated Event",
+            "category": "Shopping",
+            "line_items": ["some_id"],
+        }
+
+        response = test_client.put(
+            "/api/events/nonexistent_id",
+            json=update_data,
+            headers={"Authorization": "Bearer " + jwt_token},
+        )
+
+        assert response.status_code == 404
+        data = response.get_json()
+        assert data["error"] == "Event not found"
+
+    def test_update_event_api_no_line_items(
+        self,
+        test_client,
+        jwt_token,
+        flask_app,
+        create_line_item_via_cash,
+        create_event_via_api,
+    ):
+        """Test PUT /api/events/<event_id> endpoint - no line items"""
+        # Create test line item via API
+        create_line_item_via_cash(date="2009-02-13", person="Person1", description="Transaction 1", amount=100)
+
+        # Get created line item ID
+        with flask_app.app_context():
+            from dao import get_all_data
+
+            all_line_items = get_all_data(line_items_collection)
+            line_item_ids = [item["id"] for item in all_line_items]
+
+        # Create event via API
+        event_response = create_event_via_api(
+            {
+                "name": "Original Event",
+                "category": "Dining",
+                "date": "2009-02-13",
+                "line_items": line_item_ids,
+                "tags": [],
+                "is_duplicate_transaction": False,
+            }
+        )
+        event_id = event_response["id"]
+
+        # Try to update with no line items
+        update_data = {
+            "name": "Updated Event",
+            "category": "Shopping",
+            "line_items": [],
+        }
+
+        response = test_client.put(
+            f"/api/events/{event_id}",
+            json=update_data,
+            headers={"Authorization": "Bearer " + jwt_token},
+        )
+
+        assert response.status_code == 400
+        data = response.get_json()
+        assert data["error"] == "Event must have at least one line item"
+
     def test_get_line_items_for_event_api_success(
         self,
         test_client,
