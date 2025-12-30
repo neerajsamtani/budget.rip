@@ -59,7 +59,7 @@ function AlertDialogContent({
         )}
         {...props}
       >
-        <div className="rounded-lg bg-white p-6 shadow-lg" style={{ border: '1px solid #E0E0E0' }}>
+        <div className="rounded-lg bg-white p-6 shadow-lg space-y-4" style={{ border: '1px solid #E0E0E0' }}>
           {children}
         </div>
       </AlertDialogPrimitive.Content>

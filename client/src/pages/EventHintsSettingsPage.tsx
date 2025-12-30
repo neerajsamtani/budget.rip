@@ -480,6 +480,7 @@ export default function EventHintsSettingsPage() {
                         <AlertDialogAction
                             onClick={() => deletingHintId && handleDelete(deletingHintId)}
                             disabled={deleteMutation.isPending}
+                            className="bg-semantic-error text-white hover:bg-semantic-error-dark focus-visible:ring-semantic-error"
                         >
                             {deleteMutation.isPending ? <Spinner size="sm" /> : "Delete"}
                         </AlertDialogAction>
