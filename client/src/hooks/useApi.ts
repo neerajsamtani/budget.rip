@@ -14,6 +14,9 @@ export const queryKeys = {
   accountsAndBalances: () => ['accountsAndBalances'] as const,
   paymentMethods: () => ['paymentMethods'] as const,
   tags: () => ['tags'] as const,
+  eventHints: () => ['eventHints'] as const,
+  eventHintSuggestion: (lineItemIds: string[]) => ['eventHintSuggestion', lineItemIds] as const,
+  categories: () => ['categories'] as const,
 };
 
 // Query Hooks
@@ -320,6 +323,155 @@ export function useCreateFinancialConnectionsSession(): UseMutationResult<string
     mutationFn: async () => {
       const response = await axiosInstance.post('api/create-fc-session');
       return response.data.clientSecret;
+    },
+  });
+}
+
+// Event Hints
+export interface EventHint {
+  id: string;
+  name: string;
+  cel_expression: string;
+  prefill_name: string;
+  prefill_category: string | null;
+  prefill_category_id: string | null;
+  display_order: number;
+  is_active: boolean;
+}
+
+export interface EventHintSuggestion {
+  name: string;
+  category: string | null;
+  matched_hint_id: string;
+  matched_hint_name: string;
+}
+
+export interface CategoryOption {
+  id: string;
+  name: string;
+}
+
+export function useEventHints(): UseQueryResult<EventHint[]> {
+  return useQuery({
+    queryKey: queryKeys.eventHints(),
+    queryFn: async () => {
+      const response = await axiosInstance.get('api/event-hints');
+      return response.data.data as EventHint[];
+    },
+  });
+}
+
+export function useCategories(): UseQueryResult<CategoryOption[]> {
+  return useQuery({
+    queryKey: queryKeys.categories(),
+    queryFn: async () => {
+      const response = await axiosInstance.get('api/categories');
+      return response.data.data as CategoryOption[];
+    },
+  });
+}
+
+export function useEvaluateEventHints(lineItemIds: string[], enabled: boolean = true): UseQueryResult<EventHintSuggestion | null> {
+  return useQuery({
+    queryKey: queryKeys.eventHintSuggestion(lineItemIds),
+    queryFn: async () => {
+      if (lineItemIds.length === 0) return null;
+      const response = await axiosInstance.post('api/event-hints/evaluate', { line_item_ids: lineItemIds });
+      return response.data.data.suggestion as EventHintSuggestion | null;
+    },
+    enabled: enabled && lineItemIds.length > 0,
+  });
+}
+
+interface CreateEventHintData {
+  name: string;
+  cel_expression: string;
+  prefill_name: string;
+  prefill_category_id?: string | null;
+  is_active?: boolean;
+}
+
+export function useCreateEventHint(): UseMutationResult<EventHint, Error, CreateEventHintData> {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: CreateEventHintData) => {
+      const response = await axiosInstance.post('api/event-hints', data);
+      return response.data.data as EventHint;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.eventHints() });
+      // Also invalidate suggestion cache since hints changed
+      queryClient.invalidateQueries({ queryKey: ['eventHintSuggestion'] });
+    },
+  });
+}
+
+interface UpdateEventHintData {
+  id: string;
+  name?: string;
+  cel_expression?: string;
+  prefill_name?: string;
+  prefill_category_id?: string | null;
+  is_active?: boolean;
+}
+
+export function useUpdateEventHint(): UseMutationResult<EventHint, Error, UpdateEventHintData> {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, ...data }: UpdateEventHintData) => {
+      const response = await axiosInstance.put(`api/event-hints/${id}`, data);
+      return response.data.data as EventHint;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.eventHints() });
+      // Also invalidate suggestion cache since hints changed
+      queryClient.invalidateQueries({ queryKey: ['eventHintSuggestion'] });
+    },
+  });
+}
+
+export function useDeleteEventHint(): UseMutationResult<void, Error, string> {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      await axiosInstance.delete(`api/event-hints/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.eventHints() });
+      // Also invalidate suggestion cache since hints changed
+      queryClient.invalidateQueries({ queryKey: ['eventHintSuggestion'] });
+    },
+  });
+}
+
+export function useReorderEventHints(): UseMutationResult<void, Error, string[]> {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (hintIds: string[]) => {
+      await axiosInstance.put('api/event-hints/reorder', { hint_ids: hintIds });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.eventHints() });
+      // Also invalidate suggestion cache since order affects which hint matches first
+      queryClient.invalidateQueries({ queryKey: ['eventHintSuggestion'] });
+    },
+  });
+}
+
+interface ValidateCelResult {
+  is_valid: boolean;
+  error?: string;
+}
+
+export function useValidateCelExpression(): UseMutationResult<ValidateCelResult, Error, string> {
+  return useMutation({
+    mutationFn: async (celExpression: string) => {
+      const response = await axiosInstance.post('api/event-hints/validate', { cel_expression: celExpression });
+      return response.data.data as ValidateCelResult;
     },
   });
 }

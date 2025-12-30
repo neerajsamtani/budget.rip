@@ -13,14 +13,14 @@
   --font-inter: 'Inter', system-ui, -apple-system, sans-serif;
   --font-source-sans: 'Source Sans Pro', -apple-system, BlinkMacSystemFont, sans-serif;
 
-  /* Nordic 8px spacing system */
-  --spacing-xs: 0.25rem; /* 4px */
-  --spacing-sm: 0.5rem; /* 8px */
-  --spacing-md: 1rem; /* 16px */
-  --spacing-lg: 1.5rem; /* 24px */
-  --spacing-xl: 2rem; /* 32px */
-  --spacing-2xl: 3rem; /* 48px */
-  --spacing-3xl: 4rem; /* 64px */
+  /* Nordic 8px spacing system - using numeric names to avoid conflicts with Tailwind size tokens */
+  --spacing-1: 0.25rem; /* 4px */
+  --spacing-2: 0.5rem; /* 8px */
+  --spacing-4: 1rem; /* 16px */
+  --spacing-6: 1.5rem; /* 24px */
+  --spacing-8: 2rem; /* 32px */
+  --spacing-12: 3rem; /* 48px */
+  --spacing-16: 4rem; /* 64px */
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);

@@ -6,7 +6,6 @@ import { ResponsiveDialog, useIsMobile } from "@/components/ui/responsive-dialog
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CATEGORIES } from '@/constants/categories';
 import React, { useEffect, useState } from 'react';
-import { getPrefillFromLineItems } from '.././data/EventHints';
 import { Body } from "../components/ui/typography";
 import { useLineItems, useLineItemsDispatch } from "../contexts/LineItemsContext";
 import { FormField, useField } from '../hooks/useField';
@@ -14,7 +13,7 @@ import { CurrencyFormatter } from '../utils/formatters';
 import defaultNameCleanup from '../utils/stringHelpers';
 import { showSuccessToast, showErrorToast } from '../utils/toast-helpers';
 import { calculateEventTotal } from '../utils/eventHelpers';
-import { useCreateEvent, useTags } from '../hooks/useApi';
+import { useCreateEvent, useTags, useEvaluateEventHints } from '../hooks/useApi';
 import { Option } from './Autocomplete';
 import { Tag, TagsField } from './TagsField';
 
@@ -27,13 +26,27 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
   const selectedLineItems = (lineItems || []).filter(lineItem => lineItem.isSelected);
   const selectedLineItemIds = selectedLineItems.map(lineItem => lineItem.id);
 
+  // Fetch prefill suggestion from server when line items are selected
+  const { data: prefillSuggestion, isLoading: isLoadingHints, isError: isHintsError } = useEvaluateEventHints(
+    selectedLineItemIds,
+    selectedLineItemIds.length > 0
+  );
+
   useEffect(() => {
+    // Wait for hints to finish loading before prefilling
+    if (isLoadingHints) return;
+
     if (!show && selectedLineItems.length > 0) {
-      const prefillSuggestion = getPrefillFromLineItems(selectedLineItems);
-      if (prefillSuggestion !== null) {
+      if (isHintsError) {
+        showErrorToast("Failed to load event hints. Using default name.");
+      }
+      if (prefillSuggestion) {
         name.setCustomValue(prefillSuggestion.name)
-        category.setCustomValue(prefillSuggestion.category)
+        if (prefillSuggestion.category) {
+          category.setCustomValue(prefillSuggestion.category)
+        }
       } else {
+        // Fall back to default name cleanup (also handles error case)
         name.setCustomValue(defaultNameCleanup(selectedLineItems[0].description))
       }
     } else if (!show) {
@@ -42,7 +55,7 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
     }
     // If we add name or category here, it will cause an infinite render loop
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedLineItems, show])
+  }, [selectedLineItems, show, prefillSuggestion, isLoadingHints, isHintsError])
 
   const name = useField<string>("text", "" as string)
   const category = useField("select", "All" as string)
