@@ -1,6 +1,7 @@
+from datetime import UTC, datetime
+
 import pytest
 
-from datetime import datetime, UTC
 from models.sql_models import Category, EventHint, LineItem, PaymentMethod, Transaction, User
 from utils.cel_evaluator import CELEvaluator, evaluate_hints
 

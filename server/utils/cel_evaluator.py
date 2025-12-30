@@ -75,6 +75,7 @@ def _build_line_item_context(item: dict) -> dict:
 
 def _lowercase_string_literals(expression: str) -> str:
     """Lowercase all string literals in a CEL expression for case-insensitive matching."""
+
     # Match double-quoted strings and lowercase their contents
     def lowercase_match(match: re.Match) -> str:
         return '"' + match.group(1).lower() + '"'

@@ -10,11 +10,11 @@ from typing import Any
 
 from flask import Blueprint, Response, jsonify, request
 from flask_jwt_extended import get_current_user, jwt_required
+from sqlalchemy import func
+from sqlalchemy.orm import joinedload
 
 from models.database import SessionLocal
 from models.sql_models import Category, EventHint, LineItem
-from sqlalchemy import func
-from sqlalchemy.orm import joinedload
 from utils.cel_evaluator import CELEvaluator, evaluate_hints
 from utils.id_generator import generate_id
 
@@ -295,10 +295,7 @@ def evaluate_event_hints() -> tuple[Response, int]:
     try:
         # Get line items
         line_items = (
-            db.query(LineItem)
-            .options(joinedload(LineItem.payment_method))
-            .filter(LineItem.id.in_(line_item_ids))
-            .all()
+            db.query(LineItem).options(joinedload(LineItem.payment_method)).filter(LineItem.id.in_(line_item_ids)).all()
         )
 
         if not line_items:
@@ -356,8 +353,6 @@ def get_all_categories() -> tuple[Response, int]:
     db = SessionLocal()
     try:
         categories = db.query(Category).filter(Category.is_active == True).order_by(Category.name).all()  # noqa: E712
-        return jsonify({
-            "data": [{"id": c.id, "name": c.name} for c in categories]
-        }), 200
+        return jsonify({"data": [{"id": c.id, "name": c.name} for c in categories]}), 200
     finally:
         db.close()

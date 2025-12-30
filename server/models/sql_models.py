@@ -226,9 +226,7 @@ class EventHint(Base):
     name = Column(String(255), nullable=False)
     cel_expression = Column(Text, nullable=False)
     prefill_name = Column(String(255), nullable=False)
-    prefill_category_id = Column(
-        String(255), ForeignKey("categories.id", ondelete="SET NULL"), nullable=True
-    )
+    prefill_category_id = Column(String(255), ForeignKey("categories.id", ondelete="SET NULL"), nullable=True)
     display_order = Column(Integer, nullable=False, default=0)
     is_active = Column(Boolean, nullable=False, default=True)
     created_at = Column(TIMESTAMP(timezone=True), default=lambda: datetime.now(UTC))

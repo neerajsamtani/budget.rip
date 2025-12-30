@@ -37,6 +37,7 @@ from dao import (
 from resources.auth import auth_blueprint
 from resources.cash import cash_blueprint, cash_to_line_items
 from resources.event import events_blueprint
+from resources.event_hint import event_hints_blueprint
 from resources.line_item import all_line_items, line_items_blueprint
 from resources.monthly_breakdown import monthly_breakdown_blueprint
 from resources.splitwise import (
@@ -51,7 +52,6 @@ from resources.stripe import (
     stripe_to_line_items,
 )
 from resources.tags import tags_blueprint
-from resources.event_hint import event_hints_blueprint
 from resources.venmo import refresh_venmo, venmo_blueprint, venmo_to_line_items
 
 # Configure logging to stdout for cloud compatibility
