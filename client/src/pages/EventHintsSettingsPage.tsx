@@ -6,7 +6,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { GripVertical, Pencil, Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 import React, { useState } from "react";
 import { PageContainer, PageHeader } from "../components/ui/layout";
 import { Body, H1 } from "../components/ui/typography";
@@ -302,15 +302,12 @@ export default function EventHintsSettingsPage() {
                                         className={`border rounded-lg p-4 ${!hint.is_active ? "opacity-60" : ""}`}
                                     >
                                         <div className="flex items-start justify-between gap-2">
-                                            <div className="flex items-center gap-2">
-                                                <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
-                                                <div>
-                                                    <p className="font-medium">{hint.name}</p>
-                                                    <p className="text-sm text-muted-foreground">
-                                                        → {hint.prefill_name}
-                                                        {hint.prefill_category && ` (${hint.prefill_category})`}
-                                                    </p>
-                                                </div>
+                                            <div>
+                                                <p className="font-medium">{hint.name}</p>
+                                                <p className="text-sm text-muted-foreground">
+                                                    → {hint.prefill_name}
+                                                    {hint.prefill_category && ` (${hint.prefill_category})`}
+                                                </p>
                                             </div>
                                             <div className="flex gap-1">
                                                 <Button
@@ -343,7 +340,6 @@ export default function EventHintsSettingsPage() {
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead className="w-8"></TableHead>
                                         <TableHead>Name</TableHead>
                                         <TableHead>Expression</TableHead>
                                         <TableHead>Prefill</TableHead>
@@ -355,7 +351,7 @@ export default function EventHintsSettingsPage() {
                                     {hints.map((hint) =>
                                         editingHintId === hint.id ? (
                                             <TableRow key={hint.id}>
-                                                <TableCell colSpan={6} className="p-0">
+                                                <TableCell colSpan={5} className="p-0">
                                                     <div className="p-4">
                                                         <HintEditor
                                                             hint={hintToFormData(hint)}
@@ -372,9 +368,6 @@ export default function EventHintsSettingsPage() {
                                                 key={hint.id}
                                                 className={!hint.is_active ? "opacity-60" : ""}
                                             >
-                                                <TableCell>
-                                                    <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
-                                                </TableCell>
                                                 <TableCell className="font-medium">{hint.name}</TableCell>
                                                 <TableCell>
                                                     <code className="text-xs bg-muted px-2 py-1 rounded">
@@ -434,13 +427,16 @@ export default function EventHintsSettingsPage() {
                 {/* Help section */}
                 <div className="border rounded-lg p-4 bg-muted/30 space-y-3">
                     <h3 className="font-medium">CEL Expression Examples</h3>
+                    <p className="text-sm text-muted-foreground">
+                        String matching is <strong>case-insensitive</strong>. Available fields: <code>description</code>, <code>amount</code>, <code>payment_method</code>, <code>responsible_party</code>.
+                    </p>
                     <div className="text-sm space-y-2 text-muted-foreground">
                         <p>
-                            <code className="bg-muted px-1 rounded">description.contains("Spotify")</code>
-                            {" - "}Matches line items with "Spotify" in the description
+                            <code className="bg-muted px-1 rounded">description.contains("spotify")</code>
+                            {" - "}Matches "SPOTIFY USA", "Spotify Premium", etc.
                         </p>
                         <p>
-                            <code className="bg-muted px-1 rounded">amount &gt; 100 && payment_method == "Chase Credit"</code>
+                            <code className="bg-muted px-1 rounded">amount &gt; 100 && payment_method == "chase credit"</code>
                             {" - "}Matches amounts over $100 paid with Chase Credit
                         </p>
                         <p>
@@ -448,7 +444,7 @@ export default function EventHintsSettingsPage() {
                             {" - "}Matches when selected line items sum to zero (transfers)
                         </p>
                         <p>
-                            <code className="bg-muted px-1 rounded">all_match(description.contains("Uber"))</code>
+                            <code className="bg-muted px-1 rounded">all_match(description.contains("uber"))</code>
                             {" - "}Matches when all line items contain "Uber"
                         </p>
                     </div>

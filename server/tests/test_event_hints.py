@@ -136,16 +136,21 @@ class TestCELEvaluator:
         line_items = [{"description": "Spotify Premium Monthly", "amount": 9.99}]
         assert evaluator.evaluate(line_items) is True
 
-    def test_contains_case_sensitive(self):
-        """Test that contains is case-sensitive in CEL"""
-        # CEL's contains is case-sensitive
+    def test_contains_case_insensitive(self):
+        """Test that contains is case-insensitive (all strings are lowercased)"""
+        # Mixed case in expression should match uppercase in data
         evaluator = CELEvaluator('description.contains("Spotify")')
         line_items = [{"description": "SPOTIFY PREMIUM", "amount": 9.99}]
-        # This should NOT match because case doesn't match
-        assert evaluator.evaluate(line_items) is False
+        assert evaluator.evaluate(line_items) is True
 
-        # Exact case should match
+        # Lowercase in expression should match mixed case in data
+        evaluator = CELEvaluator('description.contains("spotify")')
         line_items = [{"description": "Spotify Premium", "amount": 9.99}]
+        assert evaluator.evaluate(line_items) is True
+
+        # Uppercase in expression should also match
+        evaluator = CELEvaluator('description.contains("SPOTIFY")')
+        line_items = [{"description": "spotify premium", "amount": 9.99}]
         assert evaluator.evaluate(line_items) is True
 
     def test_contains_no_match(self):

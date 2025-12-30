@@ -45,7 +45,7 @@ LINE_ITEM_DECLS = {
 }
 
 
-def _to_cel_value(value: Any) -> Any:
+def _to_cel_value(value: Any, lowercase_strings: bool = False) -> Any:
     """Convert a Python value to a CEL-compatible value."""
     if value is None:
         return celtypes.StringType("")
@@ -54,18 +54,32 @@ def _to_cel_value(value: Any) -> Any:
     if isinstance(value, (int, float)):
         return celtypes.DoubleType(float(value))
     if isinstance(value, str):
+        if lowercase_strings:
+            return celtypes.StringType(value.lower())
         return celtypes.StringType(value)
     return celtypes.StringType(str(value))
 
 
 def _build_line_item_context(item: dict) -> dict:
-    """Build a CEL evaluation context from a line item dict."""
+    """Build a CEL evaluation context from a line item dict.
+
+    String values are lowercased for case-insensitive matching.
+    """
     return {
-        "description": _to_cel_value(item.get("description", "")),
+        "description": _to_cel_value(item.get("description", ""), lowercase_strings=True),
         "amount": _to_cel_value(item.get("amount", 0)),
-        "payment_method": _to_cel_value(item.get("payment_method", "")),
-        "responsible_party": _to_cel_value(item.get("responsible_party", "")),
+        "payment_method": _to_cel_value(item.get("payment_method", ""), lowercase_strings=True),
+        "responsible_party": _to_cel_value(item.get("responsible_party", ""), lowercase_strings=True),
     }
+
+
+def _lowercase_string_literals(expression: str) -> str:
+    """Lowercase all string literals in a CEL expression for case-insensitive matching."""
+    # Match double-quoted strings and lowercase their contents
+    def lowercase_match(match: re.Match) -> str:
+        return '"' + match.group(1).lower() + '"'
+
+    return re.sub(r'"([^"]*)"', lowercase_match, expression)
 
 
 def _evaluate_single_expression(expression: str, line_items: list[dict]) -> bool:
@@ -74,6 +88,8 @@ def _evaluate_single_expression(expression: str, line_items: list[dict]) -> bool
     Returns True if ANY line item matches the expression.
     """
     try:
+        # Lowercase string literals for case-insensitive matching
+        expression = _lowercase_string_literals(expression)
         env = celpy.Environment(annotations=LINE_ITEM_DECLS)
         ast = env.compile(expression)
         prgm = env.program(ast)
@@ -95,6 +111,8 @@ def _evaluate_single_expression(expression: str, line_items: list[dict]) -> bool
 def _evaluate_single_item(expression: str, item: dict) -> bool:
     """Evaluate an expression against a single line item."""
     try:
+        # Lowercase string literals for case-insensitive matching
+        expression = _lowercase_string_literals(expression)
         env = celpy.Environment(annotations=LINE_ITEM_DECLS)
         ast = env.compile(expression)
         prgm = env.program(ast)
