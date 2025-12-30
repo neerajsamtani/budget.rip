@@ -1,3 +1,13 @@
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -184,6 +194,7 @@ export default function EventHintsSettingsPage() {
 
     const [editingHintId, setEditingHintId] = useState<string | null>(null);
     const [isCreating, setIsCreating] = useState(false);
+    const [deletingHintId, setDeletingHintId] = useState<string | null>(null);
 
     const isLoading = isLoadingHints || isLoadingCategories;
 
@@ -227,11 +238,15 @@ export default function EventHintsSettingsPage() {
     };
 
     const handleDelete = (id: string) => {
-        if (!confirm("Are you sure you want to delete this hint?")) return;
-
         deleteMutation.mutate(id, {
-            onSuccess: () => showSuccessToast("Event hint deleted", "Success"),
-            onError: (error) => showErrorToast(error),
+            onSuccess: () => {
+                showSuccessToast("Event hint deleted", "Success");
+                setDeletingHintId(null);
+            },
+            onError: (error) => {
+                showErrorToast(error);
+                setDeletingHintId(null);
+            },
         });
     };
 
@@ -320,7 +335,7 @@ export default function EventHintsSettingsPage() {
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
-                                                    onClick={() => handleDelete(hint.id)}
+                                                    onClick={() => setDeletingHintId(hint.id)}
                                                     disabled={deleteMutation.isPending}
                                                 >
                                                     <Trash2 className="h-4 w-4 text-destructive" />
@@ -408,7 +423,7 @@ export default function EventHintsSettingsPage() {
                                                         <Button
                                                             variant="ghost"
                                                             size="sm"
-                                                            onClick={() => handleDelete(hint.id)}
+                                                            onClick={() => setDeletingHintId(hint.id)}
                                                             disabled={deleteMutation.isPending}
                                                         >
                                                             <Trash2 className="h-4 w-4 text-destructive" />
@@ -450,6 +465,27 @@ export default function EventHintsSettingsPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Delete confirmation dialog */}
+            <AlertDialog open={deletingHintId !== null} onOpenChange={(open) => !open && setDeletingHintId(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Event Hint</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Are you sure you want to delete this hint? This action cannot be undone.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={() => deletingHintId && handleDelete(deletingHintId)}
+                            disabled={deleteMutation.isPending}
+                        >
+                            {deleteMutation.isPending ? <Spinner size="sm" /> : "Delete"}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </PageContainer>
     );
 }

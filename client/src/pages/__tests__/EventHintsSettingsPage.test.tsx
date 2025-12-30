@@ -12,10 +12,6 @@ jest.mock('sonner', () => ({
     }),
 }));
 
-// Mock window.confirm for delete confirmations
-const mockConfirm = jest.fn();
-window.confirm = mockConfirm;
-
 const mockCategories = [
     { id: 'cat_1', name: 'Dining' },
     { id: 'cat_2', name: 'Entertainment' },
@@ -60,7 +56,6 @@ const setupMocks = (hints = mockHints, categories = mockCategories) => {
 describe('EventHintsSettingsPage', () => {
     beforeEach(() => {
         jest.clearAllMocks();
-        mockConfirm.mockReturnValue(true);
         setupMocks();
     });
 
@@ -235,7 +230,25 @@ describe('EventHintsSettingsPage', () => {
     });
 
     describe('Deleting Hints', () => {
-        it('deletes hint after confirmation', async () => {
+        it('shows delete confirmation dialog when delete button is clicked', async () => {
+            setupMocks();
+            render(<EventHintsSettingsPage />);
+
+            await waitFor(() => {
+                expect(screen.getAllByText(/Spotify Subscription/).length).toBeGreaterThan(0);
+            });
+
+            const deleteButtons = screen.getAllByRole('button', { name: '' }).filter(
+                btn => btn.querySelector('svg.lucide-trash-2')
+            );
+            await userEvent.click(deleteButtons[0]);
+
+            // Dialog should be visible
+            expect(screen.getByText('Delete Event Hint')).toBeInTheDocument();
+            expect(screen.getByText(/Are you sure you want to delete this hint/)).toBeInTheDocument();
+        });
+
+        it('deletes hint when Delete is clicked in dialog', async () => {
             setupMocks();
             mockAxiosInstance.delete.mockResolvedValue({ data: { success: true } });
 
@@ -250,16 +263,17 @@ describe('EventHintsSettingsPage', () => {
             );
             await userEvent.click(deleteButtons[0]);
 
-            expect(mockConfirm).toHaveBeenCalledWith('Are you sure you want to delete this hint?');
+            // Click the Delete button in the dialog
+            const deleteConfirmButton = screen.getByRole('button', { name: /^delete$/i });
+            await userEvent.click(deleteConfirmButton);
 
             await waitFor(() => {
                 expect(mockAxiosInstance.delete).toHaveBeenCalledWith('api/event-hints/hint_1');
             });
         });
 
-        it('does not delete hint when confirmation is cancelled', async () => {
+        it('does not delete hint when Cancel is clicked in dialog', async () => {
             setupMocks();
-            mockConfirm.mockReturnValue(false);
 
             render(<EventHintsSettingsPage />);
 
@@ -272,7 +286,17 @@ describe('EventHintsSettingsPage', () => {
             );
             await userEvent.click(deleteButtons[0]);
 
-            expect(mockConfirm).toHaveBeenCalled();
+            // Dialog should be visible
+            expect(screen.getByText('Delete Event Hint')).toBeInTheDocument();
+
+            // Click the Cancel button in the dialog
+            const cancelButton = screen.getByRole('button', { name: /cancel/i });
+            await userEvent.click(cancelButton);
+
+            // Dialog should be closed and delete should not be called
+            await waitFor(() => {
+                expect(screen.queryByText('Delete Event Hint')).not.toBeInTheDocument();
+            });
             expect(mockAxiosInstance.delete).not.toHaveBeenCalled();
         });
     });
