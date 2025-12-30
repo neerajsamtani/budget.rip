@@ -15,6 +15,7 @@ export const queryKeys = {
   paymentMethods: () => ['paymentMethods'] as const,
   tags: () => ['tags'] as const,
   eventHints: () => ['eventHints'] as const,
+  eventHintSuggestion: (lineItemIds: string[]) => ['eventHintSuggestion', lineItemIds] as const,
   categories: () => ['categories'] as const,
 };
 
@@ -372,7 +373,7 @@ export function useCategories(): UseQueryResult<CategoryOption[]> {
 
 export function useEvaluateEventHints(lineItemIds: string[], enabled: boolean = true): UseQueryResult<EventHintSuggestion | null> {
   return useQuery({
-    queryKey: ['eventHintSuggestion', lineItemIds],
+    queryKey: queryKeys.eventHintSuggestion(lineItemIds),
     queryFn: async () => {
       if (lineItemIds.length === 0) return null;
       const response = await axiosInstance.post('api/event-hints/evaluate', { line_item_ids: lineItemIds });
@@ -400,6 +401,8 @@ export function useCreateEventHint(): UseMutationResult<EventHint, Error, Create
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.eventHints() });
+      // Also invalidate suggestion cache since hints changed
+      queryClient.invalidateQueries({ queryKey: ['eventHintSuggestion'] });
     },
   });
 }
@@ -423,6 +426,8 @@ export function useUpdateEventHint(): UseMutationResult<EventHint, Error, Update
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.eventHints() });
+      // Also invalidate suggestion cache since hints changed
+      queryClient.invalidateQueries({ queryKey: ['eventHintSuggestion'] });
     },
   });
 }
@@ -436,6 +441,8 @@ export function useDeleteEventHint(): UseMutationResult<void, Error, string> {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.eventHints() });
+      // Also invalidate suggestion cache since hints changed
+      queryClient.invalidateQueries({ queryKey: ['eventHintSuggestion'] });
     },
   });
 }
@@ -449,6 +456,8 @@ export function useReorderEventHints(): UseMutationResult<void, Error, string[]>
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.eventHints() });
+      // Also invalidate suggestion cache since order affects which hint matches first
+      queryClient.invalidateQueries({ queryKey: ['eventHintSuggestion'] });
     },
   });
 }
