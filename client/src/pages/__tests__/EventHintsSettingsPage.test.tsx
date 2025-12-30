@@ -101,6 +101,55 @@ describe('EventHintsSettingsPage', () => {
         });
     });
 
+    describe('Error Handling', () => {
+        it('shows error message when event hints fail to load', async () => {
+            mockAxiosInstance.get.mockImplementation((url: string) => {
+                if (url.includes('api/event-hints')) {
+                    return Promise.reject(new Error('Network error'));
+                }
+                if (url.includes('api/categories')) {
+                    return Promise.resolve({ data: { data: mockCategories } });
+                }
+                return Promise.reject(new Error('Unknown URL'));
+            });
+
+            render(<EventHintsSettingsPage />);
+
+            await waitFor(() => {
+                expect(screen.getByText('Failed to load event hints.')).toBeInTheDocument();
+                expect(screen.getByText('Please try refreshing the page.')).toBeInTheDocument();
+            });
+        });
+
+        it('shows error message when categories fail to load', async () => {
+            mockAxiosInstance.get.mockImplementation((url: string) => {
+                if (url.includes('api/event-hints')) {
+                    return Promise.resolve({ data: { data: mockHints } });
+                }
+                if (url.includes('api/categories')) {
+                    return Promise.reject(new Error('Network error'));
+                }
+                return Promise.reject(new Error('Unknown URL'));
+            });
+
+            render(<EventHintsSettingsPage />);
+
+            await waitFor(() => {
+                expect(screen.getByText('Failed to load event hints.')).toBeInTheDocument();
+            });
+        });
+
+        it('shows error message when both hints and categories fail to load', async () => {
+            mockAxiosInstance.get.mockRejectedValue(new Error('Network error'));
+
+            render(<EventHintsSettingsPage />);
+
+            await waitFor(() => {
+                expect(screen.getByText('Failed to load event hints.')).toBeInTheDocument();
+            });
+        });
+    });
+
     describe('Creating Hints', () => {
         beforeEach(() => {
             setupMocks([]);

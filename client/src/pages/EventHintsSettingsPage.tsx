@@ -186,8 +186,8 @@ function HintEditor({
 }
 
 export default function EventHintsSettingsPage() {
-    const { data: hints = [], isLoading: isLoadingHints } = useEventHints();
-    const { data: categories = [], isLoading: isLoadingCategories } = useCategories();
+    const { data: hints = [], isLoading: isLoadingHints, error: hintsError } = useEventHints();
+    const { data: categories = [], isLoading: isLoadingCategories, error: categoriesError } = useCategories();
     const createMutation = useCreateEventHint();
     const updateMutation = useUpdateEventHint();
     const deleteMutation = useDeleteEventHint();
@@ -197,6 +197,7 @@ export default function EventHintsSettingsPage() {
     const [deletingHintId, setDeletingHintId] = useState<string | null>(null);
 
     const isLoading = isLoadingHints || isLoadingCategories;
+    const error = hintsError || categoriesError;
 
     const handleCreate = (data: HintFormData) => {
         createMutation.mutate(
@@ -291,6 +292,11 @@ export default function EventHintsSettingsPage() {
                 {isLoading ? (
                     <div className="flex justify-center py-8">
                         <Spinner size="md" className="text-muted-foreground" />
+                    </div>
+                ) : error ? (
+                    <div className="text-center py-8 text-destructive">
+                        <p>Failed to load event hints.</p>
+                        <p className="text-sm mt-1">Please try refreshing the page.</p>
                     </div>
                 ) : hints.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">
