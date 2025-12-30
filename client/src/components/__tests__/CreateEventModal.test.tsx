@@ -31,11 +31,36 @@ jest.mock('../../contexts/LineItemsContext', () => ({
     useLineItemsDispatch: jest.fn(),
 }));
 
-// Mock the useEvaluateEventHints hook
+// Mock categories data (excluding 'All' which is added by the component itself)
+const mockCategoriesData = [
+    { id: 'cat_alcohol', name: 'Alcohol' },
+    { id: 'cat_dining', name: 'Dining' },
+    { id: 'cat_entertainment', name: 'Entertainment' },
+    { id: 'cat_forma', name: 'Forma' },
+    { id: 'cat_groceries', name: 'Groceries' },
+    { id: 'cat_hobbies', name: 'Hobbies' },
+    { id: 'cat_income', name: 'Income' },
+    { id: 'cat_investment', name: 'Investment' },
+    { id: 'cat_medical', name: 'Medical' },
+    { id: 'cat_rent', name: 'Rent' },
+    { id: 'cat_shopping', name: 'Shopping' },
+    { id: 'cat_subscription', name: 'Subscription' },
+    { id: 'cat_transfer', name: 'Transfer' },
+    { id: 'cat_transit', name: 'Transit' },
+    { id: 'cat_travel', name: 'Travel' },
+];
+
+// Mock the useEvaluateEventHints and useCategories hooks
 const mockUseEvaluateEventHints = jest.fn();
+const mockUseCategories = jest.fn(() => ({
+    data: mockCategoriesData,
+    isLoading: false,
+    isError: false,
+}));
 jest.mock('../../hooks/useApi', () => ({
     ...jest.requireActual('../../hooks/useApi'),
     useEvaluateEventHints: (...args: unknown[]) => mockUseEvaluateEventHints(...args),
+    useCategories: () => mockUseCategories(),
 }));
 
 const mockUseLineItems = useLineItems as jest.MockedFunction<typeof useLineItems>;
@@ -121,8 +146,9 @@ describe('CreateEventModal', () => {
             const categorySelect = screen.getByRole('combobox', { name: /category/i });
             await userEvent.click(categorySelect);
 
+            // Categories are loaded from API (no 'All' option - that's only for filtering)
             const options = [
-                'All', 'Alcohol', 'Dining', 'Entertainment', 'Forma', 'Groceries',
+                'Alcohol', 'Dining', 'Entertainment', 'Forma', 'Groceries',
                 'Hobbies', 'Income', 'Investment', 'Medical', 'Rent', 'Shopping',
                 'Subscription', 'Transfer', 'Transit', 'Travel'
             ];
@@ -668,7 +694,8 @@ describe('CreateEventModal', () => {
 
             expect(screen.getAllByDisplayValue('')[0]).toBeInTheDocument(); // Name input
             const categorySelectReset = screen.getByRole('combobox', { name: /category/i });
-            expect(categorySelectReset).toHaveTextContent('All'); // Category select default value
+            // Category select is reset - shows placeholder since 'All' is not a valid option
+            expect(categorySelectReset).toBeInTheDocument();
             expect(screen.queryByText('important')).not.toBeInTheDocument();
         });
     });

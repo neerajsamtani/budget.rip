@@ -346,13 +346,3 @@ def validate_cel_expression() -> tuple[Response, int]:
         return jsonify({"data": {"is_valid": False, "error": error_msg}}), 200
 
 
-@event_hints_blueprint.route("/api/categories", methods=["GET"])
-@jwt_required()
-def get_all_categories() -> tuple[Response, int]:
-    """Get all categories with their IDs."""
-    db = SessionLocal()
-    try:
-        categories = db.query(Category).filter(Category.is_active == True).order_by(Category.name).all()  # noqa: E712
-        return jsonify({"data": [{"id": c.id, "name": c.name} for c in categories]}), 200
-    finally:
-        db.close()

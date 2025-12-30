@@ -50,22 +50,3 @@ CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", "http://dev.localhost:5
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 SMALLEST_EPOCH_TIME = float(0)
 LARGEST_EPOCH_TIME = float(9999999999)
-# Keep this in sync with the categories on the frontend
-CATEGORIES = [
-    "All",
-    "Alcohol",
-    "Dining",
-    "Entertainment",
-    "Forma",
-    "Groceries",
-    "Hobbies",
-    "Income",
-    "Investment",
-    "Medical",
-    "Rent",
-    "Shopping",
-    "Subscription",
-    "Transfer",
-    "Transit",
-    "Travel",
-]

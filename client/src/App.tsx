@@ -15,6 +15,7 @@ import { ProtectedRoute, PublicOnlyRoute } from "./components/ProtectedRoute";
 import { useAuth } from "./contexts/AuthContext";
 import { useLineItemsDispatch } from "./contexts/LineItemsContext";
 import { useRefreshAllData } from "./hooks/useApi";
+import CategoriesSettingsPage from "./pages/CategoriesSettingsPage";
 import ConnectedAccountsPage from "./pages/ConnectedAccountsPage";
 import EventHintsSettingsPage from "./pages/EventHintsSettingsPage";
 import EventsPage from "./pages/EventsPage";
@@ -217,6 +218,7 @@ export default function App() {
           <Route path="/connected_accounts" element={<ProtectedRoute><ConnectedAccountsPage stripePromise={stripePromise} /></ProtectedRoute>} />
           <Route path="/graphs" element={<ProtectedRoute><GraphsPage /></ProtectedRoute>} />
           <Route path="/settings/event-hints" element={<ProtectedRoute><EventHintsSettingsPage /></ProtectedRoute>} />
+          <Route path="/settings/categories" element={<ProtectedRoute><CategoriesSettingsPage /></ProtectedRoute>} />
           <Route path="/login" element={<PublicOnlyRoute><LoginPage /></PublicOnlyRoute>} />
         </Routes>
       </Router>

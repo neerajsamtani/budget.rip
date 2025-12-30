@@ -4,7 +4,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ResponsiveDialog, useIsMobile } from "@/components/ui/responsive-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CATEGORIES } from '@/constants/categories';
 import React, { useEffect, useState } from 'react';
 import { Body } from "../components/ui/typography";
 import { useLineItems, useLineItemsDispatch } from "../contexts/LineItemsContext";
@@ -13,7 +12,7 @@ import { CurrencyFormatter } from '../utils/formatters';
 import defaultNameCleanup from '../utils/stringHelpers';
 import { showSuccessToast, showErrorToast } from '../utils/toast-helpers';
 import { calculateEventTotal } from '../utils/eventHelpers';
-import { useCreateEvent, useTags, useEvaluateEventHints } from '../hooks/useApi';
+import { useCategories, useCreateEvent, useTags, useEvaluateEventHints } from '../hooks/useApi';
 import { Option } from './Autocomplete';
 import { Tag, TagsField } from './TagsField';
 
@@ -63,6 +62,7 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
   const isDuplicateTransaction = useField<boolean>("checkbox", false)
   const [tags, setTags] = useState<Tag[]>([]);
   const { data: existingTags, isLoading: isLoadingTags } = useTags();
+  const { data: categories = [] } = useCategories();
 
   const tagOptions: Option[] = (existingTags || [])
     .filter(tag => !tags.some(t => t.text === tag.name))
@@ -152,9 +152,9 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
               <SelectValue placeholder="Select a category" />
             </SelectTrigger>
             <SelectContent className="bg-white border">
-              {CATEGORIES.map(cat => (
-                <SelectItem key={cat} value={cat}>
-                  {cat}
+              {categories.map(cat => (
+                <SelectItem key={cat.id} value={cat.name}>
+                  {cat.name}
                 </SelectItem>
               ))}
             </SelectContent>

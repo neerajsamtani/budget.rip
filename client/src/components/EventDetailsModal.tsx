@@ -6,11 +6,10 @@ import { Label } from "@/components/ui/label";
 import { ResponsiveDialog, ResponsiveDialogDescription, ResponsiveDialogTitle, useIsMobile } from "@/components/ui/responsive-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CATEGORIES } from '@/constants/categories';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Body } from "../components/ui/typography";
 import { LineItemInterface } from '../contexts/LineItemsContext';
-import { useDeleteEvent, useLineItems, useTags, useUpdateEvent } from '../hooks/useApi';
+import { useCategories, useDeleteEvent, useLineItems, useTags, useUpdateEvent } from '../hooks/useApi';
 import { CurrencyFormatter, DateFormatter } from '../utils/formatters';
 import { showErrorToast, showSuccessToast } from '../utils/toast-helpers';
 import { calculateEventTotal } from '../utils/eventHelpers';
@@ -114,6 +113,7 @@ interface EditEventContentProps {
   setName: React.Dispatch<React.SetStateAction<string>>;
   category: string;
   setCategory: React.Dispatch<React.SetStateAction<string>>;
+  categories: { id: string; name: string }[];
   tags: Tag[];
   tagOptions: Option[];
   isLoadingTags: boolean;
@@ -140,6 +140,7 @@ interface EditEventContentProps {
 function EditEventContent({
   name, setName,
   category, setCategory,
+  categories,
   tags, tagOptions, isLoadingTags, onRemoveTag, onAddTag,
   overrideDate, setOverrideDate,
   isDuplicateTransaction, setIsDuplicateTransaction,
@@ -181,9 +182,9 @@ function EditEventContent({
               <SelectValue placeholder="Select a category" />
             </SelectTrigger>
             <SelectContent className="bg-white border">
-              {CATEGORIES.map(cat => (
-                <SelectItem key={cat} value={cat}>
-                  {cat}
+              {categories.map(cat => (
+                <SelectItem key={cat.id} value={cat.name}>
+                  {cat.name}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -316,6 +317,7 @@ export default function EventDetailsModal({ show, event, lineItemsForEvent, isLo
   const updateEventMutation = useUpdateEvent();
   const isMobile = useIsMobile();
   const { data: existingTags, isLoading: isLoadingTags } = useTags();
+  const { data: categories = [] } = useCategories();
   const { data: unreviewedLineItems = [] } = useLineItems({ onlyLineItemsToReview: true, enabled: isEditing });
 
   // Reset form state when event changes or when entering edit mode
@@ -449,6 +451,7 @@ export default function EventDetailsModal({ show, event, lineItemsForEvent, isLo
           setName={setName}
           category={category}
           setCategory={setCategory}
+          categories={categories}
           tags={tags}
           tagOptions={tagOptions}
           isLoadingTags={isLoadingTags}
