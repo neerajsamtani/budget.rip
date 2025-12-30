@@ -27,19 +27,26 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
   const selectedLineItemIds = selectedLineItems.map(lineItem => lineItem.id);
 
   // Fetch prefill suggestion from server when line items are selected
-  const { data: prefillSuggestion } = useEvaluateEventHints(
+  const { data: prefillSuggestion, isLoading: isLoadingHints, isError: isHintsError } = useEvaluateEventHints(
     selectedLineItemIds,
     selectedLineItemIds.length > 0
   );
 
   useEffect(() => {
+    // Wait for hints to finish loading before prefilling
+    if (isLoadingHints) return;
+
     if (!show && selectedLineItems.length > 0) {
+      if (isHintsError) {
+        showErrorToast("Failed to load event hints. Using default name.");
+      }
       if (prefillSuggestion) {
         name.setCustomValue(prefillSuggestion.name)
         if (prefillSuggestion.category) {
           category.setCustomValue(prefillSuggestion.category)
         }
       } else {
+        // Fall back to default name cleanup (also handles error case)
         name.setCustomValue(defaultNameCleanup(selectedLineItems[0].description))
       }
     } else if (!show) {
@@ -48,7 +55,7 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
     }
     // If we add name or category here, it will cause an infinite render loop
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedLineItems, show, prefillSuggestion])
+  }, [selectedLineItems, show, prefillSuggestion, isLoadingHints, isHintsError])
 
   const name = useField<string>("text", "" as string)
   const category = useField("select", "All" as string)

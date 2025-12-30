@@ -88,7 +88,7 @@ uv run python -m pytest tests/test_auth.py # Run specific test file
 uv run python -m pytest -v                 # Verbose test output
 uv run python application.py               # Run Flask server locally
 
-# Or use the Makefile for common tasks:
+# Prefer the Makefile for common tasks:
 make help                           # Show all available commands
 make test                           # Run all tests with verbose output
 make test-quick                     # Run tests without verbose output

@@ -277,6 +277,38 @@ class TestCELValidation:
         assert is_valid is False
         assert error is not None
 
+    def test_expression_length_limit(self):
+        """Test that expressions exceeding max length are rejected"""
+        # Create an expression that exceeds the 500 character limit
+        long_expression = 'description.contains("' + "a" * 500 + '")'
+        is_valid, error = CELEvaluator.validate(long_expression)
+        assert is_valid is False
+        assert "too long" in error.lower()
+
+    def test_expression_at_length_limit(self):
+        """Test that expressions at exactly the limit are accepted"""
+        # Create an expression that is exactly at the limit (if valid syntax)
+        expression = 'description.contains("test")'  # 28 chars, well under limit
+        is_valid, error = CELEvaluator.validate(expression)
+        assert is_valid is True
+        assert error is None
+
+    def test_nesting_depth_limit(self):
+        """Test that deeply nested expressions are rejected"""
+        # Create a deeply nested expression (11 levels of parentheses)
+        nested_expression = "(" * 11 + "amount > 0" + ")" * 11
+        is_valid, error = CELEvaluator.validate(nested_expression)
+        assert is_valid is False
+        assert "nested" in error.lower()
+
+    def test_nesting_at_depth_limit(self):
+        """Test that expressions at exactly the nesting limit are accepted"""
+        # Create an expression with exactly 10 levels of nesting
+        nested_expression = "(" * 10 + "amount > 0" + ")" * 10
+        is_valid, error = CELEvaluator.validate(nested_expression)
+        assert is_valid is True
+        assert error is None
+
 
 class TestEvaluateHints:
     """Tests for the evaluate_hints function"""

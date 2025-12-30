@@ -20,11 +20,21 @@ Aggregate syntax (detected by function names):
 
 from __future__ import annotations
 
+import logging
 import re
+from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import TimeoutError as FuturesTimeoutError
 from typing import Any
 
 import celpy
 from celpy import celtypes
+
+logger = logging.getLogger(__name__)
+
+# Security limits
+MAX_EXPRESSION_LENGTH = 500
+MAX_NESTING_DEPTH = 10
+EVALUATION_TIMEOUT_SECONDS = 2.0
 
 
 class CELValidationError(Exception):
@@ -101,7 +111,11 @@ def _evaluate_single_expression(expression: str, line_items: list[dict]) -> bool
                 result = prgm.evaluate(context)
                 if result:
                     return True
-            except Exception:
+            except Exception as e:
+                logger.warning(
+                    f"CEL evaluation failed for line item: {e}",
+                    extra={"expression": expression, "item_description": item.get("description", "")[:50]},
+                )
                 continue
 
         return False
@@ -120,7 +134,11 @@ def _evaluate_single_item(expression: str, item: dict) -> bool:
         context = _build_line_item_context(item)
         result = prgm.evaluate(context)
         return bool(result)
-    except Exception:
+    except Exception as e:
+        logger.warning(
+            f"CEL single item evaluation failed: {e}",
+            extra={"expression": expression, "item_description": item.get("description", "")[:50]},
+        )
         return False
 
 
@@ -206,14 +224,29 @@ class CELEvaluator:
 
         For single-item expressions: returns True if ANY line item matches.
         For aggregate expressions: evaluates against the entire collection.
+
+        Uses a timeout to prevent long-running evaluations.
         """
         if not line_items:
             return False
 
-        if self.is_aggregate:
-            return _evaluate_aggregate_expression(self.expression, line_items)
-        else:
-            return _evaluate_single_expression(self.expression, line_items)
+        def _do_evaluate() -> bool:
+            if self.is_aggregate:
+                return _evaluate_aggregate_expression(self.expression, line_items)
+            else:
+                return _evaluate_single_expression(self.expression, line_items)
+
+        # Run evaluation with timeout to prevent DoS from complex expressions
+        try:
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(_do_evaluate)
+                return future.result(timeout=EVALUATION_TIMEOUT_SECONDS)
+        except FuturesTimeoutError:
+            logger.warning(
+                f"CEL evaluation timed out after {EVALUATION_TIMEOUT_SECONDS}s",
+                extra={"expression": self.expression[:100]},
+            )
+            raise CELValidationError(f"Expression evaluation timed out (max {EVALUATION_TIMEOUT_SECONDS}s)")
 
     @classmethod
     def validate(cls, expression: str) -> tuple[bool, str | None]:
@@ -226,6 +259,22 @@ class CELEvaluator:
             return False, "Expression cannot be empty"
 
         expression = expression.strip()
+
+        # Security: Check expression length
+        if len(expression) > MAX_EXPRESSION_LENGTH:
+            return False, f"Expression too long (max {MAX_EXPRESSION_LENGTH} characters)"
+
+        # Security: Check nesting depth (count parentheses)
+        max_depth = 0
+        current_depth = 0
+        for char in expression:
+            if char == "(":
+                current_depth += 1
+                max_depth = max(max_depth, current_depth)
+            elif char == ")":
+                current_depth -= 1
+        if max_depth > MAX_NESTING_DEPTH:
+            return False, f"Expression too deeply nested (max {MAX_NESTING_DEPTH} levels)"
 
         # Check for aggregate expressions with inner conditions
         all_match = re.match(r"all_match\s*\(\s*(.+)\s*\)$", expression)
@@ -310,8 +359,11 @@ def evaluate_hints(hints: list[dict], line_items: list[dict]) -> dict | None:
                     "matched_hint_id": hint.get("id"),
                     "matched_hint_name": hint.get("name"),
                 }
-        except Exception:
-            # Skip hints that fail to evaluate
+        except Exception as e:
+            logger.warning(
+                f"Hint evaluation failed for hint '{hint.get('name', 'unknown')}': {e}",
+                extra={"hint_id": hint.get("id"), "expression": hint.get("cel_expression", "")[:100]},
+            )
             continue
 
     return None

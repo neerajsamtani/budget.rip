@@ -375,6 +375,91 @@ describe('CreateEventModal', () => {
             const categorySelect = screen.getByRole('combobox', { name: /category/i });
             expect(categorySelect).toHaveTextContent('Select a category'); // Category select placeholder
         });
+
+        it('waits for hints to load before prefilling', async () => {
+            // Mock the hook to return loading state initially
+            mockUseEvaluateEventHints.mockReturnValue({
+                data: null,
+                isLoading: true,
+                isError: false
+            });
+            mockDefaultNameCleanup.mockReturnValue('Cleaned Description');
+
+            // First render with show=false to trigger prefill logic
+            const { rerender } = render(<CreateEventModal show={false} onHide={mockOnHide} />);
+
+            // Then render with show=true - should NOT prefill yet because still loading
+            rerender(<CreateEventModal show={true} onHide={mockOnHide} />);
+
+            // The name input should still be empty because we're waiting for hints
+            const nameInput = screen.getByPlaceholderText('Enter a descriptive name for this event');
+            expect(nameInput).toHaveValue('');
+
+            // Now simulate loading complete with a suggestion
+            mockUseEvaluateEventHints.mockReturnValue({
+                data: { name: 'Suggested Name', category: 'Dining' },
+                isLoading: false,
+                isError: false
+            });
+
+            // Re-render to trigger the effect with updated loading state
+            rerender(<CreateEventModal show={false} onHide={mockOnHide} />);
+            rerender(<CreateEventModal show={true} onHide={mockOnHide} />);
+
+            await waitFor(() => {
+                expect(screen.getByDisplayValue('Suggested Name')).toBeInTheDocument();
+            });
+        });
+
+        it('shows error toast when hints fail to load', async () => {
+            const { toast } = require('sonner');
+
+            // Mock the hook to return error state
+            mockUseEvaluateEventHints.mockReturnValue({
+                data: null,
+                isLoading: false,
+                isError: true
+            });
+            mockDefaultNameCleanup.mockReturnValue('Fallback Description');
+
+            // First render with show=false to trigger prefill logic
+            const { rerender } = render(<CreateEventModal show={false} onHide={mockOnHide} />);
+
+            // Then render with show=true
+            rerender(<CreateEventModal show={true} onHide={mockOnHide} />);
+
+            // Should show error toast
+            await waitFor(() => {
+                expect(toast.error).toHaveBeenCalledWith('Error', {
+                    description: 'Failed to load event hints. Using default name.',
+                    duration: 3500,
+                });
+            });
+
+            // Should still prefill with fallback
+            expect(screen.getByDisplayValue('Fallback Description')).toBeInTheDocument();
+        });
+
+        it('uses fallback name when hints error', async () => {
+            // Mock the hook to return error state
+            mockUseEvaluateEventHints.mockReturnValue({
+                data: null,
+                isLoading: false,
+                isError: true
+            });
+            mockDefaultNameCleanup.mockReturnValue('Fallback From Description');
+
+            // First render with show=false to trigger prefill logic
+            const { rerender } = render(<CreateEventModal show={false} onHide={mockOnHide} />);
+
+            // Then render with show=true
+            rerender(<CreateEventModal show={true} onHide={mockOnHide} />);
+
+            // Should use the cleaned description as fallback
+            await waitFor(() => {
+                expect(screen.getByDisplayValue('Fallback From Description')).toBeInTheDocument();
+            });
+        });
     });
 
     describe('Event Creation', () => {
