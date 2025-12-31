@@ -34,11 +34,7 @@ def get_all_categories() -> tuple[Response, int]:
     """Get all categories, ordered by name."""
     db = SessionLocal()
     try:
-        categories = (
-            db.query(Category)
-            .order_by(Category.name)
-            .all()
-        )
+        categories = db.query(Category).order_by(Category.name).all()
         logger.info(f"Retrieved {len(categories)} categories")
         return jsonify({"data": [_serialize_category(c) for c in categories]}), 200
     finally:
