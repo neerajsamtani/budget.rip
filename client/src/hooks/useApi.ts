@@ -349,7 +349,6 @@ export interface EventHintSuggestion {
 export interface CategoryOption {
   id: string;
   name: string;
-  is_active?: boolean;
 }
 
 export function useEventHints(): UseQueryResult<EventHint[]> {
@@ -374,7 +373,6 @@ export function useCategories(): UseQueryResult<CategoryOption[]> {
 
 interface CreateCategoryData {
   name: string;
-  is_active?: boolean;
 }
 
 export function useCreateCategory(): UseMutationResult<CategoryOption, Error, CreateCategoryData> {
@@ -394,7 +392,6 @@ export function useCreateCategory(): UseMutationResult<CategoryOption, Error, Cr
 interface UpdateCategoryData {
   id: string;
   name?: string;
-  is_active?: boolean;
 }
 
 export function useUpdateCategory(): UseMutationResult<CategoryOption, Error, UpdateCategoryData> {

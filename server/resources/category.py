@@ -9,6 +9,7 @@ from typing import Any
 
 from flask import Blueprint, Response, jsonify, request
 from flask_jwt_extended import jwt_required
+from sqlalchemy.exc import IntegrityError
 
 from models.database import SessionLocal
 from models.sql_models import Category
@@ -24,23 +25,21 @@ def _serialize_category(category: Category) -> dict[str, Any]:
     return {
         "id": category.id,
         "name": category.name,
-        "is_active": category.is_active,
     }
 
 
 @categories_blueprint.route("/api/categories", methods=["GET"])
 @jwt_required()
 def get_all_categories() -> tuple[Response, int]:
-    """Get all active categories, ordered by name."""
+    """Get all categories, ordered by name."""
     db = SessionLocal()
     try:
         categories = (
             db.query(Category)
-            .filter(Category.is_active == True)  # noqa: E712
             .order_by(Category.name)
             .all()
         )
-        logger.info(f"Retrieved {len(categories)} active categories")
+        logger.info(f"Retrieved {len(categories)} categories")
         return jsonify({"data": [_serialize_category(c) for c in categories]}), 200
     finally:
         db.close()
@@ -76,20 +75,11 @@ def create_category() -> tuple[Response, int]:
         # Check for duplicate name (case-insensitive)
         existing = db.query(Category).filter(Category.name.ilike(name)).first()
         if existing:
-            if existing.is_active:
-                return jsonify({"error": f"Category '{name}' already exists"}), 400
-            # Reactivate the existing category
-            existing.is_active = True
-            existing.name = name  # Update to preserve casing
-            db.commit()
-            db.refresh(existing)
-            logger.info(f"Reactivated category: {existing.id}")
-            return jsonify({"data": _serialize_category(existing)}), 201
+            return jsonify({"error": f"Category '{name}' already exists"}), 400
 
         category = Category(
             id=generate_id("cat"),
             name=name,
-            is_active=data.get("is_active", True),
         )
         db.add(category)
         db.commit()
@@ -130,10 +120,6 @@ def update_category(category_id: str) -> tuple[Response, int]:
 
             category.name = name
 
-        # Update is_active if provided
-        if "is_active" in data:
-            category.is_active = data["is_active"]
-
         db.commit()
         db.refresh(category)
 
@@ -151,9 +137,9 @@ def update_category(category_id: str) -> tuple[Response, int]:
 @jwt_required()
 def delete_category(category_id: str) -> tuple[Response, int]:
     """
-    Soft-delete a category by setting is_active to False.
+    Delete a category.
 
-    Categories are soft-deleted to preserve referential integrity with events.
+    Will fail if the category is in use by any events (database RESTRICT constraint).
     """
     db = SessionLocal()
     try:
@@ -161,12 +147,15 @@ def delete_category(category_id: str) -> tuple[Response, int]:
         if not category:
             return jsonify({"error": "Category not found"}), 404
 
-        # Soft delete - set is_active to False
-        category.is_active = False
+        db.delete(category)
         db.commit()
 
-        logger.info(f"Soft-deleted category: {category_id}")
+        logger.info(f"Deleted category: {category_id}")
         return jsonify({"message": "Category deleted"}), 200
+    except IntegrityError:
+        db.rollback()
+        logger.warning(f"Cannot delete category {category_id}: in use by events")
+        return jsonify({"error": "Cannot delete category: it is in use by one or more events"}), 400
     except Exception as e:
         db.rollback()
         logger.error(f"Error deleting category: {e}")

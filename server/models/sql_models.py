@@ -71,7 +71,6 @@ class Category(Base):
 
     id = Column(String(255), primary_key=True)  # cat_xxx
     name = Column(String(100), nullable=False, unique=True)
-    is_active = Column(Boolean, default=True)
     created_at = Column(TIMESTAMP(timezone=True), default=lambda: datetime.now(UTC))
     updated_at = Column(
         TIMESTAMP(timezone=True),

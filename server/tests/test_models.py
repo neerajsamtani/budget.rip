@@ -59,7 +59,7 @@ def db_session():
 
 def test_create_event_with_line_items(db_session):
     # Create category
-    category = Category(id=generate_id("cat"), name="Groceries", is_active=True)
+    category = Category(id=generate_id("cat"), name="Groceries")
     db_session.add(category)
 
     # Create payment method
@@ -133,7 +133,7 @@ def test_foreign_key_constraint(db_session):
 def test_event_total_amount_property(db_session):
     """Test that Event.total_amount property correctly sums line items"""
     # Setup category and payment method
-    category = Category(id=generate_id("cat"), name="Test Category", is_active=True)
+    category = Category(id=generate_id("cat"), name="Test Category")
     payment_method = PaymentMethod(id=generate_id("pm"), name="Test Card", type="credit", is_active=True)
     transaction = Transaction(
         id=generate_id("txn"),
@@ -185,7 +185,7 @@ def test_event_total_amount_property(db_session):
 def test_event_duplicate_total(db_session):
     """Test that is_duplicate flag causes total to use only first line item"""
     # Setup
-    category = Category(id=generate_id("cat"), name="Test", is_active=True)
+    category = Category(id=generate_id("cat"), name="Test")
     payment_method = PaymentMethod(id=generate_id("pm"), name="Test", type="credit", is_active=True)
     transaction = Transaction(
         id=generate_id("txn"),
@@ -237,7 +237,7 @@ def test_event_duplicate_total(db_session):
 def test_cascade_delete_event_deletes_junction_records(db_session):
     """Test that deleting an event cascades to event_line_items"""
     # Setup
-    category = Category(id=generate_id("cat"), name="Cascade Test", is_active=True)
+    category = Category(id=generate_id("cat"), name="Cascade Test")
     payment_method = PaymentMethod(id=generate_id("pm"), name="Test PM", type="credit", is_active=True)
     transaction = Transaction(
         id=generate_id("txn"),
@@ -326,7 +326,7 @@ def test_cascade_delete_transaction_deletes_line_items(db_session):
 def test_restrict_delete_category_with_events_fails(db_session):
     """Test that deleting a category with events raises an error (RESTRICT)"""
     # Setup
-    category = Category(id=generate_id("cat"), name="Protected Category", is_active=True)
+    category = Category(id=generate_id("cat"), name="Protected Category")
     payment_method = PaymentMethod(id=generate_id("pm"), name="Test PM", type="credit", is_active=True)
     transaction = Transaction(
         id=generate_id("txn"),

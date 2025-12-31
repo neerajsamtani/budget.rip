@@ -5,9 +5,9 @@ import CategoriesSettings from '../CategoriesSettings';
 
 // Mock categories data
 const mockCategories = [
-    { id: 'cat_dining', name: 'Dining', is_active: true },
-    { id: 'cat_entertainment', name: 'Entertainment', is_active: true },
-    { id: 'cat_groceries', name: 'Groceries', is_active: true },
+    { id: 'cat_dining', name: 'Dining' },
+    { id: 'cat_entertainment', name: 'Entertainment' },
+    { id: 'cat_groceries', name: 'Groceries' },
 ];
 
 // Mock Sonner toast
@@ -26,10 +26,10 @@ describe('CategoriesSettings', () => {
             data: { data: mockCategories }
         });
         (mockAxiosInstance.post as jest.Mock).mockResolvedValue({
-            data: { data: { id: 'cat_new', name: 'New Category', is_active: true } }
+            data: { data: { id: 'cat_new', name: 'New Category' } }
         });
         (mockAxiosInstance.put as jest.Mock).mockResolvedValue({
-            data: { data: { id: 'cat_dining', name: 'Updated Dining', is_active: true } }
+            data: { data: { id: 'cat_dining', name: 'Updated Dining' } }
         });
         (mockAxiosInstance.delete as jest.Mock).mockResolvedValue({
             data: { message: 'Category deleted' }
