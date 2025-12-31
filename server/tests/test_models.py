@@ -58,8 +58,21 @@ def db_session():
 
 
 def test_create_event_with_line_items(db_session):
+    from models.sql_models import User
+
+    # Create test user for category
+    test_user = User(
+        id=generate_id("user"),
+        first_name="Test",
+        last_name="User",
+        email="event_test_1@example.com",
+        password_hash="test_hash",
+    )
+    db_session.add(test_user)
+    db_session.commit()
+
     # Create category
-    category = Category(id=generate_id("cat"), name="Groceries")
+    category = Category(id=generate_id("cat"), user_id=test_user.id, name="Groceries")
     db_session.add(category)
 
     # Create payment method
@@ -132,8 +145,21 @@ def test_foreign_key_constraint(db_session):
 
 def test_event_total_amount_property(db_session):
     """Test that Event.total_amount property correctly sums line items"""
+    from models.sql_models import User
+
+    # Create test user for category
+    test_user = User(
+        id=generate_id("user"),
+        first_name="Test",
+        last_name="User",
+        email="event_test_2@example.com",
+        password_hash="test_hash",
+    )
+    db_session.add(test_user)
+    db_session.commit()
+
     # Setup category and payment method
-    category = Category(id=generate_id("cat"), name="Test Category")
+    category = Category(id=generate_id("cat"), user_id=test_user.id, name="Test Category")
     payment_method = PaymentMethod(id=generate_id("pm"), name="Test Card", type="credit", is_active=True)
     transaction = Transaction(
         id=generate_id("txn"),
@@ -184,8 +210,21 @@ def test_event_total_amount_property(db_session):
 
 def test_event_duplicate_total(db_session):
     """Test that is_duplicate flag causes total to use only first line item"""
+    from models.sql_models import User
+
+    # Create test user for category
+    test_user = User(
+        id=generate_id("user"),
+        first_name="Test",
+        last_name="User",
+        email="event_test_3@example.com",
+        password_hash="test_hash",
+    )
+    db_session.add(test_user)
+    db_session.commit()
+
     # Setup
-    category = Category(id=generate_id("cat"), name="Test")
+    category = Category(id=generate_id("cat"), user_id=test_user.id, name="Test")
     payment_method = PaymentMethod(id=generate_id("pm"), name="Test", type="credit", is_active=True)
     transaction = Transaction(
         id=generate_id("txn"),
@@ -236,8 +275,21 @@ def test_event_duplicate_total(db_session):
 
 def test_cascade_delete_event_deletes_junction_records(db_session):
     """Test that deleting an event cascades to event_line_items"""
+    from models.sql_models import User
+
+    # Create test user for category
+    test_user = User(
+        id=generate_id("user"),
+        first_name="Test",
+        last_name="User",
+        email="event_test_4@example.com",
+        password_hash="test_hash",
+    )
+    db_session.add(test_user)
+    db_session.commit()
+
     # Setup
-    category = Category(id=generate_id("cat"), name="Cascade Test")
+    category = Category(id=generate_id("cat"), user_id=test_user.id, name="Cascade Test")
     payment_method = PaymentMethod(id=generate_id("pm"), name="Test PM", type="credit", is_active=True)
     transaction = Transaction(
         id=generate_id("txn"),
@@ -325,8 +377,21 @@ def test_cascade_delete_transaction_deletes_line_items(db_session):
 
 def test_restrict_delete_category_with_events_fails(db_session):
     """Test that deleting a category with events raises an error (RESTRICT)"""
+    from models.sql_models import User
+
+    # Create test user for category
+    test_user = User(
+        id=generate_id("user"),
+        first_name="Test",
+        last_name="User",
+        email="category_test@example.com",
+        password_hash="test_hash",
+    )
+    db_session.add(test_user)
+    db_session.commit()
+
     # Setup
-    category = Category(id=generate_id("cat"), name="Protected Category")
+    category = Category(id=generate_id("cat"), user_id=test_user.id, name="Protected Category")
     payment_method = PaymentMethod(id=generate_id("pm"), name="Test PM", type="credit", is_active=True)
     transaction = Transaction(
         id=generate_id("txn"),

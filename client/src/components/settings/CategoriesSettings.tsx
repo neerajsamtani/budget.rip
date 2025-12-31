@@ -267,7 +267,7 @@ export default function CategoriesSettings() {
                     <AlertDialogHeader>
                         <AlertDialogTitle>Delete Category</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Are you sure you want to delete this category? Events using this category will retain their category reference.
+                            Are you sure you want to delete this category? This will fail if any events are using this category.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
