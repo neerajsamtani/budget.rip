@@ -74,11 +74,7 @@ def create_category() -> tuple[Response, int]:
     db = SessionLocal()
     try:
         # Check for duplicate name (case-insensitive)
-        existing = (
-            db.query(Category)
-            .filter(Category.name.ilike(name))
-            .first()
-        )
+        existing = db.query(Category).filter(Category.name.ilike(name)).first()
         if existing:
             if existing.is_active:
                 return jsonify({"error": f"Category '{name}' already exists"}), 400
@@ -128,11 +124,7 @@ def update_category(category_id: str) -> tuple[Response, int]:
                 return jsonify({"error": "Category name cannot be empty"}), 400
 
             # Check for duplicate name (excluding current category)
-            existing = (
-                db.query(Category)
-                .filter(Category.name.ilike(name), Category.id != category_id)
-                .first()
-            )
+            existing = db.query(Category).filter(Category.name.ilike(name), Category.id != category_id).first()
             if existing:
                 return jsonify({"error": f"Category '{name}' already exists"}), 400
 

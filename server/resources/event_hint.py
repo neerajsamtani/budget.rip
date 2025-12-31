@@ -344,5 +344,3 @@ def validate_cel_expression() -> tuple[Response, int]:
         return jsonify({"data": {"is_valid": True}}), 200
     else:
         return jsonify({"data": {"is_valid": False, "error": error_msg}}), 200
-
-
