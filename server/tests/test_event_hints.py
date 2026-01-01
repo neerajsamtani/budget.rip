@@ -528,6 +528,46 @@ class TestEventHintsAPI:
         response = test_client.get("/api/event-hints")
         assert response.status_code == 401
 
+    def test_reorder_hints(self, test_client, jwt_token, test_user, sample_hints):
+        """Test PUT /api/event-hints/reorder reorders hints"""
+        # Reverse the order
+        new_order = ["eh_3", "eh_2", "eh_1"]
+        response = test_client.put(
+            "/api/event-hints/reorder",
+            json={"hint_ids": new_order},
+            headers={"Authorization": f"Bearer {jwt_token}"},
+        )
+        assert response.status_code == 200
+
+        # Verify the new order
+        response = test_client.get("/api/event-hints", headers={"Authorization": f"Bearer {jwt_token}"})
+        data = response.get_json()
+        assert data["data"][0]["id"] == "eh_3"
+        assert data["data"][1]["id"] == "eh_2"
+        assert data["data"][2]["id"] == "eh_1"
+
+    def test_reorder_hints_empty_list(self, test_client, jwt_token, test_user):
+        """Test PUT /api/event-hints/reorder with empty list returns error"""
+        response = test_client.put(
+            "/api/event-hints/reorder",
+            json={"hint_ids": []},
+            headers={"Authorization": f"Bearer {jwt_token}"},
+        )
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+
+    def test_reorder_hints_invalid_id(self, test_client, jwt_token, test_user, sample_hints):
+        """Test PUT /api/event-hints/reorder with invalid hint ID returns error"""
+        response = test_client.put(
+            "/api/event-hints/reorder",
+            json={"hint_ids": ["eh_1", "eh_invalid"]},
+            headers={"Authorization": f"Bearer {jwt_token}"},
+        )
+        assert response.status_code == 404
+        data = response.get_json()
+        assert "error" in data
+
 
 class TestCategoriesAPI:
     """Tests for the Categories API endpoint"""

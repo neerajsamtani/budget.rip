@@ -1,4 +1,21 @@
 import {
+    closestCenter,
+    DndContext,
+    DragEndEvent,
+    KeyboardSensor,
+    PointerSensor,
+    useSensor,
+    useSensors,
+} from "@dnd-kit/core";
+import {
+    arrayMove,
+    SortableContext,
+    sortableKeyboardCoordinates,
+    useSortable,
+    verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import {
     AlertDialog,
     AlertDialogAction,
     AlertDialogCancel,
@@ -16,7 +33,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { GripVertical, Pencil, Plus, Trash2 } from "lucide-react";
 import React, { useState } from "react";
 import {
     CategoryOption,
@@ -25,6 +42,7 @@ import {
     useCreateEventHint,
     useDeleteEventHint,
     useEventHints,
+    useReorderEventHints,
     useUpdateEventHint,
     useValidateCelExpression
 } from "../../hooks/useApi";
@@ -183,12 +201,142 @@ function HintEditor({
     );
 }
 
+function SortableHintCard({
+    hint,
+    onEdit,
+    onDelete,
+    isDeleting,
+}: {
+    hint: EventHint;
+    onEdit: () => void;
+    onDelete: () => void;
+    isDeleting: boolean;
+}) {
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+        id: hint.id,
+    });
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+    };
+
+    return (
+        <div
+            ref={setNodeRef}
+            style={style}
+            className={`border rounded-lg p-4 ${!hint.is_active ? "opacity-60" : ""} ${isDragging ? "opacity-50 shadow-lg" : ""}`}
+        >
+            <div className="flex items-start justify-between gap-2">
+                <div className="flex items-start gap-2">
+                    <button
+                        {...attributes}
+                        {...listeners}
+                        className="cursor-grab active:cursor-grabbing p-1 -ml-1 text-muted-foreground hover:text-foreground"
+                        aria-label="Drag to reorder"
+                    >
+                        <GripVertical className="h-4 w-4" />
+                    </button>
+                    <div>
+                        <p className="font-medium">{hint.name}</p>
+                        <p className="text-sm text-muted-foreground">
+                            → {hint.prefill_name}
+                            {hint.prefill_category && ` (${hint.prefill_category})`}
+                        </p>
+                    </div>
+                </div>
+                <div className="flex gap-1">
+                    <Button variant="ghost" size="sm" onClick={onEdit}>
+                        <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={onDelete} disabled={isDeleting}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                </div>
+            </div>
+            <code className="block mt-2 text-xs bg-muted p-2 rounded overflow-x-auto">
+                {hint.cel_expression}
+            </code>
+        </div>
+    );
+}
+
+function SortableHintRow({
+    hint,
+    onEdit,
+    onDelete,
+    onToggleActive,
+    isDeleting,
+}: {
+    hint: EventHint;
+    onEdit: () => void;
+    onDelete: () => void;
+    onToggleActive: (checked: boolean) => void;
+    isDeleting: boolean;
+}) {
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+        id: hint.id,
+    });
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+    };
+
+    return (
+        <TableRow
+            ref={setNodeRef}
+            style={style}
+            className={`${!hint.is_active ? "opacity-60" : ""} ${isDragging ? "opacity-50 bg-muted" : ""}`}
+        >
+            <TableCell className="w-8">
+                <button
+                    {...attributes}
+                    {...listeners}
+                    className="cursor-grab active:cursor-grabbing p-1 text-muted-foreground hover:text-foreground"
+                    aria-label="Drag to reorder"
+                >
+                    <GripVertical className="h-4 w-4" />
+                </button>
+            </TableCell>
+            <TableCell className="font-medium">{hint.name}</TableCell>
+            <TableCell>
+                <code className="text-xs bg-muted px-2 py-1 rounded">
+                    {hint.cel_expression.length > 40
+                        ? hint.cel_expression.substring(0, 40) + "..."
+                        : hint.cel_expression}
+                </code>
+            </TableCell>
+            <TableCell>
+                {hint.prefill_name}
+                {hint.prefill_category && (
+                    <span className="text-muted-foreground"> ({hint.prefill_category})</span>
+                )}
+            </TableCell>
+            <TableCell>
+                <Switch checked={hint.is_active} onCheckedChange={onToggleActive} />
+            </TableCell>
+            <TableCell>
+                <div className="flex gap-1">
+                    <Button variant="ghost" size="sm" onClick={onEdit}>
+                        <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={onDelete} disabled={isDeleting}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                </div>
+            </TableCell>
+        </TableRow>
+    );
+}
+
 export default function EventHintsSettings() {
     const { data: hints = [], isLoading: isLoadingHints, error: hintsError } = useEventHints();
     const { data: categories = [], isLoading: isLoadingCategories, error: categoriesError } = useCategories();
     const createMutation = useCreateEventHint();
     const updateMutation = useUpdateEventHint();
     const deleteMutation = useDeleteEventHint();
+    const reorderMutation = useReorderEventHints();
 
     const [editingHintId, setEditingHintId] = useState<string | null>(null);
     const [isCreating, setIsCreating] = useState(false);
@@ -196,6 +344,28 @@ export default function EventHintsSettings() {
 
     const isLoading = isLoadingHints || isLoadingCategories;
     const error = hintsError || categoriesError;
+
+    const sensors = useSensors(
+        useSensor(PointerSensor),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        })
+    );
+
+    const handleDragEnd = (event: DragEndEvent) => {
+        const { active, over } = event;
+
+        if (over && active.id !== over.id) {
+            const oldIndex = hints.findIndex((h) => h.id === active.id);
+            const newIndex = hints.findIndex((h) => h.id === over.id);
+            const newOrder = arrayMove(hints, oldIndex, newIndex);
+            const hintIds = newOrder.map((h) => h.id);
+
+            reorderMutation.mutate(hintIds, {
+                onError: (error) => showErrorToast(error),
+            });
+        }
+    };
 
     const handleCreate = (data: HintFormData) => {
         createMutation.mutate(
@@ -294,145 +464,82 @@ export default function EventHintsSettings() {
                     <p className="text-sm mt-1">Create your first hint to auto-fill event details.</p>
                 </div>
             ) : (
-                <>
-                    {/* Mobile card layout */}
-                    <div className="md:hidden space-y-4">
-                        {hints.map((hint) =>
-                            editingHintId === hint.id ? (
-                                <HintEditor
-                                    key={hint.id}
-                                    hint={hintToFormData(hint)}
-                                    categories={categories}
-                                    onSave={(data) => handleUpdate(hint.id, data)}
-                                    onCancel={() => setEditingHintId(null)}
-                                    isSaving={updateMutation.isPending}
-                                />
-                            ) : (
-                                <div
-                                    key={hint.id}
-                                    className={`border rounded-lg p-4 ${!hint.is_active ? "opacity-60" : ""}`}
-                                >
-                                    <div className="flex items-start justify-between gap-2">
-                                        <div>
-                                            <p className="font-medium">{hint.name}</p>
-                                            <p className="text-sm text-muted-foreground">
-                                                → {hint.prefill_name}
-                                                {hint.prefill_category && ` (${hint.prefill_category})`}
-                                            </p>
-                                        </div>
-                                        <div className="flex gap-1">
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => setEditingHintId(hint.id)}
-                                            >
-                                                <Pencil className="h-4 w-4" />
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => setDeletingHintId(hint.id)}
-                                                disabled={deleteMutation.isPending}
-                                            >
-                                                <Trash2 className="h-4 w-4 text-destructive" />
-                                            </Button>
-                                        </div>
-                                    </div>
-                                    <code className="block mt-2 text-xs bg-muted p-2 rounded overflow-x-auto">
-                                        {hint.cel_expression}
-                                    </code>
-                                </div>
-                            )
-                        )}
-                    </div>
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                    <SortableContext items={hints.map((h) => h.id)} strategy={verticalListSortingStrategy}>
+                        {/* Mobile card layout */}
+                        <div className="md:hidden space-y-4">
+                            {hints.map((hint) =>
+                                editingHintId === hint.id ? (
+                                    <HintEditor
+                                        key={hint.id}
+                                        hint={hintToFormData(hint)}
+                                        categories={categories}
+                                        onSave={(data) => handleUpdate(hint.id, data)}
+                                        onCancel={() => setEditingHintId(null)}
+                                        isSaving={updateMutation.isPending}
+                                    />
+                                ) : (
+                                    <SortableHintCard
+                                        key={hint.id}
+                                        hint={hint}
+                                        onEdit={() => setEditingHintId(hint.id)}
+                                        onDelete={() => setDeletingHintId(hint.id)}
+                                        isDeleting={deleteMutation.isPending}
+                                    />
+                                )
+                            )}
+                        </div>
 
-                    {/* Desktop table layout */}
-                    <div className="hidden md:block">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Name</TableHead>
-                                    <TableHead>Expression</TableHead>
-                                    <TableHead>Prefill</TableHead>
-                                    <TableHead>Active</TableHead>
-                                    <TableHead className="w-24">Actions</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {hints.map((hint) =>
-                                    editingHintId === hint.id ? (
-                                        <TableRow key={hint.id}>
-                                            <TableCell colSpan={5} className="p-0">
-                                                <div className="p-4">
-                                                    <HintEditor
-                                                        hint={hintToFormData(hint)}
-                                                        categories={categories}
-                                                        onSave={(data) => handleUpdate(hint.id, data)}
-                                                        onCancel={() => setEditingHintId(null)}
-                                                        isSaving={updateMutation.isPending}
-                                                    />
-                                                </div>
-                                            </TableCell>
-                                        </TableRow>
-                                    ) : (
-                                        <TableRow
-                                            key={hint.id}
-                                            className={!hint.is_active ? "opacity-60" : ""}
-                                        >
-                                            <TableCell className="font-medium">{hint.name}</TableCell>
-                                            <TableCell>
-                                                <code className="text-xs bg-muted px-2 py-1 rounded">
-                                                    {hint.cel_expression.length > 40
-                                                        ? hint.cel_expression.substring(0, 40) + "..."
-                                                        : hint.cel_expression}
-                                                </code>
-                                            </TableCell>
-                                            <TableCell>
-                                                {hint.prefill_name}
-                                                {hint.prefill_category && (
-                                                    <span className="text-muted-foreground">
-                                                        {" "}
-                                                        ({hint.prefill_category})
-                                                    </span>
-                                                )}
-                                            </TableCell>
-                                            <TableCell>
-                                                <Switch
-                                                    checked={hint.is_active}
-                                                    onCheckedChange={(checked) =>
-                                                        updateMutation.mutate({
-                                                            id: hint.id,
-                                                            is_active: checked,
-                                                        })
-                                                    }
-                                                />
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="flex gap-1">
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={() => setEditingHintId(hint.id)}
-                                                    >
-                                                        <Pencil className="h-4 w-4" />
-                                                    </Button>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={() => setDeletingHintId(hint.id)}
-                                                        disabled={deleteMutation.isPending}
-                                                    >
-                                                        <Trash2 className="h-4 w-4 text-destructive" />
-                                                    </Button>
-                                                </div>
-                                            </TableCell>
-                                        </TableRow>
-                                    )
-                                )}
-                            </TableBody>
-                        </Table>
-                    </div>
-                </>
+                        {/* Desktop table layout */}
+                        <div className="hidden md:block">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead className="w-8"></TableHead>
+                                        <TableHead>Name</TableHead>
+                                        <TableHead>Expression</TableHead>
+                                        <TableHead>Prefill</TableHead>
+                                        <TableHead>Active</TableHead>
+                                        <TableHead className="w-24">Actions</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {hints.map((hint) =>
+                                        editingHintId === hint.id ? (
+                                            <TableRow key={hint.id}>
+                                                <TableCell colSpan={6} className="p-0">
+                                                    <div className="p-4">
+                                                        <HintEditor
+                                                            hint={hintToFormData(hint)}
+                                                            categories={categories}
+                                                            onSave={(data) => handleUpdate(hint.id, data)}
+                                                            onCancel={() => setEditingHintId(null)}
+                                                            isSaving={updateMutation.isPending}
+                                                        />
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        ) : (
+                                            <SortableHintRow
+                                                key={hint.id}
+                                                hint={hint}
+                                                onEdit={() => setEditingHintId(hint.id)}
+                                                onDelete={() => setDeletingHintId(hint.id)}
+                                                onToggleActive={(checked) =>
+                                                    updateMutation.mutate({
+                                                        id: hint.id,
+                                                        is_active: checked,
+                                                    })
+                                                }
+                                                isDeleting={deleteMutation.isPending}
+                                            />
+                                        )
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    </SortableContext>
+                </DndContext>
             )}
 
             {/* Help section */}
