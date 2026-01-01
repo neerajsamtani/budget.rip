@@ -4,7 +4,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ResponsiveDialog, useIsMobile } from "@/components/ui/responsive-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CATEGORIES } from '@/constants/categories';
 import React, { useEffect, useState } from 'react';
 import { Body } from "../components/ui/typography";
 import { useLineItems, useLineItemsDispatch } from "../contexts/LineItemsContext";
@@ -13,7 +12,7 @@ import { CurrencyFormatter } from '../utils/formatters';
 import defaultNameCleanup from '../utils/stringHelpers';
 import { showSuccessToast, showErrorToast } from '../utils/toast-helpers';
 import { calculateEventTotal } from '../utils/eventHelpers';
-import { useCreateEvent, useTags, useEvaluateEventHints } from '../hooks/useApi';
+import { useCategories, useCreateEvent, useTags, useEvaluateEventHints } from '../hooks/useApi';
 import { Option } from './Autocomplete';
 import { Tag, TagsField } from './TagsField';
 
@@ -63,6 +62,7 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
   const isDuplicateTransaction = useField<boolean>("checkbox", false)
   const [tags, setTags] = useState<Tag[]>([]);
   const { data: existingTags, isLoading: isLoadingTags } = useTags();
+  const { data: categories = [], isLoading: isLoadingCategories, isError: isCategoriesError } = useCategories();
 
   const tagOptions: Option[] = (existingTags || [])
     .filter(tag => !tags.some(t => t.text === tag.name))
@@ -147,18 +147,21 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
           <Label id="category-label" className="text-sm font-medium text-foreground">
             Category
           </Label>
-          <Select value={category.value} onValueChange={(value) => category.setCustomValue(value)}>
+          <Select value={category.value} onValueChange={(value) => category.setCustomValue(value)} disabled={isLoadingCategories}>
             <SelectTrigger className="w-full" aria-labelledby="category-label">
-              <SelectValue placeholder="Select a category" />
+              <SelectValue placeholder={isLoadingCategories ? "Loading..." : isCategoriesError ? "Error loading categories" : "Select a category"} />
             </SelectTrigger>
             <SelectContent className="bg-white border">
-              {CATEGORIES.map(cat => (
-                <SelectItem key={cat} value={cat}>
-                  {cat}
+              {categories.map(cat => (
+                <SelectItem key={cat.id} value={cat.name}>
+                  {cat.name}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
+          {isCategoriesError && (
+            <p className="text-sm text-destructive">Failed to load categories. Please refresh the page.</p>
+          )}
         </div>
 
         <TagsField

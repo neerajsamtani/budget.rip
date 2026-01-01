@@ -1,16 +1,27 @@
 import { SelectFilter } from "@/components/ui/select-filter";
 import React from 'react';
-import { CATEGORIES, Category } from '@/constants/categories';
+import { useCategories } from '../hooks/useApi';
 
-// eslint-disable-next-line no-unused-vars
-export default function CategoryFilter({ category, setCategory }: { category: Category, setCategory: (category: Category) => void }) {
+export default function CategoryFilter({ category, setCategory }: { category: string, setCategory: (category: string) => void }) {
+  const { data: categories = [], isLoading, isError } = useCategories();
+
+  // "All" is a special filter value (not a real category in DB)
+  // Used to show all events regardless of category
+  const options = ['All', ...categories.map(c => c.name)];
+
+  const getPlaceholder = () => {
+    if (isLoading) return "Loading...";
+    if (isError) return "Error loading categories";
+    return "Select category";
+  };
+
   return (
     <SelectFilter
       label="Category"
       value={category}
       onChange={setCategory}
-      options={CATEGORIES}
-      placeholder="Select category"
+      options={options}
+      placeholder={getPlaceholder()}
     />
   );
 }

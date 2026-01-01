@@ -12,7 +12,7 @@ from typing import Any, Dict, List, Optional
 
 from helpers import iso_8601_to_posix, to_dict_robust
 from models.database import SessionLocal
-from models.sql_models import BankAccount, LineItem, PaymentMethod, Transaction, User
+from models.sql_models import BankAccount, Category, LineItem, PaymentMethod, Transaction, User
 from utils.id_generator import generate_id
 
 logger = logging.getLogger(__name__)
@@ -414,9 +414,46 @@ def upsert_bank_accounts(accounts_data: List[Any]) -> int:
         db_session.close()
 
 
+def _seed_default_categories(db_session: Any, user_id: str) -> None:
+    """
+    Seed default categories for a new user.
+
+    Args:
+        db_session: Database session
+        user_id: User ID to create categories for
+    """
+    default_categories = [
+        "Alcohol",
+        "Dining",
+        "Entertainment",
+        "Groceries",
+        "Hobbies",
+        "Income",
+        "Investment",
+        "Medical",
+        "Rent",
+        "Shopping",
+        "Subscription",
+        "Transfer",
+        "Transit",
+        "Travel",
+    ]
+
+    for category_name in default_categories:
+        category = Category(
+            id=generate_id("cat"),
+            user_id=user_id,
+            name=category_name,
+        )
+        db_session.add(category)
+
+    logger.info(f"Seeded {len(default_categories)} default categories for user {user_id}")
+
+
 def upsert_user(user_data: Dict[str, Any]) -> bool:
     """
     Upsert a single user to PostgreSQL.
+    Seeds default categories for new users.
 
     Args:
         user_data: User dict
@@ -446,6 +483,10 @@ def upsert_user(user_data: Dict[str, Any]) -> bool:
         )
 
         db_session.add(user)
+
+        # Seed default categories for new user
+        _seed_default_categories(db_session, user_id)
+
         db_session.commit()
     except Exception as e:
         db_session.rollback()

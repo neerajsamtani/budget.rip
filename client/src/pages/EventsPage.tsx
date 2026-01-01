@@ -2,7 +2,6 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Category } from "@/constants/categories";
 import { CurrencyFormatter } from "@/utils/formatters";
 import { ChevronDown, ChevronUp, Filter } from "lucide-react";
 import { DateTime } from "luxon";
@@ -115,7 +114,7 @@ export default function EventsPage() {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
                         <MonthFilter month={month} setMonth={setMonth} />
                         <YearFilter year={year as Year} setYear={setYear} />
-                        <CategoryFilter category={category as Category} setCategory={setCategory} />
+                        <CategoryFilter category={category} setCategory={setCategory} />
                         <TagsFilter tagFilter={tagFilter} setTagFilter={setTagFilter} />
                     </div>
                 </div>

@@ -36,6 +36,7 @@ from dao import (
 )
 from resources.auth import auth_blueprint
 from resources.cash import cash_blueprint, cash_to_line_items
+from resources.category import categories_blueprint
 from resources.event import events_blueprint
 from resources.event_hint import event_hints_blueprint
 from resources.line_item import all_line_items, line_items_blueprint
@@ -125,6 +126,7 @@ application.register_blueprint(cash_blueprint)
 application.register_blueprint(stripe_blueprint)
 application.register_blueprint(tags_blueprint)
 application.register_blueprint(event_hints_blueprint)
+application.register_blueprint(categories_blueprint)
 
 # If an environment variable is not found in the .env file,
 # load_dotenv will then search for a variable by the given name in the host environment.

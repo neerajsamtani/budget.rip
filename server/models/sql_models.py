@@ -70,8 +70,8 @@ class Category(Base):
     __tablename__ = "categories"
 
     id = Column(String(255), primary_key=True)  # cat_xxx
-    name = Column(String(100), nullable=False, unique=True)
-    is_active = Column(Boolean, default=True)
+    user_id = Column(String(255), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    name = Column(String(100), nullable=False)
     created_at = Column(TIMESTAMP(timezone=True), default=lambda: datetime.now(UTC))
     updated_at = Column(
         TIMESTAMP(timezone=True),
@@ -80,7 +80,10 @@ class Category(Base):
     )
 
     # Relationships
+    user = relationship("User", backref="categories")
     events = relationship("Event", back_populates="category")
+
+    __table_args__ = (UniqueConstraint("user_id", "name", name="uq_user_category_name"),)
 
 
 class PaymentMethod(Base):

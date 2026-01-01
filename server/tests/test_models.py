@@ -23,6 +23,7 @@ from models.sql_models import (
     LineItem,
     PaymentMethod,
     Transaction,
+    User,
 )
 from utils.id_generator import generate_id
 
@@ -57,25 +58,42 @@ def db_session():
     Base.metadata.drop_all(engine)
 
 
-def test_create_event_with_line_items(db_session):
-    # Create category
-    category = Category(id=generate_id("cat"), name="Groceries", is_active=True)
-    db_session.add(category)
+@pytest.fixture
+def test_user(db_session):
+    """Create a test user for use in tests requiring user-scoped data."""
+    user = User(
+        id=generate_id("user"),
+        first_name="Test",
+        last_name="User",
+        email="test@example.com",
+        password_hash="test_hash",
+    )
+    db_session.add(user)
+    db_session.commit()
+    return user
 
-    # Create payment method
-    payment_method = PaymentMethod(id=generate_id("pm"), name="Chase", type="credit", is_active=True)
-    db_session.add(payment_method)
 
-    # Create transaction
+@pytest.fixture
+def common_fixtures(db_session, test_user):
+    """Create common test objects: category, payment_method, and transaction."""
+    category = Category(id=generate_id("cat"), user_id=test_user.id, name="Test Category")
+    payment_method = PaymentMethod(id=generate_id("pm"), name="Test Card", type="credit", is_active=True)
     transaction = Transaction(
         id=generate_id("txn"),
-        source="stripe",
-        source_id="txn_test123",
-        source_data={},  # JSONB field accepts dict
+        source="manual",
+        source_id="test123",
+        source_data={},
         transaction_date=datetime.now(UTC),
     )
-    db_session.add(transaction)
+    db_session.add_all([category, payment_method, transaction])
     db_session.commit()
+    return {"category": category, "payment_method": payment_method, "transaction": transaction}
+
+
+def test_create_event_with_line_items(db_session, common_fixtures):
+    category = common_fixtures["category"]
+    payment_method = common_fixtures["payment_method"]
+    transaction = common_fixtures["transaction"]
 
     # Create line item
     line_item = LineItem(
@@ -130,20 +148,11 @@ def test_foreign_key_constraint(db_session):
         db_session.commit()
 
 
-def test_event_total_amount_property(db_session):
+def test_event_total_amount_property(db_session, common_fixtures):
     """Test that Event.total_amount property correctly sums line items"""
-    # Setup category and payment method
-    category = Category(id=generate_id("cat"), name="Test Category", is_active=True)
-    payment_method = PaymentMethod(id=generate_id("pm"), name="Test Card", type="credit", is_active=True)
-    transaction = Transaction(
-        id=generate_id("txn"),
-        source="manual",
-        source_id="test123",
-        source_data={},
-        transaction_date=datetime.now(UTC),
-    )
-    db_session.add_all([category, payment_method, transaction])
-    db_session.commit()
+    category = common_fixtures["category"]
+    payment_method = common_fixtures["payment_method"]
+    transaction = common_fixtures["transaction"]
 
     # Create event
     event = Event(
@@ -182,20 +191,11 @@ def test_event_total_amount_property(db_session):
     assert event.total_amount == expected_total
 
 
-def test_event_duplicate_total(db_session):
+def test_event_duplicate_total(db_session, common_fixtures):
     """Test that is_duplicate flag causes total to use only first line item"""
-    # Setup
-    category = Category(id=generate_id("cat"), name="Test", is_active=True)
-    payment_method = PaymentMethod(id=generate_id("pm"), name="Test", type="credit", is_active=True)
-    transaction = Transaction(
-        id=generate_id("txn"),
-        source="manual",
-        source_id="test",
-        source_data={},
-        transaction_date=datetime.now(UTC),
-    )
-    db_session.add_all([category, payment_method, transaction])
-    db_session.commit()
+    category = common_fixtures["category"]
+    payment_method = common_fixtures["payment_method"]
+    transaction = common_fixtures["transaction"]
 
     # Create duplicate event
     event = Event(
@@ -234,20 +234,11 @@ def test_event_duplicate_total(db_session):
     assert event.total_amount != sum(amounts)
 
 
-def test_cascade_delete_event_deletes_junction_records(db_session):
+def test_cascade_delete_event_deletes_junction_records(db_session, common_fixtures):
     """Test that deleting an event cascades to event_line_items"""
-    # Setup
-    category = Category(id=generate_id("cat"), name="Cascade Test", is_active=True)
-    payment_method = PaymentMethod(id=generate_id("pm"), name="Test PM", type="credit", is_active=True)
-    transaction = Transaction(
-        id=generate_id("txn"),
-        source="manual",
-        source_id="cascade_test",
-        source_data={},
-        transaction_date=datetime.now(UTC),
-    )
-    db_session.add_all([category, payment_method, transaction])
-    db_session.commit()
+    category = common_fixtures["category"]
+    payment_method = common_fixtures["payment_method"]
+    transaction = common_fixtures["transaction"]
 
     # Create event and line item
     event = Event(
@@ -323,20 +314,9 @@ def test_cascade_delete_transaction_deletes_line_items(db_session):
     assert db_session.query(LineItem).filter_by(id=line_item_id).first() is None
 
 
-def test_restrict_delete_category_with_events_fails(db_session):
+def test_restrict_delete_category_with_events_fails(db_session, common_fixtures):
     """Test that deleting a category with events raises an error (RESTRICT)"""
-    # Setup
-    category = Category(id=generate_id("cat"), name="Protected Category", is_active=True)
-    payment_method = PaymentMethod(id=generate_id("pm"), name="Test PM", type="credit", is_active=True)
-    transaction = Transaction(
-        id=generate_id("txn"),
-        source="cash",
-        source_id="cash_123",
-        source_data={},
-        transaction_date=datetime.now(UTC),
-    )
-    db_session.add_all([category, payment_method, transaction])
-    db_session.commit()
+    category = common_fixtures["category"]
 
     # Create event with this category
     event = Event(

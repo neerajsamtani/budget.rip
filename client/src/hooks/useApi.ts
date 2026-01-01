@@ -371,6 +371,56 @@ export function useCategories(): UseQueryResult<CategoryOption[]> {
   });
 }
 
+interface CreateCategoryData {
+  name: string;
+}
+
+export function useCreateCategory(): UseMutationResult<CategoryOption, Error, CreateCategoryData> {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: CreateCategoryData) => {
+      const response = await axiosInstance.post('api/categories', data);
+      return response.data.data as CategoryOption;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.categories() });
+    },
+  });
+}
+
+interface UpdateCategoryData {
+  id: string;
+  name?: string;
+}
+
+export function useUpdateCategory(): UseMutationResult<CategoryOption, Error, UpdateCategoryData> {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, ...data }: UpdateCategoryData) => {
+      const response = await axiosInstance.put(`api/categories/${id}`, data);
+      return response.data.data as CategoryOption;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.categories() });
+    },
+  });
+}
+
+export function useDeleteCategory(): UseMutationResult<void, Error, string> {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      await axiosInstance.delete(`api/categories/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.categories() });
+    },
+  });
+}
+
 export function useEvaluateEventHints(lineItemIds: string[], enabled: boolean = true): UseQueryResult<EventHintSuggestion | null> {
   return useQuery({
     queryKey: queryKeys.eventHintSuggestion(lineItemIds),

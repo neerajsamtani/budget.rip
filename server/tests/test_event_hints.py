@@ -8,16 +8,19 @@ from utils.cel_evaluator import CELEvaluator, evaluate_hints
 
 @pytest.fixture
 def test_user(pg_session):
-    """Create a test user with id matching jwt_token"""
-    user = User(
-        id="user_id",  # Must match the identity in jwt_token fixture
-        first_name="Test",
-        last_name="User",
-        email="test@example.com",
-        password_hash="hashed_password",
-    )
-    pg_session.add(user)
-    pg_session.commit()
+    """Get or create a test user with id matching jwt_token"""
+    # Try to get existing user first (may have been created by seed function)
+    user = pg_session.query(User).filter_by(id="user_id").first()
+    if not user:
+        user = User(
+            id="user_id",  # Must match the identity in jwt_token fixture
+            first_name="Test",
+            last_name="User",
+            email="test_user_fixture@example.com",
+            password_hash="hashed_password",
+        )
+        pg_session.add(user)
+        pg_session.commit()
     return user
 
 

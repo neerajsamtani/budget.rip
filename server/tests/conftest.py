@@ -33,6 +33,7 @@ from constants import JWT_SECRET_KEY
 from models.sql_models import Base
 from resources.auth import auth_blueprint
 from resources.cash import cash_blueprint
+from resources.category import categories_blueprint
 from resources.event import events_blueprint
 from resources.event_hint import event_hints_blueprint
 from resources.line_item import line_items_blueprint
@@ -109,6 +110,7 @@ def flask_app():
     app.debug = True
     app.register_blueprint(auth_blueprint)
     app.register_blueprint(cash_blueprint)
+    app.register_blueprint(categories_blueprint)
     app.register_blueprint(event_hints_blueprint)
     app.register_blueprint(line_items_blueprint)
     app.register_blueprint(events_blueprint)
@@ -206,33 +208,47 @@ def pg_session():
 
 
 def seed_postgresql_base_data():
-    """Seed PostgreSQL with required base data (categories, payment methods)"""
-    from models.sql_models import Category, PaymentMethod
+    """Seed PostgreSQL with required base data (categories, payment methods) for test user"""
+    from models.sql_models import Category, PaymentMethod, User
 
     session = TestSession()
     try:
+        # Create test user first if it doesn't exist
+        test_user_id = "user_id"
+        test_user = session.query(User).filter_by(id=test_user_id).first()
+        if not test_user:
+            test_user = User(
+                id=test_user_id,
+                first_name="Test",
+                last_name="User",
+                email="seed_test_user@example.com",
+                password_hash="hashed_password",
+            )
+            session.add(test_user)
+            # Commit user first to ensure it exists before adding categories
+            session.flush()
+
+        # Create categories for the test user
         categories = [
-            {"id": "cat_all", "name": "All"},
-            {"id": "cat_alcohol", "name": "Alcohol"},
-            {"id": "cat_dining", "name": "Dining"},
-            {"id": "cat_entertainment", "name": "Entertainment"},
-            {"id": "cat_forma", "name": "Forma"},
-            {"id": "cat_groceries", "name": "Groceries"},
-            {"id": "cat_hobbies", "name": "Hobbies"},
-            {"id": "cat_income", "name": "Income"},
-            {"id": "cat_investment", "name": "Investment"},
-            {"id": "cat_medical", "name": "Medical"},
-            {"id": "cat_rent", "name": "Rent"},
-            {"id": "cat_shopping", "name": "Shopping"},
-            {"id": "cat_subscription", "name": "Subscription"},
-            {"id": "cat_transfer", "name": "Transfer"},
-            {"id": "cat_transit", "name": "Transit"},
-            {"id": "cat_travel", "name": "Travel"},
-            {"id": "cat_food", "name": "Food"},
-            {"id": "cat_transportation", "name": "Transportation"},
+            {"id": "cat_alcohol", "user_id": test_user_id, "name": "Alcohol"},
+            {"id": "cat_dining", "user_id": test_user_id, "name": "Dining"},
+            {"id": "cat_entertainment", "user_id": test_user_id, "name": "Entertainment"},
+            {"id": "cat_groceries", "user_id": test_user_id, "name": "Groceries"},
+            {"id": "cat_hobbies", "user_id": test_user_id, "name": "Hobbies"},
+            {"id": "cat_income", "user_id": test_user_id, "name": "Income"},
+            {"id": "cat_investment", "user_id": test_user_id, "name": "Investment"},
+            {"id": "cat_medical", "user_id": test_user_id, "name": "Medical"},
+            {"id": "cat_rent", "user_id": test_user_id, "name": "Rent"},
+            {"id": "cat_shopping", "user_id": test_user_id, "name": "Shopping"},
+            {"id": "cat_subscription", "user_id": test_user_id, "name": "Subscription"},
+            {"id": "cat_transfer", "user_id": test_user_id, "name": "Transfer"},
+            {"id": "cat_transit", "user_id": test_user_id, "name": "Transit"},
+            {"id": "cat_travel", "user_id": test_user_id, "name": "Travel"},
+            {"id": "cat_food", "user_id": test_user_id, "name": "Food"},
+            {"id": "cat_transportation", "user_id": test_user_id, "name": "Transportation"},
         ]
         for cat_data in categories:
-            if not session.query(Category).filter_by(name=cat_data["name"]).first():
+            if not session.query(Category).filter_by(user_id=test_user_id, name=cat_data["name"]).first():
                 session.add(Category(**cat_data))
 
         payment_methods = [
