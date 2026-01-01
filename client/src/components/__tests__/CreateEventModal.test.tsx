@@ -36,7 +36,6 @@ const mockCategoriesData = [
     { id: 'cat_alcohol', name: 'Alcohol' },
     { id: 'cat_dining', name: 'Dining' },
     { id: 'cat_entertainment', name: 'Entertainment' },
-    { id: 'cat_forma', name: 'Forma' },
     { id: 'cat_groceries', name: 'Groceries' },
     { id: 'cat_hobbies', name: 'Hobbies' },
     { id: 'cat_income', name: 'Income' },
@@ -148,7 +147,7 @@ describe('CreateEventModal', () => {
 
             // Categories are loaded from API (no 'All' option - that's only for filtering)
             const options = [
-                'Alcohol', 'Dining', 'Entertainment', 'Forma', 'Groceries',
+                'Alcohol', 'Dining', 'Entertainment', 'Groceries',
                 'Hobbies', 'Income', 'Investment', 'Medical', 'Rent', 'Shopping',
                 'Subscription', 'Transfer', 'Transit', 'Travel'
             ];

@@ -233,7 +233,6 @@ def seed_postgresql_base_data():
             {"id": "cat_alcohol", "user_id": test_user_id, "name": "Alcohol"},
             {"id": "cat_dining", "user_id": test_user_id, "name": "Dining"},
             {"id": "cat_entertainment", "user_id": test_user_id, "name": "Entertainment"},
-            {"id": "cat_forma", "user_id": test_user_id, "name": "Forma"},
             {"id": "cat_groceries", "user_id": test_user_id, "name": "Groceries"},
             {"id": "cat_hobbies", "user_id": test_user_id, "name": "Hobbies"},
             {"id": "cat_income", "user_id": test_user_id, "name": "Income"},

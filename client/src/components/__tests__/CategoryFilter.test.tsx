@@ -8,7 +8,6 @@ const mockCategories = [
     { id: 'cat_alcohol', name: 'Alcohol' },
     { id: 'cat_dining', name: 'Dining' },
     { id: 'cat_entertainment', name: 'Entertainment' },
-    { id: 'cat_forma', name: 'Forma' },
     { id: 'cat_groceries', name: 'Groceries' },
     { id: 'cat_hobbies', name: 'Hobbies' },
     { id: 'cat_income', name: 'Income' },
@@ -326,7 +325,7 @@ describe('CategoryFilter', () => {
             const trigger = screen.getByRole('combobox');
             await userEvent.click(trigger);
 
-            const expectedCategories = ['Alcohol', 'Dining', 'Entertainment', 'Forma', 'Groceries', 'Hobbies', 'Income', 'Investment', 'Medical', 'Rent', 'Shopping', 'Subscription', 'Transfer', 'Transit', 'Travel'];
+            const expectedCategories = ['Alcohol', 'Dining', 'Entertainment', 'Groceries', 'Hobbies', 'Income', 'Investment', 'Medical', 'Rent', 'Shopping', 'Subscription', 'Transfer', 'Transit', 'Travel'];
 
             await waitFor(() => {
                 expectedCategories.forEach(category => {
