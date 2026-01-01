@@ -426,7 +426,6 @@ def _seed_default_categories(db_session: Any, user_id: str) -> None:
         "Alcohol",
         "Dining",
         "Entertainment",
-        "Forma",
         "Groceries",
         "Hobbies",
         "Income",
