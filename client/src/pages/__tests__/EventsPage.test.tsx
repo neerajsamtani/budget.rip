@@ -272,10 +272,8 @@ describe('EventsPage', () => {
                 expect(mockAxiosInstance.get).toHaveBeenCalledTimes(1);
             });
 
-            // Change month filter
             const monthFilter = screen.getByTestId('month-filter');
-            monthFilter.setAttribute('value', 'February');
-            monthFilter.dispatchEvent(new Event('change', { bubbles: true }));
+            fireEvent.change(monthFilter, { target: { value: 'February' } });
 
             await waitFor(() => {
                 expect(mockAxiosInstance.get).toHaveBeenCalledTimes(2);
@@ -289,10 +287,8 @@ describe('EventsPage', () => {
                 expect(mockAxiosInstance.get).toHaveBeenCalledTimes(1);
             });
 
-            // Change year filter
             const yearFilter = screen.getByTestId('year-filter');
-            yearFilter.setAttribute('value', '2023');
-            yearFilter.dispatchEvent(new Event('change', { bubbles: true }));
+            fireEvent.change(yearFilter, { target: { value: '2023' } });
 
             await waitFor(() => {
                 expect(mockAxiosInstance.get).toHaveBeenCalledTimes(2);
@@ -524,12 +520,15 @@ describe('EventsPage', () => {
         });
 
         it('sets correct date range for "All" months', async () => {
-            // Change month to "All"
             render(<EventsPage />);
 
+            // Wait for initial render and API call
+            await waitFor(() => {
+                expect(mockAxiosInstance.get).toHaveBeenCalled();
+            });
+
             const monthFilter = screen.getByTestId('month-filter');
-            monthFilter.setAttribute('value', 'All');
-            monthFilter.dispatchEvent(new Event('change', { bubbles: true }));
+            fireEvent.change(monthFilter, { target: { value: 'All' } });
 
             await waitFor(() => {
                 const call = mockAxiosInstance.get.mock.calls[1];
