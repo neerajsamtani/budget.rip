@@ -2,6 +2,23 @@
 
 This directory contains hooks for Claude Code that automate quality checks during development.
 
+## Pre-Commit Lint Hook
+
+The `pre-commit-lint.py` hook runs `make lint-fix` before commits to auto-fix linting issues.
+
+### What it does
+
+1. **Intercepts git commits**: Monitors all Bash commands and detects git commit attempts
+2. **Runs linting**: Executes `make lint-fix` in the server directory (ruff check --fix + ruff format)
+3. **Auto-fixes issues**: Automatically formats and fixes linting issues where possible
+4. **Blocks if unfixable**: Prevents commits only if there are issues that can't be auto-fixed
+
+### Timeout
+
+- 60 seconds (runs before test hook)
+
+---
+
 ## Pre-Commit Test Hook
 
 The `pre-commit-test.py` hook ensures all tests pass before allowing commits.
@@ -20,7 +37,7 @@ The `pre-commit-test.py` hook ensures all tests pass before allowing commits.
 
 ### Configuration
 
-The hook is configured in `.claude/settings.json`:
+Both hooks are configured in `.claude/settings.json`:
 
 ```json
 {
@@ -29,6 +46,11 @@ The hook is configured in `.claude/settings.json`:
       {
         "matcher": "Bash",
         "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/pre-commit-lint.py",
+            "timeout": 60
+          },
           {
             "type": "command",
             "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/pre-commit-test.py",
