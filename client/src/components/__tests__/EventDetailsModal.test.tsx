@@ -21,6 +21,15 @@ jest.mock('sonner', () => {
 // Mock the API hooks
 const mockUpdateEvent = jest.fn();
 const mockDeleteEvent = jest.fn();
+const mockUseCategories = jest.fn();
+
+// Default category data
+const mockCategoriesData = [
+    { id: 'cat_dining', name: 'Dining' },
+    { id: 'cat_shopping', name: 'Shopping' },
+    { id: 'cat_travel', name: 'Travel' },
+];
+
 jest.mock('../../hooks/useApi', () => ({
     ...jest.requireActual('../../hooks/useApi'),
     useDeleteEvent: () => ({
@@ -42,6 +51,7 @@ jest.mock('../../hooks/useApi', () => ({
         data: [],
         isLoading: false,
     }),
+    useCategories: () => mockUseCategories(),
 }));
 
 // Mock the LineItem component
@@ -115,6 +125,12 @@ describe('EventDetailsModal', () => {
         });
         mockUpdateEvent.mockImplementation((_data, options) => {
             options?.onSuccess?.();
+        });
+        // Default categories mock
+        mockUseCategories.mockReturnValue({
+            data: mockCategoriesData,
+            isLoading: false,
+            isError: false,
         });
     });
 
@@ -903,6 +919,51 @@ describe('EventDetailsModal', () => {
 
             // Save button should be disabled
             expect(screen.getByRole('button', { name: /save changes/i })).toBeDisabled();
+        });
+
+        it('disables category select when categories are loading in edit mode', async () => {
+            mockUseCategories.mockReturnValue({
+                data: [],
+                isLoading: true,
+                isError: false,
+            });
+
+            render(
+                <EventDetailsModal
+                    show={true}
+                    event={mockEvent}
+                    lineItemsForEvent={mockLineItems}
+                    isLoadingLineItemsForEvent={false}
+                    onHide={mockOnHide}
+                />
+            );
+
+            await userEvent.click(screen.getByRole('button', { name: /edit/i }));
+
+            const categorySelect = screen.getByRole('combobox', { name: /category/i });
+            expect(categorySelect).toBeDisabled();
+        });
+
+        it('shows error message when categories fail to load in edit mode', async () => {
+            mockUseCategories.mockReturnValue({
+                data: [],
+                isLoading: false,
+                isError: true,
+            });
+
+            render(
+                <EventDetailsModal
+                    show={true}
+                    event={mockEvent}
+                    lineItemsForEvent={mockLineItems}
+                    isLoadingLineItemsForEvent={false}
+                    onHide={mockOnHide}
+                />
+            );
+
+            await userEvent.click(screen.getByRole('button', { name: /edit/i }));
+
+            expect(screen.getByText('Failed to load categories. Please refresh the page.')).toBeInTheDocument();
         });
 
         it('removes tag when X is clicked', async () => {

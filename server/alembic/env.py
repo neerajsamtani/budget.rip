@@ -1,3 +1,4 @@
+import logging
 from logging.config import fileConfig
 from urllib.parse import quote_plus
 
@@ -17,7 +18,9 @@ from models.sql_models import (
 )
 
 load_dotenv()
-print(f"Connecting to: {DATABASE_HOST}/{DATABASE_NAME}")
+
+logger = logging.getLogger("alembic.env")
+logger.info(f"Connecting to: {DATABASE_HOST}/{DATABASE_NAME}")
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

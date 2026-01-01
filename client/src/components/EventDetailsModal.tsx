@@ -114,6 +114,8 @@ interface EditEventContentProps {
   category: string;
   setCategory: React.Dispatch<React.SetStateAction<string>>;
   categories: { id: string; name: string }[];
+  isLoadingCategories: boolean;
+  isCategoriesError: boolean;
   tags: Tag[];
   tagOptions: Option[];
   isLoadingTags: boolean;
@@ -140,7 +142,7 @@ interface EditEventContentProps {
 function EditEventContent({
   name, setName,
   category, setCategory,
-  categories,
+  categories, isLoadingCategories, isCategoriesError,
   tags, tagOptions, isLoadingTags, onRemoveTag, onAddTag,
   overrideDate, setOverrideDate,
   isDuplicateTransaction, setIsDuplicateTransaction,
@@ -177,9 +179,9 @@ function EditEventContent({
           <Label id="edit-category-label" className="text-sm font-medium text-foreground">
             Category
           </Label>
-          <Select value={category} onValueChange={setCategory}>
+          <Select value={category} onValueChange={setCategory} disabled={isLoadingCategories}>
             <SelectTrigger className="w-full" aria-labelledby="edit-category-label">
-              <SelectValue placeholder="Select a category" />
+              <SelectValue placeholder={isLoadingCategories ? "Loading..." : isCategoriesError ? "Error loading categories" : "Select a category"} />
             </SelectTrigger>
             <SelectContent className="bg-white border">
               {categories.map(cat => (
@@ -189,6 +191,9 @@ function EditEventContent({
               ))}
             </SelectContent>
           </Select>
+          {isCategoriesError && (
+            <p className="text-sm text-destructive">Failed to load categories. Please refresh the page.</p>
+          )}
         </div>
 
         <TagsField
@@ -317,7 +322,7 @@ export default function EventDetailsModal({ show, event, lineItemsForEvent, isLo
   const updateEventMutation = useUpdateEvent();
   const isMobile = useIsMobile();
   const { data: existingTags, isLoading: isLoadingTags } = useTags();
-  const { data: categories = [] } = useCategories();
+  const { data: categories = [], isLoading: isLoadingCategories, isError: isCategoriesError } = useCategories();
   const { data: unreviewedLineItems = [] } = useLineItems({ onlyLineItemsToReview: true, enabled: isEditing });
 
   // Reset form state when event changes or when entering edit mode
@@ -452,6 +457,8 @@ export default function EventDetailsModal({ show, event, lineItemsForEvent, isLo
           category={category}
           setCategory={setCategory}
           categories={categories}
+          isLoadingCategories={isLoadingCategories}
+          isCategoriesError={isCategoriesError}
           tags={tags}
           tagOptions={tagOptions}
           isLoadingTags={isLoadingTags}

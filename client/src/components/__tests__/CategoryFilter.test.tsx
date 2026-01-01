@@ -232,6 +232,79 @@ describe('CategoryFilter', () => {
         });
     });
 
+    describe('Loading and Error States', () => {
+        it('shows loading placeholder when categories are loading', async () => {
+            // Make the API return a pending promise (never resolves)
+            (mockAxiosInstance.get as jest.Mock).mockImplementation((url: string) => {
+                if (url === 'api/categories') {
+                    return new Promise(() => {}); // Never resolves
+                }
+                return Promise.reject(new Error('Not found'));
+            });
+
+            render(
+                <CategoryFilter
+                    category=""
+                    setCategory={mockSetCategory}
+                />
+            );
+
+            // Should show loading placeholder
+            await waitFor(() => {
+                const trigger = screen.getByRole('combobox');
+                expect(trigger).toHaveTextContent('Loading...');
+            });
+        });
+
+        it('shows error placeholder when categories fail to load', async () => {
+            // Make the API reject
+            (mockAxiosInstance.get as jest.Mock).mockImplementation((url: string) => {
+                if (url === 'api/categories') {
+                    return Promise.reject(new Error('Failed to fetch'));
+                }
+                return Promise.reject(new Error('Not found'));
+            });
+
+            render(
+                <CategoryFilter
+                    category=""
+                    setCategory={mockSetCategory}
+                />
+            );
+
+            // Should show error placeholder
+            await waitFor(() => {
+                const trigger = screen.getByRole('combobox');
+                expect(trigger).toHaveTextContent('Error loading categories');
+            });
+        });
+
+        it('still shows "All" option even when categories fail to load', async () => {
+            // Make the API reject
+            (mockAxiosInstance.get as jest.Mock).mockImplementation((url: string) => {
+                if (url === 'api/categories') {
+                    return Promise.reject(new Error('Failed to fetch'));
+                }
+                return Promise.reject(new Error('Not found'));
+            });
+
+            render(
+                <CategoryFilter
+                    category="All"
+                    setCategory={mockSetCategory}
+                />
+            );
+
+            // Wait for error state
+            await waitFor(() => {
+                expect(mockAxiosInstance.get).toHaveBeenCalledWith('api/categories');
+            });
+
+            // "All" should still be visible
+            expect(screen.getByText('All')).toBeInTheDocument();
+        });
+    });
+
     describe('Component Structure', () => {
         it('renders all predefined categories', async () => {
             render(

@@ -62,7 +62,7 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
   const isDuplicateTransaction = useField<boolean>("checkbox", false)
   const [tags, setTags] = useState<Tag[]>([]);
   const { data: existingTags, isLoading: isLoadingTags } = useTags();
-  const { data: categories = [] } = useCategories();
+  const { data: categories = [], isLoading: isLoadingCategories, isError: isCategoriesError } = useCategories();
 
   const tagOptions: Option[] = (existingTags || [])
     .filter(tag => !tags.some(t => t.text === tag.name))
@@ -147,9 +147,9 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
           <Label id="category-label" className="text-sm font-medium text-foreground">
             Category
           </Label>
-          <Select value={category.value} onValueChange={(value) => category.setCustomValue(value)}>
+          <Select value={category.value} onValueChange={(value) => category.setCustomValue(value)} disabled={isLoadingCategories}>
             <SelectTrigger className="w-full" aria-labelledby="category-label">
-              <SelectValue placeholder="Select a category" />
+              <SelectValue placeholder={isLoadingCategories ? "Loading..." : isCategoriesError ? "Error loading categories" : "Select a category"} />
             </SelectTrigger>
             <SelectContent className="bg-white border">
               {categories.map(cat => (
@@ -159,6 +159,9 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
               ))}
             </SelectContent>
           </Select>
+          {isCategoriesError && (
+            <p className="text-sm text-destructive">Failed to load categories. Please refresh the page.</p>
+          )}
         </div>
 
         <TagsField

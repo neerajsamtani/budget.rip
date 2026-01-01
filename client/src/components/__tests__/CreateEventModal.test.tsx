@@ -350,6 +350,46 @@ describe('CreateEventModal', () => {
         });
     });
 
+    describe('Category Loading and Error States', () => {
+        it('disables category select when categories are loading', async () => {
+            mockUseCategories.mockReturnValue({
+                data: [],
+                isLoading: true,
+                isError: false,
+            });
+
+            render(<CreateEventModal show={true} onHide={mockOnHide} />);
+
+            const categorySelect = screen.getByRole('combobox', { name: /category/i });
+            expect(categorySelect).toBeDisabled();
+        });
+
+        it('shows error message when categories fail to load', async () => {
+            mockUseCategories.mockReturnValue({
+                data: [],
+                isLoading: false,
+                isError: true,
+            });
+
+            render(<CreateEventModal show={true} onHide={mockOnHide} />);
+
+            expect(screen.getByText('Failed to load categories. Please refresh the page.')).toBeInTheDocument();
+        });
+
+        it('enables category select after successful load', async () => {
+            mockUseCategories.mockReturnValue({
+                data: mockCategoriesData,
+                isLoading: false,
+                isError: false,
+            });
+
+            render(<CreateEventModal show={true} onHide={mockOnHide} />);
+
+            const categorySelect = screen.getByRole('combobox', { name: /category/i });
+            expect(categorySelect).not.toBeDisabled();
+        });
+    });
+
     describe('Prefill Logic', () => {
         it('prefills form when prefill suggestion is available', async () => {
             // Mock the hook to return a suggestion
