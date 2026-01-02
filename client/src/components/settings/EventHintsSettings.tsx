@@ -334,7 +334,7 @@ export default function EventHintsSettings() {
                                                     variant="ghost"
                                                     size="sm"
                                                     onClick={() => moveHint(index, "up")}
-                                                    disabled={index === 0 || reorderMutation.isPending}
+                                                    disabled={reorderMutation.isPending || index === 0}
                                                     className="h-6 w-6 p-0"
                                                 >
                                                     <ChevronUp className="h-3 w-3" />
@@ -343,7 +343,7 @@ export default function EventHintsSettings() {
                                                     variant="ghost"
                                                     size="sm"
                                                     onClick={() => moveHint(index, "down")}
-                                                    disabled={index === hints.length - 1 || reorderMutation.isPending}
+                                                    disabled={reorderMutation.isPending || index === hints.length - 1}
                                                     className="h-6 w-6 p-0"
                                                 >
                                                     <ChevronDown className="h-3 w-3" />
@@ -423,7 +423,7 @@ export default function EventHintsSettings() {
                                                         variant="ghost"
                                                         size="sm"
                                                         onClick={() => moveHint(index, "up")}
-                                                        disabled={index === 0 || reorderMutation.isPending}
+                                                        disabled={reorderMutation.isPending || index === 0}
                                                         className="h-7 w-7 p-0"
                                                     >
                                                         <ChevronUp className="h-4 w-4" />
@@ -432,7 +432,7 @@ export default function EventHintsSettings() {
                                                         variant="ghost"
                                                         size="sm"
                                                         onClick={() => moveHint(index, "down")}
-                                                        disabled={index === hints.length - 1 || reorderMutation.isPending}
+                                                        disabled={reorderMutation.isPending || index === hints.length - 1}
                                                         className="h-7 w-7 p-0"
                                                     >
                                                         <ChevronDown className="h-4 w-4" />
