@@ -100,8 +100,8 @@ def mock_event_data_with_gaps():
 
 
 class TestMonthlyBreakdownAPI:
-    def test_get_monthly_breakdown_api_success(self, test_client, jwt_token, flask_app, mock_event_data, pg_session):
-        """Test GET /api/monthly_breakdown endpoint - success case"""
+    def test_breakdown_returns_totals_by_category(self, test_client, jwt_token, flask_app, mock_event_data, pg_session):
+        """Monthly breakdown returns spending totals grouped by category"""
         # Insert test data
         with flask_app.app_context():
             for event in mock_event_data:
@@ -171,13 +171,13 @@ class TestMonthlyBreakdownAPI:
         mar_entertainment = next(item for item in entertainment_data if item["date"] == "3-2023")
         assert mar_entertainment["amount"] == 0.0
 
-    def test_get_monthly_breakdown_api_unauthorized(self, test_client):
-        """Test GET /api/monthly_breakdown endpoint - unauthorized"""
+    def test_monthly_breakdown_requires_authentication(self, test_client):
+        """Monthly breakdown endpoint requires authentication"""
         response = test_client.get("/api/monthly_breakdown")
         assert response.status_code == 401
 
-    def test_get_monthly_breakdown_api_empty_data(self, test_client, jwt_token, flask_app):
-        """Test GET /api/monthly_breakdown endpoint - no data"""
+    def test_empty_database_returns_empty_breakdown(self, test_client, jwt_token, flask_app):
+        """Empty database returns empty breakdown object"""
         # Test API call with no data in database
         response = test_client.get(
             "/api/monthly_breakdown",
@@ -188,10 +188,10 @@ class TestMonthlyBreakdownAPI:
         data = response.get_json()
         assert data == {}  # Empty response when no data
 
-    def test_get_monthly_breakdown_api_fills_missing_dates(
+    def test_missing_months_are_filled_with_zeros(
         self, test_client, jwt_token, flask_app, mock_event_data_with_gaps, pg_session
     ):
-        """Test GET /api/monthly_breakdown endpoint - fills missing dates with zero amounts"""
+        """Missing months between first and last are filled with zero amounts"""
         # Insert test data with gaps
         with flask_app.app_context():
             for event in mock_event_data_with_gaps:
@@ -223,13 +223,8 @@ class TestMonthlyBreakdownAPI:
         apr_dining = next(item for item in dining_data if item["date"] == "4-2023")
         assert apr_dining["amount"] == 60.0
 
-    def test_get_monthly_breakdown_api_fills_missing_dates_multiple_categories(
-        self, test_client, jwt_token, flask_app, pg_session
-    ):
-        """
-        Test GET /api/monthly_breakdown endpoint
-        - fills missing dates when multiple categories have different date ranges
-        """
+    def test_categories_with_different_date_ranges_all_get_filled(self, test_client, jwt_token, flask_app, pg_session):
+        """All categories are filled to span the full date range"""
         # Insert test data where different categories have data in different months
         with flask_app.app_context():
             test_events = [
@@ -308,8 +303,8 @@ class TestMonthlyBreakdownAPI:
         apr_transit = next(item for item in transit_data if item["date"] == "4-2023")
         assert apr_transit["amount"] == 30.0
 
-    def test_get_monthly_breakdown_api_sorts_by_date(self, test_client, jwt_token, flask_app, pg_session):
-        """Test GET /api/monthly_breakdown endpoint - sorts data by date"""
+    def test_data_is_sorted_chronologically(self, test_client, jwt_token, flask_app, pg_session):
+        """Monthly data is sorted by date ascending"""
         # Insert test data in random order
         with flask_app.app_context():
             test_events = [
@@ -361,8 +356,8 @@ class TestMonthlyBreakdownAPI:
         assert dining_data[2]["date"] == "3-2023"
         assert dining_data[2]["amount"] == 60.0
 
-    def test_get_monthly_breakdown_api_multiple_categories_same_month(self, test_client, jwt_token, flask_app, pg_session):
-        """Test GET /api/monthly_breakdown endpoint - multiple categories in same month"""
+    def test_same_month_events_are_aggregated(self, test_client, jwt_token, flask_app, pg_session):
+        """Events in same month are summed together"""
         # Insert test data with multiple categories in same month
         with flask_app.app_context():
             test_events = [
@@ -414,8 +409,8 @@ class TestMonthlyBreakdownAPI:
         assert transit_data[0]["date"] == "1-2023"
         assert transit_data[0]["amount"] == 25.0
 
-    def test_get_monthly_breakdown_api_large_amounts(self, test_client, jwt_token, flask_app, pg_session):
-        """Test GET /api/monthly_breakdown endpoint - handles large amounts correctly"""
+    def test_large_amounts_are_summed_correctly(self, test_client, jwt_token, flask_app, pg_session):
+        """Large amounts are aggregated correctly"""
         # Insert test data with large amounts
         with flask_app.app_context():
             test_events = [
@@ -454,8 +449,8 @@ class TestMonthlyBreakdownAPI:
         assert rent_data[0]["date"] == "1-2023"
         assert rent_data[0]["amount"] == 3000.0  # 2500 + 500
 
-    def test_get_monthly_breakdown_api_decimal_amounts(self, test_client, jwt_token, flask_app, pg_session):
-        """Test GET /api/monthly_breakdown endpoint - handles decimal amounts correctly"""
+    def test_decimal_amounts_are_preserved(self, test_client, jwt_token, flask_app, pg_session):
+        """Decimal amounts are preserved when summing"""
         # Insert test data with decimal amounts
         with flask_app.app_context():
             test_events = [
@@ -494,8 +489,8 @@ class TestMonthlyBreakdownAPI:
         assert dining_data[0]["date"] == "1-2023"
         assert dining_data[0]["amount"] == 21.25  # 12.50 + 8.75
 
-    def test_get_monthly_breakdown_api_single_category(self, test_client, jwt_token, flask_app, pg_session):
-        """Test GET /api/monthly_breakdown endpoint - single category"""
+    def test_single_category_returns_only_that_category(self, test_client, jwt_token, flask_app, pg_session):
+        """Single category data returns only that category"""
         # Insert test data with only one category
         with flask_app.app_context():
             test_events = [
@@ -540,10 +535,8 @@ class TestMonthlyBreakdownAPI:
         feb_dining = next(item for item in data["Dining"] if item["date"] == "2-2023")
         assert feb_dining["amount"] == 75.0
 
-    def test_get_monthly_breakdown_api_response_structure(
-        self, test_client, jwt_token, flask_app, mock_event_data, pg_session
-    ):
-        """Test GET /api/monthly_breakdown endpoint - response structure"""
+    def test_response_has_correct_structure(self, test_client, jwt_token, flask_app, mock_event_data, pg_session):
+        """Response has category names as keys with date and amount arrays"""
         # Insert test data
         with flask_app.app_context():
             for event in mock_event_data:

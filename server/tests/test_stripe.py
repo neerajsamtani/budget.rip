@@ -75,8 +75,8 @@ def mock_bank_account():
 
 
 class TestStripeAPI:
-    def test_refresh_stripe_api_success(self, test_client, jwt_token, flask_app, mocker):
-        """Test GET /api/refresh/stripe endpoint - success case"""
+    def test_refresh_stripe_syncs_accounts_and_transactions(self, test_client, jwt_token, flask_app, mocker):
+        """Stripe refresh syncs accounts and transactions"""
         mocker.patch("resources.stripe.STRIPE_API_KEY", "test_api_key")
         mocker.patch("resources.stripe.STRIPE_CUSTOMER_ID", "test_customer_id")
 
@@ -91,13 +91,13 @@ class TestStripeAPI:
         assert response.get_data(as_text=True).strip() == '"Refreshed Stripe Connection"'
         mock_refresh.assert_called_once()
 
-    def test_refresh_stripe_api_unauthorized(self, test_client):
-        """Test GET /api/refresh/stripe endpoint - unauthorized"""
+    def test_refresh_stripe_requires_authentication(self, test_client):
+        """Stripe refresh endpoint requires authentication"""
         response = test_client.get("/api/refresh/stripe")
         assert response.status_code == 401
 
-    def test_create_fc_session_api_success(self, test_client, jwt_token, flask_app, mocker):
-        """Test POST /api/create-fc-session endpoint - success case"""
+    def test_create_fc_session_returns_client_secret(self, test_client, jwt_token, flask_app, mocker):
+        """Creating financial connections session returns client secret"""
         mocker.patch("resources.stripe.STRIPE_API_KEY", "test_api_key")
         mocker.patch("resources.stripe.STRIPE_CUSTOMER_ID", "test_customer_id")
 
@@ -126,8 +126,8 @@ class TestStripeAPI:
             assert "clientSecret" in data
             assert data["clientSecret"] == "fcsess_test123_secret"
 
-    def test_create_fc_session_api_customer_not_found(self, test_client, jwt_token, flask_app, mocker):
-        """Test POST /api/create-fc-session endpoint - customer not found"""
+    def test_missing_customer_creates_new_customer(self, test_client, jwt_token, flask_app, mocker):
+        """Missing customer triggers new customer creation"""
         mocker.patch("resources.stripe.STRIPE_API_KEY", "test_api_key")
         mocker.patch("resources.stripe.STRIPE_CUSTOMER_ID", "test_customer_id")
 
@@ -156,8 +156,8 @@ class TestStripeAPI:
             assert response.status_code == 200
             mock_create.assert_called_once()
 
-    def test_create_accounts_api_success(self, test_client, jwt_token, flask_app):
-        """Test POST /api/create_accounts endpoint - success case"""
+    def test_create_accounts_stores_bank_accounts(self, test_client, jwt_token, flask_app):
+        """Creating accounts stores bank account data"""
         with flask_app.app_context():
             test_accounts = [
                 {
@@ -179,8 +179,8 @@ class TestStripeAPI:
             assert "data" in data
             assert len(data["data"]) == 1
 
-    def test_create_accounts_api_empty_list(self, test_client, jwt_token):
-        """Test POST /api/create_accounts endpoint - empty accounts list"""
+    def test_empty_accounts_list_returns_400(self, test_client, jwt_token):
+        """Empty accounts list returns 400 error"""
         response = test_client.post(
             "/api/create_accounts",
             headers={"Authorization": "Bearer " + jwt_token},
@@ -190,8 +190,8 @@ class TestStripeAPI:
         assert response.status_code == 400
         assert "No Accounts Submitted" in response.get_data(as_text=True)
 
-    def test_get_accounts_api_success(self, test_client, jwt_token, flask_app, mocker):
-        """Test GET /api/accounts endpoint - success case"""
+    def test_accounts_endpoint_returns_404(self, test_client, jwt_token, flask_app, mocker):
+        """Accounts endpoint returns 404 (not implemented)"""
         mocker.patch("resources.stripe.STRIPE_API_KEY", "test_api_key")
         mocker.patch("resources.stripe.STRIPE_CUSTOMER_ID", "test_customer_id")
 
@@ -213,8 +213,8 @@ class TestStripeAPI:
 
             assert response.status_code == 404  # This endpoint doesn't exist in the current API
 
-    def test_get_accounts_and_balances_api_success(self, test_client, jwt_token, flask_app, mocker):
-        """Test GET /api/accounts-and-balances endpoint - success case"""
+    def test_accounts_and_balances_returns_balance_data(self, test_client, jwt_token, flask_app, mocker):
+        """Accounts and balances endpoint returns balance data for each account"""
         mocker.patch("resources.stripe.STRIPE_API_KEY", "test_api_key")
         mocker.patch("resources.stripe.STRIPE_CUSTOMER_ID", "test_customer_id")
 
@@ -247,8 +247,8 @@ class TestStripeAPI:
             assert account_data["currency"] == "usd"
             assert account_data["name"] == "Test Bank Checking Account 1234"
 
-    def test_subscribe_to_account_api_success(self, test_client, jwt_token, flask_app, mocker):
-        """Test POST /api/subscribe_to_account endpoint - success case"""
+    def test_subscribe_to_account_enables_transaction_syncing(self, test_client, jwt_token, flask_app, mocker):
+        """Subscribing to account enables automatic transaction syncing"""
         mocker.patch("resources.stripe.STRIPE_API_KEY", "test_api_key")
         mocker.patch("resources.stripe.STRIPE_CUSTOMER_ID", "test_customer_id")
 
@@ -269,8 +269,8 @@ class TestStripeAPI:
             assert response.status_code == 200
             assert response.get_data(as_text=True).strip() == '"succeeded"'
 
-    def test_refresh_account_api_success(self, flask_app, mocker):
-        """Test POST /api/refresh-account endpoint - success case"""
+    def test_refresh_account_updates_account_data(self, flask_app, mocker):
+        """Refreshing account updates stored account data"""
         mocker.patch("resources.stripe.STRIPE_API_KEY", "test_api_key")
         mocker.patch("resources.stripe.STRIPE_CUSTOMER_ID", "test_customer_id")
 
@@ -291,8 +291,8 @@ class TestStripeAPI:
             data = response.get_json()
             assert data["data"] == "success"
 
-    def test_relink_account_api_success(self, test_client, jwt_token, flask_app, mocker):
-        """Test POST /api/relink-account endpoint - success case"""
+    def test_relink_account_returns_new_session_secret(self, test_client, jwt_token, flask_app, mocker):
+        """Relinking account returns new session client secret"""
         mocker.patch("resources.stripe.STRIPE_API_KEY", "test_api_key")
         mocker.patch("resources.stripe.STRIPE_CUSTOMER_ID", "test_customer_id")
 
@@ -325,8 +325,8 @@ class TestStripeAPI:
             data = response.get_json()
             assert "client_secret" in data
 
-    def test_relink_account_api_not_required(self, test_client, jwt_token, flask_app, mocker):
-        """Test POST /api/relink-account endpoint - relink not required"""
+    def test_active_account_does_not_need_relink(self, test_client, jwt_token, flask_app, mocker):
+        """Active account returns relink_required=false"""
         mocker.patch("resources.stripe.STRIPE_API_KEY", "test_api_key")
         mocker.patch("resources.stripe.STRIPE_CUSTOMER_ID", "test_customer_id")
 
@@ -353,8 +353,8 @@ class TestStripeAPI:
             data = response.get_json()
             assert not data["relink_required"]
 
-    def test_refresh_transactions_api_success(self, flask_app, mocker):
-        """Test POST /api/refresh-transactions endpoint - success case"""
+    def test_refresh_transactions_fetches_new_transactions(self, flask_app, mocker):
+        """Refreshing transactions fetches new transactions from Stripe"""
         mocker.patch("resources.stripe.STRIPE_API_KEY", "test_api_key")
         mocker.patch("resources.stripe.STRIPE_CUSTOMER_ID", "test_customer_id")
 
@@ -383,8 +383,8 @@ class TestStripeAPI:
 
 
 class TestStripeFunctions:
-    def test_refresh_stripe_success(self, flask_app, mocker):
-        """Test refresh_stripe function - success case"""
+    def test_refresh_stripe_syncs_each_account(self, flask_app, mocker):
+        """Refresh stripe syncs each stored bank account"""
         with flask_app.app_context():
             mock_refresh_account = mocker.patch("resources.stripe.refresh_account_api")
             mock_refresh_transactions = mocker.patch("resources.stripe.refresh_transactions_api")
@@ -407,8 +407,8 @@ class TestStripeFunctions:
             mock_refresh_transactions.assert_called_once_with("fca_test123")
             mock_convert.assert_called_once()
 
-    def test_refresh_stripe_no_accounts(self, flask_app, mocker):
-        """Test refresh_stripe function - no accounts to refresh"""
+    def test_no_accounts_skips_sync_but_converts_line_items(self, flask_app, mocker):
+        """No accounts skips sync but still converts existing transactions"""
         with flask_app.app_context():
             mock_refresh_account = mocker.patch("resources.stripe.refresh_account_api")
             mock_refresh_transactions = mocker.patch("resources.stripe.refresh_transactions_api")
@@ -422,8 +422,8 @@ class TestStripeFunctions:
             mock_refresh_transactions.assert_not_called()
             mock_convert.assert_called_once()
 
-    def test_stripe_to_line_items_success(self, flask_app, mock_stripe_transaction, mocker):
-        """Test stripe_to_line_items function - success case"""
+    def test_stripe_transactions_convert_to_line_items(self, flask_app, mock_stripe_transaction, mocker):
+        """Stripe transactions convert to line items with amounts in dollars"""
         with flask_app.app_context():
             # Insert test data
             test_account = {
@@ -461,16 +461,16 @@ class TestStripeFunctions:
             finally:
                 db.close()
 
-    def test_stripe_to_line_items_no_transactions(self, flask_app, mocker):
-        """Test stripe_to_line_items function - no transactions to process"""
+    def test_empty_transactions_creates_no_line_items(self, flask_app, mocker):
+        """Empty transaction list creates no line items"""
         with flask_app.app_context():
             mocker.patch("resources.stripe.upsert_line_items")
 
             # Call the function with no transactions
             stripe_to_line_items()
 
-    def test_stripe_to_line_items_account_not_found(self, flask_app, mock_stripe_transaction, mocker):
-        """Test stripe_to_line_items function - account not found"""
+    def test_missing_account_skips_transaction(self, flask_app, mock_stripe_transaction, mocker):
+        """Transactions for missing accounts are skipped"""
         with flask_app.app_context():
             # Insert transaction without corresponding account
             test_transaction = mock_stripe_transaction
@@ -485,8 +485,8 @@ class TestStripeFunctions:
             # Call the function
             stripe_to_line_items()
 
-    def test_stripe_to_line_items_batch_processing(self, flask_app, mocker):
-        """Test stripe_to_line_items function - batch processing"""
+    def test_large_transaction_sets_are_batched(self, flask_app, mocker):
+        """Large transaction sets are processed in batches"""
         with flask_app.app_context():
             # Insert test account
             test_account = {
@@ -524,8 +524,8 @@ class TestStripeFunctions:
 class TestCheckCanRelink:
     """Direct unit tests for check_can_relink function"""
 
-    def test_active_account_can_relink(self, flask_app):
-        """Active accounts don't need relinking"""
+    def test_active_account_returns_false(self, flask_app):
+        """Active accounts return false for relink check"""
         with flask_app.app_context():
             from resources.stripe import check_can_relink
 
@@ -534,8 +534,8 @@ class TestCheckCanRelink:
 
             assert result is False
 
-    def test_inactive_account_with_relink_required(self, flask_app, mocker):
-        """Inactive account with relink_required action can relink"""
+    def test_inactive_account_with_relink_action_returns_true(self, flask_app, mocker):
+        """Inactive account with relink_required action returns true"""
         with flask_app.app_context():
             from resources.stripe import check_can_relink
 
@@ -552,8 +552,8 @@ class TestCheckCanRelink:
 
             assert result is True
 
-    def test_inactive_account_closed_at_bank(self, flask_app, mocker):
-        """Account closed at bank (auth active, account inactive) cannot relink"""
+    def test_account_closed_at_bank_returns_false(self, flask_app, mocker):
+        """Account closed at bank cannot be relinked"""
         with flask_app.app_context():
             from resources.stripe import check_can_relink
 
@@ -567,8 +567,8 @@ class TestCheckCanRelink:
 
             assert result is False
 
-    def test_inactive_account_action_none(self, flask_app, mocker):
-        """Inactive account with action=none cannot relink"""
+    def test_action_none_returns_false(self, flask_app, mocker):
+        """Inactive account with action=none returns false"""
         with flask_app.app_context():
             from resources.stripe import check_can_relink
 
@@ -582,8 +582,8 @@ class TestCheckCanRelink:
 
             assert result is False
 
-    def test_error_retrieving_authorization(self, flask_app, mocker):
-        """Errors default to False (safer than allowing broken relinks)"""
+    def test_api_error_defaults_to_false(self, flask_app, mocker):
+        """API errors default to false for safety"""
         with flask_app.app_context():
             from resources.stripe import check_can_relink
 
@@ -595,8 +595,8 @@ class TestCheckCanRelink:
 
             assert result is False
 
-    def test_missing_authorization_id(self, flask_app):
-        """Inactive account without auth ID cannot relink"""
+    def test_missing_authorization_returns_false(self, flask_app):
+        """Account without authorization ID returns false"""
         with flask_app.app_context():
             from resources.stripe import check_can_relink
 
@@ -605,8 +605,8 @@ class TestCheckCanRelink:
 
             assert result is False
 
-    def test_inactive_account_with_unknown_auth_status(self, flask_app, mocker):
-        """Inactive account with unknown auth status returns False"""
+    def test_unknown_auth_status_returns_false(self, flask_app, mocker):
+        """Unknown authorization status returns false"""
         with flask_app.app_context():
             from resources.stripe import check_can_relink
 
@@ -622,8 +622,8 @@ class TestCheckCanRelink:
 
 
 class TestStripeIntegration:
-    def test_full_refresh_workflow(self, flask_app, mocker):
-        """Test the complete refresh workflow from API to database"""
+    def test_complete_workflow_syncs_accounts_and_creates_line_items(self, flask_app, mocker):
+        """Complete workflow syncs accounts, transactions, and creates line items"""
         with flask_app.app_context():
             mock_refresh_account = mocker.patch("resources.stripe.refresh_account_api")
             mock_refresh_transactions = mocker.patch("resources.stripe.refresh_transactions_api")
@@ -666,8 +666,8 @@ class TestStripeIntegration:
 class TestAccountBalances:
     """Tests for account balance functionality (simplified approach)"""
 
-    def test_refresh_account_balances_success(self, flask_app, mocker):
-        """Test refresh_account_balances fetches and stores balance on account record"""
+    def test_refresh_balances_updates_account_records(self, flask_app, mocker):
+        """Refresh balances fetches and stores balance on account records"""
         from dao import bank_accounts_collection, get_all_data, upsert_with_id
         from resources.stripe import refresh_account_balances
 
@@ -707,8 +707,8 @@ class TestAccountBalances:
             assert updated_account["currency"] == "usd"
             assert updated_account["balance_as_of"] is not None
 
-    def test_get_accounts_and_balances_from_account_record(self, test_client, jwt_token, flask_app):
-        """Test GET /api/accounts_and_balances reads balance from account record"""
+    def test_accounts_and_balances_reads_stored_balance_data(self, test_client, jwt_token, flask_app):
+        """Accounts and balances endpoint reads stored balance data"""
         from datetime import UTC, datetime
 
         from dao import bank_accounts_collection, upsert_with_id

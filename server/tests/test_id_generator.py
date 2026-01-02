@@ -6,8 +6,8 @@ from ulid import ULID
 from utils.id_generator import generate_id
 
 
-def test_generate_id_format():
-    """Test that generated IDs have the correct format"""
+def test_id_has_prefix_underscore_ulid_format():
+    """Generated IDs have prefix_ulid format"""
     id = generate_id("evt")
 
     # Should have prefix_ulid format
@@ -21,8 +21,8 @@ def test_generate_id_format():
     ULID.from_str(ulid_part)  # Will raise if invalid
 
 
-def test_generate_id_different_prefixes():
-    """Test ID generation with different prefixes"""
+def test_different_prefixes_all_produce_valid_ids():
+    """All entity prefixes produce valid IDs"""
     prefixes = ["evt", "li", "cat", "pm", "party", "tag", "txn", "eli", "etag"]
 
     for prefix in prefixes:
@@ -35,8 +35,8 @@ def test_generate_id_different_prefixes():
         ULID.from_str(ulid_part)
 
 
-def test_generate_id_uniqueness():
-    """Test that rapidly generated IDs are unique"""
+def test_rapid_generation_produces_unique_ids():
+    """Rapidly generated IDs are all unique"""
     ids = set()
     num_ids = 1000
 
@@ -48,8 +48,8 @@ def test_generate_id_uniqueness():
     assert len(ids) == num_ids
 
 
-def test_generate_id_sortability():
-    """Test that ULIDs are lexicographically sortable by creation time"""
+def test_ids_are_lexicographically_sortable_by_time():
+    """IDs created later sort after earlier IDs"""
     id1 = generate_id("evt")
     time.sleep(0.001)  # Small delay to ensure different timestamp
     id2 = generate_id("evt")
@@ -65,8 +65,8 @@ def test_generate_id_sortability():
     assert ulid1 < ulid2 < ulid3
 
 
-def test_generate_id_timestamp_extraction():
-    """Test that we can extract timestamps from ULIDs"""
+def test_timestamp_can_be_extracted_from_id():
+    """Creation timestamp can be extracted from ID"""
     before = time.time()
     id = generate_id("evt")
 
@@ -81,8 +81,8 @@ def test_generate_id_timestamp_extraction():
     assert abs(timestamp - before) < 1.0  # Within 1 second
 
 
-def test_generate_id_empty_prefix():
-    """Test ID generation with empty prefix"""
+def test_empty_prefix_produces_underscore_prefixed_id():
+    """Empty prefix produces ID starting with underscore"""
     id = generate_id("")
 
     # Should start with underscore
@@ -94,8 +94,8 @@ def test_generate_id_empty_prefix():
     ULID.from_str(ulid_part)
 
 
-def test_generate_id_special_characters_in_prefix():
-    """Test ID generation with special characters in prefix"""
+def test_special_characters_in_prefix_are_allowed():
+    """Special characters in prefix are preserved"""
     # This documents current behavior - may want to add validation
     special_prefixes = ["evt-test", "evt.test", "evt/test"]
 
@@ -108,8 +108,8 @@ def test_generate_id_special_characters_in_prefix():
         ULID.from_str(ulid_part)
 
 
-def test_generate_id_string_length():
-    """Test total ID length for various prefixes"""
+def test_id_length_equals_prefix_plus_underscore_plus_ulid():
+    """ID length equals prefix length plus underscore plus 26 char ULID"""
     test_cases = [
         ("evt", 3 + 1 + 26),  # prefix + underscore + ULID
         ("li", 2 + 1 + 26),

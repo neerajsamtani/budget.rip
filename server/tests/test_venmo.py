@@ -75,8 +75,8 @@ def mock_venmo_transaction_ignored():
 
 
 class TestVenmoAPI:
-    def test_refresh_venmo_api_success(self, test_client, jwt_token, flask_app, mocker):
-        """Test GET /api/refresh/venmo endpoint - success case"""
+    def test_refresh_venmo_endpoint_syncs_transactions(self, test_client, jwt_token, flask_app, mocker):
+        """Venmo refresh endpoint syncs transactions and returns success message"""
         with flask_app.app_context():
             mock_refresh = mocker.patch("resources.venmo.refresh_venmo")
             response = test_client.get(
@@ -88,15 +88,15 @@ class TestVenmoAPI:
             assert response.get_json() == "Refreshed Venmo Connection"
             mock_refresh.assert_called_once()
 
-    def test_refresh_venmo_api_unauthorized(self, test_client):
-        """Test GET /api/refresh/venmo endpoint - unauthorized"""
+    def test_refresh_venmo_requires_authentication(self, test_client):
+        """Venmo refresh endpoint requires authentication"""
         response = test_client.get("/api/refresh/venmo")
         assert response.status_code == 401
 
 
 class TestVenmoFunctions:
-    def test_refresh_venmo_success(self, flask_app, mock_venmo_user, mocker):
-        """Test refresh_venmo function - success case"""
+    def test_refresh_venmo_stores_transactions_in_database(self, flask_app, mock_venmo_user, mocker):
+        """Venmo refresh stores transactions in database with source metadata"""
         with flask_app.app_context():
             # Mock the get_venmo_client function
             mock_venmo_client = mocker.Mock()
@@ -144,8 +144,8 @@ class TestVenmoFunctions:
             finally:
                 db.close()
 
-    def test_refresh_venmo_ignores_old_transactions(self, flask_app, mock_venmo_user, mocker):
-        """Test refresh_venmo function - ignores transactions before moving date"""
+    def test_transactions_before_moving_date_are_ignored(self, flask_app, mock_venmo_user, mocker):
+        """Transactions before the moving date are not imported"""
         with flask_app.app_context():
             # Mock the get_venmo_client function
             mock_venmo_client = mocker.Mock()
@@ -174,8 +174,8 @@ class TestVenmoFunctions:
 
             # Verify bulk_upsert was not called (no transactions after moving date)
 
-    def test_refresh_venmo_ignores_parties_to_ignore(self, flask_app, mock_venmo_user, mocker):
-        """Test refresh_venmo function - ignores transactions with parties to ignore"""
+    def test_transactions_with_ignored_parties_are_filtered(self, flask_app, mock_venmo_user, mocker):
+        """Transactions involving ignored parties are filtered out"""
         with flask_app.app_context():
             # Mock the get_venmo_client function
             mock_venmo_client = mocker.Mock()
@@ -204,8 +204,8 @@ class TestVenmoFunctions:
 
             # Verify bulk_upsert was not called (ignored party)
 
-    def test_refresh_venmo_handles_pagination(self, flask_app, mock_venmo_user, mocker):
-        """Test refresh_venmo function - handles pagination correctly"""
+    def test_venmo_refresh_fetches_all_pages(self, flask_app, mock_venmo_user, mocker):
+        """Venmo refresh fetches transactions from all pages"""
         with flask_app.app_context():
             # Mock the get_venmo_client function
             mock_venmo_client = mocker.Mock()
@@ -277,8 +277,8 @@ class TestVenmoFunctions:
             finally:
                 db.close()
 
-    def test_refresh_venmo_profile_failure(self, flask_app, mocker):
-        """Test refresh_venmo function - profile retrieval failure"""
+    def test_missing_venmo_profile_raises_error(self, flask_app, mocker):
+        """Missing Venmo profile raises exception"""
         with flask_app.app_context():
             # Mock the get_venmo_client function
             mock_venmo_client = mocker.Mock()
@@ -289,8 +289,8 @@ class TestVenmoFunctions:
             with pytest.raises(Exception, match="Failed to get Venmo profile"):
                 refresh_venmo()
 
-    def test_venmo_to_line_items_success(self, flask_app, mock_venmo_transaction, mocker):
-        """Test venmo_to_line_items function - success case"""
+    def test_venmo_transactions_convert_to_line_items(self, flask_app, mock_venmo_transaction, mocker):
+        """Venmo transactions are converted to line items with correct fields"""
         with flask_app.app_context():
             from models.database import SessionLocal
             from models.sql_models import LineItem
@@ -316,8 +316,8 @@ class TestVenmoFunctions:
             finally:
                 db.close()
 
-    def test_venmo_to_line_items_charge_transaction(self, flask_app, mock_venmo_transaction_charge, mocker):
-        """Test venmo_to_line_items function - charge transaction"""
+    def test_charge_transaction_uses_actor_as_responsible_party(self, flask_app, mock_venmo_transaction_charge, mocker):
+        """Charge transactions use the actor as the responsible party"""
         with flask_app.app_context():
             from models.database import SessionLocal
             from models.sql_models import LineItem
@@ -343,8 +343,8 @@ class TestVenmoFunctions:
             finally:
                 db.close()
 
-    def test_venmo_to_line_items_received_transaction(self, flask_app, mock_venmo_transaction_received, mocker):
-        """Test venmo_to_line_items function - received transaction"""
+    def test_received_payment_flips_amount_to_negative(self, flask_app, mock_venmo_transaction_received, mocker):
+        """Received payments have negative amounts"""
         with flask_app.app_context():
             from models.database import SessionLocal
             from models.sql_models import LineItem
@@ -370,16 +370,16 @@ class TestVenmoFunctions:
             finally:
                 db.close()
 
-    def test_venmo_to_line_items_no_transactions(self, flask_app, mocker):
-        """Test venmo_to_line_items function - no transactions to process"""
+    def test_empty_transactions_creates_no_line_items(self, flask_app, mocker):
+        """Empty transaction list creates no line items"""
         with flask_app.app_context():
             mocker.patch("resources.venmo.upsert_line_items")
 
             # Call the function with no transactions
             venmo_to_line_items()
 
-    def test_venmo_to_line_items_multiple_transactions(self, flask_app, mocker):
-        """Test venmo_to_line_items function - multiple transactions"""
+    def test_multiple_transactions_create_multiple_line_items(self, flask_app, mocker):
+        """Multiple transactions create corresponding line items"""
         with flask_app.app_context():
             from models.database import SessionLocal
             from models.sql_models import LineItem
@@ -437,8 +437,8 @@ class TestVenmoFunctions:
 
 
 class TestVenmoIntegration:
-    def test_full_refresh_workflow(self, flask_app, mock_venmo_user, mocker):
-        """Test the complete refresh workflow from API to database"""
+    def test_complete_workflow_syncs_and_converts_transactions(self, flask_app, mock_venmo_user, mocker):
+        """Complete workflow syncs transactions and converts to line items"""
         with flask_app.app_context():
             # Mock the get_venmo_client function
             mock_venmo_client = mocker.Mock()
@@ -499,8 +499,8 @@ class TestVenmoIntegration:
 
             # Verify bulk_upsert was called for line items
 
-    def test_venmo_edge_cases(self, flask_app, mock_venmo_user, mocker):
-        """Test various edge cases in Venmo processing"""
+    def test_zero_amount_transactions_are_processed(self, flask_app, mock_venmo_user, mocker):
+        """Zero amount transactions are processed correctly"""
         with flask_app.app_context():
             # Mock the get_venmo_client function
             mock_venmo_client = mocker.Mock()

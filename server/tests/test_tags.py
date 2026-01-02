@@ -20,8 +20,8 @@ def sample_tags(pg_session):
 
 
 class TestTagsAPI:
-    def test_get_all_tags_success(self, test_client, jwt_token, sample_tags):
-        """Test GET /api/tags returns all tags ordered by name"""
+    def test_tags_are_returned_sorted_alphabetically(self, test_client, jwt_token, sample_tags):
+        """Tags endpoint returns all tags sorted alphabetically by name"""
         response = test_client.get("/api/tags", headers={"Authorization": f"Bearer {jwt_token}"})
 
         assert response.status_code == 200
@@ -39,8 +39,8 @@ class TestTagsAPI:
             assert "id" in tag
             assert "name" in tag
 
-    def test_get_all_tags_empty(self, test_client, jwt_token):
-        """Test GET /api/tags returns empty array when no tags exist"""
+    def test_empty_database_returns_empty_tags_list(self, test_client, jwt_token):
+        """Tags endpoint returns empty array when no tags exist"""
         response = test_client.get("/api/tags", headers={"Authorization": f"Bearer {jwt_token}"})
 
         assert response.status_code == 200
@@ -49,14 +49,14 @@ class TestTagsAPI:
         assert "data" in data
         assert data["data"] == []
 
-    def test_get_all_tags_requires_authentication(self, test_client):
-        """Test GET /api/tags requires JWT authentication"""
+    def test_tags_endpoint_requires_authentication(self, test_client):
+        """Tags endpoint requires JWT authentication"""
         response = test_client.get("/api/tags")
 
         assert response.status_code == 401
 
-    def test_get_all_tags_handles_database_error(self, test_client, jwt_token, mocker):
-        """Test GET /api/tags handles database errors gracefully"""
+    def test_database_error_returns_500(self, test_client, jwt_token, mocker):
+        """Database error returns 500 status code"""
         # Mock get_all_tags to raise an exception
         mocker.patch("resources.tags.get_all_tags", side_effect=Exception("Database error"))
 
