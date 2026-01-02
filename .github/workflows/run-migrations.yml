@@ -60,7 +60,7 @@ jobs:
           uv run alembic current
           echo ""
           echo "📋 Migration history:"
-          uv run alembic history --verbose -r -5:head
+          uv run alembic history --verbose -r=-5:head
         env:
           DATABASE_HOST: ${{ secrets.DATABASE_HOST }}
           DATABASE_PORT: ${{ secrets.DATABASE_PORT }}
@@ -72,8 +72,8 @@ jobs:
         run: |
           cd server
           echo "🔍 Checking for pending migrations..."
-          CURRENT=$(uv run alembic current 2>/dev/null | grep -oE '[a-f0-9]+' | head -1 || echo "none")
-          HEAD=$(uv run alembic heads 2>/dev/null | grep -oE '[a-f0-9]+' | head -1 || echo "none")
+          CURRENT=$(uv run alembic current 2>/dev/null | grep -oE '[a-f0-9]{12}' | head -1 || echo "none")
+          HEAD=$(uv run alembic heads 2>/dev/null | grep -oE '[a-f0-9]{12}' | head -1 || echo "none")
 
           if [ "$CURRENT" = "$HEAD" ]; then
             echo "✅ Database is up to date. No migrations needed."
@@ -83,7 +83,7 @@ jobs:
             echo "Target:  $HEAD"
             echo ""
             echo "Migrations to apply:"
-            uv run alembic history -r $CURRENT:head
+            uv run alembic history -r "$CURRENT:head"
           fi
         env:
           DATABASE_HOST: ${{ secrets.DATABASE_HOST }}
