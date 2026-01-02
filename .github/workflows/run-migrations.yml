@@ -1,0 +1,123 @@
+name: Run Database Migrations
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+      dry_run:
+        description: 'Dry run (show pending migrations without applying)'
+        required: true
+        default: true
+        type: boolean
+      confirm:
+        description: 'Type "migrate" to confirm you want to run migrations'
+        required: true
+        type: string
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate confirmation
+        if: ${{ inputs.dry_run == false && inputs.confirm != 'migrate' }}
+        run: |
+          echo "❌ ERROR: You must type 'migrate' to confirm running migrations"
+          echo "You entered: '${{ inputs.confirm }}'"
+          exit 1
+
+  migrate:
+    needs: validate
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.13
+
+      - name: Install dependencies
+        run: |
+          cd server
+          uv sync
+
+      - name: Show current migration status
+        run: |
+          cd server
+          echo "📍 Current migration revision:"
+          uv run alembic current
+          echo ""
+          echo "📋 Migration history:"
+          uv run alembic history --verbose -r -5:head
+        env:
+          DATABASE_HOST: ${{ secrets.DATABASE_HOST }}
+          DATABASE_PORT: ${{ secrets.DATABASE_PORT }}
+          DATABASE_USERNAME: ${{ secrets.DATABASE_USERNAME }}
+          DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
+          DATABASE_NAME: ${{ secrets.DATABASE_NAME }}
+
+      - name: Check pending migrations
+        run: |
+          cd server
+          echo "🔍 Checking for pending migrations..."
+          CURRENT=$(uv run alembic current 2>/dev/null | grep -oE '[a-f0-9]+' | head -1 || echo "none")
+          HEAD=$(uv run alembic heads 2>/dev/null | grep -oE '[a-f0-9]+' | head -1 || echo "none")
+
+          if [ "$CURRENT" = "$HEAD" ]; then
+            echo "✅ Database is up to date. No migrations needed."
+          else
+            echo "⚠️  Pending migrations detected!"
+            echo "Current: $CURRENT"
+            echo "Target:  $HEAD"
+            echo ""
+            echo "Migrations to apply:"
+            uv run alembic history -r $CURRENT:head
+          fi
+        env:
+          DATABASE_HOST: ${{ secrets.DATABASE_HOST }}
+          DATABASE_PORT: ${{ secrets.DATABASE_PORT }}
+          DATABASE_USERNAME: ${{ secrets.DATABASE_USERNAME }}
+          DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
+          DATABASE_NAME: ${{ secrets.DATABASE_NAME }}
+
+      - name: Run migrations (dry run)
+        if: ${{ inputs.dry_run == true }}
+        run: |
+          cd server
+          echo "🧪 DRY RUN MODE - No changes will be made"
+          echo ""
+          echo "Would run: alembic upgrade head"
+          echo ""
+          echo "To apply these migrations, re-run this workflow with:"
+          echo "  - dry_run: false"
+          echo "  - confirm: migrate"
+
+      - name: Run migrations
+        if: ${{ inputs.dry_run == false }}
+        run: |
+          cd server
+          echo "🚀 Running migrations..."
+          uv run alembic upgrade head
+          echo ""
+          echo "✅ Migrations completed successfully!"
+          echo ""
+          echo "📍 New migration revision:"
+          uv run alembic current
+        env:
+          DATABASE_HOST: ${{ secrets.DATABASE_HOST }}
+          DATABASE_PORT: ${{ secrets.DATABASE_PORT }}
+          DATABASE_USERNAME: ${{ secrets.DATABASE_USERNAME }}
+          DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
+          DATABASE_NAME: ${{ secrets.DATABASE_NAME }}
