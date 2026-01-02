@@ -16,7 +16,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Pencil, Plus, Trash2 } from "lucide-react";
 import React, { useState } from "react";
 import {
     CategoryOption,
@@ -25,6 +25,7 @@ import {
     useCreateEventHint,
     useDeleteEventHint,
     useEventHints,
+    useReorderEventHints,
     useUpdateEventHint,
     useValidateCelExpression
 } from "../../hooks/useApi";
@@ -189,6 +190,7 @@ export default function EventHintsSettings() {
     const createMutation = useCreateEventHint();
     const updateMutation = useUpdateEventHint();
     const deleteMutation = useDeleteEventHint();
+    const reorderMutation = useReorderEventHints();
 
     const [editingHintId, setEditingHintId] = useState<string | null>(null);
     const [isCreating, setIsCreating] = useState(false);
@@ -257,6 +259,19 @@ export default function EventHintsSettings() {
         is_active: hint.is_active,
     });
 
+    const moveHint = (index: number, direction: "up" | "down") => {
+        const newIndex = direction === "up" ? index - 1 : index + 1;
+        if (newIndex < 0 || newIndex >= hints.length) return;
+
+        const newOrder = [...hints];
+        const [moved] = newOrder.splice(index, 1);
+        newOrder.splice(newIndex, 0, moved);
+
+        reorderMutation.mutate(newOrder.map((h) => h.id), {
+            onError: (error) => showErrorToast(error),
+        });
+    };
+
     return (
         <div className="space-y-6">
             {/* Add new hint button */}
@@ -297,7 +312,7 @@ export default function EventHintsSettings() {
                 <>
                     {/* Mobile card layout */}
                     <div className="md:hidden space-y-4">
-                        {hints.map((hint) =>
+                        {hints.map((hint, index) =>
                             editingHintId === hint.id ? (
                                 <HintEditor
                                     key={hint.id}
@@ -313,12 +328,34 @@ export default function EventHintsSettings() {
                                     className={`border rounded-lg p-4 ${!hint.is_active ? "opacity-60" : ""}`}
                                 >
                                     <div className="flex items-start justify-between gap-2">
-                                        <div>
-                                            <p className="font-medium">{hint.name}</p>
-                                            <p className="text-sm text-muted-foreground">
-                                                → {hint.prefill_name}
-                                                {hint.prefill_category && ` (${hint.prefill_category})`}
-                                            </p>
+                                        <div className="flex items-start gap-2">
+                                            <div className="flex flex-col gap-0.5">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => moveHint(index, "up")}
+                                                    disabled={reorderMutation.isPending || index === 0}
+                                                    className="h-6 w-6 p-0"
+                                                >
+                                                    <ChevronUp className="h-3 w-3" />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => moveHint(index, "down")}
+                                                    disabled={reorderMutation.isPending || index === hints.length - 1}
+                                                    className="h-6 w-6 p-0"
+                                                >
+                                                    <ChevronDown className="h-3 w-3" />
+                                                </Button>
+                                            </div>
+                                            <div>
+                                                <p className="font-medium">{hint.name}</p>
+                                                <p className="text-sm text-muted-foreground">
+                                                    → {hint.prefill_name}
+                                                    {hint.prefill_category && ` (${hint.prefill_category})`}
+                                                </p>
+                                            </div>
                                         </div>
                                         <div className="flex gap-1">
                                             <Button
@@ -351,6 +388,7 @@ export default function EventHintsSettings() {
                         <Table>
                             <TableHeader>
                                 <TableRow>
+                                    <TableHead className="w-20">Order</TableHead>
                                     <TableHead>Name</TableHead>
                                     <TableHead>Expression</TableHead>
                                     <TableHead>Prefill</TableHead>
@@ -359,10 +397,10 @@ export default function EventHintsSettings() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {hints.map((hint) =>
+                                {hints.map((hint, index) =>
                                     editingHintId === hint.id ? (
                                         <TableRow key={hint.id}>
-                                            <TableCell colSpan={5} className="p-0">
+                                            <TableCell colSpan={6} className="p-0">
                                                 <div className="p-4">
                                                     <HintEditor
                                                         hint={hintToFormData(hint)}
@@ -379,6 +417,28 @@ export default function EventHintsSettings() {
                                             key={hint.id}
                                             className={!hint.is_active ? "opacity-60" : ""}
                                         >
+                                            <TableCell>
+                                                <div className="flex gap-0.5">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => moveHint(index, "up")}
+                                                        disabled={reorderMutation.isPending || index === 0}
+                                                        className="h-7 w-7 p-0"
+                                                    >
+                                                        <ChevronUp className="h-4 w-4" />
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => moveHint(index, "down")}
+                                                        disabled={reorderMutation.isPending || index === hints.length - 1}
+                                                        className="h-7 w-7 p-0"
+                                                    >
+                                                        <ChevronDown className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+                                            </TableCell>
                                             <TableCell className="font-medium">{hint.name}</TableCell>
                                             <TableCell>
                                                 <code className="text-xs bg-muted px-2 py-1 rounded">
