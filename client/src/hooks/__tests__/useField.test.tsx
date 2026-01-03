@@ -25,21 +25,21 @@ const TestComponent = ({ type, defaultValue }: { type: string; defaultValue: str
 
 describe('useField', () => {
     describe('Initialization', () => {
-        it('initializes with default state for string type', () => {
+        it('field initializes with provided default value', () => {
             render(<TestComponent type="text" defaultValue="initial value" />);
 
             expect(screen.getByTestId('value-display')).toHaveTextContent('initial value');
             expect(screen.getByTestId('test-input')).toHaveAttribute('type', 'text');
         });
 
-        it('initializes with empty string when no default provided', () => {
+        it('field initializes with empty string when no default is provided', () => {
             render(<TestComponent type="text" defaultValue="" />);
 
             expect(screen.getByTestId('value-display')).toHaveTextContent('');
             expect(screen.getByTestId('test-input')).toHaveAttribute('type', 'text');
         });
 
-        it('initializes with different input types', () => {
+        it('field supports different input types', () => {
             const { rerender } = render(<TestComponent type="text" defaultValue="text value" />);
             expect(screen.getByTestId('test-input')).toHaveAttribute('type', 'text');
 
@@ -52,7 +52,7 @@ describe('useField', () => {
     });
 
     describe('onChange functionality', () => {
-        it('updates value when user types in input', async () => {
+        it('value is updated when user types', async () => {
             render(<TestComponent type="text" defaultValue="" />);
 
             const input = screen.getByTestId('test-input');
@@ -61,7 +61,7 @@ describe('useField', () => {
             expect(screen.getByTestId('value-display')).toHaveTextContent('new value');
         });
 
-        it('handles empty string in onChange', async () => {
+        it('empty string is handled in onChange', async () => {
             render(<TestComponent type="text" defaultValue="initial" />);
 
             const input = screen.getByTestId('test-input');
@@ -70,7 +70,7 @@ describe('useField', () => {
             expect(screen.getByTestId('value-display')).toHaveTextContent('');
         });
 
-        it('handles special characters in onChange', async () => {
+        it('special characters are handled in onChange', async () => {
             render(<TestComponent type="text" defaultValue="" />);
 
             const input = screen.getByTestId('test-input');
@@ -79,7 +79,7 @@ describe('useField', () => {
             expect(screen.getByTestId('value-display')).toHaveTextContent('test@example.com');
         });
 
-        it('handles multiple character input', async () => {
+        it('multiple character input is handled', async () => {
             render(<TestComponent type="text" defaultValue="" />);
 
             const input = screen.getByTestId('test-input');
@@ -88,7 +88,7 @@ describe('useField', () => {
             expect(screen.getByTestId('value-display')).toHaveTextContent('hello world');
         });
 
-        it('replaces existing value when typing after clearing', async () => {
+        it('value is replaced when typing after clearing', async () => {
             render(<TestComponent type="text" defaultValue="initial" />);
 
             const input = screen.getByTestId('test-input');
@@ -100,7 +100,7 @@ describe('useField', () => {
     });
 
     describe('setCustomValue functionality', () => {
-        it('updates value when setCustomValue is called', async () => {
+        it('value is updated when setCustomValue is called', async () => {
             render(<TestComponent type="text" defaultValue="initial" />);
 
             const setCustomButton = screen.getByTestId('set-custom');
@@ -109,7 +109,7 @@ describe('useField', () => {
             expect(screen.getByTestId('value-display')).toHaveTextContent('custom');
         });
 
-        it('updates value multiple times with setCustomValue', async () => {
+        it('value updates correctly with multiple setCustomValue calls', async () => {
             render(<TestComponent type="text" defaultValue="initial" />);
 
             const setCustomButton = screen.getByTestId('set-custom');
@@ -123,7 +123,7 @@ describe('useField', () => {
     });
 
     describe('setEmpty functionality', () => {
-        it('sets value to empty string when setEmpty is called', async () => {
+        it('value becomes empty string when setEmpty is called', async () => {
             render(<TestComponent type="text" defaultValue="initial value" />);
 
             const setEmptyButton = screen.getByTestId('set-empty');
@@ -132,7 +132,7 @@ describe('useField', () => {
             expect(screen.getByTestId('value-display')).toHaveTextContent('');
         });
 
-        it('sets value to empty string multiple times', async () => {
+        it('setEmpty can be called multiple times', async () => {
             render(<TestComponent type="text" defaultValue="initial value" />);
 
             const setEmptyButton = screen.getByTestId('set-empty');
@@ -153,7 +153,7 @@ describe('useField', () => {
     });
 
     describe('Integration scenarios', () => {
-        it('simulates typical form field usage pattern', async () => {
+        it('typical form field usage pattern works correctly', async () => {
             render(<TestComponent type="text" defaultValue="" />);
 
             const input = screen.getByTestId('test-input');
@@ -175,7 +175,7 @@ describe('useField', () => {
             expect(screen.getByTestId('value-display')).toHaveTextContent('');
         });
 
-        it('handles form field with initial value and user interaction', async () => {
+        it('form field with initial value handles user interaction correctly', async () => {
             render(<TestComponent type="email" defaultValue="user@example.com" />);
 
             const input = screen.getByTestId('test-input');
