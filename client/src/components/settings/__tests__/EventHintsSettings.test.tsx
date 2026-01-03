@@ -73,12 +73,12 @@ describe('EventHintsSettings', () => {
     });
 
     describe('Rendering', () => {
-        it('renders add new hint button', () => {
+        it('add new hint button is rendered', () => {
             render(<EventHintsSettings />);
             expect(screen.getByRole('button', { name: /add new hint/i })).toBeInTheDocument();
         });
 
-        it('renders hints list after loading', async () => {
+        it('hints list is rendered after loading', async () => {
             render(<EventHintsSettings />);
 
             // Hints appear in both mobile and desktop views
@@ -90,7 +90,7 @@ describe('EventHintsSettings', () => {
             expect(screen.getAllByText('Whole Foods').length).toBeGreaterThan(0);
         });
 
-        it('renders empty state when no hints', async () => {
+        it('empty state is rendered when no hints', async () => {
             (mockAxiosInstance.get as jest.Mock).mockImplementation((url: string) => {
                 if (url.includes('event-hints')) {
                     return Promise.resolve({ data: { data: [] } });
@@ -108,7 +108,7 @@ describe('EventHintsSettings', () => {
             });
         });
 
-        it('shows inactive hints with reduced opacity', async () => {
+        it('inactive hints are shown with reduced opacity', async () => {
             render(<EventHintsSettings />);
 
             await waitFor(() => {
@@ -123,7 +123,7 @@ describe('EventHintsSettings', () => {
     });
 
     describe('Reordering Hints', () => {
-        it('renders up and down buttons for each hint', async () => {
+        it('up and down buttons are rendered for each hint', async () => {
             render(<EventHintsSettings />);
 
             await waitFor(() => {
@@ -144,7 +144,7 @@ describe('EventHintsSettings', () => {
             expect(chevronDownButtons.length).toBeGreaterThan(0);
         });
 
-        it('disables up button for first hint', async () => {
+        it('up button is disabled for first hint', async () => {
             render(<EventHintsSettings />);
 
             await waitFor(() => {
@@ -162,7 +162,7 @@ describe('EventHintsSettings', () => {
             expect(disabledUpButtons.length).toBeGreaterThan(0);
         });
 
-        it('disables down button for last hint', async () => {
+        it('down button is disabled for last hint', async () => {
             render(<EventHintsSettings />);
 
             await waitFor(() => {
@@ -180,7 +180,7 @@ describe('EventHintsSettings', () => {
             expect(disabledDownButtons.length).toBeGreaterThan(0);
         });
 
-        it('calls reorder API when moving hint up', async () => {
+        it('reorder API is called when moving hint up', async () => {
             (mockAxiosInstance.put as jest.Mock).mockResolvedValue({
                 data: { data: mockHints }
             });
@@ -210,7 +210,7 @@ describe('EventHintsSettings', () => {
             });
         });
 
-        it('calls reorder API when moving hint down', async () => {
+        it('reorder API is called when moving hint down', async () => {
             (mockAxiosInstance.put as jest.Mock).mockResolvedValue({
                 data: { data: mockHints }
             });
@@ -239,7 +239,7 @@ describe('EventHintsSettings', () => {
             });
         });
 
-        it('disables all reorder buttons while reorder is pending', async () => {
+        it('all reorder buttons are disabled while reorder is pending', async () => {
             // Create a promise that we can control
             let resolveReorder: (value: any) => void;
             const reorderPromise = new Promise((resolve) => {
@@ -285,7 +285,7 @@ describe('EventHintsSettings', () => {
             resolveReorder!({ data: { data: mockHints } });
         });
 
-        it('does not call API when trying to move first hint up', async () => {
+        it('API is not called when trying to move first hint up', async () => {
             render(<EventHintsSettings />);
 
             await waitFor(() => {
@@ -309,7 +309,7 @@ describe('EventHintsSettings', () => {
             );
         });
 
-        it('does not call API when trying to move last hint down', async () => {
+        it('API is not called when trying to move last hint down', async () => {
             render(<EventHintsSettings />);
 
             await waitFor(() => {
@@ -334,7 +334,7 @@ describe('EventHintsSettings', () => {
     });
 
     describe('Error Handling', () => {
-        it('shows error state when loading fails', async () => {
+        it('error state is shown when loading fails', async () => {
             (mockAxiosInstance.get as jest.Mock).mockRejectedValue(new Error('Failed to load'));
 
             render(<EventHintsSettings />);
