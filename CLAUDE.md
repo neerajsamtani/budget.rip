@@ -220,6 +220,19 @@ External API data follows this flow:
 
 ## Testing Notes
 
+### Test Naming Convention
+Test names should read as statements of fact about system behavior, not as descriptions of what the test does:
+- **Use passive voice**: `'modal is rendered when show is true'` not `'renders modal when show is true'`
+- **State the outcome**: `'API error is handled gracefully'` not `'handles API error gracefully'`
+- **Be specific**: `'line items are fetched on mount'` not `'fetches data'`
+
+Common transformations:
+- `'renders X'` → `'X is rendered'`
+- `'calls X when Y'` → `'X is called when Y'`
+- `'handles X'` → `'X is handled'`
+- `'shows X'` → `'X is shown'`
+- `'returns X'` → `'X is returned'`
+
 ### Client
 - Tests use Jest with jsdom environment
 - Setup file at `src/setupTests.ts`
