@@ -441,7 +441,7 @@ describe('CreateEventModal', () => {
             expect(categorySelect).toHaveTextContent('Select a category'); // Category select placeholder
         });
 
-        it('waits for hints to load before prefilling', async () => {
+        it('waits for hints to load before prefilling and shows loading spinner', async () => {
             // Mock the hook to return loading state initially
             mockUseEvaluateEventHints.mockReturnValue({
                 data: null,
@@ -453,12 +453,17 @@ describe('CreateEventModal', () => {
             // First render with show=false to trigger prefill logic
             const { rerender } = render(<CreateEventModal show={false} onHide={mockOnHide} />);
 
-            // Then render with show=true - should NOT prefill yet because still loading
+            // Then render with show=true - should show loading state
             rerender(<CreateEventModal show={true} onHide={mockOnHide} />);
 
-            // The name input should still be empty because we're waiting for hints
-            const nameInput = screen.getByPlaceholderText('Enter a descriptive name for this event');
+            // The name input should show loading placeholder and be disabled
+            const nameInput = screen.getByPlaceholderText('Loading suggestions...');
             expect(nameInput).toHaveValue('');
+            expect(nameInput).toBeDisabled();
+
+            // The category select should also be disabled and show loading placeholder
+            const categorySelect = screen.getByRole('combobox', { name: /category/i });
+            expect(categorySelect).toBeDisabled();
 
             // Now simulate loading complete with a suggestion
             mockUseEvaluateEventHints.mockReturnValue({
@@ -474,6 +479,10 @@ describe('CreateEventModal', () => {
             await waitFor(() => {
                 expect(screen.getByDisplayValue('Suggested Name')).toBeInTheDocument();
             });
+
+            // After loading completes, the input should no longer be disabled
+            const nameInputAfterLoad = screen.getByDisplayValue('Suggested Name');
+            expect(nameInputAfterLoad).not.toBeDisabled();
         });
 
         it('shows error toast when hints fail to load', async () => {
