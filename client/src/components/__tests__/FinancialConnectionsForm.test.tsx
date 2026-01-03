@@ -86,7 +86,7 @@ describe('FinancialConnectionsForm', () => {
     });
 
     describe('Rendering', () => {
-        it('renders connect bank button', () => {
+        it('connect bank button is rendered', () => {
             render(
                 <FinancialConnectionsForm
                     fcsess_secret={mockFcsessSecret}
@@ -97,7 +97,7 @@ describe('FinancialConnectionsForm', () => {
             expect(screen.getByRole('button', { name: /connect your bank/i })).toBeInTheDocument();
         });
 
-        it('renders button with correct id', () => {
+        it('button has correct id', () => {
             render(
                 <FinancialConnectionsForm
                     fcsess_secret={mockFcsessSecret}
@@ -109,7 +109,7 @@ describe('FinancialConnectionsForm', () => {
             expect(button).toHaveAttribute('id', 'submit');
         });
 
-        it('does not show notification initially', () => {
+        it('notification is not shown initially', () => {
             render(
                 <FinancialConnectionsForm
                     fcsess_secret={mockFcsessSecret}
@@ -120,7 +120,7 @@ describe('FinancialConnectionsForm', () => {
             expect(screen.queryByTestId('notification')).not.toBeInTheDocument();
         });
 
-        it('does not show spinner initially', () => {
+        it('spinner is not shown initially', () => {
             render(
                 <FinancialConnectionsForm
                     fcsess_secret={mockFcsessSecret}
@@ -133,7 +133,7 @@ describe('FinancialConnectionsForm', () => {
     });
 
     describe('Button State Management', () => {
-        it('enables button when stripe is available', () => {
+        it('button is enabled when stripe is available', () => {
             render(
                 <FinancialConnectionsForm
                     fcsess_secret={mockFcsessSecret}
@@ -145,7 +145,7 @@ describe('FinancialConnectionsForm', () => {
             expect(button).not.toBeDisabled();
         });
 
-        it('disables button when stripe is not available', () => {
+        it('button is disabled when stripe is not available', () => {
             // Mock stripe as null
             const { useStripe } = require('@stripe/react-stripe-js');
             useStripe.mockReturnValue(null);
@@ -161,7 +161,7 @@ describe('FinancialConnectionsForm', () => {
             expect(button).toBeDisabled();
         });
 
-        it('disables button during loading', async () => {
+        it('button is disabled during loading', async () => {
             // Mock a slow response
             mockCollectFinancialConnectionsAccounts.mockImplementation(
                 () => new Promise(resolve => setTimeout(() => resolve({
@@ -184,7 +184,7 @@ describe('FinancialConnectionsForm', () => {
     });
 
     describe('Loading State', () => {
-        it('shows spinner when loading', async () => {
+        it('spinner is shown when loading', async () => {
             // Mock a slow response
             mockCollectFinancialConnectionsAccounts.mockImplementation(
                 () => new Promise(resolve => setTimeout(() => resolve({
@@ -205,7 +205,7 @@ describe('FinancialConnectionsForm', () => {
             expect(document.querySelector('.animate-spin')).toBeInTheDocument();
         });
 
-        it('hides spinner after loading completes', async () => {
+        it('spinner is hidden after loading completes', async () => {
             render(
                 <FinancialConnectionsForm
                     fcsess_secret={mockFcsessSecret}
@@ -223,7 +223,7 @@ describe('FinancialConnectionsForm', () => {
     });
 
     describe('Successful Account Connection', () => {
-        it('calls stripe.collectFinancialConnectionsAccounts with correct secret', async () => {
+        it('stripe.collectFinancialConnectionsAccounts is called with correct secret', async () => {
             render(
                 <FinancialConnectionsForm
                     fcsess_secret={mockFcsessSecret}
@@ -239,7 +239,7 @@ describe('FinancialConnectionsForm', () => {
             });
         });
 
-        it('calls setStripeAccounts with returned accounts', async () => {
+        it('setStripeAccounts is called with returned accounts', async () => {
             render(
                 <FinancialConnectionsForm
                     fcsess_secret={mockFcsessSecret}
@@ -255,7 +255,7 @@ describe('FinancialConnectionsForm', () => {
             });
         });
 
-        it('stores accounts via API call', async () => {
+        it('accounts are stored via API call', async () => {
             const originalEnv = process.env.VITE_API_ENDPOINT;
             process.env.VITE_API_ENDPOINT = 'http://localhost:3000/';
 
@@ -279,7 +279,7 @@ describe('FinancialConnectionsForm', () => {
             process.env.VITE_API_ENDPOINT = originalEnv;
         });
 
-        it('shows success toast on API response', async () => {
+        it('success toast is shown on API response', async () => {
             const { toast } = require('sonner');
             const mockResponse = { data: { success: true, message: 'Accounts created' } };
             mockAxiosInstance.post.mockResolvedValue(mockResponse);
@@ -304,7 +304,7 @@ describe('FinancialConnectionsForm', () => {
     });
 
     describe('Error Handling', () => {
-        it('shows error toast when stripe returns error', async () => {
+        it('error toast is shown when stripe returns error', async () => {
             const mockError = {
                 error: {
                     message: 'Connection failed'
@@ -331,7 +331,7 @@ describe('FinancialConnectionsForm', () => {
             });
         });
 
-        it('shows toast when no accounts are linked', async () => {
+        it('error toast is shown when no accounts are linked', async () => {
             mockCollectFinancialConnectionsAccounts.mockResolvedValue({
                 financialConnectionsSession: {
                     accounts: []
@@ -357,7 +357,7 @@ describe('FinancialConnectionsForm', () => {
             });
         });
 
-        it('handles API error gracefully', async () => {
+        it('API error is handled gracefully', async () => {
             mockAxiosInstance.post.mockRejectedValue(new Error('API Error'));
 
             render(
@@ -379,7 +379,7 @@ describe('FinancialConnectionsForm', () => {
             });
         });
 
-        it('does not call setStripeAccounts when there is an error', async () => {
+        it('setStripeAccounts is not called when there is an error', async () => {
             const mockError = {
                 error: {
                     message: 'Connection failed'
@@ -403,7 +403,7 @@ describe('FinancialConnectionsForm', () => {
             expect(mockSetStripeAccounts).not.toHaveBeenCalled();
         });
 
-        it('returns early when stripe is not available', async () => {
+        it('function returns early when stripe is not available', async () => {
             // Mock stripe as null
             const { useStripe } = require('@stripe/react-stripe-js');
             useStripe.mockReturnValue(null);
@@ -425,7 +425,7 @@ describe('FinancialConnectionsForm', () => {
     });
 
     describe('User Interactions', () => {
-        it('prevents default form submission', async () => {
+        it('default form submission is prevented', async () => {
             render(
                 <FinancialConnectionsForm
                     fcsess_secret={mockFcsessSecret}
@@ -445,7 +445,7 @@ describe('FinancialConnectionsForm', () => {
     });
 
     describe('Accessibility', () => {
-        it('has proper button structure', () => {
+        it('proper button structure is present', () => {
             render(
                 <FinancialConnectionsForm
                     fcsess_secret={mockFcsessSecret}
@@ -457,7 +457,7 @@ describe('FinancialConnectionsForm', () => {
             expect(button).toBeInTheDocument();
         });
 
-        it('has proper spinner accessibility attributes', async () => {
+        it('spinner has proper accessibility attributes', async () => {
             // Mock a slow response
             mockCollectFinancialConnectionsAccounts.mockImplementation(
                 () => new Promise(resolve => setTimeout(() => resolve({
@@ -481,7 +481,7 @@ describe('FinancialConnectionsForm', () => {
     });
 
     describe('State Management', () => {
-        it('initializes notification state correctly', () => {
+        it('notification state is initialized correctly', () => {
             render(
                 <FinancialConnectionsForm
                     fcsess_secret={mockFcsessSecret}
@@ -492,7 +492,7 @@ describe('FinancialConnectionsForm', () => {
             expect(screen.queryByTestId('notification')).not.toBeInTheDocument();
         });
 
-        it('initializes loading state correctly', () => {
+        it('loading state is initialized correctly', () => {
             render(
                 <FinancialConnectionsForm
                     fcsess_secret={mockFcsessSecret}
@@ -503,7 +503,7 @@ describe('FinancialConnectionsForm', () => {
             expect(screen.queryByTestId('spinner')).not.toBeInTheDocument();
         });
 
-        it('updates loading state during API call', async () => {
+        it('loading state is updated during API call', async () => {
             // Mock a slow response
             mockCollectFinancialConnectionsAccounts.mockImplementation(
                 () => new Promise(resolve => setTimeout(() => resolve({
@@ -532,7 +532,7 @@ describe('FinancialConnectionsForm', () => {
     });
 
     describe('Environment Configuration', () => {
-        it('uses VITE_API_ENDPOINT environment variable', async () => {
+        it('VITE_API_ENDPOINT environment variable is used', async () => {
             const originalEnv = process.env.VITE_API_ENDPOINT;
             process.env.VITE_API_ENDPOINT = 'https://api.example.com/';
 
