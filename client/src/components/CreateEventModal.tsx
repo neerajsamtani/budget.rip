@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ResponsiveDialog, useIsMobile } from "@/components/ui/responsive-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Body } from "../components/ui/typography";
 import { useLineItems, useLineItemsDispatch } from "../contexts/LineItemsContext";
 import { FormField, useField } from '../hooks/useField';
@@ -32,30 +32,37 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
     selectedLineItemIds.length > 0
   );
 
+  // Track whether we've prefilled for the current hints to prevent duplicate prefills
+  const hasPrefilled = useRef(false);
+
+  // Reset flag when hints data changes (new API response)
   useEffect(() => {
-    // Wait for hints to finish loading before prefilling
+    hasPrefilled.current = false;
+  }, [prefillSuggestion]);
+
+  useEffect(() => {
     if (isLoadingHints) return;
 
-    if (!show && selectedLineItems.length > 0) {
+    if (show && selectedLineItems.length > 0 && !hasPrefilled.current) {
+      hasPrefilled.current = true;
       if (isHintsError) {
         showErrorToast("Failed to load event hints. Using default name.");
       }
       if (prefillSuggestion) {
-        name.setCustomValue(prefillSuggestion.name)
+        name.setCustomValue(prefillSuggestion.name);
         if (prefillSuggestion.category) {
-          category.setCustomValue(prefillSuggestion.category)
+          category.setCustomValue(prefillSuggestion.category);
         }
       } else {
-        // Fall back to default name cleanup (also handles error case)
-        name.setCustomValue(defaultNameCleanup(selectedLineItems[0].description))
+        name.setCustomValue(defaultNameCleanup(selectedLineItems[0].description));
       }
     } else if (!show) {
-      name.setEmpty()
-      category.setEmpty()
+      hasPrefilled.current = false;
+      name.setEmpty();
+      category.setEmpty();
     }
-    // If we add name or category here, it will cause an infinite render loop
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedLineItems, show, prefillSuggestion, isLoadingHints, isHintsError])
+  }, [show, selectedLineItems, prefillSuggestion, isLoadingHints, isHintsError])
 
   const name = useField<string>("text", "" as string)
   const category = useField("select", "All" as string)

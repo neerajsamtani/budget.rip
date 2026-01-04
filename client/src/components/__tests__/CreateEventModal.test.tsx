@@ -178,7 +178,7 @@ describe('CreateEventModal', () => {
         it('typing in name field is allowed', async () => {
             render(<CreateEventModal show={true} onHide={mockOnHide} />);
 
-            const nameInput = screen.getAllByDisplayValue('')[0]; // First input is name
+            const nameInput = screen.getByPlaceholderText('Enter a descriptive name for this event');
             fireEvent.change(nameInput, { target: { value: 'Test Event Name' } });
 
             expect(nameInput).toHaveValue('Test Event Name');
@@ -404,7 +404,9 @@ describe('CreateEventModal', () => {
             // Then render with show=true
             rerender(<CreateEventModal show={true} onHide={mockOnHide} />);
 
-            expect(screen.getByDisplayValue('Suggested Name')).toBeInTheDocument();
+            await waitFor(() => {
+                expect(screen.getByDisplayValue('Suggested Name')).toBeInTheDocument();
+            });
             const categorySelect = screen.getByRole('combobox', { name: /category/i });
             expect(categorySelect).toHaveTextContent('Dining');
         });
@@ -549,8 +551,8 @@ describe('CreateEventModal', () => {
             mockDefaultNameCleanup.mockImplementation((str) => str);
             render(<CreateEventModal show={true} onHide={mockOnHide} />);
 
-            // Fill out form
-            const nameInput = screen.getAllByDisplayValue('')[0]; // First input is name
+            // Fill out form - use placeholder to find name input since it may be prefilled
+            const nameInput = screen.getByPlaceholderText('Enter a descriptive name for this event');
             fireEvent.change(nameInput, { target: { value: 'Test Event' } });
 
             const categorySelect = screen.getByRole('combobox', { name: /category/i });
