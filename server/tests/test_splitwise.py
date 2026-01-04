@@ -68,8 +68,8 @@ def mock_splitwise_expense_dict():
 
 
 class TestSplitwiseAPI:
-    def test_refresh_splitwise_api_success(self, test_client, jwt_token, flask_app, mocker):
-        """Test GET /api/refresh/splitwise endpoint - success case"""
+    def test_refresh_splitwise_syncs_and_converts_expenses(self, test_client, jwt_token, flask_app, mocker):
+        """Splitwise refresh syncs expenses and converts to line items"""
         mock_refresh = mocker.patch("resources.splitwise.refresh_splitwise")
         mock_convert = mocker.patch("resources.splitwise.splitwise_to_line_items")
 
@@ -85,16 +85,16 @@ class TestSplitwiseAPI:
         mock_refresh.assert_called_once()
         mock_convert.assert_called_once()
 
-    def test_refresh_splitwise_api_unauthorized(self, test_client):
-        """Test GET /api/refresh/splitwise endpoint - unauthorized"""
+    def test_refresh_splitwise_requires_authentication(self, test_client):
+        """Splitwise refresh endpoint requires authentication"""
         response = test_client.get("/api/refresh/splitwise")
 
         assert response.status_code == 401
 
 
 class TestSplitwiseFunctions:
-    def test_refresh_splitwise_success(self, flask_app, mock_splitwise_expense, mocker):
-        """Test refresh_splitwise function - success case"""
+    def test_refresh_fetches_expenses_after_moving_date(self, flask_app, mock_splitwise_expense, mocker):
+        """Refresh fetches expenses dated after the moving date"""
         with flask_app.app_context():
             mock_splitwise_client = mocker.patch("resources.splitwise.splitwise_client")
             mocker.patch("resources.splitwise.upsert_transactions")
@@ -108,10 +108,10 @@ class TestSplitwiseFunctions:
             # Verify getExpenses was called with correct parameters
             mock_splitwise_client.getExpenses.assert_called_once_with(limit=1000, dated_after="2022-08-03T00:00:00Z")
 
-    def test_refresh_splitwise_with_deleted_expense(
+    def test_deleted_expenses_are_filtered_out(
         self, flask_app, mock_splitwise_expense, mock_splitwise_expense_deleted, mocker
     ):
-        """Test refresh_splitwise function - filters out deleted expenses"""
+        """Deleted expenses are filtered out during refresh"""
         with flask_app.app_context():
             mock_splitwise_client = mocker.patch("resources.splitwise.splitwise_client")
             mocker.patch("resources.splitwise.upsert_transactions")
@@ -125,8 +125,8 @@ class TestSplitwiseFunctions:
             # Call the function
             refresh_splitwise()
 
-    def test_refresh_splitwise_no_expenses(self, flask_app, mocker):
-        """Test refresh_splitwise function - no expenses returned"""
+    def test_empty_expenses_list_completes_without_error(self, flask_app, mocker):
+        """Empty expenses list completes without error"""
         with flask_app.app_context():
             mock_splitwise_client = mocker.patch("resources.splitwise.splitwise_client")
             mocker.patch("resources.splitwise.upsert_transactions")
@@ -137,8 +137,8 @@ class TestSplitwiseFunctions:
             # Call the function
             refresh_splitwise()
 
-    def test_splitwise_to_line_items_success(self, flask_app, mock_splitwise_expense_dict, mocker):
-        """Test splitwise_to_line_items function - success case"""
+    def test_expenses_convert_to_line_items_with_correct_amount(self, flask_app, mock_splitwise_expense_dict, mocker):
+        """Expenses convert to line items with flipped user balance as amount"""
         with flask_app.app_context():
             from dao import splitwise_raw_data_collection, upsert_with_id
             from models.database import SessionLocal
@@ -164,8 +164,8 @@ class TestSplitwiseFunctions:
             finally:
                 db.close()
 
-    def test_splitwise_to_line_items_with_ignored_party(self, flask_app, mocker):
-        """Test splitwise_to_line_items function - filters out ignored parties"""
+    def test_expenses_with_ignored_parties_are_skipped(self, flask_app, mocker):
+        """Expenses where responsible party is in ignore list are skipped"""
         with flask_app.app_context():
             mock_get_data = mocker.patch("resources.splitwise.get_all_data")
             mocker.patch("resources.splitwise.upsert_line_items")
@@ -188,8 +188,8 @@ class TestSplitwiseFunctions:
             # Call the function
             splitwise_to_line_items()
 
-    def test_splitwise_to_line_items_with_non_ignored_party(self, flask_app, mocker):
-        """Test splitwise_to_line_items function - handles non-ignored parties correctly"""
+    def test_non_ignored_parties_create_line_items(self, flask_app, mocker):
+        """Non-ignored parties create line items correctly"""
         with flask_app.app_context():
             from dao import splitwise_raw_data_collection, upsert_with_id
             from models.database import SessionLocal
@@ -221,8 +221,8 @@ class TestSplitwiseFunctions:
             finally:
                 db.close()
 
-    def test_splitwise_to_line_items_multiple_users(self, flask_app, mocker):
-        """Test splitwise_to_line_items function - handles multiple users correctly"""
+    def test_multiple_users_combined_into_responsible_party(self, flask_app, mocker):
+        """Multiple users are combined into a single responsible party string"""
         with flask_app.app_context():
             from dao import splitwise_raw_data_collection, upsert_with_id
             from models.database import SessionLocal
@@ -257,8 +257,8 @@ class TestSplitwiseFunctions:
             finally:
                 db.close()
 
-    def test_splitwise_to_line_items_no_expenses(self, flask_app, mocker):
-        """Test splitwise_to_line_items function - no expenses to process"""
+    def test_empty_expense_list_creates_no_line_items(self, flask_app, mocker):
+        """Empty expense list creates no line items"""
         with flask_app.app_context():
             mock_get_data = mocker.patch("resources.splitwise.get_all_data")
             mocker.patch("resources.splitwise.upsert_line_items")
@@ -269,8 +269,8 @@ class TestSplitwiseFunctions:
             # Call the function
             splitwise_to_line_items()
 
-    def test_splitwise_to_line_items_user_not_found(self, flask_app, mocker):
-        """Test splitwise_to_line_items function - user not found in expense"""
+    def test_expenses_without_current_user_are_skipped(self, flask_app, mocker):
+        """Expenses without the current user are skipped"""
         with flask_app.app_context():
             mock_get_data = mocker.patch("resources.splitwise.get_all_data")
             mocker.patch("resources.splitwise.upsert_line_items")
@@ -290,8 +290,8 @@ class TestSplitwiseFunctions:
             # Call the function
             splitwise_to_line_items()
 
-    def test_splitwise_to_line_items_date_conversion(self, flask_app, mocker):
-        """Test splitwise_to_line_items function - date conversion"""
+    def test_iso_date_converts_to_datetime(self, flask_app, mocker):
+        """ISO date strings convert to datetime objects correctly"""
         with flask_app.app_context():
             from dao import splitwise_raw_data_collection, upsert_with_id
             from models.database import SessionLocal
@@ -326,8 +326,8 @@ class TestSplitwiseFunctions:
             finally:
                 db.close()
 
-    def test_splitwise_to_line_items_amount_flipping(self, flask_app, mocker):
-        """Test splitwise_to_line_items function - amount flipping logic"""
+    def test_negative_balance_flips_to_positive_amount(self, flask_app, mocker):
+        """Negative user balance becomes positive line item amount"""
         with flask_app.app_context():
             from dao import splitwise_raw_data_collection, upsert_with_id
             from models.database import SessionLocal
@@ -361,8 +361,8 @@ class TestSplitwiseFunctions:
 
 
 class TestSplitwiseIntegration:
-    def test_full_refresh_workflow(self, flask_app, mocker):
-        """Test the complete refresh workflow from API to database"""
+    def test_complete_workflow_fetches_and_converts_expenses(self, flask_app, mocker):
+        """Complete workflow fetches expenses and converts to line items"""
         with flask_app.app_context():
             mock_splitwise_client = mocker.patch("resources.splitwise.splitwise_client")
             mocker.patch("resources.splitwise.upsert_line_items")

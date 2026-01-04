@@ -27,18 +27,18 @@ describe('TagsFilter', () => {
     }
 
     describe('Rendering', () => {
-        it('renders tags filter component', () => {
+        it('tags filter component is displayed', () => {
             setup();
             expect(screen.getByText('Tags')).toBeInTheDocument();
             expect(screen.getByRole('combobox')).toBeInTheDocument();
         });
-        it('renders with proper form structure', () => {
+        it('proper form structure is rendered', () => {
             setup();
             // Check for shadcn components: label and input
             expect(screen.getByText('Tags')).toBeInTheDocument();
             expect(screen.getByRole('combobox')).toBeInTheDocument();
         });
-        it('displays current tag filter value when tag exists in options', () => {
+        it('current tag filter value is displayed when tag exists in options', () => {
             jest.spyOn(require('@/hooks/useApi'), 'useTags').mockReturnValue({
                 data: [{ id: 'tag_1', name: 'groceries' }],
                 isLoading: false,
@@ -49,38 +49,38 @@ describe('TagsFilter', () => {
             const input = screen.getByRole('combobox');
             expect(input).toHaveValue('groceries');
         });
-        it('shows placeholder text', () => {
+        it('placeholder text is shown', () => {
             setup();
             expect(screen.getByPlaceholderText('Search by tag...')).toBeInTheDocument();
         });
     });
 
     describe('User Interactions', () => {
-        it('calls setTagFilter when user types in input', () => {
+        it('setTagFilter is called when user types in input', () => {
             render(<TagsFilterControlledWrapper initialValue="" />);
             const input = screen.getByRole('combobox');
             fireEvent.change(input, { target: { value: 'groceries' } });
             expect(screen.getByDisplayValue('groceries')).toBeInTheDocument();
         });
-        it('handles multiple character input', () => {
+        it('multiple character input is handled', () => {
             render(<TagsFilterControlledWrapper initialValue="" />);
             const input = screen.getByRole('combobox');
             fireEvent.change(input, { target: { value: 'shopping' } });
             expect(screen.getByDisplayValue('shopping')).toBeInTheDocument();
         });
-        it('handles special characters in input', () => {
+        it('special characters in input are handled', () => {
             render(<TagsFilterControlledWrapper initialValue="" />);
             const input = screen.getByRole('combobox');
             fireEvent.change(input, { target: { value: 'food & drinks' } });
             expect(screen.getByDisplayValue('food & drinks')).toBeInTheDocument();
         });
-        it('handles numbers in input', () => {
+        it('numbers in input are handled', () => {
             render(<TagsFilterControlledWrapper initialValue="" />);
             const input = screen.getByRole('combobox');
             fireEvent.change(input, { target: { value: '2024' } });
             expect(screen.getByDisplayValue('2024')).toBeInTheDocument();
         });
-        it('handles empty string input', () => {
+        it('empty string input is handled', () => {
             render(<TagsFilterControlledWrapper initialValue="existing" />);
             const input = screen.getByRole('combobox');
             fireEvent.change(input, { target: { value: '' } });
@@ -90,18 +90,18 @@ describe('TagsFilter', () => {
 
 
     describe('Form Structure', () => {
-        it('has proper input group structure', () => {
+        it('proper input group structure is present', () => {
             setup();
             // Check for shadcn components: label and input are present
             expect(screen.getByText('Tags')).toBeInTheDocument();
             expect(screen.getByRole('combobox')).toBeInTheDocument();
         });
-        it('has proper form control structure', () => {
+        it('proper form control structure is present', () => {
             setup();
             // Check for input element exists
             expect(screen.getByRole('combobox')).toBeInTheDocument();
         });
-        it('has proper input type', () => {
+        it('proper input type is set', () => {
             setup();
             const input = screen.getByRole('combobox');
             expect(input).toHaveAttribute('type', 'text');
@@ -109,19 +109,19 @@ describe('TagsFilter', () => {
     });
 
     describe('Accessibility', () => {
-        it('has proper textbox role', () => {
+        it('proper textbox role is set', () => {
             setup();
             expect(screen.getByRole('combobox')).toBeInTheDocument();
         });
-        it('has proper label text', () => {
+        it('proper label text is displayed', () => {
             setup();
             expect(screen.getByText('Tags')).toBeInTheDocument();
         });
-        it('has proper placeholder text', () => {
+        it('proper placeholder text is set', () => {
             setup();
             expect(screen.getByPlaceholderText('Search by tag...')).toBeInTheDocument();
         });
-        it('maintains focus during typing', async () => {
+        it('focus is maintained during typing', async () => {
             render(<TagsFilterControlledWrapper initialValue="" />);
             const input = screen.getByRole('combobox');
             await userEvent.click(input);
@@ -131,19 +131,19 @@ describe('TagsFilter', () => {
     });
 
     describe('Edge Cases', () => {
-        it('handles tag filter with emoji characters', () => {
+        it('emoji characters in tag filter are handled', () => {
             render(<TagsFilterControlledWrapper initialValue="" />);
             const input = screen.getByRole('combobox');
             fireEvent.change(input, { target: { value: '🍕' } });
             expect(screen.getByDisplayValue('🍕')).toBeInTheDocument();
         });
-        it('handles tag filter with unicode characters', () => {
+        it('unicode characters in tag filter are handled', () => {
             render(<TagsFilterControlledWrapper initialValue="" />);
             const input = screen.getByRole('combobox');
             fireEvent.change(input, { target: { value: 'café' } });
             expect(screen.getByDisplayValue('café')).toBeInTheDocument();
         });
-        it('handles tag filter with HTML-like characters', () => {
+        it('HTML-like characters in tag filter are handled', () => {
             render(<TagsFilterControlledWrapper initialValue="" />);
             const input = screen.getByRole('combobox');
             fireEvent.change(input, { target: { value: '<script>alert("test")</script>' } });

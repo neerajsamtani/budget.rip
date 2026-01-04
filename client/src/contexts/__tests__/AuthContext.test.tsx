@@ -62,7 +62,7 @@ describe('AuthContext', () => {
     });
 
     describe('Initial State', () => {
-        it('shows not-authenticated when /api/auth/me returns 401', async () => {
+        it('not-authenticated is shown when /api/auth/me returns 401', async () => {
             mockAxiosInstance.get.mockRejectedValue({ response: { status: 401 } });
 
             await act(async () => {
@@ -78,7 +78,7 @@ describe('AuthContext', () => {
             });
         });
 
-        it('shows authenticated when /api/auth/me returns user', async () => {
+        it('authenticated is shown when /api/auth/me returns user', async () => {
             const mockUser = {
                 id: 'user_123',
                 email: 'test@example.com',
@@ -103,7 +103,7 @@ describe('AuthContext', () => {
     });
 
     describe('Login', () => {
-        it('calls login API with correct credentials', async () => {
+        it('login API is called with correct credentials', async () => {
             // Initially not authenticated
             mockAxiosInstance.get.mockRejectedValue({ response: { status: 401 } });
             // Login succeeds
@@ -136,7 +136,7 @@ describe('AuthContext', () => {
     });
 
     describe('Logout', () => {
-        it('calls logout API', async () => {
+        it('logout API is called', async () => {
             // Initially authenticated
             mockAxiosInstance.get.mockResolvedValue({
                 data: {
@@ -173,7 +173,7 @@ describe('AuthContext', () => {
     });
 
     describe('useAuth hook', () => {
-        it('throws error when used outside AuthProvider', () => {
+        it('error is thrown when used outside AuthProvider', () => {
             // Suppress console.error for this test
             const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
 

@@ -52,22 +52,22 @@ describe('useApi hooks', () => {
     });
 
     describe('queryKeys', () => {
-        it('generates correct query keys for events', () => {
+        it('events query key includes date range parameters', () => {
             expect(queryKeys.events(1000, 2000)).toEqual(['events', 1000, 2000]);
             expect(queryKeys.events()).toEqual(['events', undefined, undefined]);
         });
 
-        it('generates correct query keys for lineItems', () => {
+        it('lineItems query key includes filter parameters', () => {
             expect(queryKeys.lineItems({ onlyLineItemsToReview: true })).toEqual(['lineItems', { onlyLineItemsToReview: true }]);
             expect(queryKeys.lineItems({ paymentMethod: 'cash' })).toEqual(['lineItems', { paymentMethod: 'cash' }]);
             expect(queryKeys.lineItems()).toEqual(['lineItems', undefined]);
         });
 
-        it('generates correct query keys for eventLineItems', () => {
+        it('eventLineItems query key includes event ID', () => {
             expect(queryKeys.eventLineItems('event-123')).toEqual(['eventLineItems', 'event-123']);
         });
 
-        it('generates correct query keys for static endpoints', () => {
+        it('static endpoint query keys have correct format', () => {
             expect(queryKeys.monthlyBreakdown()).toEqual(['monthlyBreakdown']);
             expect(queryKeys.connectedAccounts()).toEqual(['connectedAccounts']);
             expect(queryKeys.paymentMethods()).toEqual(['paymentMethods']);
@@ -75,7 +75,7 @@ describe('useApi hooks', () => {
     });
 
     describe('useEvents', () => {
-        it('fetches events with date range parameters', async () => {
+        it('events are fetched with date range parameters', async () => {
             const mockEvents = [
                 { id: '1', name: 'Event 1', amount: 100, date: 1640995200 },
                 { id: '2', name: 'Event 2', amount: 200, date: 1641081600 },
@@ -94,13 +94,13 @@ describe('useApi hooks', () => {
             expect(result.current.data).toEqual(mockEvents);
         });
 
-        it('does not fetch when startTime or endTime is missing', () => {
+        it('events query is disabled when date range is incomplete', () => {
             renderHook(() => useEvents(undefined, 1650000000), { wrapper: createWrapper() });
 
             expect(mockGet).not.toHaveBeenCalled();
         });
 
-        it('handles API errors', async () => {
+        it('API error sets error state', async () => {
             mockGet.mockRejectedValue(new Error('API Error'));
 
             const { result } = renderHook(() => useEvents(1640000000, 1650000000), {
@@ -113,7 +113,7 @@ describe('useApi hooks', () => {
     });
 
     describe('useLineItems', () => {
-        it('fetches line items without parameters', async () => {
+        it('line items are fetched without parameters', async () => {
             const mockLineItems = [{ id: '1', description: 'Item 1', amount: 50 }];
             mockGet.mockResolvedValue({ data: { data: mockLineItems } });
 

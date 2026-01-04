@@ -220,6 +220,10 @@ External API data follows this flow:
 
 ## Testing Notes
 
+### Test Naming Convention
+Test names should read as statements of fact about system behavior, not as descriptions of what the test does.
+**Be specific**: `'line items are fetched on mount'` not `'fetches data'`
+
 ### Client
 - Tests use Jest with jsdom environment
 - Setup file at `src/setupTests.ts`

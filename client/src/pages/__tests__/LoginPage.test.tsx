@@ -58,7 +58,7 @@ describe('LoginPage', () => {
     });
 
     describe('Rendering', () => {
-        it('renders login form with all required elements', async () => {
+        it('login form displays all required elements', async () => {
             await act(async () => {
                 renderLoginPage();
             });
@@ -70,7 +70,7 @@ describe('LoginPage', () => {
             expect(screen.getByRole('button', { name: /log in/i })).toBeInTheDocument();
         });
 
-        it('does not render logout button (moved to navbar)', async () => {
+        it('logout button is not present on login page', async () => {
             await act(async () => {
                 renderLoginPage();
             });
@@ -81,7 +81,7 @@ describe('LoginPage', () => {
             expect(screen.queryByRole('button', { name: /log out/i })).not.toBeInTheDocument();
         });
 
-        it('renders form fields with correct types', async () => {
+        it('form fields have correct input types', async () => {
             await act(async () => {
                 renderLoginPage();
             });
@@ -97,7 +97,7 @@ describe('LoginPage', () => {
             expect(passwordField.type).toBe('password');
         });
 
-        it('renders form fields with empty initial values', async () => {
+        it('form fields start with empty values', async () => {
             await act(async () => {
                 renderLoginPage();
             });
@@ -115,7 +115,7 @@ describe('LoginPage', () => {
     });
 
     describe('User Interactions', () => {
-        it('allows typing in email field', async () => {
+        it('email field accepts user input', async () => {
             await act(async () => {
                 renderLoginPage();
             });
@@ -130,7 +130,7 @@ describe('LoginPage', () => {
             expect(emailField).toHaveValue('test@example.com');
         });
 
-        it('allows typing in password field', async () => {
+        it('password field accepts user input', async () => {
             await act(async () => {
                 renderLoginPage();
             });
@@ -145,7 +145,7 @@ describe('LoginPage', () => {
             expect(passwordField).toHaveValue('password123');
         });
 
-        it('calls login API when Log In button is clicked', async () => {
+        it('login API is called when Log In button is clicked', async () => {
             await act(async () => {
                 renderLoginPage();
             });
@@ -175,7 +175,7 @@ describe('LoginPage', () => {
             });
         });
 
-        it('navigates to home page after successful login', async () => {
+        it('user is redirected to home page after successful login', async () => {
             await act(async () => {
                 renderLoginPage();
             });
@@ -199,7 +199,7 @@ describe('LoginPage', () => {
             });
         });
 
-        it('clears form fields after successful login', async () => {
+        it('form fields are cleared after successful login', async () => {
             await act(async () => {
                 renderLoginPage();
             });
@@ -226,7 +226,7 @@ describe('LoginPage', () => {
     });
 
     describe('Error Handling', () => {
-        it('handles login API error gracefully', async () => {
+        it('error message is shown when login API fails', async () => {
             mockPost.mockRejectedValue(new Error('Login failed'));
 
             await act(async () => {
@@ -252,7 +252,7 @@ describe('LoginPage', () => {
             });
         });
 
-        it('does not navigate on login error', async () => {
+        it('user stays on login page when login fails', async () => {
             mockPost.mockRejectedValue(new Error('Login failed'));
 
             await act(async () => {
@@ -281,7 +281,7 @@ describe('LoginPage', () => {
     });
 
     describe('Accessibility', () => {
-        it('has proper form labels', async () => {
+        it('form fields have proper labels', async () => {
             await act(async () => {
                 renderLoginPage();
             });
@@ -292,7 +292,7 @@ describe('LoginPage', () => {
             expect(screen.getByLabelText('Password')).toBeInTheDocument();
         });
 
-        it('has proper button labels', async () => {
+        it('buttons have proper labels', async () => {
             await act(async () => {
                 renderLoginPage();
             });
@@ -304,7 +304,7 @@ describe('LoginPage', () => {
     });
 
     describe('Form Validation', () => {
-        it('validates required fields', async () => {
+        it('required field validation prevents empty submission', async () => {
             await act(async () => {
                 renderLoginPage();
             });
@@ -324,7 +324,7 @@ describe('LoginPage', () => {
             expect(screen.getByRole('alert')).toHaveTextContent(/required/i);
         });
 
-        it('validates email format', async () => {
+        it('invalid email format prevents form submission', async () => {
             await act(async () => {
                 renderLoginPage();
             });
@@ -349,7 +349,7 @@ describe('LoginPage', () => {
             expect(screen.getByRole('alert')).toHaveTextContent(/valid email/i);
         });
 
-        it('handles special characters in email and password', async () => {
+        it('special characters in email and password are handled correctly', async () => {
             await act(async () => {
                 renderLoginPage();
             });
@@ -381,7 +381,7 @@ describe('LoginPage', () => {
     });
 
     describe('Loading State', () => {
-        it('shows loading state during login', async () => {
+        it('button shows loading state and is disabled during login', async () => {
             // Make login hang
             mockPost.mockImplementation(() => new Promise(() => {}));
 

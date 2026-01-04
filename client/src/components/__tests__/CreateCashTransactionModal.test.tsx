@@ -26,20 +26,20 @@ describe('CreateCashTransactionModal', () => {
     });
 
     describe('Rendering', () => {
-        it('renders modal when show is true', () => {
+        it('modal is rendered when show is true', () => {
             render(<CreateCashTransactionModal show={true} onHide={mockOnHide} />);
 
             expect(screen.getByRole('dialog')).toBeInTheDocument();
             expect(screen.getByText('New Cash Transaction')).toBeInTheDocument();
         });
 
-        it('does not render modal when show is false', () => {
+        it('modal is not rendered when show is false', () => {
             render(<CreateCashTransactionModal show={false} onHide={mockOnHide} />);
 
             expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
         });
 
-        it('renders all form fields', () => {
+        it('all form fields are rendered', () => {
             render(<CreateCashTransactionModal show={true} onHide={mockOnHide} />);
 
             expect(screen.getByText('Date')).toBeInTheDocument();
@@ -48,14 +48,14 @@ describe('CreateCashTransactionModal', () => {
             expect(screen.getByText('Amount')).toBeInTheDocument();
         });
 
-        it('renders action buttons', () => {
+        it('action buttons are rendered', () => {
             render(<CreateCashTransactionModal show={true} onHide={mockOnHide} />);
 
             expect(screen.getByRole('button', { name: /cancel/i })).toBeInTheDocument();
             expect(screen.getByRole('button', { name: /create transaction/i })).toBeInTheDocument();
         });
 
-        it('renders form inputs with correct types', () => {
+        it('form inputs have correct types', () => {
             render(<CreateCashTransactionModal show={true} onHide={mockOnHide} />);
 
             const dateInput = screen.getByLabelText('Date');
@@ -71,7 +71,7 @@ describe('CreateCashTransactionModal', () => {
     });
 
     describe('Form Interactions', () => {
-        it('allows typing in date field', async () => {
+        it('typing in date field is allowed', async () => {
             render(<CreateCashTransactionModal show={true} onHide={mockOnHide} />);
 
             const dateInput = screen.getByLabelText('Date');
@@ -80,7 +80,7 @@ describe('CreateCashTransactionModal', () => {
             expect(dateInput).toHaveValue('2024-01-15');
         });
 
-        it('allows typing in person field', async () => {
+        it('typing in person field is allowed', async () => {
             render(<CreateCashTransactionModal show={true} onHide={mockOnHide} />);
 
             const personInput = screen.getByLabelText('Person');
@@ -89,7 +89,7 @@ describe('CreateCashTransactionModal', () => {
             expect(personInput).toHaveValue('John Doe');
         });
 
-        it('allows typing in description field', async () => {
+        it('typing in description field is allowed', async () => {
             render(<CreateCashTransactionModal show={true} onHide={mockOnHide} />);
 
             const descriptionInput = screen.getByLabelText('Description');
@@ -98,7 +98,7 @@ describe('CreateCashTransactionModal', () => {
             expect(descriptionInput).toHaveValue('Lunch payment');
         });
 
-        it('allows typing in amount field', async () => {
+        it('typing in amount field is allowed', async () => {
             render(<CreateCashTransactionModal show={true} onHide={mockOnHide} />);
 
             const amountInput = screen.getByLabelText('Amount');
@@ -109,7 +109,7 @@ describe('CreateCashTransactionModal', () => {
     });
 
     describe('Form Validation', () => {
-        it('enables submit button by default', () => {
+        it('submit button is enabled by default', () => {
             render(<CreateCashTransactionModal show={true} onHide={mockOnHide} />);
 
             const submitButton = screen.getByRole('button', { name: /create transaction/i });
@@ -118,7 +118,7 @@ describe('CreateCashTransactionModal', () => {
     });
 
     describe('Cash Transaction Creation', () => {
-        it('creates cash transaction successfully', async () => {
+        it('cash transaction is created successfully', async () => {
             render(<CreateCashTransactionModal show={true} onHide={mockOnHide} />);
 
             // Fill out form
@@ -149,7 +149,7 @@ describe('CreateCashTransactionModal', () => {
             });
         });
 
-        it('clears form fields after successful transaction creation', async () => {
+        it('form fields are cleared after successful transaction creation', async () => {
             render(<CreateCashTransactionModal show={true} onHide={mockOnHide} />);
 
             // Fill out form
@@ -175,7 +175,7 @@ describe('CreateCashTransactionModal', () => {
             });
         });
 
-        it('shows toast notification after successful transaction creation', async () => {
+        it('toast notification is shown after successful transaction creation', async () => {
             render(<CreateCashTransactionModal show={true} onHide={mockOnHide} />);
 
             // Fill out form
@@ -202,7 +202,7 @@ describe('CreateCashTransactionModal', () => {
             });
         });
 
-        it('calls onHide after successful transaction creation', async () => {
+        it('onHide is called after successful transaction creation', async () => {
             render(<CreateCashTransactionModal show={true} onHide={mockOnHide} />);
 
             // Fill out form
@@ -225,7 +225,7 @@ describe('CreateCashTransactionModal', () => {
             });
         });
 
-        it('handles API error gracefully', async () => {
+        it('API error is handled gracefully', async () => {
             const { toast } = require('sonner');
             mockAxiosInstance.post.mockRejectedValue(new Error('API Error'));
 
@@ -257,7 +257,7 @@ describe('CreateCashTransactionModal', () => {
     });
 
     describe('Modal Closing', () => {
-        it('calls onHide when close button is clicked', async () => {
+        it('onHide is called when close button is clicked', async () => {
             render(<CreateCashTransactionModal show={true} onHide={mockOnHide} />);
 
             const closeButton = screen.getByRole('button', { name: /close/i });
@@ -266,7 +266,7 @@ describe('CreateCashTransactionModal', () => {
             expect(mockOnHide).toHaveBeenCalled();
         });
 
-        it('calls onHide when cancel button is clicked', async () => {
+        it('onHide is called when cancel button is clicked', async () => {
             render(<CreateCashTransactionModal show={true} onHide={mockOnHide} />);
 
             const cancelButton = screen.getByRole('button', { name: /cancel/i });
@@ -277,14 +277,14 @@ describe('CreateCashTransactionModal', () => {
     });
 
     describe('Accessibility', () => {
-        it('has proper modal structure', () => {
+        it('proper modal structure is present', () => {
             render(<CreateCashTransactionModal show={true} onHide={mockOnHide} />);
 
             expect(screen.getByRole('dialog')).toBeInTheDocument();
             expect(screen.getByText('New Cash Transaction')).toBeInTheDocument();
         });
 
-        it('has proper form labels', () => {
+        it('proper form labels are present', () => {
             render(<CreateCashTransactionModal show={true} onHide={mockOnHide} />);
 
             expect(screen.getByText('Date')).toBeInTheDocument();
@@ -293,14 +293,14 @@ describe('CreateCashTransactionModal', () => {
             expect(screen.getByText('Amount')).toBeInTheDocument();
         });
 
-        it('has proper button labels', () => {
+        it('proper button labels are present', () => {
             render(<CreateCashTransactionModal show={true} onHide={mockOnHide} />);
 
             expect(screen.getByRole('button', { name: /cancel/i })).toBeInTheDocument();
             expect(screen.getByRole('button', { name: /create transaction/i })).toBeInTheDocument();
         });
 
-        it('has form inputs with proper IDs', () => {
+        it('form inputs have proper IDs', () => {
             render(<CreateCashTransactionModal show={true} onHide={mockOnHide} />);
 
             expect(screen.getByLabelText('Date')).toHaveAttribute('id', 'event-date');
@@ -311,7 +311,7 @@ describe('CreateCashTransactionModal', () => {
     });
 
     describe('Form State Management', () => {
-        it('updates form fields on user input', async () => {
+        it('form fields are updated on user input', async () => {
             await act(async () => {
                 render(<CreateCashTransactionModal show={true} onHide={mockOnHide} />);
             });
@@ -332,7 +332,7 @@ describe('CreateCashTransactionModal', () => {
             expect(amountInput).toHaveValue(25.5);
         });
 
-        it('clears form fields after successful submission', async () => {
+        it('form fields are cleared after successful submission', async () => {
             mockAxiosInstance.post.mockResolvedValueOnce({ data: { success: true } });
 
             await act(async () => {
@@ -364,7 +364,7 @@ describe('CreateCashTransactionModal', () => {
     });
 
     describe('Environment Configuration', () => {
-        it('uses VITE_API_ENDPOINT environment variable', async () => {
+        it('VITE_API_ENDPOINT environment variable is used', async () => {
             const originalEnv = process.env.VITE_API_ENDPOINT;
             process.env.VITE_API_ENDPOINT = 'http://localhost:3000/';
 

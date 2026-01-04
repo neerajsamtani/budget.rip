@@ -16,14 +16,14 @@ describe('MonthFilter', () => {
     });
 
     describe('Rendering', () => {
-        it('renders the month filter component', () => {
+        it('month filter component is displayed', () => {
             render(<MonthFilter month="January" setMonth={mockSetMonth} />);
 
             expect(screen.getByText('Month')).toBeInTheDocument();
             expect(screen.getByRole('combobox')).toBeInTheDocument();
         });
 
-        it('renders all month options', async () => {
+        it('all month options are available', async () => {
             render(<MonthFilter month="January" setMonth={mockSetMonth} />);
 
             // Open the select to reveal options
@@ -36,28 +36,28 @@ describe('MonthFilter', () => {
             });
         });
 
-        it('displays the correct selected month', () => {
+        it('correct selected month is displayed', () => {
             render(<MonthFilter month="March" setMonth={mockSetMonth} />);
 
             // Check that the selected value is displayed
             expect(screen.getByText('March')).toBeInTheDocument();
         });
 
-        it('displays "All" as selected when that is the current month', () => {
+        it('"All" is displayed when that is the current month', () => {
             render(<MonthFilter month="All" setMonth={mockSetMonth} />);
 
             // Check that "All" is displayed as the selected value
             expect(screen.getByText('All')).toBeInTheDocument();
         });
 
-        it('renders with proper form structure', () => {
+        it('proper form structure is rendered', () => {
             render(<MonthFilter month="January" setMonth={mockSetMonth} />);
 
             expect(screen.getByText('Month')).toBeInTheDocument();
             expect(screen.getByRole('combobox')).toBeInTheDocument();
         });
 
-        it('has proper accessibility attributes', () => {
+        it('proper accessibility attributes are set', () => {
             render(<MonthFilter month="January" setMonth={mockSetMonth} />);
 
             const select = screen.getByRole('combobox');
@@ -66,7 +66,7 @@ describe('MonthFilter', () => {
     });
 
     describe('User Interactions', () => {
-        it('calls setMonth when a different month is selected', async () => {
+        it('setMonth is called when a different month is selected', async () => {
             render(<MonthFilter month="January" setMonth={mockSetMonth} />);
 
             // Open the select dropdown
@@ -80,7 +80,7 @@ describe('MonthFilter', () => {
             expect(mockSetMonth).toHaveBeenCalledWith('March');
         });
 
-        it('calls setMonth when "All" is selected', async () => {
+        it('setMonth is called when "All" is selected', async () => {
             render(<MonthFilter month="January" setMonth={mockSetMonth} />);
 
             // Open the select dropdown
@@ -94,7 +94,7 @@ describe('MonthFilter', () => {
             expect(mockSetMonth).toHaveBeenCalledWith('All');
         });
 
-        it('calls setMonth when December is selected', async () => {
+        it('setMonth is called when December is selected', async () => {
             render(<MonthFilter month="January" setMonth={mockSetMonth} />);
 
             // Open the select dropdown
@@ -108,7 +108,7 @@ describe('MonthFilter', () => {
             expect(mockSetMonth).toHaveBeenCalledWith('December');
         });
 
-        it('calls setMonth when July is selected', async () => {
+        it('setMonth is called when July is selected', async () => {
             render(<MonthFilter month="January" setMonth={mockSetMonth} />);
 
             // Open the select dropdown
@@ -122,7 +122,7 @@ describe('MonthFilter', () => {
             expect(mockSetMonth).toHaveBeenCalledWith('July');
         });
 
-        it('calls setMonth only once per selection', async () => {
+        it('setMonth is called only once per selection', async () => {
             render(<MonthFilter month="January" setMonth={mockSetMonth} />);
 
             // Open the select dropdown
@@ -139,7 +139,7 @@ describe('MonthFilter', () => {
     });
 
     describe('Props Handling', () => {
-        it('accepts different initial month values', () => {
+        it('different initial month values are accepted', () => {
             const { rerender } = render(<MonthFilter month="January" setMonth={mockSetMonth} />);
             expect(screen.getByText('January')).toBeInTheDocument();
 
@@ -150,7 +150,7 @@ describe('MonthFilter', () => {
             expect(screen.getByText('All')).toBeInTheDocument();
         });
 
-        it('calls the provided setMonth function', async () => {
+        it('provided setMonth function is called', async () => {
             const customSetMonth = jest.fn();
             render(<MonthFilter month="January" setMonth={customSetMonth} />);
 
@@ -167,7 +167,7 @@ describe('MonthFilter', () => {
     });
 
     describe('Month Options', () => {
-        it('renders all 13 options (12 months + All)', async () => {
+        it('all 13 options are rendered (12 months + All)', async () => {
             render(<MonthFilter month="January" setMonth={mockSetMonth} />);
 
             // Open the select to reveal options
@@ -180,7 +180,7 @@ describe('MonthFilter', () => {
             });
         });
 
-        it('renders months in correct order', async () => {
+        it('months are rendered in correct order', async () => {
             render(<MonthFilter month="January" setMonth={mockSetMonth} />);
 
             // Open the select to reveal options
@@ -193,7 +193,7 @@ describe('MonthFilter', () => {
             });
         });
 
-        it('has correct values for all options', async () => {
+        it('all options have correct values', async () => {
             render(<MonthFilter month="January" setMonth={mockSetMonth} />);
 
             // Open the select to reveal options
@@ -208,7 +208,7 @@ describe('MonthFilter', () => {
     });
 
     describe('Event Handling', () => {
-        it('handles change event correctly', async () => {
+        it('change event is handled correctly', async () => {
             render(<MonthFilter month="January" setMonth={mockSetMonth} />);
 
             // Open the select dropdown
@@ -222,7 +222,7 @@ describe('MonthFilter', () => {
             expect(mockSetMonth).toHaveBeenCalledWith('October');
         });
 
-        it('casts the selected value to Month type', async () => {
+        it('selected value is cast to Month type', async () => {
             render(<MonthFilter month="January" setMonth={mockSetMonth} />);
 
             // Open the select dropdown
@@ -239,7 +239,7 @@ describe('MonthFilter', () => {
     });
 
     describe('Component Structure', () => {
-        it('renders with proper structure', () => {
+        it('proper structure is rendered', () => {
             render(<MonthFilter month="January" setMonth={mockSetMonth} />);
 
             // Check for Label
@@ -251,7 +251,7 @@ describe('MonthFilter', () => {
     });
 
     describe('Edge Cases', () => {
-        it('handles rapid month changes', async () => {
+        it('rapid month changes are handled correctly', async () => {
             render(<MonthFilter month="January" setMonth={mockSetMonth} />);
 
             const trigger = screen.getByRole('combobox');
@@ -274,7 +274,7 @@ describe('MonthFilter', () => {
             expect(mockSetMonth).toHaveBeenNthCalledWith(3, 'April');
         });
 
-        it('maintains selected value after prop updates', () => {
+        it('selected value is maintained after prop updates', () => {
             const { rerender } = render(<MonthFilter month="January" setMonth={mockSetMonth} />);
             expect(screen.getByText('January')).toBeInTheDocument();
 

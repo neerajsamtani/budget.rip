@@ -106,7 +106,7 @@ describe('LineItemsPage', () => {
     });
 
     describe('Rendering', () => {
-        it('renders the page title', async () => {
+        it('page title is rendered', async () => {
             render(<LineItemsPage />);
 
             await waitFor(() => {
@@ -114,7 +114,7 @@ describe('LineItemsPage', () => {
             });
         });
 
-        it('renders the payment method filter', async () => {
+        it('payment method filter is rendered', async () => {
             render(<LineItemsPage />);
 
             await waitFor(() => {
@@ -122,7 +122,7 @@ describe('LineItemsPage', () => {
             });
         });
 
-        it('renders the table with correct headers', async () => {
+        it('table is rendered with correct headers', async () => {
             render(<LineItemsPage />);
 
             await waitFor(() => {
@@ -134,7 +134,7 @@ describe('LineItemsPage', () => {
             });
         });
 
-        it('renders line items in the table when data is available', async () => {
+        it('line items are rendered in the table when data is available', async () => {
             render(<LineItemsPage />);
 
             await waitFor(() => {
@@ -144,7 +144,7 @@ describe('LineItemsPage', () => {
             });
         });
 
-        it('renders line items with correct data', async () => {
+        it('line items are rendered with correct data', async () => {
             render(<LineItemsPage />);
 
             await waitFor(() => {
@@ -180,7 +180,7 @@ describe('LineItemsPage', () => {
     });
 
     describe('API Integration', () => {
-        it('fetches line items on component mount', async () => {
+        it('line items are fetched on component mount', async () => {
             render(<LineItemsPage />);
 
             await waitFor(() => {
@@ -193,7 +193,7 @@ describe('LineItemsPage', () => {
             });
         });
 
-        it('fetches line items with correct payment method filter', async () => {
+        it('line items are fetched with correct payment method filter', async () => {
             render(<LineItemsPage />);
 
             await waitFor(() => {
@@ -206,7 +206,7 @@ describe('LineItemsPage', () => {
             });
         });
 
-        it('refetches data when payment method changes', async () => {
+        it('data is refetched when payment method changes', async () => {
             render(<LineItemsPage />);
 
             // Wait for initial load
@@ -231,7 +231,7 @@ describe('LineItemsPage', () => {
             });
         });
 
-        it('handles API errors gracefully', async () => {
+        it('API errors are handled gracefully', async () => {
             mockAxiosInstance.get.mockRejectedValue(new Error('API Error'));
 
             render(<LineItemsPage />);
@@ -241,7 +241,7 @@ describe('LineItemsPage', () => {
             });
         });
 
-        it('uses correct API endpoint from environment variable', async () => {
+        it('correct API endpoint from environment variable is used', async () => {
             process.env.VITE_API_ENDPOINT = 'https://api.example.com/';
 
             render(<LineItemsPage />);
@@ -256,7 +256,7 @@ describe('LineItemsPage', () => {
     });
 
     describe('Payment Method Filter', () => {
-        it('allows changing payment method filter', async () => {
+        it('changing payment method filter is allowed', async () => {
             render(<LineItemsPage />);
 
             const select = screen.getByTestId('payment-method-select');
@@ -265,7 +265,7 @@ describe('LineItemsPage', () => {
             expect(select).toHaveValue('cash');
         });
 
-        it('triggers API call when payment method changes', async () => {
+        it('API call is triggered when payment method changes', async () => {
             render(<LineItemsPage />);
 
             // Wait for initial load
@@ -290,7 +290,7 @@ describe('LineItemsPage', () => {
             });
         });
 
-        it('maintains filter state across re-renders', async () => {
+        it('filter state is maintained across re-renders', async () => {
             const { rerender } = render(<LineItemsPage />);
 
             // Change payment method
@@ -306,7 +306,7 @@ describe('LineItemsPage', () => {
     });
 
     describe('Table Structure', () => {
-        it('renders table with correct shadcn classes', async () => {
+        it('table has correct shadcn classes', async () => {
             render(<LineItemsPage />);
 
             await waitFor(() => {
@@ -315,7 +315,7 @@ describe('LineItemsPage', () => {
             });
         });
 
-        it('renders table with proper structure', async () => {
+        it('table has proper structure', async () => {
             render(<LineItemsPage />);
 
             await waitFor(() => {
@@ -327,7 +327,7 @@ describe('LineItemsPage', () => {
             });
         });
 
-        it('renders correct number of table headers', async () => {
+        it('correct number of table headers is rendered', async () => {
             render(<LineItemsPage />);
 
             await waitFor(() => {
@@ -338,7 +338,7 @@ describe('LineItemsPage', () => {
     });
 
     describe('Data Display', () => {
-        it('displays formatted dates correctly', async () => {
+        it('formatted dates are displayed correctly', async () => {
             render(<LineItemsPage />);
 
             await waitFor(() => {
@@ -347,7 +347,7 @@ describe('LineItemsPage', () => {
             });
         });
 
-        it('displays amounts with proper formatting', async () => {
+        it('amounts are displayed with proper formatting', async () => {
             render(<LineItemsPage />);
 
             await waitFor(() => {
@@ -358,7 +358,7 @@ describe('LineItemsPage', () => {
             });
         });
 
-        it('handles line items with missing properties gracefully', async () => {
+        it('line items with missing properties are handled gracefully', async () => {
             const incompleteLineItems = [
                 {
                     _id: '1',
@@ -378,7 +378,7 @@ describe('LineItemsPage', () => {
             });
         });
 
-        it('handles zero amounts correctly', async () => {
+        it('zero amounts are handled correctly', async () => {
             const zeroAmountLineItems = [
                 {
                     ...mockLineItems[0],
@@ -396,7 +396,7 @@ describe('LineItemsPage', () => {
             });
         });
 
-        it('handles very large amounts correctly', async () => {
+        it('very large amounts are handled correctly', async () => {
             const largeAmountLineItems = [
                 {
                     ...mockLineItems[0],
@@ -427,7 +427,7 @@ describe('LineItemsPage', () => {
             expect(spinner).toBeInTheDocument();
         });
 
-        it('updates display when data loads', async () => {
+        it('display is updated when data loads', async () => {
             // Initially show no data
             mockAxiosInstance.get.mockResolvedValue({
                 data: { data: [] }
@@ -456,7 +456,7 @@ describe('LineItemsPage', () => {
     });
 
     describe('Accessibility', () => {
-        it('has proper heading structure', async () => {
+        it('proper heading structure is present', async () => {
             render(<LineItemsPage />);
 
             await waitFor(() => {
@@ -464,7 +464,7 @@ describe('LineItemsPage', () => {
             });
         });
 
-        it('has proper table structure', async () => {
+        it('proper table structure is present', async () => {
             render(<LineItemsPage />);
 
             await waitFor(() => {
@@ -476,7 +476,7 @@ describe('LineItemsPage', () => {
             });
         });
 
-        it('has proper form labels for payment method filter', async () => {
+        it('proper form labels for payment method filter are present', async () => {
             render(<LineItemsPage />);
 
             await waitFor(() => {
@@ -486,7 +486,7 @@ describe('LineItemsPage', () => {
     });
 
     describe('Component Integration', () => {
-        it('passes correct props to LineItem components', async () => {
+        it('correct props are passed to LineItem components', async () => {
             render(<LineItemsPage />);
 
             await waitFor(() => {
@@ -498,7 +498,7 @@ describe('LineItemsPage', () => {
             });
         });
 
-        it('passes correct props to PaymentMethodFilter', async () => {
+        it('correct props are passed to PaymentMethodFilter', async () => {
             render(<LineItemsPage />);
 
             await waitFor(() => {
@@ -509,7 +509,7 @@ describe('LineItemsPage', () => {
     });
 
     describe('Edge Cases', () => {
-        it('handles API response with unexpected structure', async () => {
+        it('API response with unexpected structure is handled', async () => {
             mockAxiosInstance.get.mockResolvedValue({
                 data: { data: [] }
             });
@@ -521,7 +521,7 @@ describe('LineItemsPage', () => {
             });
         });
 
-        it('handles API response with null data field', async () => {
+        it('API response with null data field is handled', async () => {
             mockAxiosInstance.get.mockRejectedValue(new Error('No data'));
 
             render(<LineItemsPage />);
@@ -531,7 +531,7 @@ describe('LineItemsPage', () => {
             });
         });
 
-        it('handles API response with undefined data field', async () => {
+        it('API response with undefined data field is handled', async () => {
             mockAxiosInstance.get.mockRejectedValue(new Error('No data'));
 
             render(<LineItemsPage />);
@@ -541,7 +541,7 @@ describe('LineItemsPage', () => {
             });
         });
 
-        it('handles rapid payment method changes', async () => {
+        it('rapid payment method changes are handled', async () => {
             render(<LineItemsPage />);
 
             const select = screen.getByTestId('payment-method-select');
@@ -557,7 +557,7 @@ describe('LineItemsPage', () => {
             });
         });
 
-        it('handles environment variable changes', async () => {
+        it('environment variable changes are handled', async () => {
             // Change environment variable
             process.env.VITE_API_ENDPOINT = 'https://new-api.example.com/';
 
@@ -573,7 +573,7 @@ describe('LineItemsPage', () => {
     });
 
     describe('Performance', () => {
-        it('does not make unnecessary API calls on re-render', async () => {
+        it('unnecessary API calls are not made on re-render', async () => {
             const { rerender } = render(<LineItemsPage />);
 
             // Wait for initial load
@@ -588,7 +588,7 @@ describe('LineItemsPage', () => {
             expect(mockAxiosInstance.get).toHaveBeenCalledTimes(1);
         });
 
-        it('debounces rapid payment method changes appropriately', async () => {
+        it('rapid payment method changes are debounced appropriately', async () => {
             render(<LineItemsPage />);
 
             const select = screen.getByTestId('payment-method-select');

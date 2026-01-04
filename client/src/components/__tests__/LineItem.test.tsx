@@ -22,7 +22,7 @@ describe('LineItem', () => {
     });
 
     describe('Rendering', () => {
-        it('renders line item data correctly', () => {
+        it('line item data is displayed correctly', () => {
             mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: false });
             render(
                 <table><tbody><LineItem lineItem={mockLineItem} /></tbody></table>
@@ -34,7 +34,7 @@ describe('LineItem', () => {
             expect(screen.getByText('$50.00')).toBeInTheDocument();
         });
 
-        it('renders checkbox when showCheckBox is true', () => {
+        it('checkbox is rendered when showCheckBox is true', () => {
             mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: false });
             render(
                 <table><tbody><LineItem lineItem={mockLineItem} showCheckBox={true} /></tbody></table>
@@ -44,7 +44,7 @@ describe('LineItem', () => {
             expect(checkbox).toBeInTheDocument();
         });
 
-        it('does not render checkbox when showCheckBox is false', () => {
+        it('checkbox is not rendered when showCheckBox is false', () => {
             mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: false });
             render(
                 <table><tbody><LineItem lineItem={mockLineItem} showCheckBox={false} /></tbody></table>
@@ -54,7 +54,7 @@ describe('LineItem', () => {
             expect(checkbox).not.toBeInTheDocument();
         });
 
-        it('does not render checkbox when showCheckBox is not provided', () => {
+        it('checkbox is not rendered when showCheckBox is not provided', () => {
             mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: false });
             render(
                 <table><tbody><LineItem lineItem={mockLineItem} /></tbody></table>
@@ -64,7 +64,7 @@ describe('LineItem', () => {
             expect(checkbox).not.toBeInTheDocument();
         });
 
-        it('formats date correctly', () => {
+        it('date is formatted correctly', () => {
             mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: false });
             render(
                 <table><tbody><LineItem lineItem={mockLineItem} /></tbody></table>
@@ -74,7 +74,7 @@ describe('LineItem', () => {
             expect(screen.getByText('Jan 1, 2022')).toBeInTheDocument();
         });
 
-        it('renders all table cells in correct order', () => {
+        it('table cells are rendered in correct order', () => {
             mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: false });
             render(
                 <table><tbody><LineItem lineItem={mockLineItem} showCheckBox={true} /></tbody></table>
@@ -89,7 +89,7 @@ describe('LineItem', () => {
             expect(cells[5]).toHaveTextContent('$50.00');
         });
 
-        it('renders without checkbox when showCheckBox is false', () => {
+        it('table cells are rendered without checkbox column when showCheckBox is false', () => {
             mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: false });
             render(
                 <table><tbody><LineItem lineItem={mockLineItem} showCheckBox={false} /></tbody></table>
@@ -106,7 +106,7 @@ describe('LineItem', () => {
     });
 
     describe('Checkbox State Management', () => {
-        it('shows checkbox as checked when line item is selected', () => {
+        it('checkbox is checked when line item is selected', () => {
             mockUseLineItems.mockReturnValue({ lineItems: [
                 { ...mockLineItem, isSelected: true }
             ], isLoading: false });
@@ -119,7 +119,7 @@ describe('LineItem', () => {
             expect(checkbox).toBeChecked();
         });
 
-        it('shows checkbox as unchecked when line item is not selected', () => {
+        it('checkbox is unchecked when line item is not selected', () => {
             mockUseLineItems.mockReturnValue({ lineItems: [
                 { ...mockLineItem, isSelected: false }
             ], isLoading: false });
@@ -132,7 +132,7 @@ describe('LineItem', () => {
             expect(checkbox).not.toBeChecked();
         });
 
-        it('shows checkbox as unchecked when line item is not in context', () => {
+        it('checkbox is unchecked when line item is not in context', () => {
             mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: false });
 
             render(
@@ -143,7 +143,7 @@ describe('LineItem', () => {
             expect(checkbox).not.toBeChecked();
         });
 
-        it('handles multiple line items in context correctly', () => {
+        it('multiple line items in context are handled correctly', () => {
             const otherLineItem = { ...mockLineItem, _id: '2', id: '2', isSelected: true };
             mockUseLineItems.mockReturnValue({ lineItems: [
                 { ...mockLineItem, isSelected: false },
@@ -160,7 +160,7 @@ describe('LineItem', () => {
     });
 
     describe('User Interactions', () => {
-        it('calls dispatch with toggle action when checkbox is clicked', async () => {
+        it('dispatch is called with toggle action when checkbox is clicked', async () => {
             mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: false });
             render(
                 <table><tbody><LineItem lineItem={mockLineItem} showCheckBox={true} /></tbody></table>
@@ -175,7 +175,7 @@ describe('LineItem', () => {
             });
         });
 
-        it('calls dispatch with correct lineItemId', async () => {
+        it('dispatch is called with correct lineItemId', async () => {
             const customLineItem = { ...mockLineItem, id: 'custom-id' };
             mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: false });
             render(
@@ -191,7 +191,7 @@ describe('LineItem', () => {
             });
         });
 
-        it('handles multiple checkbox clicks', async () => {
+        it('multiple checkbox clicks are handled correctly', async () => {
             mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: false });
             render(
                 <table><tbody><LineItem lineItem={mockLineItem} showCheckBox={true} /></tbody></table>
@@ -212,7 +212,7 @@ describe('LineItem', () => {
             });
         });
 
-        it('maintains focus after checkbox interaction', async () => {
+        it('focus is maintained after checkbox interaction', async () => {
             mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: false });
             render(
                 <table><tbody><LineItem lineItem={mockLineItem} showCheckBox={true} /></tbody></table>
@@ -225,7 +225,7 @@ describe('LineItem', () => {
     });
 
     describe('Date Formatting', () => {
-        it('formats different dates correctly', () => {
+        it('different dates are formatted correctly', () => {
             mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: false });
 
             const testCases = [
@@ -244,7 +244,7 @@ describe('LineItem', () => {
             });
         });
 
-        it('handles edge case dates', () => {
+        it('edge case dates are handled correctly', () => {
             mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: false });
 
             // Test end of year
@@ -257,7 +257,7 @@ describe('LineItem', () => {
     });
 
     describe('Props Handling', () => {
-        it('handles different line item data types', () => {
+        it('different line item data types are handled correctly', () => {
             mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: false });
 
             const testLineItem = {
@@ -281,7 +281,7 @@ describe('LineItem', () => {
             expect(screen.getByText('$25.50')).toBeInTheDocument();
         });
 
-        it('handles zero amount', () => {
+        it('zero amount is displayed correctly', () => {
             mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: false });
 
             const zeroAmountLineItem = { ...mockLineItem, amount: 0 };
@@ -292,7 +292,7 @@ describe('LineItem', () => {
             expect(screen.getByText('$0.00')).toBeInTheDocument();
         });
 
-        it('handles large amounts', () => {
+        it('large amounts are displayed correctly', () => {
             mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: false });
 
             const largeAmountLineItem = { ...mockLineItem, amount: 999999.99 };
@@ -303,7 +303,7 @@ describe('LineItem', () => {
             expect(screen.getByText('$999,999.99')).toBeInTheDocument();
         });
 
-        it('handles empty strings in text fields', () => {
+        it('empty strings in text fields are handled correctly', () => {
             mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: false });
 
             const emptyFieldsLineItem = {
@@ -322,7 +322,7 @@ describe('LineItem', () => {
     });
 
     describe('Accessibility', () => {
-        it('has proper table structure', () => {
+        it('table structure is proper', () => {
             mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: false });
             render(
                 <table><tbody><LineItem lineItem={mockLineItem} showCheckBox={true} /></tbody></table>
@@ -332,7 +332,7 @@ describe('LineItem', () => {
             expect(row).toBeInTheDocument();
         });
 
-        it('has proper checkbox accessibility', () => {
+        it('checkbox has proper accessibility attributes', () => {
             mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: false });
             render(
                 <table><tbody><LineItem lineItem={mockLineItem} showCheckBox={true} /></tbody></table>
@@ -343,7 +343,7 @@ describe('LineItem', () => {
             expect(checkbox).toHaveAttribute('role', 'checkbox');
         });
 
-        it('maintains proper table cell structure', () => {
+        it('table cell structure is maintained', () => {
             mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: false });
             render(
                 <table><tbody><LineItem lineItem={mockLineItem} showCheckBox={true} /></tbody></table>
@@ -358,7 +358,7 @@ describe('LineItem', () => {
     });
 
     describe('Edge Cases', () => {
-        it('handles empty context array', () => {
+        it('empty context array is handled correctly', () => {
             mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: false });
             render(
                 <table><tbody><LineItem lineItem={mockLineItem} showCheckBox={true} /></tbody></table>
@@ -368,7 +368,7 @@ describe('LineItem', () => {
             expect(checkbox).not.toBeChecked();
         });
 
-        it('handles line item with missing properties', () => {
+        it('line item with missing properties is handled correctly', () => {
             mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: false });
 
             const incompleteLineItem = {
@@ -386,7 +386,7 @@ describe('LineItem', () => {
             expect(screen.getByText('Jan 1, 2022')).toBeInTheDocument();
         });
 
-        it('handles rapid checkbox interactions', async () => {
+        it('rapid checkbox interactions are handled correctly', async () => {
             mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: false });
             render(
                 <table><tbody><LineItem lineItem={mockLineItem} showCheckBox={true} /></tbody></table>
@@ -404,7 +404,7 @@ describe('LineItem', () => {
     });
 
     describe('Context Integration', () => {
-        it('uses context data correctly for selection state', () => {
+        it('context data is used correctly for selection state', () => {
             const selectedLineItem = { ...mockLineItem, isSelected: true };
             mockUseLineItems.mockReturnValue({ lineItems: [selectedLineItem], isLoading: false });
 
@@ -416,7 +416,7 @@ describe('LineItem', () => {
             expect(checkbox).toBeChecked();
         });
 
-        it('updates selection state when context changes', () => {
+        it('selection state updates when context changes', () => {
             // Initially not selected
             mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: false });
             const { rerender } = render(
@@ -436,7 +436,7 @@ describe('LineItem', () => {
             expect(checkbox).toBeChecked();
         });
 
-        it('matches line item by id for selection state', () => {
+        it('line item is matched by id for selection state', () => {
             const differentIdLineItem = { ...mockLineItem, id: 'different-id' };
             mockUseLineItems.mockReturnValue({ lineItems: [differentIdLineItem], isLoading: false });
 

@@ -90,7 +90,7 @@ def common_fixtures(db_session, test_user):
     return {"category": category, "payment_method": payment_method, "transaction": transaction}
 
 
-def test_create_event_with_line_items(db_session, common_fixtures):
+def test_event_can_link_to_line_items_via_junction_table(db_session, common_fixtures):
     category = common_fixtures["category"]
     payment_method = common_fixtures["payment_method"]
     transaction = common_fixtures["transaction"]
@@ -134,7 +134,7 @@ def test_create_event_with_line_items(db_session, common_fixtures):
     assert line_item.events[0].id == event.id
 
 
-def test_foreign_key_constraint(db_session):
+def test_event_requires_valid_category_id(db_session):
     # Try to create event with invalid category
     with pytest.raises(IntegrityError):
         event = Event(
@@ -148,8 +148,8 @@ def test_foreign_key_constraint(db_session):
         db_session.commit()
 
 
-def test_event_total_amount_property(db_session, common_fixtures):
-    """Test that Event.total_amount property correctly sums line items"""
+def test_event_total_amount_sums_all_linked_line_items(db_session, common_fixtures):
+    """Event total_amount property sums all linked line item amounts"""
     category = common_fixtures["category"]
     payment_method = common_fixtures["payment_method"]
     transaction = common_fixtures["transaction"]
@@ -191,8 +191,8 @@ def test_event_total_amount_property(db_session, common_fixtures):
     assert event.total_amount == expected_total
 
 
-def test_event_duplicate_total(db_session, common_fixtures):
-    """Test that is_duplicate flag causes total to use only first line item"""
+def test_duplicate_event_uses_first_line_item_amount_only(db_session, common_fixtures):
+    """Duplicate event uses only the first line item amount"""
     category = common_fixtures["category"]
     payment_method = common_fixtures["payment_method"]
     transaction = common_fixtures["transaction"]
@@ -234,8 +234,8 @@ def test_event_duplicate_total(db_session, common_fixtures):
     assert event.total_amount != sum(amounts)
 
 
-def test_cascade_delete_event_deletes_junction_records(db_session, common_fixtures):
-    """Test that deleting an event cascades to event_line_items"""
+def test_deleting_event_cascades_to_junction_table(db_session, common_fixtures):
+    """Deleting an event cascades to event_line_items but preserves line items"""
     category = common_fixtures["category"]
     payment_method = common_fixtures["payment_method"]
     transaction = common_fixtures["transaction"]
@@ -278,8 +278,8 @@ def test_cascade_delete_event_deletes_junction_records(db_session, common_fixtur
     assert db_session.query(LineItem).filter_by(id=line_item.id).first() is not None
 
 
-def test_cascade_delete_transaction_deletes_line_items(db_session):
-    """Test that deleting a transaction cascades to line_items"""
+def test_deleting_transaction_cascades_to_line_items(db_session):
+    """Deleting a transaction cascades to associated line items"""
     # Setup
     payment_method = PaymentMethod(id=generate_id("pm"), name="Test PM", type="credit", is_active=True)
     transaction = Transaction(
@@ -314,8 +314,8 @@ def test_cascade_delete_transaction_deletes_line_items(db_session):
     assert db_session.query(LineItem).filter_by(id=line_item_id).first() is None
 
 
-def test_restrict_delete_category_with_events_fails(db_session, common_fixtures):
-    """Test that deleting a category with events raises an error (RESTRICT)"""
+def test_category_with_events_cannot_be_deleted(db_session, common_fixtures):
+    """Category with associated events cannot be deleted"""
     category = common_fixtures["category"]
 
     # Create event with this category
@@ -335,8 +335,8 @@ def test_restrict_delete_category_with_events_fails(db_session, common_fixtures)
         db_session.commit()
 
 
-def test_restrict_delete_payment_method_with_line_items_fails(db_session):
-    """Test that deleting a payment method with line items raises an error (RESTRICT)"""
+def test_payment_method_with_line_items_cannot_be_deleted(db_session):
+    """Payment method with associated line items cannot be deleted"""
     # Setup
     payment_method = PaymentMethod(id=generate_id("pm"), name="Protected PM", type="credit", is_active=True)
     transaction = Transaction(

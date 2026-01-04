@@ -187,13 +187,13 @@ describe('EventsPage', () => {
     });
 
     describe('Rendering', () => {
-        it('renders the page title', async () => {
+        it('page title is displayed', async () => {
             render(<EventsPage />);
 
             expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Events');
         });
 
-        it('renders all filter components', async () => {
+        it('all filter components are displayed', async () => {
             render(<EventsPage />);
 
             expect(screen.getByTestId('category-filter')).toBeInTheDocument();
@@ -202,7 +202,7 @@ describe('EventsPage', () => {
             expect(screen.getByTestId('tags-filter')).toBeInTheDocument();
         });
 
-        it('renders the table with correct headers', async () => {
+        it('table displays correct column headers', async () => {
             render(<EventsPage />);
 
             expect(screen.getByText('Date')).toBeInTheDocument();
@@ -213,7 +213,7 @@ describe('EventsPage', () => {
             expect(screen.getByText('Actions')).toBeInTheDocument();
         });
 
-        it('renders summary statistics', async () => {
+        it('summary statistics are displayed', async () => {
             render(<EventsPage />);
 
             await waitFor(() => {
@@ -224,7 +224,7 @@ describe('EventsPage', () => {
     });
 
     describe('API Integration', () => {
-        it('fetches events data on component mount', async () => {
+        it('events data is fetched when component mounts', async () => {
             render(<EventsPage />);
 
             await waitFor(() => {
@@ -240,7 +240,7 @@ describe('EventsPage', () => {
             });
         });
 
-        it('uses correct API endpoint from environment variable', async () => {
+        it('API endpoint from environment variable is used', async () => {
             process.env.VITE_API_ENDPOINT = 'https://api.example.com/';
 
             render(<EventsPage />);
@@ -253,7 +253,7 @@ describe('EventsPage', () => {
             });
         });
 
-        it('handles API errors gracefully', async () => {
+        it('API error displays error message', async () => {
             mockAxiosInstance.get.mockRejectedValue(new Error('API Error'));
 
             render(<EventsPage />);
@@ -265,7 +265,7 @@ describe('EventsPage', () => {
             });
         });
 
-        it('refetches data when month changes', async () => {
+        it('data is refetched when month filter changes', async () => {
             render(<EventsPage />);
 
             await waitFor(() => {
@@ -280,7 +280,7 @@ describe('EventsPage', () => {
             });
         });
 
-        it('refetches data when year changes', async () => {
+        it('data is refetched when year filter changes', async () => {
             render(<EventsPage />);
 
             await waitFor(() => {
@@ -297,7 +297,7 @@ describe('EventsPage', () => {
     });
 
     describe('Data Display', () => {
-        it('displays events in the table', async () => {
+        it('events are displayed in the table', async () => {
             render(<EventsPage />);
 
             await waitFor(() => {
@@ -307,7 +307,7 @@ describe('EventsPage', () => {
             });
         });
 
-        it('displays tags correctly', async () => {
+        it('tags are displayed correctly', async () => {
             render(<EventsPage />);
 
             await waitFor(() => {
@@ -316,7 +316,7 @@ describe('EventsPage', () => {
             });
         });
 
-        it('shows "No events found" when no events', async () => {
+        it('empty state message appears when no events exist', async () => {
             mockAxiosInstance.get.mockResolvedValue({
                 data: { data: [] }
             });
@@ -332,7 +332,7 @@ describe('EventsPage', () => {
     });
 
     describe('Filtering', () => {
-        it('filters events by category', async () => {
+        it('category filter hides non-matching events', async () => {
             render(<EventsPage />);
 
             await waitFor(() => {
@@ -350,7 +350,7 @@ describe('EventsPage', () => {
             });
         });
 
-        it('filters events by tags', async () => {
+        it('tag filter hides non-matching events', async () => {
             render(<EventsPage />);
 
             await waitFor(() => {
@@ -369,7 +369,7 @@ describe('EventsPage', () => {
             });
         });
 
-        it('filters are case insensitive', async () => {
+        it('tag filter matching is case insensitive', async () => {
             render(<EventsPage />);
 
             await waitFor(() => {
@@ -386,7 +386,7 @@ describe('EventsPage', () => {
             });
         });
 
-        it('shows all events when category is "All"', async () => {
+        it('all events are visible when category is set to All', async () => {
             render(<EventsPage />);
 
             await waitFor(() => {
@@ -398,7 +398,7 @@ describe('EventsPage', () => {
             });
         });
 
-        it('updates calculations when tag filter changes', async () => {
+        it('calculations update when tag filter changes', async () => {
             render(<EventsPage />);
 
             await waitFor(() => {
@@ -417,7 +417,7 @@ describe('EventsPage', () => {
     });
 
     describe('Calculations', () => {
-        it('calculates cash flow correctly', async () => {
+        it('cash flow is calculated correctly', async () => {
             render(<EventsPage />);
 
             await waitFor(() => {
@@ -426,7 +426,7 @@ describe('EventsPage', () => {
             });
         });
 
-        it('calculates spending without rent correctly', async () => {
+        it('spending excludes rent and income', async () => {
             render(<EventsPage />);
 
             await waitFor(() => {
@@ -435,7 +435,7 @@ describe('EventsPage', () => {
             });
         });
 
-        it('updates calculations when category filter changes', async () => {
+        it('calculations update when category filter changes', async () => {
             render(<EventsPage />);
 
             await waitFor(() => {
@@ -455,7 +455,7 @@ describe('EventsPage', () => {
             });
         });
 
-        it('handles zero amounts correctly', async () => {
+        it('zero amounts are displayed correctly', async () => {
             const zeroAmountEvents = [
                 {
                     _id: '1',
@@ -479,7 +479,7 @@ describe('EventsPage', () => {
             });
         });
 
-        it('handles decimal amounts correctly', async () => {
+        it('decimal amounts are rounded to two places', async () => {
             const decimalEvents = [
                 {
                     _id: '1',
@@ -505,7 +505,7 @@ describe('EventsPage', () => {
     });
 
     describe('Date Range Logic', () => {
-        it('sets correct date range for specific month', async () => {
+        it('specific month sets correct date range', async () => {
             render(<EventsPage />);
 
             await waitFor(() => {
@@ -519,7 +519,7 @@ describe('EventsPage', () => {
             });
         });
 
-        it('sets correct date range for "All" months', async () => {
+        it('All months option sets full year date range', async () => {
             render(<EventsPage />);
 
             // Wait for initial render and API call
@@ -543,7 +543,7 @@ describe('EventsPage', () => {
     });
 
     describe('Edge Cases', () => {
-        it('handles events without tags', async () => {
+        it('events without tags are displayed correctly', async () => {
             const eventsWithoutTags = [
                 {
                     _id: '1',
@@ -567,7 +567,7 @@ describe('EventsPage', () => {
             });
         });
 
-        it('handles API response with unexpected structure', async () => {
+        it('unexpected API response structure is handled gracefully', async () => {
             mockAxiosInstance.get.mockResolvedValue({
                 data: { data: [] }
             });
@@ -581,7 +581,7 @@ describe('EventsPage', () => {
             });
         });
 
-        it('handles null API response', async () => {
+        it('null API response is handled gracefully', async () => {
             mockAxiosInstance.get.mockRejectedValue(new Error('No data'));
 
             render(<EventsPage />);
@@ -593,7 +593,7 @@ describe('EventsPage', () => {
             });
         });
 
-        it('handles missing environment variable', async () => {
+        it('missing environment variable is handled gracefully', async () => {
             delete process.env.VITE_API_ENDPOINT;
 
             render(<EventsPage />);
@@ -608,7 +608,7 @@ describe('EventsPage', () => {
     });
 
     describe('Performance', () => {
-        it('does not make unnecessary API calls on re-render', async () => {
+        it('re-render does not trigger additional API calls', async () => {
             const { rerender } = render(<EventsPage />);
 
             await waitFor(() => {
@@ -620,7 +620,7 @@ describe('EventsPage', () => {
             expect(mockAxiosInstance.get).toHaveBeenCalledTimes(1);
         });
 
-        it('handles large datasets efficiently', async () => {
+        it('large datasets are rendered efficiently', async () => {
             const largeDataset = Array.from({ length: 100 }, (_, i) => ({
                 _id: String(i + 1),
                 id: String(i + 1),
@@ -646,13 +646,13 @@ describe('EventsPage', () => {
     });
 
     describe('Accessibility', () => {
-        it('has proper heading structure', () => {
+        it('page has proper heading structure', () => {
             render(<EventsPage />);
 
             expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
         });
 
-        it('has proper table structure', async () => {
+        it('table has proper semantic structure', async () => {
             render(<EventsPage />);
 
             await waitFor(() => {
@@ -662,7 +662,7 @@ describe('EventsPage', () => {
             });
         });
 
-        it('has proper form labels', async () => {
+        it('summary cards have proper labels', async () => {
             render(<EventsPage />);
 
             await waitFor(() => {
@@ -673,7 +673,7 @@ describe('EventsPage', () => {
     });
 
     describe('Component Integration', () => {
-        it('passes correct props to filter components', () => {
+        it('filter components receive correct initial props', () => {
             render(<EventsPage />);
 
             expect(screen.getByTestId('category-filter')).toHaveValue('All');
@@ -682,7 +682,7 @@ describe('EventsPage', () => {
             expect(screen.getByTestId('tags-filter')).toHaveValue('');
         });
 
-        it('passes correct props to Event components', async () => {
+        it('Event components receive correct event data', async () => {
             render(<EventsPage />);
 
             await waitFor(() => {
@@ -694,7 +694,7 @@ describe('EventsPage', () => {
     });
 
     describe('Loading States', () => {
-        it('shows skeleton loading states in summary cards during initial load', () => {
+        it('skeleton loading states appear in summary cards during initial load', () => {
             // Don't resolve the promise immediately
             mockAxiosInstance.get.mockImplementation(() => new Promise(() => { }));
 
@@ -705,7 +705,7 @@ describe('EventsPage', () => {
             expect(skeletons.length).toBeGreaterThan(0);
         });
 
-        it('shows spinner in mobile view during initial load', () => {
+        it('loading spinner appears in mobile view during initial load', () => {
             // Don't resolve the promise immediately
             mockAxiosInstance.get.mockImplementation(() => new Promise(() => { }));
 
@@ -716,7 +716,7 @@ describe('EventsPage', () => {
             expect(spinner).toBeInTheDocument();
         });
 
-        it('shows spinner in desktop table during initial load', () => {
+        it('loading spinner appears in desktop table during initial load', () => {
             // Don't resolve the promise immediately
             mockAxiosInstance.get.mockImplementation(() => new Promise(() => { }));
 
@@ -727,7 +727,7 @@ describe('EventsPage', () => {
             expect(spinner).toBeInTheDocument();
         });
 
-        it('replaces skeleton with actual values after data loads', async () => {
+        it('actual values replace skeleton after data loads', async () => {
             render(<EventsPage />);
 
             await waitFor(() => {
@@ -745,7 +745,7 @@ describe('EventsPage', () => {
     });
 
     describe('Responsive Layout', () => {
-        it('renders mobile card layout', async () => {
+        it('mobile card layout displays events', async () => {
             render(<EventsPage />);
 
             await waitFor(() => {
@@ -755,7 +755,7 @@ describe('EventsPage', () => {
             });
         });
 
-        it('renders desktop table layout', async () => {
+        it('desktop table layout has proper structure', async () => {
             render(<EventsPage />);
 
             await waitFor(() => {
@@ -766,7 +766,7 @@ describe('EventsPage', () => {
             });
         });
 
-        it('renders filters toggle button for mobile', () => {
+        it('filters toggle button is visible on mobile', () => {
             render(<EventsPage />);
 
             // Mobile filters toggle button should be present
@@ -774,7 +774,7 @@ describe('EventsPage', () => {
             expect(filtersButton).toBeInTheDocument();
         });
 
-        it('shows filter count badge when filters are active', async () => {
+        it('filter count badge appears when filters are active', async () => {
             render(<EventsPage />);
 
             // Change category filter to activate a filter
@@ -792,7 +792,7 @@ describe('EventsPage', () => {
             });
         });
 
-        it('both mobile cards and desktop table show same event data', async () => {
+        it('mobile cards and desktop table display same event data', async () => {
             render(<EventsPage />);
 
             await waitFor(() => {
@@ -803,7 +803,7 @@ describe('EventsPage', () => {
             });
         });
 
-        it('renders summary cards with responsive styling', async () => {
+        it('summary cards are displayed with responsive styling', async () => {
             render(<EventsPage />);
 
             await waitFor(() => {

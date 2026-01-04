@@ -42,14 +42,14 @@ describe('PaymentMethodFilter', () => {
     });
 
     describe('Rendering', () => {
-        it('renders payment method filter component', () => {
+        it('payment method filter component is displayed', () => {
             render(<PaymentMethodFilter paymentMethod={mockPaymentMethod} setPaymentMethod={mockSetPaymentMethod} />);
 
             expect(screen.getByText('Payment Method')).toBeInTheDocument();
             expect(screen.getByRole('combobox')).toBeInTheDocument();
         });
 
-        it('renders with default "All" option', async () => {
+        it('default "All" option is rendered', async () => {
             render(<PaymentMethodFilter paymentMethod={mockPaymentMethod} setPaymentMethod={mockSetPaymentMethod} />);
 
             const trigger = screen.getByRole('combobox');
@@ -59,14 +59,14 @@ describe('PaymentMethodFilter', () => {
             expect(trigger).toHaveTextContent('All');
         });
 
-        it('renders with proper form structure', () => {
+        it('proper form structure is rendered', () => {
             render(<PaymentMethodFilter paymentMethod={mockPaymentMethod} setPaymentMethod={mockSetPaymentMethod} />);
 
             expect(screen.getByText('Payment Method')).toBeInTheDocument();
             expect(screen.getByRole('combobox')).toBeInTheDocument();
         });
 
-        it('displays current payment method value after API loads', async () => {
+        it('current payment method value is displayed after API loads', async () => {
             render(<PaymentMethodFilter paymentMethod="credit_card" setPaymentMethod={mockSetPaymentMethod} />);
 
             await waitFor(() => {
@@ -77,7 +77,7 @@ describe('PaymentMethodFilter', () => {
     });
 
     describe('API Integration', () => {
-        it('fetches payment methods on component mount', async () => {
+        it('payment methods are fetched on component mount', async () => {
             render(<PaymentMethodFilter paymentMethod={mockPaymentMethod} setPaymentMethod={mockSetPaymentMethod} />);
 
             await waitFor(() => {
@@ -87,7 +87,7 @@ describe('PaymentMethodFilter', () => {
             });
         });
 
-        it('populates select with fetched payment methods', async () => {
+        it('select is populated with fetched payment methods', async () => {
             render(<PaymentMethodFilter paymentMethod={mockPaymentMethod} setPaymentMethod={mockSetPaymentMethod} />);
 
             const trigger = screen.getByRole('combobox');
@@ -100,7 +100,7 @@ describe('PaymentMethodFilter', () => {
             });
         });
 
-        it('handles API error gracefully', async () => {
+        it('API error is handled gracefully', async () => {
             const { toast } = require('sonner');
             mockAxiosInstance.get.mockRejectedValue(new Error('API Error'));
 
@@ -114,7 +114,7 @@ describe('PaymentMethodFilter', () => {
             });
         });
 
-        it('only fetches payment methods once on mount', async () => {
+        it('payment methods are fetched only once on mount', async () => {
             const { rerender } = render(<PaymentMethodFilter paymentMethod={mockPaymentMethod} setPaymentMethod={mockSetPaymentMethod} />);
 
             await waitFor(() => {
@@ -130,7 +130,7 @@ describe('PaymentMethodFilter', () => {
     });
 
     describe('User Interactions', () => {
-        it('calls setPaymentMethod when user selects different option', async () => {
+        it('setPaymentMethod is called when user selects different option', async () => {
             render(<PaymentMethodFilter paymentMethod={mockPaymentMethod} setPaymentMethod={mockSetPaymentMethod} />);
 
             const trigger = screen.getByRole('combobox');
@@ -145,7 +145,7 @@ describe('PaymentMethodFilter', () => {
             expect(mockSetPaymentMethod).toHaveBeenCalledWith('credit_card');
         });
 
-        it('handles selection of "All" option', async () => {
+        it('selection of "All" option is handled correctly', async () => {
             render(<PaymentMethodFilter paymentMethod="credit_card" setPaymentMethod={mockSetPaymentMethod} />);
 
             const trigger = screen.getByRole('combobox');
@@ -155,7 +155,7 @@ describe('PaymentMethodFilter', () => {
             expect(mockSetPaymentMethod).toHaveBeenCalledWith('All');
         });
 
-        it('updates display value when payment method prop changes', async () => {
+        it('display value is updated when payment method prop changes', async () => {
             const { rerender } = render(<PaymentMethodFilter paymentMethod="All" setPaymentMethod={mockSetPaymentMethod} />);
 
             let trigger = screen.getByRole('combobox');
@@ -169,7 +169,7 @@ describe('PaymentMethodFilter', () => {
             });
         });
 
-        it('handles rapid selection changes', async () => {
+        it('rapid selection changes are handled correctly', async () => {
             render(<PaymentMethodFilter paymentMethod={mockPaymentMethod} setPaymentMethod={mockSetPaymentMethod} />);
 
             const trigger = screen.getByRole('combobox');
@@ -194,7 +194,7 @@ describe('PaymentMethodFilter', () => {
     });
 
     describe('Props Handling', () => {
-        it('accepts different initial payment method values', async () => {
+        it('different initial payment method values are accepted', async () => {
             render(<PaymentMethodFilter paymentMethod="venmo" setPaymentMethod={mockSetPaymentMethod} />);
 
             await waitFor(() => {
@@ -203,7 +203,7 @@ describe('PaymentMethodFilter', () => {
             });
         });
 
-        it('calls the provided setPaymentMethod function', async () => {
+        it('provided setPaymentMethod function is called', async () => {
             const customSetPaymentMethod = jest.fn();
             render(<PaymentMethodFilter paymentMethod={mockPaymentMethod} setPaymentMethod={customSetPaymentMethod} />);
 
@@ -219,7 +219,7 @@ describe('PaymentMethodFilter', () => {
             expect(customSetPaymentMethod).toHaveBeenCalledWith('credit_card');
         });
 
-        it('handles empty payment methods array', async () => {
+        it('empty payment methods array is handled correctly', async () => {
             mockAxiosInstance.get.mockResolvedValue({ data: [] });
 
             render(<PaymentMethodFilter paymentMethod={mockPaymentMethod} setPaymentMethod={mockSetPaymentMethod} />);
@@ -239,20 +239,20 @@ describe('PaymentMethodFilter', () => {
     });
 
     describe('Form Structure', () => {
-        it('has proper input group structure', () => {
+        it('proper input group structure is present', () => {
             render(<PaymentMethodFilter paymentMethod={mockPaymentMethod} setPaymentMethod={mockSetPaymentMethod} />);
 
             expect(screen.getByText('Payment Method')).toBeInTheDocument();
             expect(screen.getByRole('combobox')).toBeInTheDocument();
         });
 
-        it('has proper form select structure', () => {
+        it('proper form select structure is present', () => {
             render(<PaymentMethodFilter paymentMethod={mockPaymentMethod} setPaymentMethod={mockSetPaymentMethod} />);
 
             expect(screen.getByRole('combobox')).toBeInTheDocument();
         });
 
-        it('has proper control ID', () => {
+        it('proper control ID is set', () => {
             render(<PaymentMethodFilter paymentMethod={mockPaymentMethod} setPaymentMethod={mockSetPaymentMethod} />);
 
             const select = screen.getByRole('combobox');
@@ -261,13 +261,13 @@ describe('PaymentMethodFilter', () => {
     });
 
     describe('Accessibility', () => {
-        it('has proper select role', () => {
+        it('proper select role is set', () => {
             render(<PaymentMethodFilter paymentMethod={mockPaymentMethod} setPaymentMethod={mockSetPaymentMethod} />);
 
             expect(screen.getByRole('combobox')).toBeInTheDocument();
         });
 
-        it('has proper option elements', async () => {
+        it('proper option elements are present', async () => {
             render(<PaymentMethodFilter paymentMethod={mockPaymentMethod} setPaymentMethod={mockSetPaymentMethod} />);
 
             const trigger = screen.getByRole('combobox');
@@ -282,7 +282,7 @@ describe('PaymentMethodFilter', () => {
             });
         });
 
-        it('has proper label text', () => {
+        it('proper label text is displayed', () => {
             render(<PaymentMethodFilter paymentMethod={mockPaymentMethod} setPaymentMethod={mockSetPaymentMethod} />);
 
             expect(screen.getByText('Payment Method')).toBeInTheDocument();
@@ -290,7 +290,7 @@ describe('PaymentMethodFilter', () => {
     });
 
     describe('Edge Cases', () => {
-        it('handles API response with null data', async () => {
+        it('API response with null data is handled correctly', async () => {
             mockAxiosInstance.get.mockResolvedValue({ data: null });
 
             render(<PaymentMethodFilter paymentMethod={mockPaymentMethod} setPaymentMethod={mockSetPaymentMethod} />);
@@ -308,7 +308,7 @@ describe('PaymentMethodFilter', () => {
             expect(options).toHaveLength(1);
         });
 
-        it('handles API response with undefined data', async () => {
+        it('API response with undefined data is handled correctly', async () => {
             mockAxiosInstance.get.mockResolvedValue({ data: undefined });
 
             render(<PaymentMethodFilter paymentMethod={mockPaymentMethod} setPaymentMethod={mockSetPaymentMethod} />);
@@ -326,7 +326,7 @@ describe('PaymentMethodFilter', () => {
             expect(options).toHaveLength(1);
         });
 
-        it('handles payment methods with special characters', async () => {
+        it('payment methods with special characters are handled correctly', async () => {
             const specialPaymentMethods = ['credit-card', 'debit_card', 'cash_money', 'pay-pal'];
             mockAxiosInstance.get.mockResolvedValue({ data: specialPaymentMethods });
 
@@ -342,7 +342,7 @@ describe('PaymentMethodFilter', () => {
             });
         });
 
-        it('handles very long payment method names', async () => {
+        it('very long payment method names are handled correctly', async () => {
             const longPaymentMethods = ['very_long_payment_method_name_that_might_wrap'];
             mockAxiosInstance.get.mockResolvedValue({ data: longPaymentMethods });
 
@@ -356,7 +356,7 @@ describe('PaymentMethodFilter', () => {
             });
         });
 
-        it('maintains state after prop updates', async () => {
+        it('state is maintained after prop updates', async () => {
             const { rerender } = render(<PaymentMethodFilter paymentMethod="All" setPaymentMethod={mockSetPaymentMethod} />);
 
             let trigger = screen.getByRole('combobox');
@@ -380,7 +380,7 @@ describe('PaymentMethodFilter', () => {
     });
 
     describe('State Management', () => {
-        it('initializes with empty payment methods array', async () => {
+        it('payment methods array is initialized as empty', async () => {
             render(<PaymentMethodFilter paymentMethod={mockPaymentMethod} setPaymentMethod={mockSetPaymentMethod} />);
 
             const trigger = screen.getByRole('combobox');
@@ -392,7 +392,7 @@ describe('PaymentMethodFilter', () => {
             expect(options[0]).toHaveTextContent('All');
         });
 
-        it('updates payment methods state after API call', async () => {
+        it('payment methods state is updated after API call', async () => {
             render(<PaymentMethodFilter paymentMethod={mockPaymentMethod} setPaymentMethod={mockSetPaymentMethod} />);
 
             const trigger = screen.getByRole('combobox');
@@ -409,7 +409,7 @@ describe('PaymentMethodFilter', () => {
             expect(options).toHaveLength(mockPaymentMethods.length + 1);
         });
 
-        it('preserves selected value during state updates', async () => {
+        it('selected value is preserved during state updates', async () => {
             render(<PaymentMethodFilter paymentMethod="credit_card" setPaymentMethod={mockSetPaymentMethod} />);
 
             await waitFor(() => {

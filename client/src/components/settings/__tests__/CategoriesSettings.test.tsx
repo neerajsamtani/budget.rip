@@ -37,12 +37,12 @@ describe('CategoriesSettings', () => {
     });
 
     describe('Rendering', () => {
-        it('renders add new category button', () => {
+        it('add new category button is rendered', () => {
             render(<CategoriesSettings />);
             expect(screen.getByRole('button', { name: /add new category/i })).toBeInTheDocument();
         });
 
-        it('renders categories list after loading', async () => {
+        it('categories list is rendered after loading', async () => {
             render(<CategoriesSettings />);
 
             // Categories appear in both mobile and desktop views, so use getAllByText
@@ -54,7 +54,7 @@ describe('CategoriesSettings', () => {
             expect(screen.getAllByText('Groceries').length).toBeGreaterThan(0);
         });
 
-        it('renders empty state when no categories', async () => {
+        it('empty state is rendered when no categories', async () => {
             (mockAxiosInstance.get as jest.Mock).mockResolvedValue({ data: { data: [] } });
 
             render(<CategoriesSettings />);
@@ -66,7 +66,7 @@ describe('CategoriesSettings', () => {
     });
 
     describe('Create Category', () => {
-        it('shows create form when add button is clicked', async () => {
+        it('create form is shown when add button is clicked', async () => {
             render(<CategoriesSettings />);
 
             const addButton = screen.getByRole('button', { name: /add new category/i });
@@ -77,7 +77,7 @@ describe('CategoriesSettings', () => {
             expect(screen.getByRole('button', { name: /cancel/i })).toBeInTheDocument();
         });
 
-        it('hides add button when create form is visible', async () => {
+        it('add button is hidden when create form is visible', async () => {
             render(<CategoriesSettings />);
 
             const addButton = screen.getByRole('button', { name: /add new category/i });
@@ -86,7 +86,7 @@ describe('CategoriesSettings', () => {
             expect(screen.queryByRole('button', { name: /add new category/i })).not.toBeInTheDocument();
         });
 
-        it('creates category on form submit', async () => {
+        it('category is created on form submit', async () => {
             render(<CategoriesSettings />);
 
             // Open create form
@@ -107,7 +107,7 @@ describe('CategoriesSettings', () => {
             });
         });
 
-        it('cancels create form when cancel is clicked', async () => {
+        it('create form is cancelled when cancel is clicked', async () => {
             render(<CategoriesSettings />);
 
             // Open create form
@@ -125,7 +125,7 @@ describe('CategoriesSettings', () => {
     });
 
     describe('Error Handling', () => {
-        it('shows error state when loading fails', async () => {
+        it('error state is shown when loading fails', async () => {
             (mockAxiosInstance.get as jest.Mock).mockRejectedValue(new Error('Failed to load'));
 
             render(<CategoriesSettings />);
@@ -137,7 +137,7 @@ describe('CategoriesSettings', () => {
     });
 
     describe('Accessibility', () => {
-        it('has proper form labels in create form', async () => {
+        it('proper form labels are present in create form', async () => {
             render(<CategoriesSettings />);
 
             await userEvent.click(screen.getByRole('button', { name: /add new category/i }));
@@ -146,7 +146,7 @@ describe('CategoriesSettings', () => {
             expect(input).toHaveAttribute('id', 'category-name');
         });
 
-        it('has save and cancel buttons in form', async () => {
+        it('save and cancel buttons are present in form', async () => {
             render(<CategoriesSettings />);
 
             await userEvent.click(screen.getByRole('button', { name: /add new category/i }));

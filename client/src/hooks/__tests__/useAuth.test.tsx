@@ -36,13 +36,13 @@ describe('useAuth hooks', () => {
     });
 
     describe('authQueryKeys', () => {
-        it('generates correct query key for currentUser', () => {
+        it('currentUser query key has correct format', () => {
             expect(authQueryKeys.currentUser).toEqual(['currentUser']);
         });
     });
 
     describe('useCurrentUser', () => {
-        it('returns user data when authenticated', async () => {
+        it('user data is returned when authenticated', async () => {
             const mockUser = {
                 id: 'user_123',
                 email: 'test@example.com',
@@ -61,7 +61,7 @@ describe('useAuth hooks', () => {
             expect(result.current.data).toEqual(mockUser);
         });
 
-        it('returns null when not authenticated (401)', async () => {
+        it('null is returned when not authenticated', async () => {
             mockGet.mockRejectedValue({ response: { status: 401 } });
 
             const { result } = renderHook(() => useCurrentUser(), {
@@ -73,7 +73,7 @@ describe('useAuth hooks', () => {
             expect(result.current.data).toBeNull();
         });
 
-        it('throws error for non-401 errors', async () => {
+        it('error is thrown for non-401 server errors', async () => {
             mockGet.mockRejectedValue(new Error('Server Error'));
 
             const { result } = renderHook(() => useCurrentUser(), {
@@ -84,7 +84,7 @@ describe('useAuth hooks', () => {
             expect(result.current.error).toBeInstanceOf(Error);
         });
 
-        it('does not retry on failure', async () => {
+        it('query is not retried on failure', async () => {
             mockGet.mockRejectedValue({ response: { status: 401 } });
 
             renderHook(() => useCurrentUser(), {
