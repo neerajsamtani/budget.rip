@@ -15,6 +15,7 @@ import { calculateEventTotal } from '../utils/eventHelpers';
 import { useCategories, useCreateEvent, useTags, useEvaluateEventHints } from '../hooks/useApi';
 import { Option } from './Autocomplete';
 import { Tag, TagsField } from './TagsField';
+import { Spinner } from './ui/spinner';
 
 export default function CreateEventModal({ show, onHide }: { show: boolean, onHide: () => void }) {
 
@@ -133,23 +134,31 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
           <Label htmlFor="event-name" className="text-sm font-medium text-foreground">
             Event Name
           </Label>
-          <Input
-            id="event-name"
-            type={name.type}
-            value={name.value}
-            onChange={name.onChange}
-            className="w-full"
-            placeholder="Enter a descriptive name for this event"
-          />
+          <div className="relative">
+            <Input
+              id="event-name"
+              type={name.type}
+              value={name.value}
+              onChange={name.onChange}
+              className="w-full"
+              placeholder={isLoadingHints ? "Loading suggestions..." : "Enter a descriptive name for this event"}
+              disabled={isLoadingHints}
+            />
+            {isLoadingHints && (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                <Spinner size="sm" className="text-muted-foreground" />
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="space-y-3">
           <Label id="category-label" className="text-sm font-medium text-foreground">
             Category
           </Label>
-          <Select value={category.value} onValueChange={(value) => category.setCustomValue(value)} disabled={isLoadingCategories}>
+          <Select value={category.value} onValueChange={(value) => category.setCustomValue(value)} disabled={isLoadingCategories || isLoadingHints}>
             <SelectTrigger className="w-full" aria-labelledby="category-label">
-              <SelectValue placeholder={isLoadingCategories ? "Loading..." : isCategoriesError ? "Error loading categories" : "Select a category"} />
+              <SelectValue placeholder={isLoadingHints ? "Loading suggestions..." : isLoadingCategories ? "Loading..." : isCategoriesError ? "Error loading categories" : "Select a category"} />
             </SelectTrigger>
             <SelectContent className="bg-white border">
               {categories.map(cat => (
