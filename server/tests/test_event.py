@@ -41,7 +41,7 @@ def mock_event_data():
 
 
 class TestEventAPI:
-    def test_get_all_events_api(
+    def test_events_returns_all_events_with_total_amount(
         self,
         test_client,
         jwt_token,
@@ -49,7 +49,7 @@ class TestEventAPI:
         create_line_item_via_cash,
         create_event_via_api,
     ):
-        """Test GET /api/events endpoint"""
+        """Events endpoint returns all events with summed total amount"""
         # Create test line items via API
         create_line_item_via_cash(date="2009-02-13", person="Person1", description="Transaction 1", amount=100)
         create_line_item_via_cash(date="2009-02-14", person="Person2", description="Transaction 2", amount=50)
@@ -97,7 +97,7 @@ class TestEventAPI:
         assert data["total"] == 150  # 100 + 50
         assert len(data["data"]) == 2
 
-    def test_get_all_events_with_time_filter(
+    def test_events_can_be_filtered_by_date_range(
         self,
         test_client,
         jwt_token,
@@ -105,7 +105,7 @@ class TestEventAPI:
         create_line_item_via_cash,
         create_event_via_api,
     ):
-        """Test GET /api/events with time filters"""
+        """Events can be filtered by start_time and end_time"""
         # Create test line items via API
         create_line_item_via_cash(date="2009-02-13", person="Person1", description="Transaction 1", amount=100)
         create_line_item_via_cash(date="2009-02-14", person="Person2", description="Transaction 2", amount=50)
@@ -156,7 +156,7 @@ class TestEventAPI:
         assert len(data["data"]) == 1
         assert data["data"][0]["id"] == event1_id
 
-    def test_get_event_by_id_api_success(
+    def test_event_can_be_retrieved_by_id(
         self,
         test_client,
         jwt_token,
@@ -164,7 +164,7 @@ class TestEventAPI:
         create_line_item_via_cash,
         create_event_via_api,
     ):
-        """Test GET /api/events/<event_id> endpoint - success case"""
+        """Event can be retrieved by its ID"""
         # Create test line item via API
         create_line_item_via_cash(date="2009-02-13", person="Person1", description="Transaction 1", amount=100)
 
@@ -201,8 +201,8 @@ class TestEventAPI:
         assert data["name"] == "Test Event"
         assert data["amount"] == 100
 
-    def test_get_event_by_id_api_not_found(self, test_client, jwt_token):
-        """Test GET /api/events/<event_id> endpoint - not found case"""
+    def test_nonexistent_event_returns_404(self, test_client, jwt_token):
+        """Requesting a nonexistent event returns 404"""
         response = test_client.get(
             "/api/events/nonexistent_id",
             headers={"Authorization": "Bearer " + jwt_token},
@@ -212,8 +212,8 @@ class TestEventAPI:
         data = response.get_json()
         assert data["error"] == "Event not found"
 
-    def test_create_event_api_success(self, test_client, jwt_token, flask_app, create_line_item_via_cash):
-        """Test POST /api/events endpoint - success case"""
+    def test_event_creation_calculates_total_amount(self, test_client, jwt_token, flask_app, create_line_item_via_cash):
+        """Creating an event links line items and calculates total amount"""
         # Create test line items via API
         create_line_item_via_cash(
             date="2009-02-13",
@@ -277,8 +277,8 @@ class TestEventAPI:
                 assert line_item is not None
                 assert line_item["event_id"] == created_event_id
 
-    def test_create_event_api_no_line_items(self, test_client, jwt_token):
-        """Test POST /api/events endpoint - no line items"""
+    def test_event_creation_requires_line_items(self, test_client, jwt_token):
+        """Creating an event requires at least one line item"""
         new_event_data = {
             "name": "Test Event",
             "date": "2023-01-01",
@@ -296,8 +296,8 @@ class TestEventAPI:
         assert response.status_code == 400
         assert response.get_data(as_text=True).strip() == '"Failed to Create Event: No Line Items Submitted"'
 
-    def test_create_event_api_duplicate_transaction(self, test_client, jwt_token, flask_app, create_line_item_via_cash):
-        """Test POST /api/events endpoint - duplicate transaction"""
+    def test_duplicate_flag_uses_first_line_item_amount(self, test_client, jwt_token, flask_app, create_line_item_via_cash):
+        """Duplicate transaction events use only the first line item amount"""
         # Create test line item via API
         create_line_item_via_cash(
             date="2009-02-13",
@@ -342,8 +342,8 @@ class TestEventAPI:
             assert created_event is not None
             assert created_event["amount"] == 100  # Only the first line item amount
 
-    def test_create_event_api_no_date(self, test_client, jwt_token, flask_app, create_line_item_via_cash):
-        """Test POST /api/events endpoint - no date provided"""
+    def test_event_uses_earliest_line_item_date(self, test_client, jwt_token, flask_app, create_line_item_via_cash):
+        """Event uses earliest line item date when date is not provided"""
         # Create test line item via API
         create_line_item_via_cash(
             date="2009-02-13",
@@ -388,7 +388,7 @@ class TestEventAPI:
             assert created_event is not None
             assert created_event["date"] == all_line_items[0]["date"]  # Should use earliest line item date
 
-    def test_delete_event_api_success(
+    def test_deleting_event_unlinks_line_items(
         self,
         test_client,
         jwt_token,
@@ -396,7 +396,7 @@ class TestEventAPI:
         create_line_item_via_cash,
         create_event_via_api,
     ):
-        """Test DELETE /api/events/<event_id> endpoint - success case"""
+        """Deleting an event removes event_id from associated line items"""
         # Create test line item via API
         create_line_item_via_cash(
             date="2009-02-13",
@@ -446,8 +446,8 @@ class TestEventAPI:
             assert line_item is not None
             assert "event_id" not in line_item
 
-    def test_delete_event_api_not_found(self, test_client, jwt_token):
-        """Test DELETE /api/events/<event_id> endpoint - not found case"""
+    def test_deleting_nonexistent_event_returns_404(self, test_client, jwt_token):
+        """Deleting a nonexistent event returns 404"""
         response = test_client.delete(
             "/api/events/nonexistent_id",
             headers={"Authorization": "Bearer " + jwt_token},
@@ -457,7 +457,7 @@ class TestEventAPI:
         data = response.get_json()
         assert data["error"] == "Event not found"
 
-    def test_update_event_api_success(
+    def test_updating_event_modifies_name_category_and_line_items(
         self,
         test_client,
         jwt_token,
@@ -465,7 +465,7 @@ class TestEventAPI:
         create_line_item_via_cash,
         create_event_via_api,
     ):
-        """Test PUT /api/events/<event_id> endpoint - success case"""
+        """Updating an event can change name, category, and line items"""
         # Create test line items via API
         create_line_item_via_cash(date="2009-02-13", person="Person1", description="Transaction 1", amount=100)
         create_line_item_via_cash(date="2009-02-14", person="Person2", description="Transaction 2", amount=50)
@@ -523,8 +523,8 @@ class TestEventAPI:
             assert updated_event["name"] == "Updated Event"
             assert updated_event["category"] == "Shopping"
 
-    def test_update_event_api_not_found(self, test_client, jwt_token):
-        """Test PUT /api/events/<event_id> endpoint - not found case"""
+    def test_updating_nonexistent_event_returns_404(self, test_client, jwt_token):
+        """Updating a nonexistent event returns 404"""
         update_data = {
             "name": "Updated Event",
             "category": "Shopping",
@@ -541,7 +541,7 @@ class TestEventAPI:
         data = response.get_json()
         assert data["error"] == "Event not found"
 
-    def test_update_event_api_no_line_items(
+    def test_updating_event_to_zero_line_items_fails(
         self,
         test_client,
         jwt_token,
@@ -549,7 +549,7 @@ class TestEventAPI:
         create_line_item_via_cash,
         create_event_via_api,
     ):
-        """Test PUT /api/events/<event_id> endpoint - no line items"""
+        """Event update fails when removing all line items"""
         # Create test line item via API
         create_line_item_via_cash(date="2009-02-13", person="Person1", description="Transaction 1", amount=100)
 
@@ -590,7 +590,7 @@ class TestEventAPI:
         data = response.get_json()
         assert data["error"] == "Event must have at least one line item"
 
-    def test_get_line_items_for_event_api_success(
+    def test_event_line_items_returns_associated_line_items(
         self,
         test_client,
         jwt_token,
@@ -598,7 +598,7 @@ class TestEventAPI:
         create_line_item_via_cash,
         create_event_via_api,
     ):
-        """Test GET /api/events/<event_id>/line_items_for_event endpoint - success case"""
+        """Event line items endpoint returns all line items for an event"""
         # Create test line items via API
         create_line_item_via_cash(
             date="2009-02-13",
@@ -647,8 +647,8 @@ class TestEventAPI:
         returned_ids = {item["id"] for item in data["data"]}
         assert returned_ids == set(line_item_ids)
 
-    def test_get_line_items_for_event_api_not_found(self, test_client, jwt_token):
-        """Test GET /api/events/<event_id>/line_items_for_event endpoint - not found case"""
+    def test_line_items_for_nonexistent_event_returns_404(self, test_client, jwt_token):
+        """Requesting line items for nonexistent event returns 404"""
         response = test_client.get(
             "/api/events/nonexistent_id/line_items_for_event",
             headers={"Authorization": "Bearer " + jwt_token},
@@ -658,10 +658,8 @@ class TestEventAPI:
         data = response.get_json()
         assert data["error"] == "Event not found"
 
-    def test_get_line_items_for_event_api_missing_line_item(
-        self, test_client, jwt_token, flask_app, create_line_item_via_cash
-    ):
-        """Test GET /api/events/<event_id>/line_items_for_event endpoint - missing line item"""
+    def test_missing_line_items_are_skipped_in_response(self, test_client, jwt_token, flask_app, create_line_item_via_cash):
+        """Missing line items are skipped when retrieving event line items"""
         # Create one line item via API
         create_line_item_via_cash(
             date="2009-02-13",
@@ -709,8 +707,8 @@ class TestEventAPI:
         assert len(data["data"]) == 1  # Only the existing line item
         assert data["data"][0]["id"] == line_item_ids[0]
 
-    def test_remove_event_from_line_item_different_id_types(self, flask_app, pg_session):
-        """Test remove_event_from_line_item function"""
+    def test_event_removal_clears_event_id_from_line_items(self, flask_app, pg_session):
+        """Removing event from line items clears event_id regardless of ID type"""
         from tests.test_helpers import setup_test_event, setup_test_line_item_with_event
 
         with flask_app.app_context():

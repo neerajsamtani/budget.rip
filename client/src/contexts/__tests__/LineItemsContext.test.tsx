@@ -101,7 +101,7 @@ describe('LineItemsContext', () => {
     });
 
     describe('Provider Initialization', () => {
-        it('renders children correctly', () => {
+        it('children are rendered correctly', () => {
             renderWithProviders(
                 <LineItemsProvider>
                     <div data-testid="child">Child Component</div>
@@ -111,7 +111,7 @@ describe('LineItemsContext', () => {
             expect(screen.getByTestId('child')).toBeInTheDocument();
         });
 
-        it('fetches line items on mount', async () => {
+        it('line items are fetched on mount', async () => {
             await act(async () => {
                 renderWithProviders(
                     <LineItemsProvider>
@@ -132,7 +132,7 @@ describe('LineItemsContext', () => {
             });
         });
 
-        it('populates line items after successful API call', async () => {
+        it('line items are populated after successful API call', async () => {
             await act(async () => {
                 renderWithProviders(
                     <LineItemsProvider>
@@ -150,7 +150,7 @@ describe('LineItemsContext', () => {
     });
 
     describe('Context Hooks', () => {
-        it('provides line items through useLineItems hook', async () => {
+        it('line items are provided through useLineItems hook', async () => {
             await act(async () => {
                 renderWithProviders(
                     <LineItemsProvider>
@@ -164,7 +164,7 @@ describe('LineItemsContext', () => {
             });
         });
 
-        it('provides dispatch function through useLineItemsDispatch hook', async () => {
+        it('dispatch function is provided through useLineItemsDispatch hook', async () => {
             await act(async () => {
                 renderWithProviders(
                     <LineItemsProvider>
@@ -181,7 +181,7 @@ describe('LineItemsContext', () => {
     });
 
     describe('Reducer Actions', () => {
-        it('handles toggle_line_item_select action', async () => {
+        it('toggle_line_item_select action is handled', async () => {
             await act(async () => {
                 renderWithProviders(
                     <LineItemsProvider>
@@ -204,7 +204,7 @@ describe('LineItemsContext', () => {
             });
         });
 
-        it('handles remove_line_items action', async () => {
+        it('remove_line_items action is handled', async () => {
             await act(async () => {
                 renderWithProviders(
                     <LineItemsProvider>
@@ -227,7 +227,7 @@ describe('LineItemsContext', () => {
             });
         });
 
-        it('handles populate_line_items action', async () => {
+        it('populate_line_items action is handled', async () => {
             const newLineItems = [
                 {
                     _id: '3',
@@ -262,7 +262,7 @@ describe('LineItemsContext', () => {
     });
 
     describe('Error Handling', () => {
-        it('handles API error gracefully', async () => {
+        it('API error is handled gracefully', async () => {
             const { toast } = require('sonner');
             // Auth succeeds, but line items fails
             mockAxiosInstance.get.mockImplementation((url: string) => {
@@ -290,7 +290,7 @@ describe('LineItemsContext', () => {
             });
         });
 
-        it('maintains empty state when API fails', async () => {
+        it('empty state is maintained when API fails', async () => {
             // Auth succeeds, but line items fails
             mockAxiosInstance.get.mockImplementation((url: string) => {
                 if (url.includes('api/auth/me')) {
@@ -316,7 +316,7 @@ describe('LineItemsContext', () => {
     });
 
     describe('State Management', () => {
-        it('maintains state across multiple actions', async () => {
+        it('state is maintained across multiple actions', async () => {
             await act(async () => {
                 renderWithProviders(
                     <LineItemsProvider>
@@ -350,7 +350,7 @@ describe('LineItemsContext', () => {
             });
         });
 
-        it('handles multiple toggle operations', async () => {
+        it('multiple toggle operations are handled', async () => {
             await act(async () => {
                 renderWithProviders(
                     <LineItemsProvider>
@@ -384,7 +384,7 @@ describe('LineItemsContext', () => {
     });
 
     describe('API Integration', () => {
-        it('uses correct API endpoint', async () => {
+        it('correct API endpoint is used', async () => {
             await act(async () => {
                 renderWithProviders(
                     <LineItemsProvider>
@@ -405,7 +405,7 @@ describe('LineItemsContext', () => {
             });
         });
 
-        it('handles different API response structures', async () => {
+        it('different API response structures are handled', async () => {
             const differentLineItems = [
                 {
                     _id: '4',

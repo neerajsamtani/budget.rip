@@ -16,8 +16,8 @@ from utils.id_generator import generate_id
 class TestCategoryAPI:
     """Tests for category CRUD operations."""
 
-    def test_get_all_categories(self, test_client, jwt_token):
-        """Test GET /api/categories returns all categories."""
+    def test_categories_returns_all_without_is_active_field(self, test_client, jwt_token):
+        """Categories endpoint returns all categories without is_active field"""
         response = test_client.get("/api/categories", headers={"Authorization": f"Bearer {jwt_token}"})
         assert response.status_code == 200
         data = response.get_json()
@@ -30,28 +30,28 @@ class TestCategoryAPI:
             assert "name" in cat
             assert "is_active" not in cat
 
-    def test_get_all_categories_requires_auth(self, test_client):
-        """Test GET /api/categories requires authentication."""
+    def test_categories_endpoint_requires_authentication(self, test_client):
+        """Categories endpoint requires authentication"""
         response = test_client.get("/api/categories")
         assert response.status_code == 401
 
-    def test_get_category_by_id(self, test_client, jwt_token):
-        """Test GET /api/categories/<id> returns a specific category."""
+    def test_category_can_be_retrieved_by_id(self, test_client, jwt_token):
+        """Category can be retrieved by its ID"""
         response = test_client.get("/api/categories/cat_dining", headers={"Authorization": f"Bearer {jwt_token}"})
         assert response.status_code == 200
         data = response.get_json()
         assert data["data"]["id"] == "cat_dining"
         assert data["data"]["name"] == "Dining"
 
-    def test_get_category_by_id_not_found(self, test_client, jwt_token):
-        """Test GET /api/categories/<id> returns 404 for non-existent category."""
+    def test_nonexistent_category_returns_404(self, test_client, jwt_token):
+        """Requesting nonexistent category returns 404"""
         response = test_client.get("/api/categories/cat_nonexistent", headers={"Authorization": f"Bearer {jwt_token}"})
         assert response.status_code == 404
         data = response.get_json()
         assert "error" in data
 
-    def test_create_category(self, test_client, jwt_token):
-        """Test POST /api/categories creates a new category."""
+    def test_new_category_is_created_with_unique_id(self, test_client, jwt_token):
+        """Creating category generates unique ID with cat_ prefix"""
         response = test_client.post(
             "/api/categories", headers={"Authorization": f"Bearer {jwt_token}"}, json={"name": "Utilities"}
         )
@@ -61,22 +61,22 @@ class TestCategoryAPI:
         assert data["data"]["id"].startswith("cat_")
         assert "is_active" not in data["data"]
 
-    def test_create_category_requires_name(self, test_client, jwt_token):
-        """Test POST /api/categories requires a name."""
+    def test_creating_category_requires_name(self, test_client, jwt_token):
+        """Creating category requires name field"""
         response = test_client.post("/api/categories", headers={"Authorization": f"Bearer {jwt_token}"}, json={})
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
 
-    def test_create_category_empty_name(self, test_client, jwt_token):
-        """Test POST /api/categories rejects empty name."""
+    def test_empty_category_name_is_rejected(self, test_client, jwt_token):
+        """Empty or whitespace category name is rejected"""
         response = test_client.post("/api/categories", headers={"Authorization": f"Bearer {jwt_token}"}, json={"name": "   "})
         assert response.status_code == 400
         data = response.get_json()
         assert "error" in data
 
-    def test_create_category_duplicate_name(self, test_client, jwt_token):
-        """Test POST /api/categories rejects duplicate category name."""
+    def test_duplicate_category_name_is_rejected(self, test_client, jwt_token):
+        """Duplicate category name is rejected"""
         # Create a new category
         response = test_client.post("/api/categories", headers={"Authorization": f"Bearer {jwt_token}"}, json={"name": "Pets"})
         assert response.status_code == 201
@@ -87,8 +87,8 @@ class TestCategoryAPI:
         data = response.get_json()
         assert "already exists" in data["error"]
 
-    def test_create_category_case_insensitive_duplicate(self, test_client, jwt_token):
-        """Test POST /api/categories rejects case-insensitive duplicate names."""
+    def test_case_insensitive_duplicate_is_rejected(self, test_client, jwt_token):
+        """Duplicate name with different case is rejected"""
         # Create a new category
         response = test_client.post(
             "/api/categories", headers={"Authorization": f"Bearer {jwt_token}"}, json={"name": "Insurance"}
@@ -101,8 +101,8 @@ class TestCategoryAPI:
         )
         assert response.status_code == 400
 
-    def test_update_category(self, test_client, jwt_token):
-        """Test PUT /api/categories/<id> updates a category."""
+    def test_category_name_can_be_updated(self, test_client, jwt_token):
+        """Category name can be updated"""
         # Create a category first
         create_response = test_client.post(
             "/api/categories", headers={"Authorization": f"Bearer {jwt_token}"}, json={"name": "OldName"}
@@ -118,15 +118,15 @@ class TestCategoryAPI:
         data = response.get_json()
         assert data["data"]["name"] == "NewName"
 
-    def test_update_category_not_found(self, test_client, jwt_token):
-        """Test PUT /api/categories/<id> returns 404 for non-existent category."""
+    def test_updating_nonexistent_category_returns_404(self, test_client, jwt_token):
+        """Updating nonexistent category returns 404"""
         response = test_client.put(
             "/api/categories/cat_nonexistent", headers={"Authorization": f"Bearer {jwt_token}"}, json={"name": "Test"}
         )
         assert response.status_code == 404
 
-    def test_update_category_empty_name(self, test_client, jwt_token):
-        """Test PUT /api/categories/<id> rejects empty name."""
+    def test_updating_to_empty_name_is_rejected(self, test_client, jwt_token):
+        """Updating category to empty name is rejected"""
         response = test_client.put(
             "/api/categories/cat_dining", headers={"Authorization": f"Bearer {jwt_token}"}, json={"name": "   "}
         )
@@ -134,8 +134,8 @@ class TestCategoryAPI:
         data = response.get_json()
         assert "empty" in data["error"].lower()
 
-    def test_update_category_duplicate_name(self, test_client, jwt_token):
-        """Test PUT /api/categories/<id> rejects name that conflicts with another category."""
+    def test_updating_to_existing_name_is_rejected(self, test_client, jwt_token):
+        """Updating to another category's name is rejected"""
         # Try to update Dining to have the same name as Entertainment
         response = test_client.put(
             "/api/categories/cat_dining", headers={"Authorization": f"Bearer {jwt_token}"}, json={"name": "Entertainment"}
@@ -144,8 +144,8 @@ class TestCategoryAPI:
         data = response.get_json()
         assert "already exists" in data["error"]
 
-    def test_delete_category(self, test_client, jwt_token):
-        """Test DELETE /api/categories/<id> deletes a category."""
+    def test_unused_category_can_be_deleted(self, test_client, jwt_token):
+        """Unused category can be deleted"""
         # Create a category first
         create_response = test_client.post(
             "/api/categories", headers={"Authorization": f"Bearer {jwt_token}"}, json={"name": "ToDelete"}
@@ -163,13 +163,13 @@ class TestCategoryAPI:
         categories = list_response.get_json()["data"]
         assert not any(c["id"] == category_id for c in categories)
 
-    def test_delete_category_not_found(self, test_client, jwt_token):
-        """Test DELETE /api/categories/<id> returns 404 for non-existent category."""
+    def test_deleting_nonexistent_category_returns_404(self, test_client, jwt_token):
+        """Deleting nonexistent category returns 404"""
         response = test_client.delete("/api/categories/cat_nonexistent", headers={"Authorization": f"Bearer {jwt_token}"})
         assert response.status_code == 404
 
-    def test_delete_category_in_use_by_event(self, test_client, jwt_token, pg_session):
-        """Test DELETE /api/categories/<id> fails when category is used by an event."""
+    def test_category_with_events_cannot_be_deleted(self, test_client, jwt_token, pg_session):
+        """Category used by events cannot be deleted"""
         # Create a new category via API
         create_response = test_client.post(
             "/api/categories", headers={"Authorization": f"Bearer {jwt_token}"}, json={"name": "InUseCategory"}
@@ -241,8 +241,8 @@ class TestCategoryAPI:
 class TestCategoryIntegration:
     """Integration tests for category operations."""
 
-    def test_categories_ordered_by_name(self, test_client, jwt_token):
-        """Test GET /api/categories returns categories ordered by name."""
+    def test_categories_are_sorted_alphabetically(self, test_client, jwt_token):
+        """Categories are returned sorted alphabetically by name"""
         response = test_client.get("/api/categories", headers={"Authorization": f"Bearer {jwt_token}"})
         assert response.status_code == 200
         categories = response.get_json()["data"]
@@ -251,8 +251,8 @@ class TestCategoryIntegration:
         names = [c["name"] for c in categories]
         assert names == sorted(names)
 
-    def test_full_crud_workflow(self, test_client, jwt_token):
-        """Test complete CRUD workflow for categories."""
+    def test_complete_crud_workflow_succeeds(self, test_client, jwt_token):
+        """Complete CRUD workflow creates, reads, updates, and deletes category"""
         # Create
         create_response = test_client.post(
             "/api/categories", headers={"Authorization": f"Bearer {jwt_token}"}, json={"name": "Workflow Test"}

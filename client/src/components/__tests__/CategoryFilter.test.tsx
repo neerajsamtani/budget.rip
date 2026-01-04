@@ -36,7 +36,7 @@ describe('CategoryFilter', () => {
     });
 
     describe('Rendering', () => {
-        it('renders category filter with all categories', async () => {
+        it('category filter displays all categories', async () => {
             render(
                 <CategoryFilter
                     category="All"
@@ -63,7 +63,7 @@ describe('CategoryFilter', () => {
             });
         });
 
-        it('shows selected category when provided', async () => {
+        it('selected category is displayed when provided', async () => {
             render(
                 <CategoryFilter
                     category="Entertainment"
@@ -77,7 +77,7 @@ describe('CategoryFilter', () => {
             });
         });
 
-        it('shows "All" when All category is selected', () => {
+        it('"All" is displayed when All category is selected', () => {
             render(
                 <CategoryFilter
                     category="All"
@@ -90,7 +90,7 @@ describe('CategoryFilter', () => {
     });
 
     describe('User Interactions', () => {
-        it('calls setCategory when a category is selected', async () => {
+        it('setCategory is called when a category is selected', async () => {
             render(
                 <CategoryFilter
                     category="All"
@@ -114,7 +114,7 @@ describe('CategoryFilter', () => {
             expect(mockSetCategory).toHaveBeenCalledWith('Entertainment');
         });
 
-        it('calls setCategory with "All" when All is selected', async () => {
+        it('setCategory is called with "All" when All is selected', async () => {
             render(
                 <CategoryFilter
                     category="Entertainment"
@@ -147,7 +147,7 @@ describe('CategoryFilter', () => {
             expect(mockSetCategory).toHaveBeenCalledWith('All');
         });
 
-        it('handles multiple category selections', async () => {
+        it('multiple category selections are handled correctly', async () => {
             render(
                 <CategoryFilter
                     category="All"
@@ -179,7 +179,7 @@ describe('CategoryFilter', () => {
             expect(mockSetCategory).toHaveBeenCalledTimes(2);
         });
 
-        it('handles all available categories', async () => {
+        it('all available categories are handled correctly', async () => {
             render(
                 <CategoryFilter
                     category="All"
@@ -207,7 +207,7 @@ describe('CategoryFilter', () => {
     });
 
     describe('Accessibility', () => {
-        it('has proper form control role', () => {
+        it('form control role is set properly', () => {
             render(
                 <CategoryFilter
                     category="All"
@@ -219,7 +219,7 @@ describe('CategoryFilter', () => {
             expect(select).toBeInTheDocument();
         });
 
-        it('has proper label text', () => {
+        it('label text is displayed properly', () => {
             render(
                 <CategoryFilter
                     category="All"
@@ -232,7 +232,7 @@ describe('CategoryFilter', () => {
     });
 
     describe('Loading and Error States', () => {
-        it('shows loading placeholder when categories are loading', async () => {
+        it('loading placeholder is shown when categories are loading', async () => {
             // Make the API return a pending promise (never resolves)
             (mockAxiosInstance.get as jest.Mock).mockImplementation((url: string) => {
                 if (url === 'api/categories') {
@@ -255,7 +255,7 @@ describe('CategoryFilter', () => {
             });
         });
 
-        it('shows error placeholder when categories fail to load', async () => {
+        it('error placeholder is shown when categories fail to load', async () => {
             // Make the API reject
             (mockAxiosInstance.get as jest.Mock).mockImplementation((url: string) => {
                 if (url === 'api/categories') {
@@ -278,7 +278,7 @@ describe('CategoryFilter', () => {
             });
         });
 
-        it('still shows "All" option even when categories fail to load', async () => {
+        it('"All" option is still available when categories fail to load', async () => {
             // Make the API reject
             (mockAxiosInstance.get as jest.Mock).mockImplementation((url: string) => {
                 if (url === 'api/categories') {
@@ -305,7 +305,7 @@ describe('CategoryFilter', () => {
     });
 
     describe('Component Structure', () => {
-        it('renders all predefined categories', async () => {
+        it('all predefined categories are available', async () => {
             render(
                 <CategoryFilter
                     category="All"

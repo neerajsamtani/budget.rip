@@ -145,7 +145,7 @@ describe('App', () => {
     });
 
     describe('Rendering', () => {
-        it('renders navbar with brand and navigation links when authenticated', async () => {
+        it('navbar shows brand and navigation links when user is authenticated', async () => {
             renderApp();
 
             // Wait for auth check to complete and UI to render
@@ -164,7 +164,7 @@ describe('App', () => {
             });
         });
 
-        it('renders refresh data button when authenticated', async () => {
+        it('refresh data button is visible when user is authenticated', async () => {
             renderApp();
 
             await waitFor(() => {
@@ -172,7 +172,7 @@ describe('App', () => {
             });
         });
 
-        it('renders LineItemsToReviewPage as default route when authenticated', async () => {
+        it('default route shows review page when user is authenticated', async () => {
             renderApp();
 
             // The default route should show the review page
@@ -182,7 +182,7 @@ describe('App', () => {
             });
         });
 
-        it('renders toaster with close button enabled', () => {
+        it('toaster is configured with close button enabled', () => {
             renderApp();
 
             const toaster = screen.getByTestId('toaster');
@@ -200,7 +200,7 @@ describe('App', () => {
     });
 
     describe('Navigation Links', () => {
-        it('has all required navigation links when authenticated', async () => {
+        it('all navigation links are accessible when user is authenticated', async () => {
             renderApp();
 
             // Test that all navigation links are present and accessible when authenticated
@@ -217,7 +217,7 @@ describe('App', () => {
     });
 
     describe('Refresh Data Functionality', () => {
-        it('shows loading spinner when refresh button is clicked', async () => {
+        it('loading spinner appears when refresh button is clicked', async () => {
             const mockAxiosInstance = require('./utils/axiosInstance').default;
             // Create a promise that resolves after a delay to keep spinner visible
             mockAxiosInstance.post.mockImplementation(() =>
@@ -236,7 +236,7 @@ describe('App', () => {
             });
         });
 
-        it('calls API and updates line items on successful refresh', async () => {
+        it('refresh triggers API call and updates line items', async () => {
             const mockLineItems = [
                 {
                     _id: '1',
@@ -270,7 +270,7 @@ describe('App', () => {
             });
         });
 
-        it('shows toast notification after successful refresh', async () => {
+        it('success toast appears after data refresh completes', async () => {
             const mockAxiosInstance = require('./utils/axiosInstance').default;
             const { toast } = require('sonner');
             mockAxiosInstance.post.mockResolvedValueOnce({ data: { data: [] } });
@@ -289,7 +289,7 @@ describe('App', () => {
             });
         });
 
-        it('hides loading spinner after successful refresh', async () => {
+        it('loading spinner disappears after successful refresh', async () => {
             const mockAxiosInstance = require('./utils/axiosInstance').default;
             mockAxiosInstance.post.mockImplementation(() =>
                 new Promise(resolve => setTimeout(() => resolve({ data: { data: [] } }), 50))
@@ -312,7 +312,7 @@ describe('App', () => {
             });
         });
 
-        it('handles API error gracefully', async () => {
+        it('API error does not crash the application', async () => {
             const mockAxiosInstance = require('./utils/axiosInstance').default;
             mockAxiosInstance.post.mockRejectedValueOnce(new Error('API Error'));
 
@@ -328,7 +328,7 @@ describe('App', () => {
             });
         });
 
-        it('hides loading spinner after API error', async () => {
+        it('loading spinner disappears after API error', async () => {
             const mockAxiosInstance = require('./utils/axiosInstance').default;
             mockAxiosInstance.post.mockImplementation(() =>
                 new Promise((_, reject) => setTimeout(() => reject(new Error('API Error')), 50))
@@ -353,14 +353,14 @@ describe('App', () => {
     });
 
     describe('Environment Variables', () => {
-        it('uses correct API endpoint from environment', () => {
+        it('API endpoint is read from environment variable', () => {
             renderApp();
 
             // The API endpoint should be used in the axios calls
             expect(process.env.VITE_API_ENDPOINT).toBe('http://localhost:5000/');
         });
 
-        it('uses correct Stripe public key from environment', () => {
+        it('Stripe public key is read from environment variable', () => {
             renderApp();
 
             // The Stripe key should be available
@@ -369,21 +369,21 @@ describe('App', () => {
     });
 
     describe('Accessibility', () => {
-        it('has proper navbar structure', async () => {
+        it('navbar has proper semantic structure', async () => {
             renderApp();
             await waitFor(() => {
                 expect(screen.getByText('Budgit')).toBeInTheDocument();
             });
         });
 
-        it('has proper button labels when authenticated', async () => {
+        it('buttons have proper labels when user is authenticated', async () => {
             renderApp();
             await waitFor(() => {
                 expect(screen.getByRole('button', { name: /refresh data/i })).toBeInTheDocument();
             });
         });
 
-        it('has proper link labels when authenticated', async () => {
+        it('links have proper labels when user is authenticated', async () => {
             renderApp();
             await waitFor(() => {
                 expect(screen.getByRole('link', { name: /review/i })).toBeInTheDocument();
@@ -396,7 +396,7 @@ describe('App', () => {
             });
         });
 
-        it('has proper spinner accessibility attributes', async () => {
+        it('spinner has proper accessibility attributes', async () => {
             const mockAxiosInstance = require('./utils/axiosInstance').default;
             mockAxiosInstance.post.mockImplementation(() =>
                 new Promise(resolve => setTimeout(() => resolve({ data: { data: [] } }), 100))
@@ -417,7 +417,7 @@ describe('App', () => {
     });
 
     describe('State Management', () => {
-        it('initializes with correct default state when authenticated', async () => {
+        it('initial state shows no loading spinner when authenticated', async () => {
             renderApp();
 
             // Wait for auth to complete and refresh button to appear
@@ -429,7 +429,7 @@ describe('App', () => {
             // Note: The auth loading spinner would have gone away by now
         });
 
-        it('updates loading state correctly', async () => {
+        it('loading state updates correctly during refresh', async () => {
             const mockAxiosInstance = require('./utils/axiosInstance').default;
             mockAxiosInstance.post.mockImplementation(() =>
                 new Promise(resolve => setTimeout(() => resolve({ data: { data: [] } }), 50))
@@ -453,7 +453,7 @@ describe('App', () => {
             });
         });
 
-        it('calls toast correctly', async () => {
+        it('toast notification is triggered after refresh', async () => {
             const mockAxiosInstance = require('./utils/axiosInstance').default;
             const { toast } = require('sonner');
             mockAxiosInstance.post.mockResolvedValueOnce({ data: { data: [] } });
@@ -476,7 +476,7 @@ describe('App', () => {
 
     describe('Error Handling', () => {
 
-        it('calls error toast on error', async () => {
+        it('error toast is shown when API request fails', async () => {
             const mockAxiosInstance = require('./utils/axiosInstance').default;
             const { toast } = require('sonner');
             mockAxiosInstance.post.mockRejectedValueOnce(new Error('API Error'));

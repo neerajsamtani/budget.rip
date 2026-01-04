@@ -116,20 +116,20 @@ describe('CreateEventModal', () => {
     });
 
     describe('Rendering', () => {
-        it('renders modal when show is true', () => {
+        it('modal is rendered when show is true', () => {
             render(<CreateEventModal show={true} onHide={mockOnHide} />);
 
             expect(screen.getByRole('dialog')).toBeInTheDocument();
             expect(screen.getByText('New Event Details')).toBeInTheDocument();
         });
 
-        it('does not render modal when show is false', () => {
+        it('modal is not rendered when show is false', () => {
             render(<CreateEventModal show={false} onHide={mockOnHide} />);
 
             expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
         });
 
-        it('renders all form fields', () => {
+        it('all form fields are rendered', () => {
             render(<CreateEventModal show={true} onHide={mockOnHide} />);
 
             expect(screen.getByText('Event Name')).toBeInTheDocument();
@@ -139,7 +139,7 @@ describe('CreateEventModal', () => {
             expect(screen.getByText('Duplicate Transaction')).toBeInTheDocument();
         });
 
-        it('renders all category options', async () => {
+        it('all category options are rendered', async () => {
             render(<CreateEventModal show={true} onHide={mockOnHide} />);
 
             const categorySelect = screen.getByRole('combobox', { name: /category/i });
@@ -159,14 +159,14 @@ describe('CreateEventModal', () => {
             });
         });
 
-        it('renders action buttons', () => {
+        it('action buttons are rendered', () => {
             render(<CreateEventModal show={true} onHide={mockOnHide} />);
 
             expect(screen.getByRole('button', { name: /cancel/i })).toBeInTheDocument();
             expect(screen.getByRole('button', { name: /create event/i })).toBeInTheDocument();
         });
 
-        it('shows total amount from selected line items', () => {
+        it('total amount from selected line items is displayed', () => {
             render(<CreateEventModal show={true} onHide={mockOnHide} />);
 
             expect(screen.getByText('Total:')).toBeInTheDocument();
@@ -175,7 +175,7 @@ describe('CreateEventModal', () => {
     });
 
     describe('Form Interactions', () => {
-        it('allows typing in name field', async () => {
+        it('typing in name field is allowed', async () => {
             render(<CreateEventModal show={true} onHide={mockOnHide} />);
 
             const nameInput = screen.getAllByDisplayValue('')[0]; // First input is name
@@ -184,7 +184,7 @@ describe('CreateEventModal', () => {
             expect(nameInput).toHaveValue('Test Event Name');
         });
 
-        it('allows selecting category', async () => {
+        it('selecting category is allowed', async () => {
             render(<CreateEventModal show={true} onHide={mockOnHide} />);
 
             const categorySelect = screen.getByRole('combobox', { name: /category/i });
@@ -194,7 +194,7 @@ describe('CreateEventModal', () => {
             expect(categorySelect).toHaveTextContent('Dining');
         });
 
-        it('allows setting date', async () => {
+        it('setting date is allowed', async () => {
             render(<CreateEventModal show={true} onHide={mockOnHide} />);
 
             const dateInput = screen.getByLabelText('Override Date (optional)');
@@ -203,7 +203,7 @@ describe('CreateEventModal', () => {
             expect(dateInput).toHaveValue('2024-01-15');
         });
 
-        it('allows toggling duplicate transaction checkbox', async () => {
+        it('toggling duplicate transaction checkbox is allowed', async () => {
             render(<CreateEventModal show={true} onHide={mockOnHide} />);
 
             const checkbox = screen.getByRole('checkbox');
@@ -212,7 +212,7 @@ describe('CreateEventModal', () => {
             expect(checkbox).toBeChecked();
         });
 
-        it('updates total when duplicate transaction is checked', async () => {
+        it('total is updated when duplicate transaction is checked', async () => {
             render(<CreateEventModal show={true} onHide={mockOnHide} />);
 
             // Initial total should be $150.00 (50 + 100)
@@ -237,7 +237,7 @@ describe('CreateEventModal', () => {
             });
         });
 
-        it('allows adding tags by pressing Enter', async () => {
+        it('tags can be added by pressing Enter', async () => {
             mockDefaultNameCleanup.mockImplementation((str) => str);
             await act(async () => {
                 render(<CreateEventModal show={true} onHide={mockOnHide} />);
@@ -257,7 +257,7 @@ describe('CreateEventModal', () => {
             expect(tagInput).toHaveValue('');
         });
 
-        it('does not add empty tags', async () => {
+        it('empty tags are not added', async () => {
             mockDefaultNameCleanup.mockImplementation((str) => str);
             const { container } = render(<CreateEventModal show={true} onHide={mockOnHide} />);
 
@@ -270,7 +270,7 @@ describe('CreateEventModal', () => {
             expect(tagBadgesAfter.length).toBe(tagBadgesBefore.length);
         });
 
-        it('allows removing tags by clicking X', async () => {
+        it('tags can be removed by clicking X', async () => {
             mockDefaultNameCleanup.mockImplementation((str) => str);
             await act(async () => {
                 render(<CreateEventModal show={true} onHide={mockOnHide} />);
@@ -297,7 +297,7 @@ describe('CreateEventModal', () => {
             });
         });
 
-        it('trims whitespace from tags', async () => {
+        it('whitespace is trimmed from tags', async () => {
             mockDefaultNameCleanup.mockImplementation((str) => str);
             await act(async () => {
                 render(<CreateEventModal show={true} onHide={mockOnHide} />);
@@ -317,14 +317,14 @@ describe('CreateEventModal', () => {
     });
 
     describe('Form Validation', () => {
-        it('disables submit button when name is empty', () => {
+        it('submit button is disabled when name is empty', () => {
             render(<CreateEventModal show={true} onHide={mockOnHide} />);
 
             const submitButton = screen.getByRole('button', { name: /create event/i });
             expect(submitButton).toBeDisabled();
         });
 
-        it('disables submit button when category is "All"', async () => {
+        it('submit button is disabled when category is "All"', async () => {
             render(<CreateEventModal show={true} onHide={mockOnHide} />);
 
             const nameInput = screen.getAllByDisplayValue('')[0]; // First input is name
@@ -334,7 +334,7 @@ describe('CreateEventModal', () => {
             expect(submitButton).toBeDisabled();
         });
 
-        it('enables submit button when form is valid', async () => {
+        it('submit button is enabled when form is valid', async () => {
             render(<CreateEventModal show={true} onHide={mockOnHide} />);
 
             const nameInput = screen.getAllByDisplayValue('')[0]; // First input is name
@@ -350,7 +350,7 @@ describe('CreateEventModal', () => {
     });
 
     describe('Category Loading and Error States', () => {
-        it('disables category select when categories are loading', async () => {
+        it('category select is disabled when categories are loading', async () => {
             mockUseCategories.mockReturnValue({
                 data: [],
                 isLoading: true,
@@ -363,7 +363,7 @@ describe('CreateEventModal', () => {
             expect(categorySelect).toBeDisabled();
         });
 
-        it('shows error message when categories fail to load', async () => {
+        it('error message is shown when categories fail to load', async () => {
             mockUseCategories.mockReturnValue({
                 data: [],
                 isLoading: false,
@@ -375,7 +375,7 @@ describe('CreateEventModal', () => {
             expect(screen.getByText('Failed to load categories. Please refresh the page.')).toBeInTheDocument();
         });
 
-        it('enables category select after successful load', async () => {
+        it('category select is enabled after successful load', async () => {
             mockUseCategories.mockReturnValue({
                 data: mockCategoriesData,
                 isLoading: false,
@@ -390,7 +390,7 @@ describe('CreateEventModal', () => {
     });
 
     describe('Prefill Logic', () => {
-        it('prefills form when prefill suggestion is available', async () => {
+        it('form is prefilled when prefill suggestion is available', async () => {
             // Mock the hook to return a suggestion
             mockUseEvaluateEventHints.mockReturnValue({
                 data: { name: 'Suggested Name', category: 'Dining' },
@@ -409,7 +409,7 @@ describe('CreateEventModal', () => {
             expect(categorySelect).toHaveTextContent('Dining');
         });
 
-        it('uses cleaned description when no prefill suggestion', async () => {
+        it('cleaned description is used when no prefill suggestion', async () => {
             // Mock the hook to return no suggestion
             mockUseEvaluateEventHints.mockReturnValue({
                 data: null,
@@ -427,7 +427,7 @@ describe('CreateEventModal', () => {
             expect(screen.getByDisplayValue('Cleaned Description')).toBeInTheDocument();
         });
 
-        it('clears form when no line items are selected', async () => {
+        it('form is cleared when no line items are selected', async () => {
             mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: false });
 
             // First render with show=false to trigger prefill
@@ -441,7 +441,7 @@ describe('CreateEventModal', () => {
             expect(categorySelect).toHaveTextContent('Select a category'); // Category select placeholder
         });
 
-        it('waits for hints to load before prefilling', async () => {
+        it('hints are waited for before prefilling', async () => {
             // Mock the hook to return loading state initially
             mockUseEvaluateEventHints.mockReturnValue({
                 data: null,
@@ -476,7 +476,7 @@ describe('CreateEventModal', () => {
             });
         });
 
-        it('shows error toast when hints fail to load', async () => {
+        it('error toast is shown when hints fail to load', async () => {
             const { toast } = require('sonner');
 
             // Mock the hook to return error state
@@ -505,7 +505,7 @@ describe('CreateEventModal', () => {
             expect(screen.getByDisplayValue('Fallback Description')).toBeInTheDocument();
         });
 
-        it('uses fallback name when hints error', async () => {
+        it('fallback name is used when hints error', async () => {
             // Mock the hook to return error state
             mockUseEvaluateEventHints.mockReturnValue({
                 data: null,
@@ -536,7 +536,7 @@ describe('CreateEventModal', () => {
             });
         });
 
-        it('creates event successfully', async () => {
+        it('event is created successfully', async () => {
             mockDefaultNameCleanup.mockImplementation((str) => str);
             render(<CreateEventModal show={true} onHide={mockOnHide} />);
 
@@ -582,7 +582,7 @@ describe('CreateEventModal', () => {
             });
         });
 
-        it('handles duplicate transaction in event creation', async () => {
+        it('duplicate transaction is handled in event creation', async () => {
             render(<CreateEventModal show={true} onHide={mockOnHide} />);
 
             // Fill out form
@@ -611,7 +611,7 @@ describe('CreateEventModal', () => {
             });
         });
 
-        it('removes line items after successful event creation', async () => {
+        it('line items are removed after successful event creation', async () => {
             render(<CreateEventModal show={true} onHide={mockOnHide} />);
 
             // Fill out form
@@ -634,7 +634,7 @@ describe('CreateEventModal', () => {
             });
         });
 
-        it('shows toast after successful event creation', async () => {
+        it('toast is shown after successful event creation', async () => {
             render(<CreateEventModal show={true} onHide={mockOnHide} />);
 
             // Fill out form
@@ -658,7 +658,7 @@ describe('CreateEventModal', () => {
             });
         });
 
-        it('handles API error gracefully', async () => {
+        it('API error is handled gracefully', async () => {
             const { toast } = require('sonner');
             mockAxiosInstance.post.mockRejectedValue(new Error('API Error'));
 
@@ -686,7 +686,7 @@ describe('CreateEventModal', () => {
     });
 
     describe('Modal Closing', () => {
-        it('calls onHide when close button is clicked', async () => {
+        it('onHide is called when close button is clicked', async () => {
             render(<CreateEventModal show={true} onHide={mockOnHide} />);
 
             const closeButton = screen.getByRole('button', { name: /close/i });
@@ -695,7 +695,7 @@ describe('CreateEventModal', () => {
             expect(mockOnHide).toHaveBeenCalled();
         });
 
-        it('calls onHide when cancel button is clicked', async () => {
+        it('onHide is called when cancel button is clicked', async () => {
             render(<CreateEventModal show={true} onHide={mockOnHide} />);
 
             const cancelButton = screen.getByRole('button', { name: /cancel/i });
@@ -704,7 +704,7 @@ describe('CreateEventModal', () => {
             expect(mockOnHide).toHaveBeenCalled();
         });
 
-        it('resets form when modal is closed', async () => {
+        it('form is reset when modal is closed', async () => {
             render(<CreateEventModal show={true} onHide={mockOnHide} />);
 
             // Fill out form
@@ -740,14 +740,14 @@ describe('CreateEventModal', () => {
     });
 
     describe('Accessibility', () => {
-        it('has proper modal structure', () => {
+        it('proper modal structure is present', () => {
             render(<CreateEventModal show={true} onHide={mockOnHide} />);
 
             expect(screen.getByRole('dialog')).toBeInTheDocument();
             expect(screen.getByText('New Event Details')).toBeInTheDocument();
         });
 
-        it('has proper form labels', () => {
+        it('proper form labels are present', () => {
             render(<CreateEventModal show={true} onHide={mockOnHide} />);
 
             expect(screen.getByText('Event Name')).toBeInTheDocument();
@@ -757,7 +757,7 @@ describe('CreateEventModal', () => {
             expect(screen.getByText('Duplicate Transaction')).toBeInTheDocument();
         });
 
-        it('has proper button labels', () => {
+        it('proper button labels are present', () => {
             render(<CreateEventModal show={true} onHide={mockOnHide} />);
 
             expect(screen.getByRole('button', { name: /cancel/i })).toBeInTheDocument();
@@ -766,7 +766,7 @@ describe('CreateEventModal', () => {
     });
 
     describe('Form State Management', () => {
-        it('updates form fields on user input', async () => {
+        it('form fields are updated on user input', async () => {
             await act(async () => {
                 render(<CreateEventModal show={true} onHide={mockOnHide} />);
             });
@@ -781,7 +781,7 @@ describe('CreateEventModal', () => {
             expect(dateInput).toHaveValue('2024-01-15');
         });
 
-        it('clears form fields after successful submission', async () => {
+        it('form fields are cleared after successful submission', async () => {
             mockAxiosInstance.post.mockResolvedValueOnce({ data: { name: 'Test Event', success: true } });
 
             await act(async () => {
@@ -825,7 +825,7 @@ describe('CreateEventModal', () => {
             });
         });
 
-        it('shows autocomplete suggestions when typing', async () => {
+        it('autocomplete suggestions are shown when typing', async () => {
             await act(async () => {
                 render(<CreateEventModal show={true} onHide={mockOnHide} />);
             });
@@ -842,7 +842,7 @@ describe('CreateEventModal', () => {
             });
         });
 
-        it('adds existing tag from autocomplete on selection', async () => {
+        it('existing tag is added from autocomplete on selection', async () => {
             await act(async () => {
                 render(<CreateEventModal show={true} onHide={mockOnHide} />);
             });
@@ -867,7 +867,7 @@ describe('CreateEventModal', () => {
             });
         });
 
-        it('creates new tag when pressing Enter with non-existing tag', async () => {
+        it('new tag is created when pressing Enter with non-existing tag', async () => {
             await act(async () => {
                 render(<CreateEventModal show={true} onHide={mockOnHide} />);
             });
@@ -884,7 +884,7 @@ describe('CreateEventModal', () => {
             });
         });
 
-        it('clears input after adding tag', async () => {
+        it('input is cleared after adding tag', async () => {
             await act(async () => {
                 render(<CreateEventModal show={true} onHide={mockOnHide} />);
             });
@@ -901,7 +901,7 @@ describe('CreateEventModal', () => {
             });
         });
 
-        it('removes selected tag from autocomplete suggestions', async () => {
+        it('selected tag is removed from autocomplete suggestions', async () => {
             await act(async () => {
                 render(<CreateEventModal show={true} onHide={mockOnHide} />);
             });
@@ -927,7 +927,7 @@ describe('CreateEventModal', () => {
             });
         });
 
-        it('prevents duplicate tags from being added', async () => {
+        it('duplicate tags are prevented from being added', async () => {
             await act(async () => {
                 render(<CreateEventModal show={true} onHide={mockOnHide} />);
             });
@@ -952,7 +952,7 @@ describe('CreateEventModal', () => {
             expect(vacationTags).toHaveLength(1);
         });
 
-        it('removes tag when clicking X button', async () => {
+        it('tag is removed when clicking X button', async () => {
             await act(async () => {
                 render(<CreateEventModal show={true} onHide={mockOnHide} />);
             });
@@ -978,7 +978,7 @@ describe('CreateEventModal', () => {
             });
         });
 
-        it('handles loading state', async () => {
+        it('loading state is handled correctly', async () => {
             jest.spyOn(require('@/hooks/useApi'), 'useTags').mockReturnValue({
                 data: undefined,
                 isLoading: true,
@@ -993,7 +993,7 @@ describe('CreateEventModal', () => {
             expect(tagInput).toBeInTheDocument();
         });
 
-        it('handles error state gracefully', async () => {
+        it('error state is handled gracefully', async () => {
             jest.spyOn(require('@/hooks/useApi'), 'useTags').mockReturnValue({
                 data: undefined,
                 isLoading: false,

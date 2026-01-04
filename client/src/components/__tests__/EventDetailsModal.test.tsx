@@ -135,7 +135,7 @@ describe('EventDetailsModal', () => {
     });
 
     describe('Rendering', () => {
-        it('renders modal when show is true', () => {
+        it('modal is rendered when show is true', () => {
             render(
                 <EventDetailsModal
                     show={true}
@@ -153,7 +153,7 @@ describe('EventDetailsModal', () => {
             })).toBeInTheDocument();
         });
 
-        it('does not render modal when show is false', () => {
+        it('modal is not rendered when show is false', () => {
             render(
                 <EventDetailsModal
                     show={false}
@@ -167,7 +167,7 @@ describe('EventDetailsModal', () => {
             expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
         });
 
-        it('renders event title with name and category', () => {
+        it('event title is rendered with name and category', () => {
             render(
                 <EventDetailsModal
                     show={true}
@@ -184,7 +184,7 @@ describe('EventDetailsModal', () => {
             })).toBeInTheDocument();
         });
 
-        it('renders table headers', () => {
+        it('table headers are rendered', () => {
             render(
                 <EventDetailsModal
                     show={true}
@@ -202,7 +202,7 @@ describe('EventDetailsModal', () => {
             expect(screen.getByText('Amount')).toBeInTheDocument();
         });
 
-        it('renders line items in table', () => {
+        it('line items are rendered in table', () => {
             render(
                 <EventDetailsModal
                     show={true}
@@ -217,7 +217,7 @@ describe('EventDetailsModal', () => {
             expect(screen.getByTestId('line-item-line-2')).toBeInTheDocument();
         });
 
-        it('renders tags when event has tags', () => {
+        it('tags are rendered when event has tags', () => {
             render(
                 <EventDetailsModal
                     show={true}
@@ -233,7 +233,7 @@ describe('EventDetailsModal', () => {
             expect(screen.getByText('business')).toBeInTheDocument();
         });
 
-        it('does not render tags section when event has no tags', () => {
+        it('tags section is not rendered when event has no tags', () => {
             const eventWithoutTags = { ...mockEvent, tags: undefined };
 
             render(
@@ -250,7 +250,7 @@ describe('EventDetailsModal', () => {
             expect(screen.queryByText('important')).not.toBeInTheDocument();
         });
 
-        it('does not render tags section when event has empty tags array', () => {
+        it('tags section is not rendered when event has empty tags array', () => {
             const eventWithEmptyTags = { ...mockEvent, tags: [] };
 
             render(
@@ -266,7 +266,7 @@ describe('EventDetailsModal', () => {
             expect(screen.queryByText('Tags:')).not.toBeInTheDocument();
         });
 
-        it('renders action buttons', () => {
+        it('action buttons are rendered', () => {
             render(
                 <EventDetailsModal
                     show={true}
@@ -281,7 +281,7 @@ describe('EventDetailsModal', () => {
             expect(screen.getByRole('button', { name: /delete/i })).toBeInTheDocument();
         });
 
-        it('renders empty table when no line items', () => {
+        it('empty table is rendered when no line items', () => {
             render(
                 <EventDetailsModal
                     show={true}
@@ -298,7 +298,7 @@ describe('EventDetailsModal', () => {
     });
 
     describe('Modal Interactions', () => {
-        it('calls onHide when close button is clicked', async () => {
+        it('onHide is called when close button is clicked', async () => {
             render(
                 <EventDetailsModal
                     show={true}
@@ -317,7 +317,7 @@ describe('EventDetailsModal', () => {
     });
 
     describe('Event Deletion', () => {
-        it('deletes event successfully', async () => {
+        it('event is deleted successfully', async () => {
             render(
                 <EventDetailsModal
                     show={true}
@@ -339,7 +339,7 @@ describe('EventDetailsModal', () => {
             });
         });
 
-        it('shows toast after successful deletion', async () => {
+        it('toast is shown after successful deletion', async () => {
             render(
                 <EventDetailsModal
                     show={true}
@@ -362,7 +362,7 @@ describe('EventDetailsModal', () => {
             });
         });
 
-        it('calls onHide after successful deletion', async () => {
+        it('onHide is called after successful deletion', async () => {
             render(
                 <EventDetailsModal
                     show={true}
@@ -382,7 +382,7 @@ describe('EventDetailsModal', () => {
         });
 
 
-        it('handles API error gracefully', async () => {
+        it('API error is handled gracefully', async () => {
             const { toast } = require('sonner');
             mockDeleteEvent.mockImplementation((eventId, options) => {
                 options?.onError?.(new Error('API Error'));
@@ -409,7 +409,7 @@ describe('EventDetailsModal', () => {
             });
         });
 
-        it('does not call onHide when deletion fails', async () => {
+        it('onHide is not called when deletion fails', async () => {
             mockDeleteEvent.mockImplementation((eventId, options) => {
                 options?.onError?.(new Error('API Error'));
             });
@@ -435,7 +435,7 @@ describe('EventDetailsModal', () => {
     });
 
     describe('Environment Configuration', () => {
-        it('calls delete mutation with event id', async () => {
+        it('delete mutation is called with event id', async () => {
             render(
                 <EventDetailsModal
                     show={true}
@@ -459,7 +459,7 @@ describe('EventDetailsModal', () => {
     });
 
     describe('Accessibility', () => {
-        it('has proper modal structure', () => {
+        it('proper modal structure is present', () => {
             render(
                 <EventDetailsModal
                     show={true}
@@ -477,7 +477,7 @@ describe('EventDetailsModal', () => {
             })).toBeInTheDocument();
         });
 
-        it('has proper button labels', () => {
+        it('proper button labels are present', () => {
             render(
                 <EventDetailsModal
                     show={true}
@@ -492,7 +492,7 @@ describe('EventDetailsModal', () => {
             expect(screen.getByRole('button', { name: /delete/i })).toBeInTheDocument();
         });
 
-        it('has proper table structure', () => {
+        it('proper table structure is present', () => {
             render(
                 <EventDetailsModal
                     show={true}
@@ -513,7 +513,7 @@ describe('EventDetailsModal', () => {
     });
 
     describe('Data Display', () => {
-        it('displays line items with correct data', () => {
+        it('line items are displayed with correct data', () => {
             render(
                 <EventDetailsModal
                     show={true}
@@ -529,7 +529,7 @@ describe('EventDetailsModal', () => {
             expect(screen.getByTestId('line-item-line-2')).toBeInTheDocument();
         });
 
-        it('displays tags with correct styling', () => {
+        it('tags are displayed with correct styling', () => {
             render(
                 <EventDetailsModal
                     show={true}
@@ -548,7 +548,7 @@ describe('EventDetailsModal', () => {
             });
         });
 
-        it('handles event with different data types', () => {
+        it('event with different data types is handled correctly', () => {
             const eventWithDifferentData: EventInterface = {
                 id: 'event-2',
                 name: 'Another Event',
@@ -592,7 +592,7 @@ describe('EventDetailsModal', () => {
     });
 
     describe('State Management', () => {
-        it('initializes notification state correctly', () => {
+        it('notification state is initialized correctly', () => {
             render(
                 <EventDetailsModal
                     show={true}
@@ -607,7 +607,7 @@ describe('EventDetailsModal', () => {
             expect(screen.queryByTestId('notification')).not.toBeInTheDocument();
         });
 
-        it('calls toast after successful deletion', async () => {
+        it('toast is called after successful deletion', async () => {
             render(
                 <EventDetailsModal
                     show={true}
@@ -636,7 +636,7 @@ describe('EventDetailsModal', () => {
             mockUpdateEvent.mockClear();
         });
 
-        it('enters edit mode when Edit button is clicked', async () => {
+        it('edit mode is entered when Edit button is clicked', async () => {
             render(
                 <EventDetailsModal
                     show={true}
@@ -661,7 +661,7 @@ describe('EventDetailsModal', () => {
             expect(screen.getByRole('button', { name: /save changes/i })).toBeInTheDocument();
         });
 
-        it('populates form fields with event data when entering edit mode', async () => {
+        it('form fields are populated with event data when entering edit mode', async () => {
             render(
                 <EventDetailsModal
                     show={true}
@@ -682,7 +682,7 @@ describe('EventDetailsModal', () => {
             expect(screen.getByText('business')).toBeInTheDocument();
         });
 
-        it('cancels editing and returns to view mode', async () => {
+        it('editing is cancelled and view mode is returned', async () => {
             render(
                 <EventDetailsModal
                     show={true}
@@ -710,7 +710,7 @@ describe('EventDetailsModal', () => {
             expect(screen.queryByText('Edit Event')).not.toBeInTheDocument();
         });
 
-        it('displays line items with remove buttons in edit mode', async () => {
+        it('line items are displayed with remove buttons in edit mode', async () => {
             render(
                 <EventDetailsModal
                     show={true}
@@ -732,7 +732,7 @@ describe('EventDetailsModal', () => {
             expect(removeButtons.length).toBe(2);
         });
 
-        it('removes a line item when Remove is clicked', async () => {
+        it('line item is removed when Remove is clicked', async () => {
             render(
                 <EventDetailsModal
                     show={true}
@@ -760,7 +760,7 @@ describe('EventDetailsModal', () => {
             expect(screen.getByText('Line Items (1)')).toBeInTheDocument();
         });
 
-        it('disables remove button when only one line item remains', async () => {
+        it('remove button is disabled when only one line item remains', async () => {
             const singleLineItem = [mockLineItems[0]];
             const singleLineItemEvent = { ...mockEvent, line_items: ['line-1'] };
 
@@ -781,7 +781,7 @@ describe('EventDetailsModal', () => {
             expect(removeButton).toBeDisabled();
         });
 
-        it('adds a removed line item back to the event', async () => {
+        it('removed line item is added back to the event', async () => {
             render(
                 <EventDetailsModal
                     show={true}
@@ -821,7 +821,7 @@ describe('EventDetailsModal', () => {
             });
         });
 
-        it('displays total in edit mode', async () => {
+        it('total is displayed in edit mode', async () => {
             render(
                 <EventDetailsModal
                     show={true}
@@ -843,7 +843,7 @@ describe('EventDetailsModal', () => {
         // JSDom doesn't support PointerEvent which Radix needs for scroll lock cleanup,
         // causing pointer-events: none to persist on body between tests.
         // See: https://github.com/radix-ui/primitives/issues/1241
-        it('updates total when duplicate transaction is checked', () => {
+        it('total is updated when duplicate transaction is checked', () => {
             render(
                 <EventDetailsModal
                     show={true}
@@ -867,7 +867,7 @@ describe('EventDetailsModal', () => {
             expect(screen.getByText('$75.00')).toBeInTheDocument();
         });
 
-        it('calls update API with correct data when saving', async () => {
+        it('update API is called with correct data when saving', async () => {
             render(
                 <EventDetailsModal
                     show={true}
@@ -900,7 +900,7 @@ describe('EventDetailsModal', () => {
             );
         });
 
-        it('disables save button when name is empty', async () => {
+        it('save button is disabled when name is empty', async () => {
             render(
                 <EventDetailsModal
                     show={true}
@@ -921,7 +921,7 @@ describe('EventDetailsModal', () => {
             expect(screen.getByRole('button', { name: /save changes/i })).toBeDisabled();
         });
 
-        it('disables category select when categories are loading in edit mode', async () => {
+        it('category select is disabled when categories are loading in edit mode', async () => {
             mockUseCategories.mockReturnValue({
                 data: [],
                 isLoading: true,
@@ -944,7 +944,7 @@ describe('EventDetailsModal', () => {
             expect(categorySelect).toBeDisabled();
         });
 
-        it('shows error message when categories fail to load in edit mode', async () => {
+        it('error message is shown when categories fail to load in edit mode', async () => {
             mockUseCategories.mockReturnValue({
                 data: [],
                 isLoading: false,
@@ -966,7 +966,7 @@ describe('EventDetailsModal', () => {
             expect(screen.getByText('Failed to load categories. Please refresh the page.')).toBeInTheDocument();
         });
 
-        it('removes tag when X is clicked', async () => {
+        it('tag is removed when X is clicked', async () => {
             render(
                 <EventDetailsModal
                     show={true}

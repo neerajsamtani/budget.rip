@@ -37,8 +37,8 @@ def mock_non_gated_user_data():
 
 
 class TestAuthAPI:
-    def test_signup_user_api_success(self, test_client, flask_app):
-        """Test POST /api/auth/signup endpoint - success case with gated user"""
+    def test_signup_creates_user_when_email_is_in_gated_list(self, test_client, flask_app):
+        """Signup creates a new user when the email is in the gated users list"""
         # Test API call with gated user
         signup_data = {
             "first_name": "Neeraj",
@@ -63,8 +63,8 @@ class TestAuthAPI:
             assert created_user["email"] == "neerajjsamtani@gmail.com"
             assert "password_hash" in created_user  # Should have hashed password
 
-    def test_signup_user_api_user_already_exists(self, test_client, flask_app, create_user_via_api):
-        """Test POST /api/auth/signup endpoint - user already exists"""
+    def test_signup_fails_when_user_already_exists(self, test_client, flask_app, create_user_via_api):
+        """Signup fails with 400 when user already exists"""
         # Create existing user via API
         create_user_via_api(
             {
@@ -88,8 +88,8 @@ class TestAuthAPI:
         assert response.status_code == 400
         assert response.get_data(as_text=True).strip() == '"User Already Exists"'
 
-    def test_signup_user_api_not_gated_user(self, test_client):
-        """Test POST /api/auth/signup endpoint - user not in gated list"""
+    def test_signup_rejects_email_not_in_gated_list(self, test_client):
+        """Signup rejects users whose email is not in the private beta list"""
         # Test API call with non-gated user
         signup_data = {
             "first_name": "Jane",
@@ -103,8 +103,8 @@ class TestAuthAPI:
         assert response.status_code == 403
         assert response.get_data(as_text=True).strip() == '"User Not Signed Up For Private Beta"'
 
-    def test_signup_user_api_missing_fields(self, test_client):
-        """Test POST /api/auth/signup endpoint - missing required fields"""
+    def test_signup_requires_email_and_password(self, test_client):
+        """Signup fails when required fields are missing"""
         # Test with missing email
         signup_data_missing_email = {
             "first_name": "John",
@@ -129,8 +129,8 @@ class TestAuthAPI:
         data = response.get_json()
         assert data["error"].startswith("Missing required field: password")
 
-    def test_login_user_api_success(self, test_client, flask_app, create_user_via_api):
-        """Test POST /api/auth/login endpoint - success case"""
+    def test_login_sets_jwt_cookie_for_valid_credentials(self, test_client, flask_app, create_user_via_api):
+        """Login sets JWT cookie when credentials are valid"""
         # Create test user via API (but use a gated email for signup)
         create_user_via_api(
             {
@@ -156,8 +156,8 @@ class TestAuthAPI:
         # Check that JWT cookies are set
         assert "access_token_cookie" in response.headers.get("Set-Cookie", "")
 
-    def test_login_user_api_invalid_email(self, test_client):
-        """Test POST /api/auth/login endpoint - invalid email"""
+    def test_login_fails_for_nonexistent_email(self, test_client):
+        """Login fails when email does not exist"""
         # Test API call with non-existent email
         login_data = {
             "email": "nonexistent@example.com",
@@ -170,8 +170,8 @@ class TestAuthAPI:
         data = response.get_json()
         assert data["error"] == "Email or password invalid"
 
-    def test_login_user_api_invalid_password(self, test_client, flask_app, create_user_via_api):
-        """Test POST /api/auth/login endpoint - invalid password"""
+    def test_login_fails_for_wrong_password(self, test_client, flask_app, create_user_via_api):
+        """Login fails when password is incorrect"""
         # Create test user via API
         create_user_via_api(
             {
@@ -194,8 +194,8 @@ class TestAuthAPI:
         data = response.get_json()
         assert data["error"] == "Email or password invalid"
 
-    def test_login_user_api_missing_fields(self, test_client):
-        """Test POST /api/auth/login endpoint - missing required fields"""
+    def test_login_requires_email_and_password(self, test_client):
+        """Login fails when required fields are missing"""
         # Test with missing email
         login_data_missing_email = {
             "password": "testpassword123",
@@ -216,8 +216,8 @@ class TestAuthAPI:
         data = response.get_json()
         assert data["error"].startswith("Missing required field: password")
 
-    def test_logout_api_success(self, test_client):
-        """Test POST /api/auth/logout endpoint - success case"""
+    def test_logout_clears_jwt_cookie(self, test_client):
+        """Logout clears the JWT cookie"""
         response = test_client.post("/api/auth/logout")
 
         assert response.status_code == 200
@@ -228,8 +228,8 @@ class TestAuthAPI:
         set_cookie_header = response.headers.get("Set-Cookie", "")
         assert "access_token_cookie=;" in set_cookie_header or "access_token_cookie=; " in set_cookie_header
 
-    def test_get_current_user_api_success(self, test_client, flask_app, create_user_via_api):
-        """Test GET /api/auth/me endpoint - success case (authenticated user)"""
+    def test_current_user_returns_user_data_when_authenticated(self, test_client, flask_app, create_user_via_api):
+        """Current user endpoint returns user data when authenticated"""
         # Create and log in a user
         create_user_via_api(
             {
@@ -260,14 +260,14 @@ class TestAuthAPI:
         assert data["last_name"] == "Samtani"
         assert "id" in data
 
-    def test_get_current_user_api_unauthenticated(self, test_client):
-        """Test GET /api/auth/me endpoint - unauthenticated (no JWT)"""
+    def test_current_user_returns_401_without_jwt(self, test_client):
+        """Current user endpoint returns 401 when not authenticated"""
         response = test_client.get("/api/auth/me")
 
         assert response.status_code == 401
 
-    def test_get_current_user_api_after_logout(self, test_client, create_user_via_api):
-        """Test GET /api/auth/me endpoint - after logout"""
+    def test_current_user_returns_401_after_logout(self, test_client, create_user_via_api):
+        """Current user endpoint returns 401 after user logs out"""
         # Create and log in a user
         create_user_via_api(
             {
@@ -299,8 +299,8 @@ class TestAuthAPI:
 
 
 class TestAuthFunctions:
-    def test_get_user_by_email_success(self, flask_app, pg_session):
-        """Test get_user_by_email function - success case"""
+    def test_user_can_be_found_by_email(self, flask_app, pg_session):
+        """User can be retrieved by their email address"""
         from tests.test_helpers import setup_test_user
 
         with flask_app.app_context():
@@ -324,8 +324,8 @@ class TestAuthFunctions:
             assert found_user["first_name"] == "Test"
             assert found_user["last_name"] == "User"
 
-    def test_get_user_by_email_not_found(self, flask_app):
-        """Test get_user_by_email function - user not found"""
+    def test_nonexistent_email_returns_none(self, flask_app):
+        """Looking up a nonexistent email returns None"""
         with flask_app.app_context():
             from dao import get_user_by_email
 
@@ -334,14 +334,14 @@ class TestAuthFunctions:
 
             assert found_user is None
 
-    def test_gated_users_constant(self):
-        """Test that GATED_USERS constant is properly defined"""
+    def test_gated_users_list_includes_allowed_emails(self):
+        """Gated users list contains emails allowed for private beta"""
         assert isinstance(GATED_USERS, list)
         assert len(GATED_USERS) > 0
         assert "neerajjsamtani@gmail.com" in GATED_USERS
 
-    def test_password_hashing_consistency(self, flask_app):
-        """Test that password hashing is consistent"""
+    def test_hashed_password_can_be_verified(self, flask_app):
+        """Hashed password can be verified with original password"""
         with flask_app.app_context():
             from helpers import check_password, hash_password
 
@@ -352,8 +352,8 @@ class TestAuthFunctions:
             assert check_password(hashed, password) is True
             assert check_password(hashed, "wrongpassword") is False
 
-    def test_jwt_token_creation(self, flask_app):
-        """Test JWT token creation and validation"""
+    def test_jwt_token_contains_user_identity(self, flask_app):
+        """JWT token encodes and preserves user identity"""
         with flask_app.app_context():
             from flask_jwt_extended import create_access_token, decode_token
 

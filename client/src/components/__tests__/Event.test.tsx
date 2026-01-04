@@ -62,7 +62,7 @@ describe('Event', () => {
     });
 
     describe('Rendering', () => {
-        it('renders event data correctly', async () => {
+        it('event data is displayed correctly', async () => {
             await act(async () => {
                 render(
                     <table><tbody><tr><Event event={mockEvent} /></tr></tbody></table>
@@ -75,7 +75,7 @@ describe('Event', () => {
             expect(screen.getByText('Jan 1, 2022')).toBeInTheDocument();
         });
 
-        it('renders tags when present', async () => {
+        it('tags are displayed when present', async () => {
             await act(async () => {
                 render(
                     <table><tbody><tr><Event event={mockEvent} /></tr></tbody></table>
@@ -86,7 +86,7 @@ describe('Event', () => {
             expect(screen.getByText('social')).toBeInTheDocument();
         });
 
-        it('does not render tags when not present', async () => {
+        it('tags are not displayed when not present', async () => {
             const eventWithoutTags = { ...mockEvent, tags: undefined };
             await act(async () => {
                 render(
@@ -98,7 +98,7 @@ describe('Event', () => {
             expect(screen.queryByText('social')).not.toBeInTheDocument();
         });
 
-        it('renders empty tags array correctly', async () => {
+        it('empty tags array is handled correctly', async () => {
             const eventWithEmptyTags = { ...mockEvent, tags: [] };
             await act(async () => {
                 render(
@@ -112,7 +112,7 @@ describe('Event', () => {
     });
 
     describe('User Interactions', () => {
-        it('shows event details modal when Details button is clicked', async () => {
+        it('event details modal opens when Details button is clicked', async () => {
             await act(async () => {
                 render(
                     <table><tbody><tr><Event event={mockEvent} /></tr></tbody></table>
@@ -129,7 +129,7 @@ describe('Event', () => {
             });
         });
 
-        it('fetches line items when Details button is clicked', async () => {
+        it('line items are fetched when Details button is clicked', async () => {
             await act(async () => {
                 render(
                     <table><tbody><tr><Event event={mockEvent} /></tr></tbody></table>
@@ -148,7 +148,7 @@ describe('Event', () => {
             });
         });
 
-        it('handles API error gracefully', async () => {
+        it('API error is handled gracefully', async () => {
             mockAxiosInstance.get.mockRejectedValue(new Error('API Error'));
 
             await act(async () => {
@@ -170,7 +170,7 @@ describe('Event', () => {
     });
 
     describe('Date Formatting', () => {
-        it('formats date correctly for different timestamps', async () => {
+        it('date is formatted correctly for different timestamps', async () => {
             const eventWithDifferentDate = { ...mockEvent, date: 1640995200 }; // Jan 1, 2022
             await act(async () => {
                 render(
@@ -183,7 +183,7 @@ describe('Event', () => {
     });
 
     describe('Accessibility', () => {
-        it('has accessible button with proper label', async () => {
+        it('button has accessible label', async () => {
             await act(async () => {
                 render(
                     <table><tbody><tr><Event event={mockEvent} /></tr></tbody></table>

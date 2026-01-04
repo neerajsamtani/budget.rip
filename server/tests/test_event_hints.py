@@ -134,14 +134,14 @@ def sample_line_items(pg_session):
 class TestCELEvaluator:
     """Tests for the CEL expression evaluator"""
 
-    def test_simple_contains_expression(self):
-        """Test basic contains expression"""
+    def test_contains_matches_substring_in_description(self):
+        """Contains expression matches substring in description"""
         evaluator = CELEvaluator('description.contains("Spotify")')
         line_items = [{"description": "Spotify Premium Monthly", "amount": 9.99}]
         assert evaluator.evaluate(line_items) is True
 
-    def test_contains_case_insensitive(self):
-        """Test that contains is case-insensitive (all strings are lowercased)"""
+    def test_contains_is_case_insensitive(self):
+        """Contains matching ignores case differences"""
         # Mixed case in expression should match uppercase in data
         evaluator = CELEvaluator('description.contains("Spotify")')
         line_items = [{"description": "SPOTIFY PREMIUM", "amount": 9.99}]
@@ -157,14 +157,14 @@ class TestCELEvaluator:
         line_items = [{"description": "spotify premium", "amount": 9.99}]
         assert evaluator.evaluate(line_items) is True
 
-    def test_contains_no_match(self):
-        """Test contains with no match"""
+    def test_contains_returns_false_when_no_match(self):
+        """Contains returns false when substring not found"""
         evaluator = CELEvaluator('description.contains("Netflix")')
         line_items = [{"description": "Spotify Premium", "amount": 9.99}]
         assert evaluator.evaluate(line_items) is False
 
-    def test_numeric_comparison(self):
-        """Test numeric comparison"""
+    def test_amount_comparison_evaluates_correctly(self):
+        """Amount comparisons evaluate greater/less than correctly"""
         evaluator = CELEvaluator("amount > 10")
         line_items = [{"description": "Test", "amount": 15.00}]
         assert evaluator.evaluate(line_items) is True
@@ -172,8 +172,8 @@ class TestCELEvaluator:
         line_items = [{"description": "Test", "amount": 5.00}]
         assert evaluator.evaluate(line_items) is False
 
-    def test_combined_conditions(self):
-        """Test AND conditions"""
+    def test_and_conditions_require_both_to_match(self):
+        """AND conditions require both expressions to be true"""
         evaluator = CELEvaluator('description.contains("Uber") && amount < 50')
         line_items = [{"description": "Uber Trip", "amount": 25.00}]
         assert evaluator.evaluate(line_items) is True
@@ -181,8 +181,8 @@ class TestCELEvaluator:
         line_items = [{"description": "Uber Trip", "amount": 75.00}]
         assert evaluator.evaluate(line_items) is False
 
-    def test_any_line_item_matches(self):
-        """Test that any matching line item returns True"""
+    def test_any_matching_line_item_returns_true(self):
+        """Expression returns true if any line item matches"""
         evaluator = CELEvaluator('description.contains("Spotify")')
         line_items = [
             {"description": "Netflix", "amount": 15.00},
@@ -190,13 +190,13 @@ class TestCELEvaluator:
         ]
         assert evaluator.evaluate(line_items) is True
 
-    def test_empty_line_items(self):
-        """Test with empty line items list"""
+    def test_empty_line_items_returns_false(self):
+        """Empty line items list returns false"""
         evaluator = CELEvaluator('description.contains("Spotify")')
         assert evaluator.evaluate([]) is False
 
-    def test_aggregate_sum(self):
-        """Test sum aggregate function"""
+    def test_sum_aggregates_all_line_item_amounts(self):
+        """Sum function aggregates amounts across all line items"""
         evaluator = CELEvaluator("sum(amount) == 0")
         line_items = [
             {"description": "Transfer Out", "amount": -50.00},
@@ -210,8 +210,8 @@ class TestCELEvaluator:
         ]
         assert evaluator.evaluate(line_items) is False
 
-    def test_aggregate_count(self):
-        """Test count aggregate function"""
+    def test_count_returns_number_of_line_items(self):
+        """Count function returns total number of line items"""
         evaluator = CELEvaluator("count() > 1")
         line_items = [
             {"description": "Item 1", "amount": 10.00},
@@ -222,8 +222,8 @@ class TestCELEvaluator:
         line_items = [{"description": "Item 1", "amount": 10.00}]
         assert evaluator.evaluate(line_items) is False
 
-    def test_aggregate_all_match(self):
-        """Test all_match aggregate function"""
+    def test_all_match_requires_every_item_to_match(self):
+        """All match requires every line item to satisfy condition"""
         evaluator = CELEvaluator('all_match(description.contains("Uber"))')
         line_items = [
             {"description": "Uber Trip 1", "amount": 10.00},
@@ -237,8 +237,8 @@ class TestCELEvaluator:
         ]
         assert evaluator.evaluate(line_items) is False
 
-    def test_aggregate_any_match(self):
-        """Test any_match aggregate function"""
+    def test_any_match_needs_only_one_item_to_match(self):
+        """Any match returns true if at least one item matches"""
         evaluator = CELEvaluator('any_match(payment_method == "Venmo")')
         line_items = [
             {"description": "Item 1", "amount": 10.00, "payment_method": "Cash"},
@@ -250,62 +250,62 @@ class TestCELEvaluator:
 class TestCELValidation:
     """Tests for CEL expression validation"""
 
-    def test_valid_simple_expression(self):
-        """Test validation of valid simple expression"""
+    def test_simple_contains_expression_is_valid(self):
+        """Simple contains expression passes validation"""
         is_valid, error = CELEvaluator.validate('description.contains("Spotify")')
         assert is_valid is True
         assert error is None
 
-    def test_valid_comparison_expression(self):
-        """Test validation of valid comparison expression"""
+    def test_comparison_expression_is_valid(self):
+        """Numeric comparison expression passes validation"""
         is_valid, error = CELEvaluator.validate("amount > 100")
         assert is_valid is True
         assert error is None
 
-    def test_valid_aggregate_expression(self):
-        """Test validation of valid aggregate expression"""
+    def test_aggregate_expression_is_valid(self):
+        """Aggregate sum expression passes validation"""
         is_valid, error = CELEvaluator.validate("sum(amount) == 0")
         assert is_valid is True
         assert error is None
 
-    def test_empty_expression(self):
-        """Test validation of empty expression"""
+    def test_empty_expression_is_invalid(self):
+        """Empty expression fails validation"""
         is_valid, error = CELEvaluator.validate("")
         assert is_valid is False
         assert error is not None
 
-    def test_invalid_syntax(self):
-        """Test validation of invalid syntax"""
+    def test_malformed_syntax_is_invalid(self):
+        """Malformed syntax fails validation"""
         is_valid, error = CELEvaluator.validate("description contains")
         assert is_valid is False
         assert error is not None
 
-    def test_expression_length_limit(self):
-        """Test that expressions exceeding max length are rejected"""
+    def test_expression_exceeding_500_chars_is_rejected(self):
+        """Expressions longer than 500 characters are rejected"""
         # Create an expression that exceeds the 500 character limit
         long_expression = 'description.contains("' + "a" * 500 + '")'
         is_valid, error = CELEvaluator.validate(long_expression)
         assert is_valid is False
         assert "too long" in error.lower()
 
-    def test_expression_at_length_limit(self):
-        """Test that expressions at exactly the limit are accepted"""
+    def test_expression_under_length_limit_is_accepted(self):
+        """Expressions under 500 characters are accepted"""
         # Create an expression that is exactly at the limit (if valid syntax)
         expression = 'description.contains("test")'  # 28 chars, well under limit
         is_valid, error = CELEvaluator.validate(expression)
         assert is_valid is True
         assert error is None
 
-    def test_nesting_depth_limit(self):
-        """Test that deeply nested expressions are rejected"""
+    def test_nesting_exceeding_10_levels_is_rejected(self):
+        """Expressions with more than 10 nesting levels are rejected"""
         # Create a deeply nested expression (11 levels of parentheses)
         nested_expression = "(" * 11 + "amount > 0" + ")" * 11
         is_valid, error = CELEvaluator.validate(nested_expression)
         assert is_valid is False
         assert "nested" in error.lower()
 
-    def test_nesting_at_depth_limit(self):
-        """Test that expressions at exactly the nesting limit are accepted"""
+    def test_nesting_at_10_levels_is_accepted(self):
+        """Expressions with exactly 10 nesting levels are accepted"""
         # Create an expression with exactly 10 levels of nesting
         nested_expression = "(" * 10 + "amount > 0" + ")" * 10
         is_valid, error = CELEvaluator.validate(nested_expression)
@@ -316,8 +316,8 @@ class TestCELValidation:
 class TestEvaluateHints:
     """Tests for the evaluate_hints function"""
 
-    def test_first_match_wins(self):
-        """Test that first matching hint is returned"""
+    def test_first_matching_hint_is_returned(self):
+        """When multiple hints match first one in order wins"""
         hints = [
             {
                 "id": "eh_1",
@@ -343,8 +343,8 @@ class TestEvaluateHints:
         assert result["name"] == "Test Event 1"
         assert result["matched_hint_id"] == "eh_1"
 
-    def test_skips_inactive_hints(self):
-        """Test that inactive hints are skipped"""
+    def test_inactive_hints_are_skipped(self):
+        """Inactive hints are not evaluated"""
         hints = [
             {
                 "id": "eh_1",
@@ -367,8 +367,8 @@ class TestEvaluateHints:
         assert result is not None
         assert result["matched_hint_id"] == "eh_2"
 
-    def test_no_match_returns_none(self):
-        """Test that no match returns None"""
+    def test_no_matching_hint_returns_none(self):
+        """No matching hint returns None"""
         hints = [
             {
                 "id": "eh_1",
@@ -387,23 +387,23 @@ class TestEvaluateHints:
 class TestEventHintsAPI:
     """Tests for the Event Hints API endpoints"""
 
-    def test_get_all_hints_empty(self, test_client, jwt_token, test_user):
-        """Test GET /api/event-hints returns empty list when no hints exist"""
+    def test_empty_hints_returns_empty_list(self, test_client, jwt_token, test_user):
+        """No hints returns empty list"""
         response = test_client.get("/api/event-hints", headers={"Authorization": f"Bearer {jwt_token}"})
         assert response.status_code == 200
         data = response.get_json()
         assert "data" in data
         assert data["data"] == []
 
-    def test_get_all_hints(self, test_client, jwt_token, test_user, sample_hints):
-        """Test GET /api/event-hints returns all hints for user"""
+    def test_hints_returns_all_user_hints(self, test_client, jwt_token, test_user, sample_hints):
+        """All user hints are returned"""
         response = test_client.get("/api/event-hints", headers={"Authorization": f"Bearer {jwt_token}"})
         assert response.status_code == 200
         data = response.get_json()
         assert len(data["data"]) == 3
 
-    def test_create_hint(self, test_client, jwt_token, test_user, pg_session):
-        """Test POST /api/event-hints creates a new hint"""
+    def test_new_hint_is_created_with_prefill_data(self, test_client, jwt_token, test_user, pg_session):
+        """Creating hint stores name and prefill data"""
         subscription_cat = pg_session.query(Category).filter_by(name="Subscription").first()
 
         hint_data = {
@@ -423,8 +423,8 @@ class TestEventHintsAPI:
         assert data["data"]["name"] == "New Hint"
         assert data["data"]["prefill_name"] == "Amazon Order"
 
-    def test_create_hint_invalid_cel(self, test_client, jwt_token, test_user):
-        """Test POST /api/event-hints rejects invalid CEL expression"""
+    def test_invalid_cel_expression_is_rejected(self, test_client, jwt_token, test_user):
+        """Invalid CEL expression is rejected"""
         hint_data = {
             "name": "Bad Hint",
             "cel_expression": "invalid expression syntax!!!",
@@ -440,8 +440,8 @@ class TestEventHintsAPI:
         data = response.get_json()
         assert "error" in data
 
-    def test_update_hint(self, test_client, jwt_token, test_user, sample_hints):
-        """Test PUT /api/event-hints/<id> updates a hint"""
+    def test_hint_name_can_be_updated(self, test_client, jwt_token, test_user, sample_hints):
+        """Hint name can be changed via update"""
         response = test_client.put(
             "/api/event-hints/eh_1",
             json={"name": "Updated Hint Name"},
@@ -451,8 +451,8 @@ class TestEventHintsAPI:
         data = response.get_json()
         assert data["data"]["name"] == "Updated Hint Name"
 
-    def test_delete_hint(self, test_client, jwt_token, test_user, sample_hints):
-        """Test DELETE /api/event-hints/<id> deletes a hint"""
+    def test_hint_can_be_deleted(self, test_client, jwt_token, test_user, sample_hints):
+        """Deleting hint removes it from list"""
         response = test_client.delete(
             "/api/event-hints/eh_1",
             headers={"Authorization": f"Bearer {jwt_token}"},
@@ -464,8 +464,8 @@ class TestEventHintsAPI:
         data = response.get_json()
         assert len(data["data"]) == 2
 
-    def test_evaluate_hints_match(self, test_client, jwt_token, test_user, sample_hints, sample_line_items):
-        """Test POST /api/event-hints/evaluate returns matching hint"""
+    def test_evaluate_returns_matching_suggestion(self, test_client, jwt_token, test_user, sample_hints, sample_line_items):
+        """Evaluate returns suggestion from matching hint"""
         response = test_client.post(
             "/api/event-hints/evaluate",
             json={"line_item_ids": ["li_1"]},  # Spotify line item
@@ -476,8 +476,8 @@ class TestEventHintsAPI:
         assert data["data"]["suggestion"] is not None
         assert data["data"]["suggestion"]["name"] == "Spotify"
 
-    def test_evaluate_hints_no_match(self, test_client, jwt_token, test_user, sample_hints, sample_line_items):
-        """Test POST /api/event-hints/evaluate returns null when no match"""
+    def test_evaluate_returns_null_when_no_match(self, test_client, jwt_token, test_user, sample_hints, sample_line_items):
+        """Evaluate returns null when no hint matches"""
         response = test_client.post(
             "/api/event-hints/evaluate",
             json={"line_item_ids": ["li_2"]},  # Venmo Transfer - doesn't match single-item hints
@@ -488,8 +488,8 @@ class TestEventHintsAPI:
         # li_2 alone (positive amount) won't match sum(amount)==0
         assert data["data"]["suggestion"] is None
 
-    def test_evaluate_hints_aggregate_match(self, test_client, jwt_token, test_user, sample_hints, sample_line_items):
-        """Test POST /api/event-hints/evaluate with aggregate expression"""
+    def test_aggregate_matches_multiple_line_items(self, test_client, jwt_token, test_user, sample_hints, sample_line_items):
+        """Aggregate expression evaluates across multiple line items"""
         response = test_client.post(
             "/api/event-hints/evaluate",
             json={"line_item_ids": ["li_2", "li_3"]},  # Two transfers that sum to 0
@@ -500,8 +500,8 @@ class TestEventHintsAPI:
         assert data["data"]["suggestion"] is not None
         assert data["data"]["suggestion"]["name"] == "Transfer"
 
-    def test_validate_cel_valid(self, test_client, jwt_token, test_user):
-        """Test POST /api/event-hints/validate with valid expression"""
+    def test_validate_returns_true_for_valid_expression(self, test_client, jwt_token, test_user):
+        """Validate returns is_valid true for valid CEL"""
         response = test_client.post(
             "/api/event-hints/validate",
             json={"cel_expression": 'description.contains("Test")'},
@@ -511,8 +511,8 @@ class TestEventHintsAPI:
         data = response.get_json()
         assert data["data"]["is_valid"] is True
 
-    def test_validate_cel_invalid(self, test_client, jwt_token, test_user):
-        """Test POST /api/event-hints/validate with invalid expression"""
+    def test_validate_returns_false_with_error_for_invalid_expression(self, test_client, jwt_token, test_user):
+        """Validate returns is_valid false with error for invalid CEL"""
         response = test_client.post(
             "/api/event-hints/validate",
             json={"cel_expression": "invalid!!!"},
@@ -523,8 +523,8 @@ class TestEventHintsAPI:
         assert data["data"]["is_valid"] is False
         assert "error" in data["data"]
 
-    def test_requires_authentication(self, test_client):
-        """Test that endpoints require authentication"""
+    def test_endpoints_require_authentication(self, test_client):
+        """Event hints endpoints require authentication"""
         response = test_client.get("/api/event-hints")
         assert response.status_code == 401
 
@@ -532,8 +532,8 @@ class TestEventHintsAPI:
 class TestCategoriesAPI:
     """Tests for the Categories API endpoint"""
 
-    def test_get_categories(self, test_client, jwt_token):
-        """Test GET /api/categories returns all categories"""
+    def test_categories_returns_all_with_id_and_name(self, test_client, jwt_token):
+        """Categories returns all categories with id and name"""
         response = test_client.get("/api/categories", headers={"Authorization": f"Bearer {jwt_token}"})
         assert response.status_code == 200
         data = response.get_json()

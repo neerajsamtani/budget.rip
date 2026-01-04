@@ -47,7 +47,7 @@ describe('ProtectedRoute', () => {
         jest.clearAllMocks();
     });
 
-    it('renders children when authenticated', async () => {
+    it('children are rendered when user is authenticated', async () => {
         mockGet.mockResolvedValue({
             data: {
                 id: 'user_123',
@@ -74,7 +74,7 @@ describe('ProtectedRoute', () => {
         });
     });
 
-    it('redirects to /login when not authenticated', async () => {
+    it('user is redirected to /login when not authenticated', async () => {
         mockGet.mockRejectedValue({ response: { status: 401 } });
 
         await act(async () => {
@@ -102,7 +102,7 @@ describe('PublicOnlyRoute', () => {
         jest.clearAllMocks();
     });
 
-    it('renders children when not authenticated', async () => {
+    it('children are rendered when user is not authenticated', async () => {
         mockGet.mockRejectedValue({ response: { status: 401 } });
 
         await act(async () => {
@@ -122,7 +122,7 @@ describe('PublicOnlyRoute', () => {
         });
     });
 
-    it('redirects to home when authenticated', async () => {
+    it('user is redirected to home when authenticated', async () => {
         mockGet.mockResolvedValue({
             data: {
                 id: 'user_123',

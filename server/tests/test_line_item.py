@@ -42,8 +42,8 @@ def line_item_instance():
 
 
 class TestLineItemClass:
-    def test_line_item_initialization(self, line_item_instance):
-        """Test LineItem class initialization"""
+    def test_line_item_stores_all_transaction_fields(self, line_item_instance):
+        """LineItem stores date, party, payment method, description, and amount"""
         assert line_item_instance.id == "line_item_1"
         assert line_item_instance.date == 1234567890
         assert line_item_instance.responsible_party == "John Doe"
@@ -51,8 +51,8 @@ class TestLineItemClass:
         assert line_item_instance.description == "Test transaction"
         assert line_item_instance.amount == 100
 
-    def test_line_item_serialize(self, line_item_instance):
-        """Test LineItem serialize method"""
+    def test_line_item_serializes_to_dictionary(self, line_item_instance):
+        """LineItem serializes to dictionary with all fields"""
         serialized = line_item_instance.serialize()
         expected = {
             "id": "line_item_1",
@@ -64,8 +64,8 @@ class TestLineItemClass:
         }
         assert serialized == expected
 
-    def test_line_item_to_json(self, line_item_instance):
-        """Test LineItem to_json method"""
+    def test_line_item_converts_to_json_string(self, line_item_instance):
+        """LineItem converts to valid JSON string"""
         json_str = line_item_instance.to_json()
         # Parse back to dict to verify structure
         import json
@@ -78,8 +78,8 @@ class TestLineItemClass:
         assert parsed["description"] == "Test transaction"
         assert parsed["amount"] == 100
 
-    def test_line_item_repr(self, line_item_instance):
-        """Test LineItem __repr__ method"""
+    def test_line_item_repr_includes_key_fields(self, line_item_instance):
+        """LineItem repr includes ID, party, payment method, description, and amount"""
         repr_str = repr(line_item_instance)
         assert "line_item_1" in repr_str
         assert "John Doe" in repr_str
@@ -89,8 +89,8 @@ class TestLineItemClass:
 
 
 class TestLineItemAPI:
-    def test_get_all_line_items_api(self, test_client, jwt_token, flask_app, create_line_item_via_cash):
-        """Test GET /api/line_items endpoint"""
+    def test_line_items_returns_all_items_with_total(self, test_client, jwt_token, flask_app, create_line_item_via_cash):
+        """Line items endpoint returns all items with summed total"""
         # Create test line items via API
         create_line_item_via_cash(
             date="2009-02-13",
@@ -118,8 +118,8 @@ class TestLineItemAPI:
         assert data["total"] == 150  # 100 + 50
         assert len(data["data"]) == 2
 
-    def test_get_all_line_items_with_payment_method_filter(self, test_client, jwt_token, flask_app, create_line_item_via_cash):
-        """Test GET /api/line_items with payment_method filter"""
+    def test_line_items_can_be_filtered_by_payment_method(self, test_client, jwt_token, flask_app, create_line_item_via_cash):
+        """Line items can be filtered by payment method"""
         # Create test line items via API (both will be Cash payment method)
         create_line_item_via_cash(
             date="2009-02-13",
@@ -147,7 +147,7 @@ class TestLineItemAPI:
         assert len(data["data"]) == 2
         assert all(item["payment_method"] == "Cash" for item in data["data"])
 
-    def test_get_all_line_items_with_review_filter(
+    def test_review_filter_excludes_line_items_with_events(
         self,
         test_client,
         jwt_token,
@@ -155,7 +155,7 @@ class TestLineItemAPI:
         create_line_item_via_cash,
         create_event_via_api,
     ):
-        """Test GET /api/line_items with only_line_items_to_review filter"""
+        """Review filter excludes line items already assigned to events"""
         # Create two line items via API
         create_line_item_via_cash(
             date="2009-02-13",
@@ -204,8 +204,8 @@ class TestLineItemAPI:
         assert len(data["data"]) == 1
         assert data["data"][0]["id"] == line_item_100["id"]  # Only the one without event_id
 
-    def test_get_line_item_by_id_api_success(self, test_client, flask_app, jwt_token, create_line_item_via_cash):
-        """Test GET /api/line_items/<line_item_id> endpoint - success case"""
+    def test_line_item_can_be_retrieved_by_id(self, test_client, flask_app, jwt_token, create_line_item_via_cash):
+        """Line item can be retrieved by its ID"""
         # Create test line item via API
         create_line_item_via_cash(
             date="2009-02-13",
@@ -233,8 +233,8 @@ class TestLineItemAPI:
         assert data["description"] == "Test transaction"
         assert data["amount"] == 100
 
-    def test_get_line_item_by_id_api_not_found(self, test_client):
-        """Test GET /api/line_items/<line_item_id> endpoint - not found case"""
+    def test_nonexistent_line_item_returns_404(self, test_client):
+        """Requesting a nonexistent line item returns 404"""
         response = test_client.get("/api/line_items/nonexistent_id")
 
         assert response.status_code == 404
@@ -243,8 +243,8 @@ class TestLineItemAPI:
 
 
 class TestLineItemFunctions:
-    def test_all_line_items_no_filters(self, flask_app, pg_session):
-        """Test all_line_items function with no filters"""
+    def test_all_line_items_returns_items_sorted_by_date(self, flask_app, pg_session):
+        """All line items returns items sorted by date descending"""
         from tests.test_helpers import setup_test_line_item
 
         with flask_app.app_context():
@@ -281,8 +281,8 @@ class TestLineItemFunctions:
             assert result[0]["id"] == created_items[1].id
             assert result[1]["id"] == created_items[0].id
 
-    def test_all_line_items_with_payment_method_filter(self, flask_app, pg_session):
-        """Test all_line_items function with payment_method filter"""
+    def test_payment_method_filter_returns_matching_items(self, flask_app, pg_session):
+        """Payment method filter returns only matching line items"""
         from tests.test_helpers import setup_test_line_item
 
         with flask_app.app_context():
@@ -318,8 +318,8 @@ class TestLineItemFunctions:
             assert result[0]["description"] == "Test transaction 1"
             assert result[0]["id"] == created_items[0].id
 
-    def test_all_line_items_with_review_filter(self, flask_app, pg_session):
-        """Test all_line_items function with only_line_items_to_review filter"""
+    def test_review_filter_excludes_items_with_event_id(self, flask_app, pg_session):
+        """Review filter excludes line items that have an event_id"""
         from tests.test_helpers import (
             setup_test_event,
             setup_test_line_item,
@@ -374,8 +374,8 @@ class TestLineItemFunctions:
             assert result[0]["description"] == "Test transaction 1"
             assert result[0]["id"] == line_item_without_event.id
 
-    def test_all_line_items_with_both_filters(self, flask_app, pg_session):
-        """Test all_line_items function with both payment_method and review filters"""
+    def test_payment_method_and_review_filters_combine(self, flask_app, pg_session):
+        """Payment method and review filters can be combined"""
         from tests.test_helpers import (
             setup_test_event,
             setup_test_line_item,
@@ -443,16 +443,16 @@ class TestLineItemFunctions:
             assert result[0]["description"] == "Test transaction 1"
             assert result[0]["id"] == cash_without_event.id
 
-    def test_all_line_items_empty_result(self, flask_app):
-        """Test all_line_items function with no matching data"""
+    def test_empty_database_returns_empty_list(self, flask_app):
+        """Empty database returns empty line items list"""
         with flask_app.app_context():
             # Test function call with no data in database
             result = all_line_items()
 
             assert len(result) == 0
 
-    def test_all_line_items_payment_method_all(self, flask_app, pg_session):
-        """Test all_line_items function with payment_method='All'"""
+    def test_payment_method_all_returns_all_items(self, flask_app, pg_session):
+        """Payment method 'All' returns all line items"""
         from tests.test_helpers import setup_test_line_item
 
         with flask_app.app_context():

@@ -65,14 +65,14 @@ def mock_event():
 
 
 class TestApplicationRoutes:
-    def test_index_api(self, test_client):
-        """Test GET /api/ endpoint"""
+    def test_api_root_returns_welcome_message(self, test_client):
+        """API root endpoint returns welcome message"""
         response = test_client.get("/api/")
         assert response.status_code == 200
         assert response.get_json() == "Welcome to Budgit API"
 
-    def test_schedule_refresh_api_success(self, test_client, mocker):
-        """Test GET /api/refresh/scheduled endpoint - success case"""
+    def test_scheduled_refresh_triggers_data_sync(self, test_client, mocker):
+        """Scheduled refresh triggers data refresh and line item creation"""
         mock_refresh_all = mocker.patch("application.refresh_all")
         mock_create_consistent = mocker.patch("application.create_consistent_line_items")
 
@@ -82,8 +82,8 @@ class TestApplicationRoutes:
         mock_refresh_all.assert_called_once()
         mock_create_consistent.assert_called_once()
 
-    def test_schedule_refresh_api_error(self, test_client, mocker):
-        """Test GET /api/refresh/scheduled endpoint - error case"""
+    def test_scheduled_refresh_returns_500_on_error(self, test_client, mocker):
+        """Scheduled refresh returns 500 when data refresh fails"""
         mock_refresh_all = mocker.patch("application.refresh_all", side_effect=Exception("Test error"))
         mock_create_consistent = mocker.patch("application.create_consistent_line_items")
 
@@ -93,8 +93,8 @@ class TestApplicationRoutes:
         mock_refresh_all.assert_called_once()
         mock_create_consistent.assert_not_called()
 
-    def test_refresh_all_api_success(self, test_client, jwt_token, mocker):
-        """Test POST /api/refresh/all endpoint - success case"""
+    def test_refresh_all_syncs_all_data_sources(self, test_client, jwt_token, mocker):
+        """Refresh all endpoint syncs data from all sources"""
         mock_refresh_all = mocker.patch("application.refresh_all")
         mock_create_consistent = mocker.patch("application.create_consistent_line_items")
         mock_all_line_items = mocker.patch("application.all_line_items")
@@ -110,13 +110,13 @@ class TestApplicationRoutes:
         mock_refresh_all.assert_called_once()
         mock_create_consistent.assert_called_once()
 
-    def test_refresh_all_api_unauthorized(self, test_client):
-        """Test POST /api/refresh/all endpoint - unauthorized"""
+    def test_refresh_all_requires_authentication(self, test_client):
+        """Refresh all endpoint requires authentication"""
         response = test_client.post("/api/refresh/all")
         assert response.status_code == 401
 
-    def test_refresh_single_account_stripe_success(self, test_client, jwt_token, mocker):
-        """Test POST /api/refresh/account endpoint - Stripe account success"""
+    def test_refresh_account_syncs_stripe_transactions(self, test_client, jwt_token, mocker):
+        """Refresh account endpoint syncs Stripe transactions"""
         mock_refresh_transactions = mocker.patch("application.refresh_transactions_api")
         mock_stripe_to_line_items = mocker.patch("application.stripe_to_line_items")
 
@@ -131,8 +131,8 @@ class TestApplicationRoutes:
         mock_refresh_transactions.assert_called_once_with("fca_test123")
         mock_stripe_to_line_items.assert_called_once()
 
-    def test_refresh_single_account_venmo_success(self, test_client, jwt_token, mocker):
-        """Test POST /api/refresh/account endpoint - Venmo account success"""
+    def test_refresh_account_syncs_venmo_transactions(self, test_client, jwt_token, mocker):
+        """Refresh account endpoint syncs Venmo transactions"""
         mock_refresh_venmo = mocker.patch("application.refresh_venmo")
         mock_venmo_to_line_items = mocker.patch("application.venmo_to_line_items")
 
@@ -147,8 +147,8 @@ class TestApplicationRoutes:
         mock_refresh_venmo.assert_called_once()
         mock_venmo_to_line_items.assert_called_once()
 
-    def test_refresh_single_account_splitwise_success(self, test_client, jwt_token, mocker):
-        """Test POST /api/refresh/account endpoint - Splitwise account success"""
+    def test_refresh_account_syncs_splitwise_transactions(self, test_client, jwt_token, mocker):
+        """Refresh account endpoint syncs Splitwise transactions"""
         mock_refresh_splitwise = mocker.patch("application.refresh_splitwise")
         mock_splitwise_to_line_items = mocker.patch("application.splitwise_to_line_items")
 
@@ -163,8 +163,8 @@ class TestApplicationRoutes:
         mock_refresh_splitwise.assert_called_once()
         mock_splitwise_to_line_items.assert_called_once()
 
-    def test_refresh_single_account_missing_params(self, test_client, jwt_token):
-        """Test POST /api/refresh/account endpoint - missing parameters"""
+    def test_refresh_account_requires_account_id_and_source(self, test_client, jwt_token):
+        """Refresh account endpoint requires accountId and source parameters"""
         response = test_client.post(
             "/api/refresh/account",
             json={"accountId": "fca_test123"},
@@ -174,8 +174,8 @@ class TestApplicationRoutes:
         assert response.status_code == 400
         assert "accountId and source are required" in response.get_json()["error"]
 
-    def test_refresh_single_account_invalid_source(self, test_client, jwt_token):
-        """Test POST /api/refresh/account endpoint - invalid source"""
+    def test_refresh_account_rejects_invalid_source(self, test_client, jwt_token):
+        """Refresh account endpoint rejects invalid source values"""
         response = test_client.post(
             "/api/refresh/account",
             json={"accountId": "test123", "source": "invalid"},
@@ -185,8 +185,8 @@ class TestApplicationRoutes:
         assert response.status_code == 400
         assert "Invalid source" in response.get_json()["error"]
 
-    def test_refresh_single_account_error(self, test_client, jwt_token, mocker):
-        """Test POST /api/refresh/account endpoint - error during refresh"""
+    def test_refresh_account_returns_500_on_error(self, test_client, jwt_token, mocker):
+        """Refresh account endpoint returns 500 when refresh fails"""
         mocker.patch("application.refresh_transactions_api", side_effect=Exception("Test error"))
 
         response = test_client.post(
@@ -198,15 +198,15 @@ class TestApplicationRoutes:
         assert response.status_code == 500
         assert "Test error" in response.get_json()["error"]
 
-    def test_refresh_single_account_unauthorized(self, test_client):
-        """Test POST /api/refresh/account endpoint - unauthorized"""
+    def test_refresh_account_requires_authentication(self, test_client):
+        """Refresh account endpoint requires authentication"""
         response = test_client.post(
             "/api/refresh/account",
             json={"accountId": "fca_test123", "source": "stripe"},
         )
         assert response.status_code == 401
 
-    def test_get_connected_accounts_api_success(
+    def test_connected_accounts_returns_venmo_splitwise_and_stripe(
         self,
         test_client,
         jwt_token,
@@ -216,7 +216,7 @@ class TestApplicationRoutes:
         mock_bank_account,
         mocker,
     ):
-        """Test GET /api/connected_accounts endpoint - success case"""
+        """Connected accounts endpoint returns Venmo, Splitwise, and Stripe accounts"""
         with flask_app.app_context():
             # Insert test bank account
             upsert_with_id(bank_accounts_collection, mock_bank_account, mock_bank_account["id"])
@@ -252,8 +252,8 @@ class TestApplicationRoutes:
             assert len(stripe_data["stripe"]) == 1
             assert stripe_data["stripe"][0]["id"] == "fca_test123"
 
-    def test_get_connected_accounts_api_venmo_error(self, test_client, jwt_token, mocker):
-        """Test GET /api/connected_accounts endpoint - Venmo error"""
+    def test_connected_accounts_fails_when_venmo_profile_unavailable(self, test_client, jwt_token, mocker):
+        """Connected accounts endpoint fails when Venmo profile is unavailable"""
         mock_venmo_client = mocker.Mock()
         mock_venmo_client.my_profile.return_value = None
         mocker.patch("application.get_venmo_client", return_value=mock_venmo_client)
@@ -265,13 +265,13 @@ class TestApplicationRoutes:
                 headers={"Authorization": "Bearer " + jwt_token},
             )
 
-    def test_get_connected_accounts_api_unauthorized(self, test_client):
-        """Test GET /api/connected_accounts endpoint - unauthorized"""
+    def test_connected_accounts_requires_authentication(self, test_client):
+        """Connected accounts endpoint requires authentication"""
         response = test_client.get("/api/connected_accounts")
         assert response.status_code == 401
 
-    def test_get_payment_methods_api_success(self, test_client, jwt_token, flask_app, mock_bank_account):
-        """Test GET /api/payment_methods endpoint - success case"""
+    def test_payment_methods_includes_bank_accounts(self, test_client, jwt_token, flask_app, mock_bank_account):
+        """Payment methods endpoint includes bank account display names"""
         with flask_app.app_context():
             # Insert test bank account
             upsert_with_id(bank_accounts_collection, mock_bank_account, mock_bank_account["id"])
@@ -292,8 +292,8 @@ class TestApplicationRoutes:
             # Should include bank account display name
             assert "Checking Account" in data
 
-    def test_get_payment_methods_api_no_bank_accounts(self, test_client, jwt_token):
-        """Test GET /api/payment_methods endpoint - no bank accounts"""
+    def test_payment_methods_returns_defaults_when_no_bank_accounts(self, test_client, jwt_token):
+        """Payment methods returns only default methods when no bank accounts exist"""
         response = test_client.get(
             "/api/payment_methods",
             headers={"Authorization": "Bearer " + jwt_token},
@@ -305,15 +305,15 @@ class TestApplicationRoutes:
         # Should only include default payment methods
         assert data == ["Cash", "Venmo", "Splitwise"]
 
-    def test_get_payment_methods_api_unauthorized(self, test_client):
-        """Test GET /api/payment_methods endpoint - unauthorized"""
+    def test_payment_methods_requires_authentication(self, test_client):
+        """Payment methods endpoint requires authentication"""
         response = test_client.get("/api/payment_methods")
         assert response.status_code == 401
 
 
 class TestApplicationFunctions:
-    def test_refresh_all_success(self, flask_app, mocker):
-        """Test refresh_all function - success case"""
+    def test_refresh_all_calls_all_data_source_refreshers(self, flask_app, mocker):
+        """Refresh all calls Splitwise, Venmo, and Stripe refreshers"""
         with flask_app.app_context():
             mock_refresh_splitwise = mocker.patch("application.refresh_splitwise")
             mock_refresh_venmo = mocker.patch("application.refresh_venmo")
@@ -327,8 +327,8 @@ class TestApplicationFunctions:
             mock_refresh_venmo.assert_called_once()
             mock_refresh_stripe.assert_called_once()
 
-    def test_create_consistent_line_items_success(self, flask_app, mocker):
-        """Test create_consistent_line_items function - success case"""
+    def test_create_consistent_line_items_normalizes_all_sources(self, flask_app, mocker):
+        """Create consistent line items normalizes data from all sources"""
         with flask_app.app_context():
             mock_splitwise_to_line_items = mocker.patch("application.splitwise_to_line_items")
             mock_venmo_to_line_items = mocker.patch("application.venmo_to_line_items")
@@ -346,8 +346,8 @@ class TestApplicationFunctions:
 
 
 class TestApplicationIntegration:
-    def test_full_refresh_workflow(self, flask_app, mock_line_item, mocker):
-        """Test the complete refresh workflow"""
+    def test_refresh_workflow_syncs_data_and_creates_line_items(self, flask_app, mock_line_item, mocker):
+        """Complete refresh workflow syncs data and creates line items"""
         with flask_app.app_context():
             # Insert test line item
             upsert_with_id(line_items_collection, mock_line_item, mock_line_item["id"])
@@ -370,8 +370,8 @@ class TestApplicationIntegration:
             mock_refresh_all.assert_called_once()
             mock_create_consistent.assert_called_once()
 
-    def test_connected_accounts_with_multiple_bank_accounts(self, test_client, jwt_token, flask_app, mocker):
-        """Test connected accounts with multiple bank accounts"""
+    def test_connected_accounts_lists_all_bank_accounts(self, test_client, jwt_token, flask_app, mocker):
+        """Connected accounts lists all bank accounts under Stripe"""
         with flask_app.app_context():
             # Insert multiple bank accounts
             bank_accounts = [
@@ -412,8 +412,8 @@ class TestApplicationIntegration:
             stripe_data = next(item for item in data if "stripe" in item)
             assert len(stripe_data["stripe"]) == 2
 
-    def test_payment_methods_with_multiple_bank_accounts(self, test_client, jwt_token, flask_app):
-        """Test payment methods with multiple bank accounts"""
+    def test_payment_methods_lists_all_bank_account_names(self, test_client, jwt_token, flask_app):
+        """Payment methods lists display names for all bank accounts"""
         with flask_app.app_context():
             # Insert multiple bank accounts
             bank_accounts = [
