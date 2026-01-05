@@ -46,10 +46,10 @@ export default function LineItemsToReviewPage() {
 
 
     const handleKeyDown = useCallback((event) => {
-        if (event.key === 'Enter' && selectedLineItems.length > 0) {
+        if (event.key === 'Enter' && selectedLineItems.length > 0 && !eventModalShow && !cashModalShow) {
             setEventModalShow(true);
         }
-    }, [selectedLineItems.length]);
+    }, [selectedLineItems.length, eventModalShow, cashModalShow]);
 
     useEffect(() => {
         document.addEventListener('keydown', handleKeyDown);
@@ -143,10 +143,10 @@ export default function LineItemsToReviewPage() {
                             Total: {CurrencyFormatter.format(total)}
                         </Body>
                         <div className="flex flex-row gap-2 sm:gap-4">
-                            <Button onClick={() => setCashModalShow(true)} variant="secondary" size="sm" className="px-2 sm:px-4">
+                            <Button onClick={() => { setEventModalShow(false); setCashModalShow(true); }} variant="secondary" size="sm" className="px-2 sm:px-4">
                                 Create Cash Transaction
                             </Button>
-                            <Button onClick={() => setEventModalShow(true)} size="sm" className="px-2 sm:px-4" disabled={selectedLineItems.length === 0}>
+                            <Button onClick={() => { setCashModalShow(false); setEventModalShow(true); }} size="sm" className="px-2 sm:px-4" disabled={selectedLineItems.length === 0}>
                                 Create Event<span className="hidden sm:inline"> (↵)</span>
                             </Button>
                         </div>

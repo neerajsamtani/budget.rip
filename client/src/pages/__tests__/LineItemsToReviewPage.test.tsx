@@ -277,18 +277,21 @@ describe('LineItemsToReviewPage', () => {
             expect(screen.queryByTestId('event-modal')).not.toBeInTheDocument();
         });
 
-        it('can have both modals open simultaneously', async () => {
+        it('only one modal can be open at a time', async () => {
             mockUseLineItems.mockReturnValue({ lineItems: mockLineItemsWithSelection, isLoading: false });
             render(<LineItemsToReviewPage />);
 
-            // Open both modals
             const cashButton = screen.getByRole('button', { name: /create cash transaction/i });
             const eventButton = screen.getByRole('button', { name: /create event/i });
 
+            // Open cash modal first
             await userEvent.click(cashButton);
-            await userEvent.click(eventButton);
-
             expect(screen.getByTestId('cash-transaction-modal')).toBeInTheDocument();
+            expect(screen.queryByTestId('event-modal')).not.toBeInTheDocument();
+
+            // Opening event modal closes cash modal
+            await userEvent.click(eventButton);
+            expect(screen.queryByTestId('cash-transaction-modal')).not.toBeInTheDocument();
             expect(screen.getByTestId('event-modal')).toBeInTheDocument();
         });
 
@@ -359,6 +362,23 @@ describe('LineItemsToReviewPage', () => {
             fireEvent.keyDown(document, { key: 'Enter' });
 
             // Modal should not appear
+            expect(screen.queryByTestId('event-modal')).not.toBeInTheDocument();
+        });
+
+        it('does not open event modal when Enter key is pressed while cash modal is open', async () => {
+            mockUseLineItems.mockReturnValue({ lineItems: mockLineItemsWithSelection, isLoading: false });
+            render(<LineItemsToReviewPage />);
+
+            // Open cash modal first
+            const cashButton = screen.getByRole('button', { name: /create cash transaction/i });
+            await userEvent.click(cashButton);
+            expect(screen.getByTestId('cash-transaction-modal')).toBeInTheDocument();
+
+            // Press Enter - should not open event modal
+            fireEvent.keyDown(document, { key: 'Enter' });
+
+            // Cash modal should still be open, event modal should not appear
+            expect(screen.getByTestId('cash-transaction-modal')).toBeInTheDocument();
             expect(screen.queryByTestId('event-modal')).not.toBeInTheDocument();
         });
     });
