@@ -4,10 +4,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ResponsiveDialog, useIsMobile } from "@/components/ui/responsive-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Body } from "../components/ui/typography";
-import { useLineItems, useLineItemsDispatch } from "../contexts/LineItemsContext";
-import { FormField, useField } from '../hooks/useField';
+import { LineItemInterface, useLineItems, useLineItemsDispatch } from "../contexts/LineItemsContext";
+import { useField } from '../hooks/useField';
 import { CurrencyFormatter } from '../utils/formatters';
 import defaultNameCleanup from '../utils/stringHelpers';
 import { showSuccessToast, showErrorToast } from '../utils/toast-helpers';
@@ -17,58 +17,38 @@ import { Option } from './Autocomplete';
 import { Tag, TagsField } from './TagsField';
 import { Spinner } from './ui/spinner';
 
-export default function CreateEventModal({ show, onHide }: { show: boolean, onHide: () => void }) {
+interface CreateEventModalContentProps {
+  initialName: string;
+  initialCategory: string;
+  selectedLineItems: LineItemInterface[];
+  selectedLineItemIds: string[];
+  onClose: () => void;
+  isLoadingHints: boolean;
+}
 
-  const { lineItems } = useLineItems();
+/**
+ * Inner component that manages form state. Uses key prop from parent to reset
+ * when initial values change, eliminating the need for effects to sync state.
+ */
+function CreateEventModalContent({
+  initialName,
+  initialCategory,
+  selectedLineItems,
+  selectedLineItemIds,
+  onClose,
+  isLoadingHints,
+}: CreateEventModalContentProps) {
   const lineItemsDispatch = useLineItemsDispatch();
   const createEventMutation = useCreateEvent();
 
-  const selectedLineItems = (lineItems || []).filter(lineItem => lineItem.isSelected);
-  const selectedLineItemIds = selectedLineItems.map(lineItem => lineItem.id);
-
-  // Fetch prefill suggestion from server when line items are selected
-  const { data: prefillSuggestion, isLoading: isLoadingHints, isError: isHintsError } = useEvaluateEventHints(
-    selectedLineItemIds,
-    selectedLineItemIds.length > 0
-  );
-
-  // Track whether we've prefilled for the current hints to prevent duplicate prefills
-  const hasPrefilled = useRef(false);
-
-  // Reset flag when hints data changes (new API response)
-  useEffect(() => {
-    hasPrefilled.current = false;
-  }, [prefillSuggestion]);
-
-  useEffect(() => {
-    if (isLoadingHints) return;
-
-    if (show && selectedLineItems.length > 0 && !hasPrefilled.current) {
-      hasPrefilled.current = true;
-      if (isHintsError) {
-        showErrorToast("Failed to load event hints. Using default name.");
-      }
-      if (prefillSuggestion) {
-        name.setCustomValue(prefillSuggestion.name);
-        if (prefillSuggestion.category) {
-          category.setCustomValue(prefillSuggestion.category);
-        }
-      } else {
-        name.setCustomValue(defaultNameCleanup(selectedLineItems[0].description));
-      }
-    } else if (!show) {
-      hasPrefilled.current = false;
-      name.setEmpty();
-      category.setEmpty();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [show, selectedLineItems, prefillSuggestion, isLoadingHints, isHintsError])
-
-  const name = useField<string>("text", "" as string)
-  const category = useField("select", "All" as string)
-  const date = useField<string>("date", "" as string)
-  const isDuplicateTransaction = useField<boolean>("checkbox", false)
+  // Form fields initialize with props - when parent changes the key, this component
+  // remounts with fresh state using the new initial values
+  const name = useField<string>("text", initialName);
+  const category = useField("select", initialCategory);
+  const date = useField<string>("date", "");
+  const isDuplicateTransaction = useField<boolean>("checkbox", false);
   const [tags, setTags] = useState<Tag[]>([]);
+
   const { data: existingTags, isLoading: isLoadingTags } = useTags();
   const { data: categories = [], isLoading: isLoadingCategories, isError: isCategoriesError } = useCategories();
 
@@ -82,27 +62,17 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
     }
   };
 
-  const disableSubmit = name.value === "" || category.value === "" || category.value === "All"
+  const removeTag = (tagId: string) => {
+    setTags(tags.filter(tag => tag.id !== tagId));
+  };
+
+  const disableSubmit = name.value === "" || category.value === "" || category.value === "All";
 
   const total = React.useMemo(() => {
     return calculateEventTotal(selectedLineItems, isDuplicateTransaction.value);
   }, [selectedLineItems, isDuplicateTransaction.value]);
 
-
-  const closeModal = () => {
-    name.setEmpty()
-    category.setEmpty()
-    date.setEmpty()
-    setTags([])
-    isDuplicateTransaction.setCustomValue(false);
-    onHide()
-  }
-
-  const removeTag = (tagId: string) => {
-    setTags(tags.filter(tag => tag.id !== tagId));
-  };
-
-  const createEvent = (name: FormField<string>, category: FormField<string>) => {
+  const createEvent = () => {
     const newEvent = {
       name: name.value,
       category: category.value,
@@ -110,32 +80,26 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
       line_items: selectedLineItemIds,
       is_duplicate_transaction: isDuplicateTransaction.value,
       tags: tags.map(tag => tag.text)
-    }
+    };
     createEventMutation.mutate(newEvent, {
       onSuccess: (response: { name?: string }) => {
-        closeModal()
+        onClose();
         lineItemsDispatch({
           type: 'remove_line_items',
           lineItemIds: selectedLineItemIds
-        })
+        });
         showSuccessToast(response.name || newEvent.name, "Created Event");
       },
       onError: (error) => {
         showErrorToast(error);
       }
     });
-  }
+  };
 
   const isMobile = useIsMobile();
 
   return (
-    <ResponsiveDialog open={show} onOpenChange={closeModal} className={isMobile ? "" : "w-full !max-w-[42rem]"}>
-      <div className="flex flex-col gap-2 pb-4 border-b border-muted">
-        <h3 className="text-lg font-semibold text-foreground">New Event Details</h3>
-        <p className="text-muted-foreground text-sm">
-          Create a financial event from your selected transactions
-        </p>
-      </div>
+    <>
       <div className="space-y-6 py-4">
         <div className="space-y-3">
           <Label htmlFor="event-name" className="text-sm font-medium text-foreground">
@@ -227,11 +191,11 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
           </Body>
         </div>
         <div className={`flex gap-3 ${isMobile ? "flex-col" : ""}`}>
-          <Button onClick={closeModal} variant="secondary" className={isMobile ? "w-full" : "min-w-[100px]"}>
+          <Button onClick={onClose} variant="secondary" className={isMobile ? "w-full" : "min-w-[100px]"}>
             Cancel
           </Button>
           <Button
-            onClick={() => createEvent(name, category)}
+            onClick={createEvent}
             disabled={disableSubmit}
             className={isMobile ? "w-full" : "min-w-[100px]"}
           >
@@ -239,6 +203,77 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
           </Button>
         </div>
       </div>
+    </>
+  );
+}
+
+/**
+ * Parent component that handles data fetching and computes initial form values.
+ * Uses a key prop to reset the inner component when values should change.
+ */
+export default function CreateEventModal({ show, onHide }: { show: boolean, onHide: () => void }) {
+  const { lineItems } = useLineItems();
+
+  const selectedLineItems = (lineItems || []).filter(lineItem => lineItem.isSelected);
+  const selectedLineItemIds = selectedLineItems.map(lineItem => lineItem.id);
+
+  // Fetch prefill suggestion from server when line items are selected
+  const { data: prefillSuggestion, isLoading: isLoadingHints, isError: isHintsError } = useEvaluateEventHints(
+    selectedLineItemIds,
+    selectedLineItemIds.length > 0
+  );
+
+  // Show error toast when hints fail to load
+  useEffect(() => {
+    if (show && isHintsError) {
+      showErrorToast("Failed to load event hints. Using default name.");
+    }
+  }, [show, isHintsError]);
+
+  // Compute initial values based on current state
+  const computeInitialValues = () => {
+    if (isLoadingHints || selectedLineItems.length === 0) {
+      return { name: "", category: "" };
+    }
+    if (prefillSuggestion) {
+      return {
+        name: prefillSuggestion.name,
+        category: prefillSuggestion.category || "",
+      };
+    }
+    return {
+      name: defaultNameCleanup(selectedLineItems[0].description),
+      category: "",
+    };
+  };
+
+  const initialValues = computeInitialValues();
+
+  // Key changes when form should reset:
+  // - show: reset when modal opens/closes
+  // - isLoadingHints: remount when loading finishes to apply prefill
+  // - selectedLineItemIds: reset when selection changes
+  const formKey = `${show}-${isLoadingHints}-${selectedLineItemIds.join(',')}`;
+
+  const isMobile = useIsMobile();
+
+  return (
+    <ResponsiveDialog open={show} onOpenChange={onHide} className={isMobile ? "" : "w-full !max-w-[42rem]"}>
+      <div className="flex flex-col gap-2 pb-4 border-b border-muted">
+        <h3 className="text-lg font-semibold text-foreground">New Event Details</h3>
+        <p className="text-muted-foreground text-sm">
+          Create a financial event from your selected transactions
+        </p>
+      </div>
+      <CreateEventModalContent
+        key={formKey}
+        initialName={initialValues.name}
+        initialCategory={initialValues.category}
+        selectedLineItems={selectedLineItems}
+        selectedLineItemIds={selectedLineItemIds}
+        onClose={onHide}
+        isLoadingHints={isLoadingHints}
+      />
     </ResponsiveDialog>
   );
 }

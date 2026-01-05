@@ -46,10 +46,10 @@ export default function LineItemsToReviewPage() {
 
 
     const handleKeyDown = useCallback((event) => {
-        if (event.key === 'Enter') {
+        if (event.key === 'Enter' && selectedLineItems.length > 0) {
             setEventModalShow(true);
         }
-    }, []);
+    }, [selectedLineItems.length]);
 
     useEffect(() => {
         document.addEventListener('keydown', handleKeyDown);
@@ -146,7 +146,7 @@ export default function LineItemsToReviewPage() {
                             <Button onClick={() => setCashModalShow(true)} variant="secondary" size="sm" className="px-2 sm:px-4">
                                 Create Cash Transaction
                             </Button>
-                            <Button onClick={() => setEventModalShow(true)} size="sm" className="px-2 sm:px-4">
+                            <Button onClick={() => setEventModalShow(true)} size="sm" className="px-2 sm:px-4" disabled={selectedLineItems.length === 0}>
                                 Create Event<span className="hidden sm:inline"> (↵)</span>
                             </Button>
                         </div>

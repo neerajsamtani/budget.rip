@@ -398,11 +398,8 @@ describe('CreateEventModal', () => {
                 isError: false
             });
 
-            // First render with show=false to trigger prefill
-            const { rerender } = render(<CreateEventModal show={false} onHide={mockOnHide} />);
-
-            // Then render with show=true
-            rerender(<CreateEventModal show={true} onHide={mockOnHide} />);
+            // Render directly with show=true - form should be prefilled with suggestions
+            render(<CreateEventModal show={true} onHide={mockOnHide} />);
 
             await waitFor(() => {
                 expect(screen.getByDisplayValue('Suggested Name')).toBeInTheDocument();
@@ -452,11 +449,8 @@ describe('CreateEventModal', () => {
             });
             mockDefaultNameCleanup.mockReturnValue('Cleaned Description');
 
-            // First render with show=false to trigger prefill logic
-            const { rerender } = render(<CreateEventModal show={false} onHide={mockOnHide} />);
-
-            // Then render with show=true - should show loading state
-            rerender(<CreateEventModal show={true} onHide={mockOnHide} />);
+            // Render with show=true - should show loading state
+            const { rerender } = render(<CreateEventModal show={true} onHide={mockOnHide} />);
 
             // The name input should show loading placeholder and be disabled
             const nameInput = screen.getByPlaceholderText('Loading suggestions...');
@@ -474,8 +468,7 @@ describe('CreateEventModal', () => {
                 isError: false
             });
 
-            // Re-render to trigger the effect with updated loading state
-            rerender(<CreateEventModal show={false} onHide={mockOnHide} />);
+            // Re-render - key changes because isLoadingHints changed, causing remount with prefilled values
             rerender(<CreateEventModal show={true} onHide={mockOnHide} />);
 
             await waitFor(() => {
@@ -716,10 +709,10 @@ describe('CreateEventModal', () => {
         });
 
         it('form is reset when modal is closed', async () => {
-            render(<CreateEventModal show={true} onHide={mockOnHide} />);
+            const { rerender } = render(<CreateEventModal show={true} onHide={mockOnHide} />);
 
             // Fill out form
-            const nameInput = screen.getAllByDisplayValue('')[0]; // First input is name
+            const nameInput = screen.getByPlaceholderText('Enter a descriptive name for this event');
             fireEvent.change(nameInput, { target: { value: 'Test Event' } });
 
             const categorySelect = screen.getByRole('combobox', { name: /category/i });
@@ -734,18 +727,18 @@ describe('CreateEventModal', () => {
             fireEvent.change(tagInput, { target: { value: 'important' } });
             fireEvent.keyDown(tagInput, { key: 'Enter' });
 
-            // Close modal
-            const cancelButton = screen.getByRole('button', { name: /cancel/i });
-            await userEvent.click(cancelButton);
+            await waitFor(() => {
+                expect(screen.getByText('important')).toBeInTheDocument();
+            });
 
-            // Reopen modal
-            const { rerender } = render(<CreateEventModal show={false} onHide={mockOnHide} />);
+            // Close and reopen modal using the same instance
+            rerender(<CreateEventModal show={false} onHide={mockOnHide} />);
             rerender(<CreateEventModal show={true} onHide={mockOnHide} />);
 
-            expect(screen.getAllByDisplayValue('')[0]).toBeInTheDocument(); // Name input
+            // Form should be reset - name gets prefilled from line item, but other fields reset
             const categorySelectReset = screen.getByRole('combobox', { name: /category/i });
-            // Category select is reset - shows placeholder since 'All' is not a valid option
             expect(categorySelectReset).toBeInTheDocument();
+            // Tag should be cleared since component remounts with fresh state
             expect(screen.queryByText('important')).not.toBeInTheDocument();
         });
     });
@@ -792,12 +785,10 @@ describe('CreateEventModal', () => {
             expect(dateInput).toHaveValue('2024-01-15');
         });
 
-        it('form fields are cleared after successful submission', async () => {
+        it('form fields are cleared after successful submission and modal reopen', async () => {
             mockAxiosInstance.post.mockResolvedValueOnce({ data: { name: 'Test Event', success: true } });
 
-            await act(async () => {
-                render(<CreateEventModal show={true} onHide={mockOnHide} />);
-            });
+            const { rerender } = render(<CreateEventModal show={true} onHide={mockOnHide} />);
 
             const nameInput = screen.getByPlaceholderText('Enter a descriptive name for this event');
             const dateInput = screen.getByLabelText('Override Date (optional)');
@@ -814,10 +805,21 @@ describe('CreateEventModal', () => {
                 await userEvent.click(submitButton);
             });
 
+            // Verify onHide was called after successful submission
             await waitFor(() => {
-                expect(nameInput).toHaveValue('');
-                expect(dateInput).toHaveValue('');
+                expect(mockOnHide).toHaveBeenCalled();
             });
+
+            // Simulate line items being removed (as dispatch would do) and modal reopening
+            mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: false });
+            rerender(<CreateEventModal show={false} onHide={mockOnHide} />);
+            rerender(<CreateEventModal show={true} onHide={mockOnHide} />);
+
+            // Form fields should be cleared (no line items = no prefill)
+            const freshNameInput = screen.getByPlaceholderText('Enter a descriptive name for this event');
+            const freshDateInput = screen.getByLabelText('Override Date (optional)');
+            expect(freshNameInput).toHaveValue('');
+            expect(freshDateInput).toHaveValue('');
         });
     });
 

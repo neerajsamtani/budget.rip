@@ -111,6 +111,39 @@ const mockLineItems = [
     }
 ];
 
+const mockLineItemsWithSelection = [
+    {
+        _id: '1',
+        id: '1',
+        date: 1640995200,
+        payment_method: 'credit_card',
+        description: 'Test transaction 1',
+        responsible_party: 'Test Store 1',
+        amount: 50.00,
+        isSelected: true,
+    },
+    {
+        _id: '2',
+        id: '2',
+        date: 1640995200,
+        payment_method: 'cash',
+        description: 'Test transaction 2',
+        responsible_party: 'Test Store 2',
+        amount: 100.00,
+        isSelected: false,
+    },
+    {
+        _id: '3',
+        id: '3',
+        date: 1640995200,
+        payment_method: 'debit_card',
+        description: 'Test transaction 3',
+        responsible_party: 'Test Store 3',
+        amount: 25.00,
+        isSelected: false,
+    }
+];
+
 describe('LineItemsToReviewPage', () => {
     beforeEach(() => {
         jest.clearAllMocks();
@@ -204,6 +237,7 @@ describe('LineItemsToReviewPage', () => {
         });
 
         it('opens event modal when button is clicked', async () => {
+            mockUseLineItems.mockReturnValue({ lineItems: mockLineItemsWithSelection, isLoading: false });
             render(<LineItemsToReviewPage />);
 
             const eventButton = screen.getByRole('button', { name: /create event/i });
@@ -228,6 +262,7 @@ describe('LineItemsToReviewPage', () => {
         });
 
         it('closes event modal when onHide is called', async () => {
+            mockUseLineItems.mockReturnValue({ lineItems: mockLineItemsWithSelection, isLoading: false });
             render(<LineItemsToReviewPage />);
 
             // Open modal
@@ -243,6 +278,7 @@ describe('LineItemsToReviewPage', () => {
         });
 
         it('can have both modals open simultaneously', async () => {
+            mockUseLineItems.mockReturnValue({ lineItems: mockLineItemsWithSelection, isLoading: false });
             render(<LineItemsToReviewPage />);
 
             // Open both modals
@@ -255,10 +291,25 @@ describe('LineItemsToReviewPage', () => {
             expect(screen.getByTestId('cash-transaction-modal')).toBeInTheDocument();
             expect(screen.getByTestId('event-modal')).toBeInTheDocument();
         });
+
+        it('does not open event modal when button is clicked with no selected line items', async () => {
+            render(<LineItemsToReviewPage />);
+
+            const eventButton = screen.getByRole('button', { name: /create event/i });
+
+            // Button should be disabled
+            expect(eventButton).toBeDisabled();
+
+            // Attempt to click the button (should not open modal)
+            await userEvent.click(eventButton);
+
+            expect(screen.queryByTestId('event-modal')).not.toBeInTheDocument();
+        });
     });
 
     describe('Keyboard Interactions', () => {
         it('opens event modal when Enter key is pressed', async () => {
+            mockUseLineItems.mockReturnValue({ lineItems: mockLineItemsWithSelection, isLoading: false });
             render(<LineItemsToReviewPage />);
 
             // Simulate Enter key press
@@ -281,6 +332,7 @@ describe('LineItemsToReviewPage', () => {
         });
 
         it('can open event modal multiple times with Enter key', async () => {
+            mockUseLineItems.mockReturnValue({ lineItems: mockLineItemsWithSelection, isLoading: false });
             render(<LineItemsToReviewPage />);
 
             // First Enter press
@@ -298,6 +350,16 @@ describe('LineItemsToReviewPage', () => {
             await waitFor(() => {
                 expect(screen.getByTestId('event-modal')).toBeInTheDocument();
             });
+        });
+
+        it('does not open event modal when Enter key is pressed with no selected line items', async () => {
+            render(<LineItemsToReviewPage />);
+
+            // Simulate Enter key press
+            fireEvent.keyDown(document, { key: 'Enter' });
+
+            // Modal should not appear
+            expect(screen.queryByTestId('event-modal')).not.toBeInTheDocument();
         });
     });
 
@@ -387,6 +449,7 @@ describe('LineItemsToReviewPage', () => {
         });
 
         it('passes correct props to CreateEventModal', async () => {
+            mockUseLineItems.mockReturnValue({ lineItems: mockLineItemsWithSelection, isLoading: false });
             render(<LineItemsToReviewPage />);
 
             const eventButton = screen.getByRole('button', { name: /create event/i });
@@ -563,7 +626,7 @@ describe('LineItemsToReviewPage', () => {
             const { container, rerender } = render(<LineItemsToReviewPage />);
 
             // Verify spinner is present
-            let spinner = container.querySelector('.animate-spin');
+            const spinner = container.querySelector('.animate-spin');
             expect(spinner).toBeInTheDocument();
 
             // Update to loaded state with data
