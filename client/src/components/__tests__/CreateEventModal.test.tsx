@@ -178,7 +178,7 @@ describe('CreateEventModal', () => {
         it('typing in name field is allowed', async () => {
             render(<CreateEventModal show={true} onHide={mockOnHide} />);
 
-            const nameInput = screen.getAllByDisplayValue('')[0]; // First input is name
+            const nameInput = screen.getByPlaceholderText('Enter a descriptive name for this event');
             fireEvent.change(nameInput, { target: { value: 'Test Event Name' } });
 
             expect(nameInput).toHaveValue('Test Event Name');
@@ -350,7 +350,7 @@ describe('CreateEventModal', () => {
     });
 
     describe('Category Loading and Error States', () => {
-        it('category select is disabled when categories are loading', async () => {
+        it('spinner is shown when categories are loading', async () => {
             mockUseCategories.mockReturnValue({
                 data: [],
                 isLoading: true,
@@ -359,8 +359,11 @@ describe('CreateEventModal', () => {
 
             render(<CreateEventModal show={true} onHide={mockOnHide} />);
 
-            const categorySelect = screen.getByRole('combobox', { name: /category/i });
-            expect(categorySelect).toBeDisabled();
+            // Spinner should be visible (using document.body since dialog renders in a portal)
+            expect(document.body.querySelector('.animate-spin')).toBeInTheDocument();
+            // Form fields should not be present when loading
+            expect(screen.queryByRole('combobox', { name: /category/i })).not.toBeInTheDocument();
+            expect(screen.queryByText('Event Name')).not.toBeInTheDocument();
         });
 
         it('error message is shown when categories fail to load', async () => {
@@ -372,7 +375,7 @@ describe('CreateEventModal', () => {
 
             render(<CreateEventModal show={true} onHide={mockOnHide} />);
 
-            expect(screen.getByText('Failed to load categories. Please refresh the page.')).toBeInTheDocument();
+            expect(screen.getByText('Internal Error: Failed to load categories. Please try again later.')).toBeInTheDocument();
         });
 
         it('category select is enabled after successful load', async () => {
@@ -398,13 +401,12 @@ describe('CreateEventModal', () => {
                 isError: false
             });
 
-            // First render with show=false to trigger prefill
-            const { rerender } = render(<CreateEventModal show={false} onHide={mockOnHide} />);
+            // Render directly with show=true - form should be prefilled with suggestions
+            render(<CreateEventModal show={true} onHide={mockOnHide} />);
 
-            // Then render with show=true
-            rerender(<CreateEventModal show={true} onHide={mockOnHide} />);
-
-            expect(screen.getByDisplayValue('Suggested Name')).toBeInTheDocument();
+            await waitFor(() => {
+                expect(screen.getByDisplayValue('Suggested Name')).toBeInTheDocument();
+            });
             const categorySelect = screen.getByRole('combobox', { name: /category/i });
             expect(categorySelect).toHaveTextContent('Dining');
         });
@@ -441,7 +443,7 @@ describe('CreateEventModal', () => {
             expect(categorySelect).toHaveTextContent('Select a category'); // Category select placeholder
         });
 
-        it('hints are waited for before prefilling', async () => {
+        it('spinner is shown while hints load, then form is prefilled', async () => {
             // Mock the hook to return loading state initially
             mockUseEvaluateEventHints.mockReturnValue({
                 data: null,
@@ -450,15 +452,14 @@ describe('CreateEventModal', () => {
             });
             mockDefaultNameCleanup.mockReturnValue('Cleaned Description');
 
-            // First render with show=false to trigger prefill logic
-            const { rerender } = render(<CreateEventModal show={false} onHide={mockOnHide} />);
+            // Render with show=true - should show loading state (spinner, no form)
+            const { rerender } = render(<CreateEventModal show={true} onHide={mockOnHide} />);
 
-            // Then render with show=true - should NOT prefill yet because still loading
-            rerender(<CreateEventModal show={true} onHide={mockOnHide} />);
-
-            // The name input should still be empty because we're waiting for hints
-            const nameInput = screen.getByPlaceholderText('Enter a descriptive name for this event');
-            expect(nameInput).toHaveValue('');
+            // Spinner should be visible (using document.body since dialog renders in a portal)
+            expect(document.body.querySelector('.animate-spin')).toBeInTheDocument();
+            // Form fields should not be present when loading hints
+            expect(screen.queryByText('Event Name')).not.toBeInTheDocument();
+            expect(screen.queryByRole('combobox', { name: /category/i })).not.toBeInTheDocument();
 
             // Now simulate loading complete with a suggestion
             mockUseEvaluateEventHints.mockReturnValue({
@@ -467,13 +468,16 @@ describe('CreateEventModal', () => {
                 isError: false
             });
 
-            // Re-render to trigger the effect with updated loading state
-            rerender(<CreateEventModal show={false} onHide={mockOnHide} />);
+            // Re-render - key changes because isLoadingHints changed, causing remount with prefilled values
             rerender(<CreateEventModal show={true} onHide={mockOnHide} />);
 
             await waitFor(() => {
                 expect(screen.getByDisplayValue('Suggested Name')).toBeInTheDocument();
             });
+
+            // After loading completes, form should be fully interactive
+            const nameInputAfterLoad = screen.getByDisplayValue('Suggested Name');
+            expect(nameInputAfterLoad).not.toBeDisabled();
         });
 
         it('error toast is shown when hints fail to load', async () => {
@@ -540,8 +544,8 @@ describe('CreateEventModal', () => {
             mockDefaultNameCleanup.mockImplementation((str) => str);
             render(<CreateEventModal show={true} onHide={mockOnHide} />);
 
-            // Fill out form
-            const nameInput = screen.getAllByDisplayValue('')[0]; // First input is name
+            // Fill out form - use placeholder to find name input since it may be prefilled
+            const nameInput = screen.getByPlaceholderText('Enter a descriptive name for this event');
             fireEvent.change(nameInput, { target: { value: 'Test Event' } });
 
             const categorySelect = screen.getByRole('combobox', { name: /category/i });
@@ -705,10 +709,10 @@ describe('CreateEventModal', () => {
         });
 
         it('form is reset when modal is closed', async () => {
-            render(<CreateEventModal show={true} onHide={mockOnHide} />);
+            const { rerender } = render(<CreateEventModal show={true} onHide={mockOnHide} />);
 
             // Fill out form
-            const nameInput = screen.getAllByDisplayValue('')[0]; // First input is name
+            const nameInput = screen.getByPlaceholderText('Enter a descriptive name for this event');
             fireEvent.change(nameInput, { target: { value: 'Test Event' } });
 
             const categorySelect = screen.getByRole('combobox', { name: /category/i });
@@ -723,18 +727,18 @@ describe('CreateEventModal', () => {
             fireEvent.change(tagInput, { target: { value: 'important' } });
             fireEvent.keyDown(tagInput, { key: 'Enter' });
 
-            // Close modal
-            const cancelButton = screen.getByRole('button', { name: /cancel/i });
-            await userEvent.click(cancelButton);
+            await waitFor(() => {
+                expect(screen.getByText('important')).toBeInTheDocument();
+            });
 
-            // Reopen modal
-            const { rerender } = render(<CreateEventModal show={false} onHide={mockOnHide} />);
+            // Close and reopen modal using the same instance
+            rerender(<CreateEventModal show={false} onHide={mockOnHide} />);
             rerender(<CreateEventModal show={true} onHide={mockOnHide} />);
 
-            expect(screen.getAllByDisplayValue('')[0]).toBeInTheDocument(); // Name input
+            // Form should be reset - name gets prefilled from line item, but other fields reset
             const categorySelectReset = screen.getByRole('combobox', { name: /category/i });
-            // Category select is reset - shows placeholder since 'All' is not a valid option
             expect(categorySelectReset).toBeInTheDocument();
+            // Tag should be cleared since component remounts with fresh state
             expect(screen.queryByText('important')).not.toBeInTheDocument();
         });
     });
@@ -781,12 +785,10 @@ describe('CreateEventModal', () => {
             expect(dateInput).toHaveValue('2024-01-15');
         });
 
-        it('form fields are cleared after successful submission', async () => {
+        it('form fields are cleared after successful submission and modal reopen', async () => {
             mockAxiosInstance.post.mockResolvedValueOnce({ data: { name: 'Test Event', success: true } });
 
-            await act(async () => {
-                render(<CreateEventModal show={true} onHide={mockOnHide} />);
-            });
+            const { rerender } = render(<CreateEventModal show={true} onHide={mockOnHide} />);
 
             const nameInput = screen.getByPlaceholderText('Enter a descriptive name for this event');
             const dateInput = screen.getByLabelText('Override Date (optional)');
@@ -803,10 +805,21 @@ describe('CreateEventModal', () => {
                 await userEvent.click(submitButton);
             });
 
+            // Verify onHide was called after successful submission
             await waitFor(() => {
-                expect(nameInput).toHaveValue('');
-                expect(dateInput).toHaveValue('');
+                expect(mockOnHide).toHaveBeenCalled();
             });
+
+            // Simulate line items being removed (as dispatch would do) and modal reopening
+            mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: false });
+            rerender(<CreateEventModal show={false} onHide={mockOnHide} />);
+            rerender(<CreateEventModal show={true} onHide={mockOnHide} />);
+
+            // Form fields should be cleared (no line items = no prefill)
+            const freshNameInput = screen.getByPlaceholderText('Enter a descriptive name for this event');
+            const freshDateInput = screen.getByLabelText('Override Date (optional)');
+            expect(freshNameInput).toHaveValue('');
+            expect(freshDateInput).toHaveValue('');
         });
     });
 
