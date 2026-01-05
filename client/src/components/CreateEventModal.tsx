@@ -7,12 +7,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import React, { useEffect, useState } from 'react';
 import { Body } from "../components/ui/typography";
 import { LineItemInterface, useLineItems, useLineItemsDispatch } from "../contexts/LineItemsContext";
+import { useCategories, useCreateEvent, useEvaluateEventHints, useTags } from '../hooks/useApi';
 import { useField } from '../hooks/useField';
+import { calculateEventTotal } from '../utils/eventHelpers';
 import { CurrencyFormatter } from '../utils/formatters';
 import defaultNameCleanup from '../utils/stringHelpers';
-import { showSuccessToast, showErrorToast } from '../utils/toast-helpers';
-import { calculateEventTotal } from '../utils/eventHelpers';
-import { useCategories, useCreateEvent, useTags, useEvaluateEventHints } from '../hooks/useApi';
+import { showErrorToast, showSuccessToast } from '../utils/toast-helpers';
 import { Option } from './Autocomplete';
 import { Tag, TagsField } from './TagsField';
 import { Spinner } from './ui/spinner';
@@ -98,113 +98,119 @@ function CreateEventModalContent({
 
   const isMobile = useIsMobile();
 
-  return (
-    <>
-      <div className="space-y-6 py-4">
-        <div className="space-y-3">
-          <Label htmlFor="event-name" className="text-sm font-medium text-foreground">
-            Event Name
-          </Label>
-          <div className="relative">
+  if (isLoadingCategories || isLoadingHints) {
+    return (
+      <div className="space-y-6 py-4 flex justify-center">
+        <Spinner size="sm" className="text-muted-foreground" />
+      </div>
+    );
+  } else if (isCategoriesError) {
+    // We can swallow a hints error, but not a categories error
+    return (
+      <div className="space-y-6 py-4 flex justify-center">
+        <Body className="text-sm text-destructive">Internal Error: Failed to load categories. Please try again later.</Body>
+      </div>
+    );
+  } else {
+    return (
+      <>
+        <div className="space-y-6 py-4">
+          <div className="space-y-3">
+            <Label htmlFor="event-name" className="text-sm font-medium text-foreground">
+              Event Name
+            </Label>
+            <div className="relative">
+              <Input
+                id="event-name"
+                type={name.type}
+                value={name.value}
+                onChange={name.onChange}
+                className="w-full"
+                placeholder="Enter a descriptive name for this event"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <Label id="category-label" className="text-sm font-medium text-foreground">
+              Category
+            </Label>
+            <Select value={category.value} onValueChange={(value) => category.setCustomValue(value)}>
+              <SelectTrigger className="w-full" aria-labelledby="category-label">
+                <SelectValue placeholder="Select a category" />
+              </SelectTrigger>
+              <SelectContent className="bg-white border">
+                {categories.map(cat => (
+                  <SelectItem key={cat.id} value={cat.name}>
+                    {cat.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <TagsField
+            id="event-tags"
+            tags={tags}
+            tagOptions={tagOptions}
+            isLoading={isLoadingTags}
+            onRemoveTag={removeTag}
+            onAddTag={handleTagSelect}
+          />
+
+          <div className="space-y-3">
+            <Label htmlFor="override-date-input" className="text-sm font-medium text-foreground">
+              Override Date (optional)
+            </Label>
             <Input
-              id="event-name"
-              type={name.type}
-              value={name.value}
-              onChange={name.onChange}
+              id="override-date-input"
+              type={date.type}
+              value={date.value}
+              onChange={date.onChange}
               className="w-full"
-              placeholder={isLoadingHints ? "Loading suggestions..." : "Enter a descriptive name for this event"}
-              disabled={isLoadingHints}
             />
-            {isLoadingHints && (
-              <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                <Spinner size="sm" className="text-muted-foreground" />
-              </div>
-            )}
+          </div>
+
+          <div className="flex items-center space-x-3 p-4 bg-muted rounded-lg">
+            <Checkbox
+              id="duplicate-transaction"
+              checked={isDuplicateTransaction.value}
+              onCheckedChange={() => isDuplicateTransaction.setCustomValue(!isDuplicateTransaction.value)}
+              className="border-primary data-[state=checked]:bg-primary"
+            />
+            <div className="space-y-1">
+              <Label htmlFor="duplicate-transaction" className="text-sm font-medium text-foreground cursor-pointer">
+                Duplicate Transaction
+              </Label>
+              <Body className="text-muted-foreground text-xs">
+                Check this if the transaction amount is double what it should be
+              </Body>
+            </div>
           </div>
         </div>
 
-        <div className="space-y-3">
-          <Label id="category-label" className="text-sm font-medium text-foreground">
-            Category
-          </Label>
-          <Select value={category.value} onValueChange={(value) => category.setCustomValue(value)} disabled={isLoadingCategories || isLoadingHints}>
-            <SelectTrigger className="w-full" aria-labelledby="category-label">
-              <SelectValue placeholder={isLoadingHints ? "Loading suggestions..." : isLoadingCategories ? "Loading..." : isCategoriesError ? "Error loading categories" : "Select a category"} />
-            </SelectTrigger>
-            <SelectContent className="bg-white border">
-              {categories.map(cat => (
-                <SelectItem key={cat.id} value={cat.name}>
-                  {cat.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {isCategoriesError && (
-            <p className="text-sm text-destructive">Failed to load categories. Please refresh the page.</p>
-          )}
-        </div>
-
-        <TagsField
-          id="event-tags"
-          tags={tags}
-          tagOptions={tagOptions}
-          isLoading={isLoadingTags}
-          onRemoveTag={removeTag}
-          onAddTag={handleTagSelect}
-        />
-
-        <div className="space-y-3">
-          <Label htmlFor="override-date-input" className="text-sm font-medium text-foreground">
-            Override Date (optional)
-          </Label>
-          <Input
-            id="override-date-input"
-            type={date.type}
-            value={date.value}
-            onChange={date.onChange}
-            className="w-full"
-          />
-        </div>
-
-        <div className="flex items-center space-x-3 p-4 bg-muted rounded-lg">
-          <Checkbox
-            id="duplicate-transaction"
-            checked={isDuplicateTransaction.value}
-            onCheckedChange={() => isDuplicateTransaction.setCustomValue(!isDuplicateTransaction.value)}
-            className="border-primary data-[state=checked]:bg-primary"
-          />
-          <div className="space-y-1">
-            <Label htmlFor="duplicate-transaction" className="text-sm font-medium text-foreground cursor-pointer">
-              Duplicate Transaction
-            </Label>
-            <Body className="text-muted-foreground text-xs">
-              Check this if the transaction amount is double what it should be
+        <div className={`flex pt-4 border-t border-muted ${isMobile ? "flex-col gap-3" : "items-center justify-between"}`}>
+          <div className="bg-muted px-4 py-2 rounded-lg">
+            <Body className="text-sm font-medium text-foreground">
+              Total: <span className="text-primary font-semibold">{CurrencyFormatter.format(total)}</span>
             </Body>
           </div>
+          <div className={`flex gap-3 ${isMobile ? "flex-col" : ""}`}>
+            <Button onClick={onClose} variant="secondary" className={isMobile ? "w-full" : "min-w-[100px]"}>
+              Cancel
+            </Button>
+            <Button
+              onClick={createEvent}
+              disabled={disableSubmit}
+              className={isMobile ? "w-full" : "min-w-[100px]"}
+            >
+              Create Event
+            </Button>
+          </div>
         </div>
-      </div>
-
-      <div className={`flex pt-4 border-t border-muted ${isMobile ? "flex-col gap-3" : "items-center justify-between"}`}>
-        <div className="bg-muted px-4 py-2 rounded-lg">
-          <Body className="text-sm font-medium text-foreground">
-            Total: <span className="text-primary font-semibold">{CurrencyFormatter.format(total)}</span>
-          </Body>
-        </div>
-        <div className={`flex gap-3 ${isMobile ? "flex-col" : ""}`}>
-          <Button onClick={onClose} variant="secondary" className={isMobile ? "w-full" : "min-w-[100px]"}>
-            Cancel
-          </Button>
-          <Button
-            onClick={createEvent}
-            disabled={disableSubmit}
-            className={isMobile ? "w-full" : "min-w-[100px]"}
-          >
-            Create Event
-          </Button>
-        </div>
-      </div>
-    </>
-  );
+      </>
+    );
+  }
 }
 
 /**

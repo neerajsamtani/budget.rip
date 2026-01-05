@@ -350,7 +350,7 @@ describe('CreateEventModal', () => {
     });
 
     describe('Category Loading and Error States', () => {
-        it('category select is disabled when categories are loading', async () => {
+        it('spinner is shown when categories are loading', async () => {
             mockUseCategories.mockReturnValue({
                 data: [],
                 isLoading: true,
@@ -359,8 +359,11 @@ describe('CreateEventModal', () => {
 
             render(<CreateEventModal show={true} onHide={mockOnHide} />);
 
-            const categorySelect = screen.getByRole('combobox', { name: /category/i });
-            expect(categorySelect).toBeDisabled();
+            // Spinner should be visible (using document.body since dialog renders in a portal)
+            expect(document.body.querySelector('.animate-spin')).toBeInTheDocument();
+            // Form fields should not be present when loading
+            expect(screen.queryByRole('combobox', { name: /category/i })).not.toBeInTheDocument();
+            expect(screen.queryByText('Event Name')).not.toBeInTheDocument();
         });
 
         it('error message is shown when categories fail to load', async () => {
@@ -372,7 +375,7 @@ describe('CreateEventModal', () => {
 
             render(<CreateEventModal show={true} onHide={mockOnHide} />);
 
-            expect(screen.getByText('Failed to load categories. Please refresh the page.')).toBeInTheDocument();
+            expect(screen.getByText('Internal Error: Failed to load categories. Please try again later.')).toBeInTheDocument();
         });
 
         it('category select is enabled after successful load', async () => {
@@ -440,7 +443,7 @@ describe('CreateEventModal', () => {
             expect(categorySelect).toHaveTextContent('Select a category'); // Category select placeholder
         });
 
-        it('waits for hints to load before prefilling and shows loading spinner', async () => {
+        it('spinner is shown while hints load, then form is prefilled', async () => {
             // Mock the hook to return loading state initially
             mockUseEvaluateEventHints.mockReturnValue({
                 data: null,
@@ -449,17 +452,14 @@ describe('CreateEventModal', () => {
             });
             mockDefaultNameCleanup.mockReturnValue('Cleaned Description');
 
-            // Render with show=true - should show loading state
+            // Render with show=true - should show loading state (spinner, no form)
             const { rerender } = render(<CreateEventModal show={true} onHide={mockOnHide} />);
 
-            // The name input should show loading placeholder and be disabled
-            const nameInput = screen.getByPlaceholderText('Loading suggestions...');
-            expect(nameInput).toHaveValue('');
-            expect(nameInput).toBeDisabled();
-
-            // The category select should also be disabled and show loading placeholder
-            const categorySelect = screen.getByRole('combobox', { name: /category/i });
-            expect(categorySelect).toBeDisabled();
+            // Spinner should be visible (using document.body since dialog renders in a portal)
+            expect(document.body.querySelector('.animate-spin')).toBeInTheDocument();
+            // Form fields should not be present when loading hints
+            expect(screen.queryByText('Event Name')).not.toBeInTheDocument();
+            expect(screen.queryByRole('combobox', { name: /category/i })).not.toBeInTheDocument();
 
             // Now simulate loading complete with a suggestion
             mockUseEvaluateEventHints.mockReturnValue({
@@ -475,7 +475,7 @@ describe('CreateEventModal', () => {
                 expect(screen.getByDisplayValue('Suggested Name')).toBeInTheDocument();
             });
 
-            // After loading completes, the input should no longer be disabled
+            // After loading completes, form should be fully interactive
             const nameInputAfterLoad = screen.getByDisplayValue('Suggested Name');
             expect(nameInputAfterLoad).not.toBeDisabled();
         });
