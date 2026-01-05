@@ -32,8 +32,8 @@ Budgit is a personal finance tracking application with a client-server architect
 ## Tech Stack
 
 ### Client (Vite + React)
-- React 18.3 with TypeScript 4.9
-- Vite 7 build tool
+- React 18 with TypeScript
+- Vite build tool
 - shadcn/ui components
 - Tailwind CSS 4 for styling
 - React Router 6 for routing
@@ -44,8 +44,8 @@ Budgit is a personal finance tracking application with a client-server architect
 - Dev server runs on `dev.localhost`
 
 ### Server (Flask + PostgreSQL)
-- Flask 3.0 with Python 3.13
-- SQLAlchemy 2.0 with PostgreSQL
+- Flask 3 with Python 3.12+
+- SQLAlchemy 2 with PostgreSQL
 - Alembic for PostgreSQL schema migrations
 - Flask-JWT-Extended for auth (JWT in cookies)
 - Flask-Bcrypt for password hashing
@@ -76,7 +76,8 @@ cd client
 npm start                 # Start dev server on dev.localhost
 npm run build            # Production build
 npm run test             # Run all tests once
-npm run test:watch       # Run tests in watch mode
+npm test -- App.test.tsx # Run specific test file
+npm run test:watch       # Run tests in watch mode (press 'p' to filter)
 npm run analyze          # Build and visualize bundle size
 ```
 
@@ -84,8 +85,9 @@ npm run analyze          # Build and visualize bundle size
 ```bash
 cd server
 uv run python -m pytest                    # Run all tests
-uv run python -m pytest tests/test_auth.py # Run specific test file
-uv run python -m pytest -v                 # Verbose test output
+uv run python -m pytest tests/test_auth.py                 # Run specific test file
+uv run python -m pytest tests/test_auth.py::test_fn_name   # Run single test
+uv run python -m pytest -v                                 # Verbose test output
 uv run python application.py               # Run Flask server locally
 
 # Prefer the Makefile for common tasks:
@@ -110,10 +112,6 @@ uv run alembic downgrade -1                             # Rollback one migration
 uv run alembic current                                  # Show current revision
 uv run alembic history                                  # Show migration history
 ```
-
-### Running Single Tests
-- **Client**: `npm test -- App.test.tsx` or `npm run test:watch` then press `p` to filter by filename
-- **Server**: `uv run python -m pytest tests/test_auth.py::test_function_name`
 
 ## Code Conventions
 
@@ -153,9 +151,7 @@ uv run alembic history                                  # Show migration history
 - Error handling: Use `showErrorToast()` on client, server returns appropriate status codes
 
 ### Categories
-Categories are defined in `server/constants.py` and must be kept in sync with the frontend:
-- All, Alcohol, Dining, Entertainment, Forma, Groceries, Hobbies, Income, Investment, Medical, Rent, Shopping, Subscription, Transfer, Transit, Travel
-- There is in-progress work to leverage the Categories table in Postgres to power this, instead of having defined constants.
+Categories are stored in the `categories` PostgreSQL table and fetched dynamically. The frontend retrieves categories via API rather than using hardcoded constants.
 
 ### Data Normalization Pattern
 External API data follows this flow:
@@ -251,20 +247,11 @@ Test names should read as statements of fact about system behavior, not as descr
 
 ## Migration Context
 
-Recent major migrations:
-- ✅ Bootstrap → shadcn/ui + Tailwind CSS (completed)
-- ✅ Create React App → Vite (completed)
-- ✅ React 17 → React 18 (completed)
-- ✅ **pip/virtualenv → uv** (completed):
-  - Dependencies now managed via uv (Astral's fast Python package manager)
-  - pyproject.toml contains [project] section with production and dev dependencies
-  - uv.lock file ensures reproducible builds
-  - GitHub Actions uses uv for CI/CD
-  - Vercel configured to use uv for deployments
-  - All commands now use `uv run <command>` or Makefile targets
-- ✅ **MongoDB → PostgreSQL** (completed):
-  - All data migrated to PostgreSQL
-  - MongoDB dependencies removed
-  - All CRUD operations now use SQLAlchemy models
-  - Legacy migration documentation in `server/MONGODB_TO_POSTGRES_MIGRATION.md`
-- 📋 Planning: Flask → FastAPI (see `server/FLASK_TO_FASTAPI_MIGRATION_PLAN.md`)
+Completed migrations (for historical context):
+- Bootstrap → shadcn/ui + Tailwind CSS
+- Create React App → Vite
+- React 17 → React 18
+- pip/virtualenv → uv (see pyproject.toml, uv.lock)
+- MongoDB → PostgreSQL (see `server/MONGODB_TO_POSTGRES_MIGRATION.md`)
+
+Planned: Flask → FastAPI (see `server/FLASK_TO_FASTAPI_MIGRATION_PLAN.md`)
