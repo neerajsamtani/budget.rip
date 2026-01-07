@@ -1,6 +1,8 @@
 import React from "react";
+import { Trash2 } from "lucide-react";
 import { LineItemInterface, useLineItems, useLineItemsDispatch } from "../contexts/LineItemsContext";
 import { CurrencyFormatter, DateFormatter } from "../utils/formatters";
+import { Button } from "./ui/button";
 import { Checkbox } from "./ui/checkbox";
 import { StatusBadge } from "./ui/status-badge";
 import { TableCell, TableRow } from "./ui/table";
@@ -8,6 +10,8 @@ import { TableCell, TableRow } from "./ui/table";
 interface LineItemProps {
     lineItem: LineItemInterface;
     showCheckBox?: boolean;
+    onDelete?: (id: string) => void;
+    isDeleting?: boolean;
 }
 
 interface LineItemDisplayProps extends LineItemProps {
@@ -16,7 +20,7 @@ interface LineItemDisplayProps extends LineItemProps {
     amountStatus: 'success' | 'warning';
 }
 
-function LineItemCard({ lineItem, showCheckBox, isChecked, handleToggle, amountStatus }: LineItemDisplayProps) {
+function LineItemCard({ lineItem, showCheckBox, isChecked, handleToggle, amountStatus, onDelete, isDeleting }: LineItemDisplayProps) {
     const readableDate = DateFormatter.format(lineItem.date * 1000);
 
     return (
@@ -33,9 +37,25 @@ function LineItemCard({ lineItem, showCheckBox, isChecked, handleToggle, amountS
                 <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-start gap-2 mb-2">
                         <span className="text-sm text-muted-foreground">{readableDate}</span>
-                        <StatusBadge status={amountStatus}>
-                            {CurrencyFormatter.format(Math.abs(lineItem.amount))}
-                        </StatusBadge>
+                        <div className="flex items-center gap-2">
+                            <StatusBadge status={amountStatus}>
+                                {CurrencyFormatter.format(Math.abs(lineItem.amount))}
+                            </StatusBadge>
+                            {onDelete && (
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onDelete(lineItem.id);
+                                    }}
+                                    disabled={isDeleting}
+                                    className="h-6 w-6 p-0"
+                                >
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                            )}
+                        </div>
                     </div>
                     <p className="font-medium text-foreground truncate" title={lineItem.description}>
                         {lineItem.description}
@@ -55,7 +75,7 @@ function LineItemCard({ lineItem, showCheckBox, isChecked, handleToggle, amountS
     );
 }
 
-function LineItemRow({ lineItem, showCheckBox, isChecked, handleToggle, amountStatus }: LineItemDisplayProps) {
+function LineItemRow({ lineItem, showCheckBox, isChecked, handleToggle, amountStatus, onDelete, isDeleting }: LineItemDisplayProps) {
     const readableDate = DateFormatter.format(lineItem.date * 1000);
 
     return (
@@ -89,11 +109,25 @@ function LineItemRow({ lineItem, showCheckBox, isChecked, handleToggle, amountSt
                     {CurrencyFormatter.format(Math.abs(lineItem.amount))}
                 </StatusBadge>
             </TableCell>
+            {onDelete !== undefined && (
+                <TableCell className="w-12">
+                    {onDelete && (
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => onDelete(lineItem.id)}
+                            disabled={isDeleting}
+                        >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                    )}
+                </TableCell>
+            )}
         </TableRow>
     );
 }
 
-export default function LineItem({ lineItem, showCheckBox }: LineItemProps) {
+export default function LineItem({ lineItem, showCheckBox, onDelete, isDeleting }: LineItemProps) {
     const { lineItems } = useLineItems();
     const lineItemsDispatch = useLineItemsDispatch();
     const isChecked = (lineItems || []).some(li => li.isSelected && li.id === lineItem.id);
@@ -108,7 +142,7 @@ export default function LineItem({ lineItem, showCheckBox }: LineItemProps) {
     // Determine amount status for color coding
     const amountStatus: 'success' | 'warning' = lineItem.amount < 0 ? 'success' : 'warning';
 
-    const props = { lineItem, showCheckBox, isChecked, handleToggle, amountStatus };
+    const props = { lineItem, showCheckBox, isChecked, handleToggle, amountStatus, onDelete, isDeleting };
 
     // Return only the table row - mobile layout is handled at the page level
     return <LineItemRow {...props} />;
