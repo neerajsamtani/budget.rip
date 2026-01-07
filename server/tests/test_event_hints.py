@@ -210,6 +210,18 @@ class TestCELEvaluator:
         ]
         assert evaluator.evaluate(line_items) is False
 
+    def test_sum_handles_floating_point_precision_with_multiple_items(self):
+        """Sum correctly handles floating-point precision with 3+ items"""
+        evaluator = CELEvaluator("sum(amount) == 0")
+        # These values cause floating-point precision issues without rounding:
+        # -16.67 + -16.66 + 33.33 = -3.55e-15 (not exactly 0)
+        line_items = [
+            {"description": "Split 1", "amount": -16.67},
+            {"description": "Split 2", "amount": -16.66},
+            {"description": "Total", "amount": 33.33},
+        ]
+        assert evaluator.evaluate(line_items) is True
+
     def test_count_returns_number_of_line_items(self):
         """Count function returns total number of line items"""
         evaluator = CELEvaluator("count() > 1")
