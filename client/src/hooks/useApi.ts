@@ -219,6 +219,19 @@ export function useCreateCashTransaction(): UseMutationResult<unknown, Error, Cr
   });
 }
 
+export function useDeleteCashTransaction(): UseMutationResult<void, Error, string> {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (lineItemId: string) => {
+      await axiosInstance.delete(`api/cash_transaction/${lineItemId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['lineItems'] });
+    },
+  });
+}
+
 export function useDeleteEvent(): UseMutationResult<void, Error, string> {
   const queryClient = useQueryClient();
 

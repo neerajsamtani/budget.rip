@@ -1,5 +1,5 @@
 # server/models/database.py
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 
 from constants import DATABASE_HOST, DATABASE_NAME, DATABASE_PASSWORD, DATABASE_PORT, DATABASE_SSL_MODE, DATABASE_USERNAME
@@ -18,6 +18,13 @@ if DATABASE_HOST == "sqlite":
         creator=get_shared_memory_connection,
         echo=False,
     )
+
+    # Enable foreign key constraints for SQLite (required for CASCADE deletes)
+    @event.listens_for(engine, "connect")
+    def set_sqlite_pragma(dbapi_conn, connection_record):
+        cursor = dbapi_conn.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
 else:
     # PostgreSQL configuration using psycopg2 directly for connection
     # This avoids URL encoding issues with special characters in credentials
