@@ -153,10 +153,12 @@ def _evaluate_aggregate_expression(expression: str, line_items: list[dict]) -> b
     - any_match(payment_method == "Venmo")
     """
     # Pre-compute aggregate values
+    # Round to 2 decimal places to avoid floating-point precision issues
+    # (e.g., -16.67 + -16.66 + 33.33 = -3.55e-15 instead of 0)
     amounts = [float(item.get("amount", 0)) for item in line_items]
-    total_sum = sum(amounts)
+    total_sum = round(sum(amounts), 2)
     item_count = len(line_items)
-    avg_amount = total_sum / item_count if item_count > 0 else 0
+    avg_amount = round(total_sum / item_count, 2) if item_count > 0 else 0
     min_amount = min(amounts) if amounts else 0
     max_amount = max(amounts) if amounts else 0
 
