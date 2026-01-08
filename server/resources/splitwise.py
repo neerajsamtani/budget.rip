@@ -49,7 +49,7 @@ def refresh_splitwise() -> None:
 
     # Bulk upsert all collected expenses at once
     if all_expenses:
-        upsert_transactions(all_expenses, source="splitwise")
+        upsert_transactions(all_expenses, source="splitwise_api")
         logger.info(f"Refreshed {len(all_expenses)} Splitwise expenses (skipped {deleted_count} deleted)")
     else:
         logger.info("No new Splitwise expenses to refresh")
@@ -104,7 +104,7 @@ def splitwise_to_line_items() -> None:
 
     # Bulk upsert all collected line items at once
     if all_line_items:
-        upsert_line_items(all_line_items, source="splitwise")
+        upsert_line_items(all_line_items, source="splitwise_api")
         logger.info(f"Converted {len(all_line_items)} Splitwise expenses to line items (ignored {ignored_count})")
     else:
         logger.info("No Splitwise expenses to convert to line items")

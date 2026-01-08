@@ -284,7 +284,7 @@ def test_deleting_transaction_cascades_to_line_items(db_session):
     payment_method = PaymentMethod(id=generate_id("pm"), name="Test PM", type="credit", is_active=True)
     transaction = Transaction(
         id=generate_id("txn"),
-        source="stripe",
+        source="stripe_api",
         source_id="txn_cascade",
         source_data={},
         transaction_date=datetime.now(UTC),
@@ -341,7 +341,7 @@ def test_payment_method_with_line_items_cannot_be_deleted(db_session):
     payment_method = PaymentMethod(id=generate_id("pm"), name="Protected PM", type="credit", is_active=True)
     transaction = Transaction(
         id=generate_id("txn"),
-        source="stripe",
+        source="stripe_api",
         source_id="stripe_123",
         source_data={},
         transaction_date=datetime.now(UTC),

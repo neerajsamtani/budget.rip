@@ -188,8 +188,8 @@ class TestCategoryAPI:
         )
         transaction = Transaction(
             id=generate_id("txn"),
-            source="cash",
-            source_id=f"cash_{generate_id('src')}",
+            source="manual",
+            source_id=f"manual_{generate_id('src')}",
             source_data={},
             transaction_date=datetime.now(UTC),
         )

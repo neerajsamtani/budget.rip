@@ -2,35 +2,52 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ResponsiveDialog, useIsMobile } from "@/components/ui/responsive-dialog";
-import React from 'react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import React, { useState, useEffect } from 'react';
 import { useField } from '../hooks/useField';
 import { showSuccessToast, showErrorToast } from '../utils/toast-helpers';
-import { useCreateCashTransaction, CreateCashTransactionData } from '../hooks/useApi';
+import { useCreateManualTransaction, usePaymentMethods, CreateManualTransactionData } from '../hooks/useApi';
 
-export default function CreateCashTransactionModal({ show, onHide }: { show: boolean, onHide: () => void }) {
+export default function CreateManualTransactionModal({ show, onHide }: { show: boolean, onHide: () => void }) {
 
   const date = useField<string>("date", "" as string)
   const person = useField<string>("text", "" as string)
   const description = useField<string>("text", "" as string)
   const amount = useField<number>("number", 0 as number)
+  const [paymentMethodId, setPaymentMethodId] = useState<string>("")
   const isMobile = useIsMobile();
 
-  const createCashTransactionMutation = useCreateCashTransaction();
+  const { data: paymentMethods = [], isLoading: isLoadingPaymentMethods } = usePaymentMethods();
+  const createManualTransactionMutation = useCreateManualTransaction();
 
-  const createCashTransaction = () => {
-    const newCashTransaction: CreateCashTransactionData = {
+  // Reset payment method when modal opens
+  useEffect(() => {
+    if (show) {
+      setPaymentMethodId("");
+    }
+  }, [show]);
+
+  const createManualTransaction = () => {
+    if (!paymentMethodId) {
+      showErrorToast(new Error("Please select a payment method"));
+      return;
+    }
+
+    const newManualTransaction: CreateManualTransactionData = {
       date: date.value,
       person: person.value,
       description: description.value,
-      amount: amount.value
+      amount: amount.value,
+      payment_method_id: paymentMethodId,
     };
-    createCashTransactionMutation.mutate(newCashTransaction, {
+    createManualTransactionMutation.mutate(newManualTransaction, {
       onSuccess: () => {
         date.setEmpty()
         person.setEmpty()
         description.setEmpty()
         amount.setEmpty()
-        showSuccessToast("Created Cash Transaction", "Notification");
+        setPaymentMethodId("")
+        showSuccessToast("Created Manual Transaction", "Notification");
         onHide();
       },
       onError: (error) => {
@@ -42,12 +59,29 @@ export default function CreateCashTransactionModal({ show, onHide }: { show: boo
   return (
     <ResponsiveDialog open={show} onOpenChange={onHide} className={isMobile ? "" : "w-full !max-w-[32rem]"}>
       <div className="flex flex-col gap-2 pb-4 border-b border-muted">
-        <h3 className="text-lg font-semibold text-foreground">New Cash Transaction</h3>
+        <h3 className="text-lg font-semibold text-foreground">New Manual Transaction</h3>
         <p className="text-muted-foreground text-sm">
-          Record a new cash transaction in your budget
+          Record a new transaction manually against any payment method
         </p>
       </div>
       <div className="space-y-4 py-4">
+        <div className="space-y-2">
+          <Label htmlFor="payment-method" className="text-sm font-medium text-foreground">
+            Payment Method
+          </Label>
+          <Select value={paymentMethodId} onValueChange={setPaymentMethodId}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder={isLoadingPaymentMethods ? "Loading..." : "Select payment method"} />
+            </SelectTrigger>
+            <SelectContent className="bg-white border">
+              {paymentMethods.map(pm => (
+                <SelectItem key={pm.id} value={pm.id}>
+                  {pm.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
         <div className="space-y-2">
           <Label htmlFor="event-date" className="text-sm font-medium text-foreground">
             Date
@@ -102,8 +136,12 @@ export default function CreateCashTransactionModal({ show, onHide }: { show: boo
         <Button onClick={onHide} variant="secondary" className={isMobile ? "w-full" : "min-w-[100px]"}>
           Cancel
         </Button>
-        <Button onClick={createCashTransaction} className={isMobile ? "w-full" : "min-w-[100px]"}>
-          Create Transaction
+        <Button
+          onClick={createManualTransaction}
+          className={isMobile ? "w-full" : "min-w-[100px]"}
+          disabled={createManualTransactionMutation.isPending}
+        >
+          {createManualTransactionMutation.isPending ? "Creating..." : "Create Transaction"}
         </Button>
       </div>
     </ResponsiveDialog>

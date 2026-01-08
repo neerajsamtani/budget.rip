@@ -35,11 +35,11 @@ from dao import (
     users_collection,
 )
 from resources.auth import auth_blueprint
-from resources.cash import cash_blueprint, cash_to_line_items
 from resources.category import categories_blueprint
 from resources.event import events_blueprint
 from resources.event_hint import event_hints_blueprint
 from resources.line_item import all_line_items, line_items_blueprint
+from resources.manual_transaction import manual_transaction_blueprint
 from resources.monthly_breakdown import monthly_breakdown_blueprint
 from resources.splitwise import (
     refresh_splitwise,
@@ -122,7 +122,7 @@ application.register_blueprint(events_blueprint)
 application.register_blueprint(monthly_breakdown_blueprint)
 application.register_blueprint(venmo_blueprint)
 application.register_blueprint(splitwise_blueprint)
-application.register_blueprint(cash_blueprint)
+application.register_blueprint(manual_transaction_blueprint)
 application.register_blueprint(stripe_blueprint)
 application.register_blueprint(tags_blueprint)
 application.register_blueprint(event_hints_blueprint)
@@ -231,13 +231,29 @@ def get_connected_accounts_api() -> tuple[Response, int]:
 @application.route("/api/payment_methods", methods=["GET"])
 @jwt_required()
 def get_payment_methods_api() -> tuple[Response, int]:
-    # Cash, Venmo, and Splitwise must be connected
-    payment_methods: List[str] = ["Cash", "Venmo", "Splitwise"]
-    # stripe
-    bank_accounts: List[Dict[str, Any]] = get_all_data(bank_accounts_collection)
-    for account in bank_accounts:
-        payment_methods.append(account["display_name"])
-    return jsonify(payment_methods), 200
+    """
+    Get all payment methods.
+
+    Returns full payment method objects including id, name, type, and is_active.
+    """
+    from models.database import SessionLocal
+    from models.sql_models import PaymentMethod
+
+    db = SessionLocal()
+    try:
+        payment_methods = db.query(PaymentMethod).filter(PaymentMethod.is_active.is_(True)).all()
+        result = [
+            {
+                "id": pm.id,
+                "name": pm.name,
+                "type": pm.type,
+                "is_active": pm.is_active,
+            }
+            for pm in payment_methods
+        ]
+        return jsonify({"data": result}), 200
+    finally:
+        db.close()
 
 
 # TODO: Need to add webhooks for updates after the server has started
@@ -255,7 +271,7 @@ def create_consistent_line_items() -> None:
     splitwise_to_line_items()
     venmo_to_line_items()
     stripe_to_line_items()
-    cash_to_line_items()
+    # Note: Manual transactions don't need refresh - they're created directly when user submits
     logger.info("Created consistent line items")
 
 

@@ -12,11 +12,11 @@ jest.mock('../../contexts/LineItemsContext', () => ({
 }));
 
 // Mock the components
-jest.mock('../../components/CreateCashTransactionModal', () => {
-    return function MockCreateCashTransactionModal({ show, onHide }: { show: boolean; onHide: () => void }) {
+jest.mock('../../components/CreateManualTransactionModal', () => {
+    return function MockCreateManualTransactionModal({ show, onHide }: { show: boolean; onHide: () => void }) {
         return show ? (
-            <div data-testid="cash-transaction-modal">
-                <button onClick={onHide}>Close Cash Modal</button>
+            <div data-testid="manual-transaction-modal">
+                <button onClick={onHide}>Close Manual Modal</button>
             </div>
         ) : null;
     };
@@ -189,7 +189,7 @@ describe('LineItemsToReviewPage', () => {
         it('renders action buttons in the navbar', () => {
             render(<LineItemsToReviewPage />);
 
-            expect(screen.getByRole('button', { name: /create cash transaction/i })).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: /manual transaction/i })).toBeInTheDocument();
             expect(screen.getByRole('button', { name: /create event/i })).toBeInTheDocument();
         });
 
@@ -212,7 +212,7 @@ describe('LineItemsToReviewPage', () => {
             render(<LineItemsToReviewPage />);
 
             expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
-            expect(screen.getByRole('button', { name: /create cash transaction/i })).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: /manual transaction/i })).toBeInTheDocument();
             expect(screen.getByRole('button', { name: /create event/i })).toBeInTheDocument();
         });
 
@@ -221,19 +221,19 @@ describe('LineItemsToReviewPage', () => {
             render(<LineItemsToReviewPage />);
 
             expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
-            expect(screen.getByRole('button', { name: /create cash transaction/i })).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: /manual transaction/i })).toBeInTheDocument();
             expect(screen.getByRole('button', { name: /create event/i })).toBeInTheDocument();
         });
     });
 
     describe('Modal Management', () => {
-        it('opens cash transaction modal when button is clicked', async () => {
+        it('opens manual transaction modal when button is clicked', async () => {
             render(<LineItemsToReviewPage />);
 
-            const cashButton = screen.getByRole('button', { name: /create cash transaction/i });
+            const cashButton = screen.getByRole('button', { name: /manual transaction/i });
             await userEvent.click(cashButton);
 
-            expect(screen.getByTestId('cash-transaction-modal')).toBeInTheDocument();
+            expect(screen.getByTestId('manual-transaction-modal')).toBeInTheDocument();
         });
 
         it('opens event modal when button is clicked', async () => {
@@ -246,19 +246,19 @@ describe('LineItemsToReviewPage', () => {
             expect(screen.getByTestId('event-modal')).toBeInTheDocument();
         });
 
-        it('closes cash transaction modal when onHide is called', async () => {
+        it('closes manual transaction modal when onHide is called', async () => {
             render(<LineItemsToReviewPage />);
 
             // Open modal
-            const cashButton = screen.getByRole('button', { name: /create cash transaction/i });
+            const cashButton = screen.getByRole('button', { name: /manual transaction/i });
             await userEvent.click(cashButton);
-            expect(screen.getByTestId('cash-transaction-modal')).toBeInTheDocument();
+            expect(screen.getByTestId('manual-transaction-modal')).toBeInTheDocument();
 
             // Close modal
-            const closeButton = screen.getByRole('button', { name: /close cash modal/i });
+            const closeButton = screen.getByRole('button', { name: /close manual modal/i });
             await userEvent.click(closeButton);
 
-            expect(screen.queryByTestId('cash-transaction-modal')).not.toBeInTheDocument();
+            expect(screen.queryByTestId('manual-transaction-modal')).not.toBeInTheDocument();
         });
 
         it('closes event modal when onHide is called', async () => {
@@ -281,17 +281,17 @@ describe('LineItemsToReviewPage', () => {
             mockUseLineItems.mockReturnValue({ lineItems: mockLineItemsWithSelection, isLoading: false });
             render(<LineItemsToReviewPage />);
 
-            const cashButton = screen.getByRole('button', { name: /create cash transaction/i });
+            const cashButton = screen.getByRole('button', { name: /manual transaction/i });
             const eventButton = screen.getByRole('button', { name: /create event/i });
 
             // Open cash modal first
             await userEvent.click(cashButton);
-            expect(screen.getByTestId('cash-transaction-modal')).toBeInTheDocument();
+            expect(screen.getByTestId('manual-transaction-modal')).toBeInTheDocument();
             expect(screen.queryByTestId('event-modal')).not.toBeInTheDocument();
 
             // Opening event modal closes cash modal
             await userEvent.click(eventButton);
-            expect(screen.queryByTestId('cash-transaction-modal')).not.toBeInTheDocument();
+            expect(screen.queryByTestId('manual-transaction-modal')).not.toBeInTheDocument();
             expect(screen.getByTestId('event-modal')).toBeInTheDocument();
         });
 
@@ -370,15 +370,15 @@ describe('LineItemsToReviewPage', () => {
             render(<LineItemsToReviewPage />);
 
             // Open cash modal first
-            const cashButton = screen.getByRole('button', { name: /create cash transaction/i });
+            const cashButton = screen.getByRole('button', { name: /manual transaction/i });
             await userEvent.click(cashButton);
-            expect(screen.getByTestId('cash-transaction-modal')).toBeInTheDocument();
+            expect(screen.getByTestId('manual-transaction-modal')).toBeInTheDocument();
 
             // Press Enter - should not open event modal
             fireEvent.keyDown(document, { key: 'Enter' });
 
-            // Cash modal should still be open, event modal should not appear
-            expect(screen.getByTestId('cash-transaction-modal')).toBeInTheDocument();
+            // Manual modal should still be open, event modal should not appear
+            expect(screen.getByTestId('manual-transaction-modal')).toBeInTheDocument();
             expect(screen.queryByTestId('event-modal')).not.toBeInTheDocument();
         });
     });
@@ -421,7 +421,7 @@ describe('LineItemsToReviewPage', () => {
         it('has proper button labels', () => {
             render(<LineItemsToReviewPage />);
 
-            expect(screen.getByRole('button', { name: /create cash transaction/i })).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: /manual transaction/i })).toBeInTheDocument();
             expect(screen.getByRole('button', { name: /create event/i })).toBeInTheDocument();
         });
 
@@ -459,13 +459,13 @@ describe('LineItemsToReviewPage', () => {
             expect(cards).toHaveLength(3);
         });
 
-        it('passes correct props to CreateCashTransactionModal', async () => {
+        it('passes correct props to CreateManualTransactionModal', async () => {
             render(<LineItemsToReviewPage />);
 
-            const cashButton = screen.getByRole('button', { name: /create cash transaction/i });
+            const cashButton = screen.getByRole('button', { name: /manual transaction/i });
             await userEvent.click(cashButton);
 
-            expect(screen.getByTestId('cash-transaction-modal')).toBeInTheDocument();
+            expect(screen.getByTestId('manual-transaction-modal')).toBeInTheDocument();
         });
 
         it('passes correct props to CreateEventModal', async () => {
@@ -488,7 +488,7 @@ describe('LineItemsToReviewPage', () => {
             expect(bottomContainer).toBeInTheDocument();
 
             // Verify buttons are present in the fixed bottom area
-            const cashButton = screen.getByRole('button', { name: /create cash transaction/i });
+            const cashButton = screen.getByRole('button', { name: /manual transaction/i });
             const eventButton = screen.getByRole('button', { name: /create event/i });
             expect(cashButton).toBeInTheDocument();
             expect(eventButton).toBeInTheDocument();
@@ -505,7 +505,7 @@ describe('LineItemsToReviewPage', () => {
         it('renders buttons with correct attributes', () => {
             render(<LineItemsToReviewPage />);
 
-            const cashButton = screen.getByRole('button', { name: /create cash transaction/i });
+            const cashButton = screen.getByRole('button', { name: /manual transaction/i });
             const eventButton = screen.getByRole('button', { name: /create event/i });
 
             expect(cashButton).toBeInTheDocument();
@@ -614,7 +614,7 @@ describe('LineItemsToReviewPage', () => {
 
             const bottomContainer = document.querySelector('.fixed.bottom-0');
             expect(bottomContainer).toBeInTheDocument();
-            expect(screen.getByRole('button', { name: /create cash transaction/i })).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: /manual transaction/i })).toBeInTheDocument();
             expect(screen.getByRole('button', { name: /create event/i })).toBeInTheDocument();
         });
     });

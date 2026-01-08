@@ -11,6 +11,7 @@ export interface LineItemInterface {
     description: string;
     responsible_party: string;
     amount: number;
+    is_manual: boolean; // Whether this transaction was manually created vs synced from API
     isSelected?: boolean; // Optional if not used in this context
 }
 

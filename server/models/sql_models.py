@@ -125,7 +125,7 @@ class Transaction(Base):
 
     id = Column(String(255), primary_key=True)  # txn_xxx
     source = Column(
-        Enum("venmo", "splitwise", "stripe", "cash", "manual", name="transaction_source"),
+        Enum("venmo_api", "splitwise_api", "stripe_api", "manual", name="transaction_source"),
         nullable=False,
     )
     source_id = Column(String(255), nullable=False)

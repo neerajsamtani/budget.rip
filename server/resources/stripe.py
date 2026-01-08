@@ -308,7 +308,7 @@ def refresh_transactions_api(account_id: str) -> tuple[Response, int]:
             starting_after = transactions[-1].id if transactions else ""
 
         if all_transactions:
-            upsert_transactions(all_transactions, source="stripe")
+            upsert_transactions(all_transactions, source="stripe_api")
 
         # Best-effort: fetch latest balance for this account (won't fail transaction refresh)
         refresh_account_balances(account_ids=[account_id])
@@ -367,8 +367,8 @@ def stripe_to_line_items() -> None:
         line_items_batch.append(line_item)
 
         if len(line_items_batch) >= BATCH_SIZE:
-            upsert_line_items(line_items_batch, source="stripe")
+            upsert_line_items(line_items_batch, source="stripe_api")
             line_items_batch = []
 
     if line_items_batch:
-        upsert_line_items(line_items_batch, source="stripe")
+        upsert_line_items(line_items_batch, source="stripe_api")

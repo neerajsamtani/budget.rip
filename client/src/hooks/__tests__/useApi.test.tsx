@@ -25,7 +25,7 @@ import {
     useMonthlyBreakdown,
     usePaymentMethods,
     useCreateEvent,
-    useCreateCashTransaction,
+    useCreateManualTransaction,
     useDeleteEvent,
     useLogin,
     useLogout,
@@ -223,8 +223,12 @@ describe('useApi hooks', () => {
 
     describe('usePaymentMethods', () => {
         it('fetches payment methods', async () => {
-            const mockMethods = ['credit_card', 'cash', 'debit_card'];
-            mockGet.mockResolvedValue({ data: mockMethods });
+            const mockMethods = [
+                { id: 'pm_1', name: 'credit_card', type: 'credit', is_active: true },
+                { id: 'pm_2', name: 'cash', type: 'cash', is_active: true },
+                { id: 'pm_3', name: 'debit_card', type: 'debit', is_active: true },
+            ];
+            mockGet.mockResolvedValue({ data: { data: mockMethods } });
 
             const { result } = renderHook(() => usePaymentMethods(), {
                 wrapper: createWrapper(),
@@ -236,8 +240,8 @@ describe('useApi hooks', () => {
             expect(result.current.data).toEqual(mockMethods);
         });
 
-        it('returns empty array when response is not an array', async () => {
-            mockGet.mockResolvedValue({ data: null });
+        it('returns empty array when response data is empty', async () => {
+            mockGet.mockResolvedValue({ data: { data: [] } });
 
             const { result } = renderHook(() => usePaymentMethods(), {
                 wrapper: createWrapper(),
@@ -297,28 +301,30 @@ describe('useApi hooks', () => {
         });
     });
 
-    describe('useCreateCashTransaction', () => {
-        it('creates a cash transaction', async () => {
-            mockPost.mockResolvedValue({ data: { id: 'new-transaction' } });
+    describe('useCreateManualTransaction', () => {
+        it('creates a manual transaction', async () => {
+            mockPost.mockResolvedValue({ data: { transaction_id: 'manual_123' } });
 
-            const { result } = renderHook(() => useCreateCashTransaction(), {
+            const { result } = renderHook(() => useCreateManualTransaction(), {
                 wrapper: createWrapper(),
             });
 
             await act(async () => {
                 await result.current.mutateAsync({
-                    name: 'Cash Payment',
-                    category: 'Groceries',
+                    date: '2024-01-15',
+                    person: 'John Doe',
+                    description: 'Cash Payment',
                     amount: 50,
-                    date: 1640995200,
+                    payment_method_id: 'pm_cash',
                 });
             });
 
-            expect(mockPost).toHaveBeenCalledWith('api/cash_transaction', {
-                name: 'Cash Payment',
-                category: 'Groceries',
+            expect(mockPost).toHaveBeenCalledWith('api/manual_transaction', {
+                date: '2024-01-15',
+                person: 'John Doe',
+                description: 'Cash Payment',
                 amount: 50,
-                date: 1640995200,
+                payment_method_id: 'pm_cash',
             });
         });
     });

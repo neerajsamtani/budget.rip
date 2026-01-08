@@ -20,17 +20,17 @@ logger = logging.getLogger(__name__)
 
 def get_transaction_date(transaction: Dict[str, Any], source: str) -> datetime:
     """Extract transaction date based on source type."""
-    if source == "venmo":
+    if source == "venmo_api":
         posix_timestamp = float(transaction.get("date_created", 0))
         return datetime.fromtimestamp(posix_timestamp, UTC)
-    elif source == "splitwise":
+    elif source == "splitwise_api":
         iso_date = transaction.get("date", "")
         posix_timestamp = iso_8601_to_posix(iso_date)
         return datetime.fromtimestamp(posix_timestamp, UTC)
-    elif source == "stripe":
+    elif source == "stripe_api":
         posix_timestamp = float(transaction.get("transacted_at", 0))
         return datetime.fromtimestamp(posix_timestamp, UTC)
-    elif source == "cash":
+    elif source == "manual":
         posix_timestamp = float(transaction.get("date", 0))
         return datetime.fromtimestamp(posix_timestamp, UTC)
     else:

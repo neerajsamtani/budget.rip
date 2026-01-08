@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 venmo_raw_data_collection: str = "venmo_raw_data"
 splitwise_raw_data_collection: str = "splitwise_raw_data"
-cash_raw_data_collection: str = "cash_raw_data"
+manual_raw_data_collection: str = "manual_raw_data"
 stripe_raw_transaction_data_collection: str = "stripe_raw_transaction_data"
 stripe_raw_account_data_collection: str = "stripe_raw_account_data"
 line_items_collection: str = "line_items"
@@ -29,13 +29,13 @@ def get_all_data(cur_collection_str: str, filters: Optional[Dict[str, Any]] = No
     elif cur_collection_str == bank_accounts_collection:
         return _pg_get_all_bank_accounts(filters)
     elif cur_collection_str == venmo_raw_data_collection:
-        return _pg_get_transactions("venmo", filters)
+        return _pg_get_transactions("venmo_api", filters)
     elif cur_collection_str == splitwise_raw_data_collection:
-        return _pg_get_transactions("splitwise", filters)
+        return _pg_get_transactions("splitwise_api", filters)
     elif cur_collection_str == stripe_raw_transaction_data_collection:
-        return _pg_get_transactions("stripe", filters)
-    elif cur_collection_str == cash_raw_data_collection:
-        return _pg_get_transactions("cash", filters)
+        return _pg_get_transactions("stripe_api", filters)
+    elif cur_collection_str == manual_raw_data_collection:
+        return _pg_get_transactions("manual", filters)
     else:
         raise NotImplementedError(f"Collection {cur_collection_str} not supported for get_all_data")
 
@@ -102,15 +102,15 @@ def upsert_with_id(cur_collection_str: str, item: Dict[str, Any], id: Union[str,
             venmo_raw_data_collection,
             splitwise_raw_data_collection,
             stripe_raw_transaction_data_collection,
-            cash_raw_data_collection,
+            manual_raw_data_collection,
         ]:
             from utils.pg_bulk_ops import _bulk_upsert_transactions
 
             source_map = {
-                venmo_raw_data_collection: "venmo",
-                splitwise_raw_data_collection: "splitwise",
-                stripe_raw_transaction_data_collection: "stripe",
-                cash_raw_data_collection: "cash",
+                venmo_raw_data_collection: "venmo_api",
+                splitwise_raw_data_collection: "splitwise_api",
+                stripe_raw_transaction_data_collection: "stripe_api",
+                manual_raw_data_collection: "manual",
             }
             source = source_map[cur_collection_str]
             _bulk_upsert_transactions(db, [item], source=source)
@@ -129,15 +129,15 @@ def upsert_with_id(cur_collection_str: str, item: Dict[str, Any], id: Union[str,
             from utils.pg_bulk_ops import _bulk_upsert_line_items
 
             # Derive source from payment_method if not explicitly provided
-            payment_method = item.get("payment_method", "cash").lower()
+            payment_method = item.get("payment_method", "manual").lower()
             source_map = {
-                "venmo": "venmo",
-                "splitwise": "splitwise",
-                "credit card": "stripe",
-                "debit card": "stripe",
-                "cash": "cash",
+                "venmo": "venmo_api",
+                "splitwise": "splitwise_api",
+                "credit card": "stripe_api",
+                "debit card": "stripe_api",
+                "cash": "manual",
             }
-            source = source_map.get(payment_method, "cash")
+            source = source_map.get(payment_method, "manual")
             _bulk_upsert_line_items(db, [item], source=source)
 
         else:
@@ -171,6 +171,9 @@ def _serialize_datetime(dt: Optional[Any]) -> float:
 
 def _pg_serialize_line_item(li: Any) -> Dict[str, Any]:
     """Convert LineItem ORM to dict"""
+    # Determine if this is a manual transaction based on the source
+    is_manual = li.transaction.source == "manual" if li.transaction else False
+
     data = {
         "id": li.id,
         "date": _serialize_datetime(li.date),
@@ -179,6 +182,7 @@ def _pg_serialize_line_item(li: Any) -> Dict[str, Any]:
         "amount": float(li.amount or 0.0),
         "responsible_party": li.responsible_party,
         "notes": li.notes,
+        "is_manual": is_manual,
     }
     if li.events:
         data["event_id"] = li.events[0].id
@@ -221,7 +225,11 @@ def _pg_get_all_line_items(filters: Optional[Dict[str, Any]]) -> List[Dict[str, 
 
     db_session = SessionLocal()
     try:
-        query = db_session.query(LineItem).options(joinedload(LineItem.payment_method), joinedload(LineItem.events))
+        query = db_session.query(LineItem).options(
+            joinedload(LineItem.payment_method),
+            joinedload(LineItem.events),
+            joinedload(LineItem.transaction),
+        )
 
         if filters:
             # Handle id: {$in: [...]} pattern (used in event creation)
@@ -256,7 +264,11 @@ def _pg_get_line_item_by_id(id: str) -> Optional[Dict[str, Any]]:
 
     db_session = SessionLocal()
     try:
-        query = db_session.query(LineItem).options(joinedload(LineItem.payment_method), joinedload(LineItem.events))
+        query = db_session.query(LineItem).options(
+            joinedload(LineItem.payment_method),
+            joinedload(LineItem.events),
+            joinedload(LineItem.transaction),
+        )
         line_item = query.filter(LineItem.id == id).first()
         return _pg_serialize_line_item(line_item) if line_item else None
     finally:
@@ -345,7 +357,11 @@ def _pg_get_line_items_for_event(event_id: str) -> List[Dict[str, Any]]:
             db_session.query(LineItem)
             .join(EventLineItem, LineItem.id == EventLineItem.line_item_id)
             .filter(EventLineItem.event_id == pg_event.id)
-            .options(joinedload(LineItem.payment_method), joinedload(LineItem.events))
+            .options(
+                joinedload(LineItem.payment_method),
+                joinedload(LineItem.events),
+                joinedload(LineItem.transaction),
+            )
             .all()
         )
 
@@ -391,7 +407,7 @@ def _pg_get_categorized_data() -> List[Dict[str, Any]]:
 
 
 def _pg_get_transactions(source: str, filters: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """Get raw transactions from PostgreSQL by source (venmo, splitwise, stripe, cash)"""
+    """Get raw transactions from PostgreSQL by source (venmo_api, splitwise_api, stripe_api, manual)"""
     from models.database import SessionLocal
     from models.sql_models import Transaction
 
