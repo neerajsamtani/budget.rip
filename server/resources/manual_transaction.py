@@ -56,7 +56,7 @@ def create_manual_transaction_api() -> tuple[Response, int]:
         db.close()
 
     # Generate transaction ID
-    transaction_id = generate_id("manual")
+    transaction_id = generate_id("txn")
     posix_date = html_date_to_posix(data["date"])
 
     # Create the raw transaction record with empty source_data (manual transactions have no imported data)
@@ -115,7 +115,7 @@ def delete_manual_transaction_api(transaction_id: str) -> tuple[Response, int]:
 
         if not transaction:
             logger.warning(f"Delete attempt for non-existent transaction: {transaction_id}")
-            return jsonify({"error": "Transaction not found"}), 404
+            return jsonify({"error": f"Transaction not found: {transaction_id}"}), 404
 
         # Find associated line items
         line_items = db.query(LineItem).filter(LineItem.transaction_id == transaction.id).all()
