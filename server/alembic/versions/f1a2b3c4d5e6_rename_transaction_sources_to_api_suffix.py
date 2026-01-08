@@ -22,32 +22,18 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    """Upgrade: rename transaction sources and merge cash into manual."""
-    # PostgreSQL enum modification requires careful handling:
-    # 1. Add new enum values
-    # 2. Update existing data to use new values
-    # 3. Remove old enum values (requires recreating the type)
+    """Upgrade: rename transaction sources and merge cash into manual.
 
-    # Step 1: Add new enum values (venmo_api, splitwise_api, stripe_api)
-    op.execute("ALTER TYPE transaction_source ADD VALUE IF NOT EXISTS 'venmo_api'")
-    op.execute("ALTER TYPE transaction_source ADD VALUE IF NOT EXISTS 'splitwise_api'")
-    op.execute("ALTER TYPE transaction_source ADD VALUE IF NOT EXISTS 'stripe_api'")
-
-    # Step 2: Migrate existing data to new values
-    # Note: cash → manual, venmo → venmo_api, etc.
-    op.execute("UPDATE transactions SET source = 'venmo_api' WHERE source = 'venmo'")
-    op.execute("UPDATE transactions SET source = 'splitwise_api' WHERE source = 'splitwise'")
-    op.execute("UPDATE transactions SET source = 'stripe_api' WHERE source = 'stripe'")
-    op.execute("UPDATE transactions SET source = 'manual' WHERE source = 'cash'")
-
-    # Step 3: Recreate enum without old values
-    # This is complex in PostgreSQL - we need to:
-    # a) Create a new enum type with only the desired values
-    # b) Alter the column to use the new type
-    # c) Drop the old type
-    # d) Rename the new type to the original name
-
-    # Create new enum type with only the values we want
+    PostgreSQL requires new enum values to be committed before they can be used
+    in the same transaction. To work around this, we:
+    1. Create the new enum type with all desired values
+    2. Convert the column to text temporarily
+    3. Update the data values while it's text
+    4. Convert to the new enum type
+    5. Drop the old enum type
+    6. Rename the new type
+    """
+    # Step 1: Create new enum type with all the values we want
     op.execute("""
         CREATE TYPE transaction_source_new AS ENUM (
             'venmo_api',
@@ -57,17 +43,30 @@ def upgrade() -> None:
         )
     """)
 
-    # Alter the column to use the new type
+    # Step 2: Convert the source column to text temporarily
+    op.execute("""
+        ALTER TABLE transactions
+        ALTER COLUMN source TYPE text
+        USING source::text
+    """)
+
+    # Step 3: Update the data values while it's text
+    op.execute("UPDATE transactions SET source = 'venmo_api' WHERE source = 'venmo'")
+    op.execute("UPDATE transactions SET source = 'splitwise_api' WHERE source = 'splitwise'")
+    op.execute("UPDATE transactions SET source = 'stripe_api' WHERE source = 'stripe'")
+    op.execute("UPDATE transactions SET source = 'manual' WHERE source = 'cash'")
+
+    # Step 4: Convert to the new enum type
     op.execute("""
         ALTER TABLE transactions
         ALTER COLUMN source TYPE transaction_source_new
-        USING source::text::transaction_source_new
+        USING source::transaction_source_new
     """)
 
-    # Drop the old enum type
+    # Step 5: Drop the old enum type
     op.execute("DROP TYPE transaction_source")
 
-    # Rename the new type to the original name
+    # Step 6: Rename the new type to the original name
     op.execute("ALTER TYPE transaction_source_new RENAME TO transaction_source")
 
 
@@ -84,17 +83,24 @@ def downgrade() -> None:
         )
     """)
 
+    # Convert the source column to text temporarily
+    op.execute("""
+        ALTER TABLE transactions
+        ALTER COLUMN source TYPE text
+        USING source::text
+    """)
+
     # Migrate data back to old values
     op.execute("UPDATE transactions SET source = 'venmo' WHERE source = 'venmo_api'")
     op.execute("UPDATE transactions SET source = 'splitwise' WHERE source = 'splitwise_api'")
     op.execute("UPDATE transactions SET source = 'stripe' WHERE source = 'stripe_api'")
     # Note: manual stays as manual (cash transactions that were migrated stay as manual)
 
-    # Alter the column to use the old type
+    # Convert to the old enum type
     op.execute("""
         ALTER TABLE transactions
         ALTER COLUMN source TYPE transaction_source_old
-        USING source::text::transaction_source_old
+        USING source::transaction_source_old
     """)
 
     # Drop the new enum type
