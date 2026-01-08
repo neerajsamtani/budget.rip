@@ -94,7 +94,7 @@ def downgrade() -> None:
     op.execute("UPDATE transactions SET source = 'venmo' WHERE source = 'venmo_api'")
     op.execute("UPDATE transactions SET source = 'splitwise' WHERE source = 'splitwise_api'")
     op.execute("UPDATE transactions SET source = 'stripe' WHERE source = 'stripe_api'")
-    # Note: manual stays as manual (cash transactions that were migrated stay as manual)
+    op.execute("UPDATE transactions SET source = 'cash' WHERE source = 'manual'")
 
     # Convert to the old enum type
     op.execute("""

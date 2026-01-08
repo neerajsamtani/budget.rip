@@ -117,13 +117,26 @@ def delete_manual_transaction_api(transaction_id: str) -> tuple[Response, int]:
             logger.warning(f"Delete attempt for non-existent transaction: {transaction_id}")
             return jsonify({"error": "Transaction not found"}), 404
 
-        # Find and delete associated line items (cascade will handle event_line_items)
+        # Find associated line items
         line_items = db.query(LineItem).filter(LineItem.transaction_id == transaction.id).all()
         line_item_ids = [li.id for li in line_items]
 
-        # Delete event_line_items associations first (even though CASCADE should handle it)
+        # Check if any line items are assigned to events
         if line_item_ids:
-            db.query(EventLineItem).filter(EventLineItem.line_item_id.in_(line_item_ids)).delete(synchronize_session=False)
+            assigned_count = db.query(EventLineItem).filter(EventLineItem.line_item_id.in_(line_item_ids)).count()
+            if assigned_count > 0:
+                logger.warning(
+                    f"Delete blocked: transaction {transaction_id} has {assigned_count} line items assigned to events"
+                )
+                return (
+                    jsonify(
+                        {
+                            "error": "Cannot delete transaction with line items assigned to events. "
+                            "Remove the line items from their events first."
+                        }
+                    ),
+                    400,
+                )
 
         # Delete line items
         for li in line_items:

@@ -209,3 +209,55 @@ def test_cannot_delete_nonexistent_transaction(test_client, jwt_token):
     )
 
     assert response.status_code == 404
+
+
+def test_cannot_delete_transaction_assigned_to_event(test_client, jwt_token, flask_app):
+    """Cannot delete a manual transaction if its line items are assigned to an event"""
+    # Create a manual transaction
+    mock_request_data = {
+        "date": "2023-09-15",
+        "person": "John Doe",
+        "description": "Assigned to event",
+        "amount": 100,
+        "payment_method_id": "pm_cash",
+    }
+
+    create_response = test_client.post(
+        "/api/manual_transaction",
+        json=mock_request_data,
+        headers={"Authorization": "Bearer " + jwt_token},
+    )
+    assert create_response.status_code == 201
+    transaction_id = create_response.get_json()["transaction_id"]
+
+    # Get the line item ID
+    with flask_app.app_context():
+        line_items_db = get_all_data(line_items_collection)
+        assert len(line_items_db) == 1
+        line_item_id = line_items_db[0]["id"]
+
+    # Create an event with this line item
+    event_response = test_client.post(
+        "/api/events",
+        json={
+            "name": "Test Event",
+            "category": "Food",
+            "line_items": [line_item_id],
+        },
+        headers={"Authorization": "Bearer " + jwt_token},
+    )
+    assert event_response.status_code == 201
+
+    # Try to delete the transaction - should fail
+    delete_response = test_client.delete(
+        f"/api/manual_transaction/{transaction_id}",
+        headers={"Authorization": "Bearer " + jwt_token},
+    )
+
+    assert delete_response.status_code == 400
+    assert "assigned to events" in delete_response.get_json()["error"]
+
+    # Verify the transaction still exists
+    with flask_app.app_context():
+        line_items_db = get_all_data(line_items_collection)
+        assert len(line_items_db) == 1
