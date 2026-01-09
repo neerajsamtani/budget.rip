@@ -1,4 +1,4 @@
-import { PencilIcon } from "lucide-react";
+import { UserPenIcon } from "lucide-react";
 import React from "react";
 import { LineItemInterface, useLineItems, useLineItemsDispatch } from "../contexts/LineItemsContext";
 import { CurrencyFormatter, DateFormatter } from "../utils/formatters";
@@ -48,7 +48,7 @@ function LineItemCard({ lineItem, showCheckBox, isChecked, handleToggle, amountS
                             <TooltipProvider>
                                 <Tooltip>
                                     <TooltipTrigger asChild>
-                                        <PencilIcon className="h-3 w-3 text-muted-foreground" />
+                                        <UserPenIcon className="h-3 w-3 text-muted-foreground" />
                                     </TooltipTrigger>
                                     <TooltipContent>
                                         <p>Manual transaction</p>
@@ -92,7 +92,7 @@ function LineItemRow({ lineItem, showCheckBox, isChecked, handleToggle, amountSt
                         <TooltipProvider>
                             <Tooltip>
                                 <TooltipTrigger asChild>
-                                    <PencilIcon className="h-3 w-3 text-muted-foreground" />
+                                    <UserPenIcon className="h-3 w-3 text-muted-foreground" />
                                 </TooltipTrigger>
                                 <TooltipContent>
                                     <p>Manual transaction</p>

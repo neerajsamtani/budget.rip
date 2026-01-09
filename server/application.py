@@ -241,7 +241,7 @@ def get_payment_methods_api() -> tuple[Response, int]:
 
     db = SessionLocal()
     try:
-        payment_methods = db.query(PaymentMethod).filter(PaymentMethod.is_active.is_(True)).all()
+        payment_methods = db.query(PaymentMethod).all()
         result = [
             {
                 "id": pm.id,
