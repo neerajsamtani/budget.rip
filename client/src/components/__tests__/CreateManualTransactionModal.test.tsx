@@ -1,7 +1,7 @@
 import { fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
-import { mockAxiosInstance, render, screen, waitFor } from '../../utils/test-utils';
+import { render, screen, waitFor } from '../../utils/test-utils';
 import CreateManualTransactionModal from '../CreateManualTransactionModal';
 
 // Mock Sonner toast with all methods
@@ -143,8 +143,11 @@ describe('CreateManualTransactionModal', () => {
 
             expect(paymentSelect).toHaveTextContent('Venmo');
 
-            // Close and reopen modal
-            rerender(<CreateManualTransactionModal show={false} onHide={mockOnHide} />);
+            // Close modal
+            const cancelButton = screen.getByRole('button', { name: /cancel/i });
+            await userEvent.click(cancelButton);
+
+            // Reopen modal
             rerender(<CreateManualTransactionModal show={true} onHide={mockOnHide} />);
 
             // Payment method should be reset

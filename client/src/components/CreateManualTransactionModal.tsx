@@ -3,10 +3,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ResponsiveDialog, useIsMobile } from "@/components/ui/responsive-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { CreateManualTransactionData, useCreateManualTransaction, usePaymentMethods } from '../hooks/useApi';
 import { useField } from '../hooks/useField';
-import { showSuccessToast, showErrorToast } from '../utils/toast-helpers';
-import { useCreateManualTransaction, usePaymentMethods, CreateManualTransactionData } from '../hooks/useApi';
+import { showErrorToast, showSuccessToast } from '../utils/toast-helpers';
 
 export default function CreateManualTransactionModal({ show, onHide }: { show: boolean, onHide: () => void }) {
 
@@ -20,12 +20,14 @@ export default function CreateManualTransactionModal({ show, onHide }: { show: b
   const { data: paymentMethods = [], isLoading: isLoadingPaymentMethods } = usePaymentMethods();
   const createManualTransactionMutation = useCreateManualTransaction();
 
-  // Reset payment method when modal opens
-  useEffect(() => {
-    if (show) {
-      setPaymentMethodId("");
-    }
-  }, [show]);
+  const closeAndReset = () => {
+    date.setEmpty()
+    person.setEmpty()
+    description.setEmpty()
+    amount.setEmpty()
+    setPaymentMethodId("")
+    onHide();
+  }
 
   const createManualTransaction = () => {
     if (!paymentMethodId) {
@@ -42,22 +44,18 @@ export default function CreateManualTransactionModal({ show, onHide }: { show: b
     };
     createManualTransactionMutation.mutate(newManualTransaction, {
       onSuccess: () => {
-        date.setEmpty()
-        person.setEmpty()
-        description.setEmpty()
-        amount.setEmpty()
-        setPaymentMethodId("")
         showSuccessToast("Created Manual Transaction", "Notification");
-        onHide();
+        closeAndReset();
       },
       onError: (error) => {
         showErrorToast(error);
+        closeAndReset();
       }
     });
   }
 
   return (
-    <ResponsiveDialog open={show} onOpenChange={onHide} className={isMobile ? "" : "w-full !max-w-[32rem]"}>
+    <ResponsiveDialog open={show} onOpenChange={closeAndReset} className={isMobile ? "" : "w-full !max-w-[32rem]"}>
       <div className="flex flex-col gap-2 pb-4 border-b border-muted">
         <h3 className="text-lg font-semibold text-foreground">New Manual Transaction</h3>
         <p className="text-muted-foreground text-sm">
@@ -133,7 +131,7 @@ export default function CreateManualTransactionModal({ show, onHide }: { show: b
         </div>
       </div>
       <div className={`flex pt-4 border-t border-muted gap-3 ${isMobile ? "flex-col" : "justify-end"}`}>
-        <Button onClick={onHide} variant="secondary" className={isMobile ? "w-full" : "min-w-[100px]"}>
+        <Button onClick={closeAndReset} variant="secondary" className={isMobile ? "w-full" : "min-w-[100px]"}>
           Cancel
         </Button>
         <Button
