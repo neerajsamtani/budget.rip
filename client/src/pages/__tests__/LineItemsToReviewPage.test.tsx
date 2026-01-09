@@ -48,7 +48,7 @@ jest.mock('../../components/LineItem', () => {
         amountStatus?: string;
     }
 
-    const MockLineItem = function({ lineItem, showCheckBox }: MockLineItemProps) {
+    const MockLineItem = function ({ lineItem, showCheckBox }: MockLineItemProps) {
         return (
             <tr data-testid={`line-item-${lineItem.id}`}>
                 <td>{showCheckBox ? 'Checkbox' : 'No Checkbox'}</td>
@@ -61,7 +61,7 @@ jest.mock('../../components/LineItem', () => {
         );
     };
     // Export LineItemCard for mobile view
-    const MockLineItemCard = function({ lineItem }: MockLineItemProps) {
+    const MockLineItemCard = function ({ lineItem }: MockLineItemProps) {
         return (
             <div data-testid={`line-item-card-${lineItem.id}`}>
                 <span>{lineItem.description || ''}</span>
@@ -189,7 +189,7 @@ describe('LineItemsToReviewPage', () => {
         it('renders action buttons in the navbar', () => {
             render(<LineItemsToReviewPage />);
 
-            expect(screen.getByRole('button', { name: /manual transaction/i })).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: /create manual transaction/i })).toBeInTheDocument();
             expect(screen.getByRole('button', { name: /create event/i })).toBeInTheDocument();
         });
 
@@ -208,20 +208,20 @@ describe('LineItemsToReviewPage', () => {
         });
 
         it('handles empty line items gracefully', () => {
-            mockUseLineItems.mockReturnValue({ lineItems:[], isLoading: false });
+            mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: false });
             render(<LineItemsToReviewPage />);
 
             expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
-            expect(screen.getByRole('button', { name: /manual transaction/i })).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: /create manual transaction/i })).toBeInTheDocument();
             expect(screen.getByRole('button', { name: /create event/i })).toBeInTheDocument();
         });
 
         it('handles null line items gracefully', () => {
-            mockUseLineItems.mockReturnValue({ lineItems:null as any, isLoading: false });
+            mockUseLineItems.mockReturnValue({ lineItems: null as any, isLoading: false });
             render(<LineItemsToReviewPage />);
 
             expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
-            expect(screen.getByRole('button', { name: /manual transaction/i })).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: /create manual transaction/i })).toBeInTheDocument();
             expect(screen.getByRole('button', { name: /create event/i })).toBeInTheDocument();
         });
     });
@@ -230,7 +230,7 @@ describe('LineItemsToReviewPage', () => {
         it('opens manual transaction modal when button is clicked', async () => {
             render(<LineItemsToReviewPage />);
 
-            const cashButton = screen.getByRole('button', { name: /manual transaction/i });
+            const cashButton = screen.getByRole('button', { name: /create manual transaction/i });
             await userEvent.click(cashButton);
 
             expect(screen.getByTestId('manual-transaction-modal')).toBeInTheDocument();
@@ -250,7 +250,7 @@ describe('LineItemsToReviewPage', () => {
             render(<LineItemsToReviewPage />);
 
             // Open modal
-            const cashButton = screen.getByRole('button', { name: /manual transaction/i });
+            const cashButton = screen.getByRole('button', { name: /create manual transaction/i });
             await userEvent.click(cashButton);
             expect(screen.getByTestId('manual-transaction-modal')).toBeInTheDocument();
 
@@ -281,7 +281,7 @@ describe('LineItemsToReviewPage', () => {
             mockUseLineItems.mockReturnValue({ lineItems: mockLineItemsWithSelection, isLoading: false });
             render(<LineItemsToReviewPage />);
 
-            const cashButton = screen.getByRole('button', { name: /manual transaction/i });
+            const cashButton = screen.getByRole('button', { name: /create manual transaction/i });
             const eventButton = screen.getByRole('button', { name: /create event/i });
 
             // Open cash modal first
@@ -370,7 +370,7 @@ describe('LineItemsToReviewPage', () => {
             render(<LineItemsToReviewPage />);
 
             // Open cash modal first
-            const cashButton = screen.getByRole('button', { name: /manual transaction/i });
+            const cashButton = screen.getByRole('button', { name: /create manual transaction/i });
             await userEvent.click(cashButton);
             expect(screen.getByTestId('manual-transaction-modal')).toBeInTheDocument();
 
@@ -421,7 +421,7 @@ describe('LineItemsToReviewPage', () => {
         it('has proper button labels', () => {
             render(<LineItemsToReviewPage />);
 
-            expect(screen.getByRole('button', { name: /manual transaction/i })).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: /create manual transaction/i })).toBeInTheDocument();
             expect(screen.getByRole('button', { name: /create event/i })).toBeInTheDocument();
         });
 
@@ -462,7 +462,7 @@ describe('LineItemsToReviewPage', () => {
         it('passes correct props to CreateManualTransactionModal', async () => {
             render(<LineItemsToReviewPage />);
 
-            const cashButton = screen.getByRole('button', { name: /manual transaction/i });
+            const cashButton = screen.getByRole('button', { name: /create manual transaction/i });
             await userEvent.click(cashButton);
 
             expect(screen.getByTestId('manual-transaction-modal')).toBeInTheDocument();
@@ -488,7 +488,7 @@ describe('LineItemsToReviewPage', () => {
             expect(bottomContainer).toBeInTheDocument();
 
             // Verify buttons are present in the fixed bottom area
-            const cashButton = screen.getByRole('button', { name: /manual transaction/i });
+            const cashButton = screen.getByRole('button', { name: /create manual transaction/i });
             const eventButton = screen.getByRole('button', { name: /create event/i });
             expect(cashButton).toBeInTheDocument();
             expect(eventButton).toBeInTheDocument();
@@ -505,7 +505,7 @@ describe('LineItemsToReviewPage', () => {
         it('renders buttons with correct attributes', () => {
             render(<LineItemsToReviewPage />);
 
-            const cashButton = screen.getByRole('button', { name: /manual transaction/i });
+            const cashButton = screen.getByRole('button', { name: /create manual transaction/i });
             const eventButton = screen.getByRole('button', { name: /create event/i });
 
             expect(cashButton).toBeInTheDocument();
@@ -525,7 +525,7 @@ describe('LineItemsToReviewPage', () => {
                     // Missing other properties
                 } as any
             ];
-            mockUseLineItems.mockReturnValue({ lineItems:incompleteLineItems, isLoading: false });
+            mockUseLineItems.mockReturnValue({ lineItems: incompleteLineItems, isLoading: false });
 
             render(<LineItemsToReviewPage />);
 
@@ -539,7 +539,7 @@ describe('LineItemsToReviewPage', () => {
                     amount: 999999.99,
                 }
             ];
-            mockUseLineItems.mockReturnValue({ lineItems:largeAmountLineItems, isLoading: false });
+            mockUseLineItems.mockReturnValue({ lineItems: largeAmountLineItems, isLoading: false });
 
             render(<LineItemsToReviewPage />);
 
@@ -555,7 +555,7 @@ describe('LineItemsToReviewPage', () => {
                     amount: 0,
                 }
             ];
-            mockUseLineItems.mockReturnValue({ lineItems:zeroAmountLineItems, isLoading: false });
+            mockUseLineItems.mockReturnValue({ lineItems: zeroAmountLineItems, isLoading: false });
 
             render(<LineItemsToReviewPage />);
 
@@ -614,7 +614,7 @@ describe('LineItemsToReviewPage', () => {
 
             const bottomContainer = document.querySelector('.fixed.bottom-0');
             expect(bottomContainer).toBeInTheDocument();
-            expect(screen.getByRole('button', { name: /manual transaction/i })).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: /create manual transaction/i })).toBeInTheDocument();
             expect(screen.getByRole('button', { name: /create event/i })).toBeInTheDocument();
         });
     });

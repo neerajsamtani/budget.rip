@@ -3,8 +3,8 @@ import { Spinner } from "@/components/ui/spinner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { CurrencyFormatter } from "@/utils/formatters";
 import React, { useCallback, useEffect, useState } from "react";
-import CreateManualTransactionModal from "../components/CreateManualTransactionModal";
 import CreateEventModal from "../components/CreateEventModal";
+import CreateManualTransactionModal from "../components/CreateManualTransactionModal";
 import LineItem, { LineItemCard } from "../components/LineItem";
 import { PageContainer, PageHeader } from "../components/ui/layout";
 import { Body, H1 } from "../components/ui/typography";
@@ -39,17 +39,17 @@ function MobileLineItemCard({ lineItem }: { lineItem: LineItemInterface }) {
 export default function LineItemsToReviewPage() {
 
     const [eventModalShow, setEventModalShow] = useState(false);
-    const [manualModalShow, setManualModalShow] = useState(false);
+    const [manualTransactionModalShow, setManualTransactionModalShow] = useState(false);
     const { lineItems, isLoading } = useLineItems();
     const selectedLineItems = lineItems?.filter(lineItem => lineItem.isSelected) ?? [];
     const total = selectedLineItems.reduce((prev, cur) => prev + cur.amount, 0);
 
 
     const handleKeyDown = useCallback((event) => {
-        if (event.key === 'Enter' && selectedLineItems.length > 0 && !eventModalShow && !manualModalShow) {
+        if (event.key === 'Enter' && selectedLineItems.length > 0 && !eventModalShow && !manualTransactionModalShow) {
             setEventModalShow(true);
         }
-    }, [selectedLineItems.length, eventModalShow, manualModalShow]);
+    }, [selectedLineItems.length, eventModalShow, manualTransactionModalShow]);
 
     useEffect(() => {
         document.addEventListener('keydown', handleKeyDown);
@@ -128,8 +128,8 @@ export default function LineItemsToReviewPage() {
             </div>
 
             <CreateManualTransactionModal
-                show={manualModalShow}
-                onHide={() => setManualModalShow(false)}
+                show={manualTransactionModalShow}
+                onHide={() => setManualTransactionModalShow(false)}
             />
             <CreateEventModal
                 show={eventModalShow}
@@ -143,10 +143,10 @@ export default function LineItemsToReviewPage() {
                             Total: {CurrencyFormatter.format(total)}
                         </Body>
                         <div className="flex flex-row gap-2 sm:gap-4">
-                            <Button onClick={() => { setEventModalShow(false); setManualModalShow(true); }} variant="secondary" size="sm" className="px-2 sm:px-4">
-                                Manual Transaction
+                            <Button onClick={() => { setEventModalShow(false); setManualTransactionModalShow(true); }} variant="secondary" size="sm" className="px-2 sm:px-4">
+                                Create Manual Transaction
                             </Button>
-                            <Button onClick={() => { setManualModalShow(false); setEventModalShow(true); }} size="sm" className="px-2 sm:px-4" disabled={selectedLineItems.length === 0}>
+                            <Button onClick={() => { setManualTransactionModalShow(false); setEventModalShow(true); }} size="sm" className="px-2 sm:px-4" disabled={selectedLineItems.length === 0}>
                                 Create Event<span className="hidden sm:inline"> (↵)</span>
                             </Button>
                         </div>
