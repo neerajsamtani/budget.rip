@@ -1,7 +1,7 @@
-import { useMutation, useQuery, useQueryClient, UseMutationResult, UseQueryResult } from '@tanstack/react-query';
-import axiosInstance from '../utils/axiosInstance';
+import { useMutation, UseMutationResult, useQuery, useQueryClient, UseQueryResult } from '@tanstack/react-query';
 import { EventInterface } from '../components/Event';
 import { LineItemInterface } from '../contexts/LineItemsContext';
+import axiosInstance from '../utils/axiosInstance';
 
 // Query Keys
 export const queryKeys = {
@@ -129,18 +129,6 @@ export function usePaymentMethods(): UseQueryResult<PaymentMethod[]> {
     queryFn: async () => {
       const response = await axiosInstance.get('api/payment_methods');
       return response.data.data as PaymentMethod[];
-    },
-  });
-}
-
-// For backwards compatibility with components that just need payment method names
-export function usePaymentMethodNames(): UseQueryResult<string[]> {
-  return useQuery({
-    queryKey: [...queryKeys.paymentMethods(), 'names'] as const,
-    queryFn: async () => {
-      const response = await axiosInstance.get('api/payment_methods');
-      const paymentMethods = response.data.data as PaymentMethod[];
-      return paymentMethods.map(pm => pm.name);
     },
   });
 }

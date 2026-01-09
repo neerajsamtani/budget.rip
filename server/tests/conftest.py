@@ -328,13 +328,6 @@ def create_line_item_via_manual(test_client, jwt_token):
     return _create
 
 
-# Backwards compatible alias
-@pytest.fixture
-def create_line_item_via_cash(create_line_item_via_manual):
-    """Backwards compatible alias for create_line_item_via_manual"""
-    return create_line_item_via_manual
-
-
 @pytest.fixture
 def create_event_via_api(test_client, jwt_token):
     """Helper to create events via API"""

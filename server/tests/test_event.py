@@ -46,13 +46,13 @@ class TestEventAPI:
         test_client,
         jwt_token,
         flask_app,
-        create_line_item_via_cash,
+        create_line_item_via_manual,
         create_event_via_api,
     ):
         """Events endpoint returns all events with summed total amount"""
         # Create test line items via API
-        create_line_item_via_cash(date="2009-02-13", person="Person1", description="Transaction 1", amount=100)
-        create_line_item_via_cash(date="2009-02-14", person="Person2", description="Transaction 2", amount=50)
+        create_line_item_via_manual(date="2009-02-13", person="Person1", description="Transaction 1", amount=100)
+        create_line_item_via_manual(date="2009-02-14", person="Person2", description="Transaction 2", amount=50)
 
         # Get created line item IDs
         with flask_app.app_context():
@@ -102,13 +102,13 @@ class TestEventAPI:
         test_client,
         jwt_token,
         flask_app,
-        create_line_item_via_cash,
+        create_line_item_via_manual,
         create_event_via_api,
     ):
         """Events can be filtered by start_time and end_time"""
         # Create test line items via API
-        create_line_item_via_cash(date="2009-02-13", person="Person1", description="Transaction 1", amount=100)
-        create_line_item_via_cash(date="2009-02-14", person="Person2", description="Transaction 2", amount=50)
+        create_line_item_via_manual(date="2009-02-13", person="Person1", description="Transaction 1", amount=100)
+        create_line_item_via_manual(date="2009-02-14", person="Person2", description="Transaction 2", amount=50)
 
         # Get created line item IDs and dates (sort by date to ensure consistent ordering)
         with flask_app.app_context():
@@ -161,12 +161,12 @@ class TestEventAPI:
         test_client,
         jwt_token,
         flask_app,
-        create_line_item_via_cash,
+        create_line_item_via_manual,
         create_event_via_api,
     ):
         """Event can be retrieved by its ID"""
         # Create test line item via API
-        create_line_item_via_cash(date="2009-02-13", person="Person1", description="Transaction 1", amount=100)
+        create_line_item_via_manual(date="2009-02-13", person="Person1", description="Transaction 1", amount=100)
 
         # Get created line item ID
         with flask_app.app_context():
@@ -212,16 +212,16 @@ class TestEventAPI:
         data = response.get_json()
         assert data["error"] == "Event not found"
 
-    def test_event_creation_calculates_total_amount(self, test_client, jwt_token, flask_app, create_line_item_via_cash):
+    def test_event_creation_calculates_total_amount(self, test_client, jwt_token, flask_app, create_line_item_via_manual):
         """Creating an event links line items and calculates total amount"""
         # Create test line items via API
-        create_line_item_via_cash(
+        create_line_item_via_manual(
             date="2009-02-13",
             person="John Doe",
             description="Test transaction 1",
             amount=100,
         )
-        create_line_item_via_cash(
+        create_line_item_via_manual(
             date="2009-02-14",
             person="Jane Smith",
             description="Test transaction 2",
@@ -296,10 +296,10 @@ class TestEventAPI:
         assert response.status_code == 400
         assert response.get_data(as_text=True).strip() == '"Failed to Create Event: No Line Items Submitted"'
 
-    def test_duplicate_flag_uses_first_line_item_amount(self, test_client, jwt_token, flask_app, create_line_item_via_cash):
+    def test_duplicate_flag_uses_first_line_item_amount(self, test_client, jwt_token, flask_app, create_line_item_via_manual):
         """Duplicate transaction events use only the first line item amount"""
         # Create test line item via API
-        create_line_item_via_cash(
+        create_line_item_via_manual(
             date="2009-02-13",
             person="John Doe",
             description="Test transaction 1",
@@ -342,10 +342,10 @@ class TestEventAPI:
             assert created_event is not None
             assert created_event["amount"] == 100  # Only the first line item amount
 
-    def test_event_uses_earliest_line_item_date(self, test_client, jwt_token, flask_app, create_line_item_via_cash):
+    def test_event_uses_earliest_line_item_date(self, test_client, jwt_token, flask_app, create_line_item_via_manual):
         """Event uses earliest line item date when date is not provided"""
         # Create test line item via API
-        create_line_item_via_cash(
+        create_line_item_via_manual(
             date="2009-02-13",
             person="John Doe",
             description="Test transaction 1",
@@ -393,12 +393,12 @@ class TestEventAPI:
         test_client,
         jwt_token,
         flask_app,
-        create_line_item_via_cash,
+        create_line_item_via_manual,
         create_event_via_api,
     ):
         """Deleting an event removes event_id from associated line items"""
         # Create test line item via API
-        create_line_item_via_cash(
+        create_line_item_via_manual(
             date="2009-02-13",
             person="John Doe",
             description="Test transaction",
@@ -462,13 +462,13 @@ class TestEventAPI:
         test_client,
         jwt_token,
         flask_app,
-        create_line_item_via_cash,
+        create_line_item_via_manual,
         create_event_via_api,
     ):
         """Updating an event can change name, category, and line items"""
         # Create test line items via API
-        create_line_item_via_cash(date="2009-02-13", person="Person1", description="Transaction 1", amount=100)
-        create_line_item_via_cash(date="2009-02-14", person="Person2", description="Transaction 2", amount=50)
+        create_line_item_via_manual(date="2009-02-13", person="Person1", description="Transaction 1", amount=100)
+        create_line_item_via_manual(date="2009-02-14", person="Person2", description="Transaction 2", amount=50)
 
         # Get created line item IDs
         with flask_app.app_context():
@@ -546,12 +546,12 @@ class TestEventAPI:
         test_client,
         jwt_token,
         flask_app,
-        create_line_item_via_cash,
+        create_line_item_via_manual,
         create_event_via_api,
     ):
         """Event update fails when removing all line items"""
         # Create test line item via API
-        create_line_item_via_cash(date="2009-02-13", person="Person1", description="Transaction 1", amount=100)
+        create_line_item_via_manual(date="2009-02-13", person="Person1", description="Transaction 1", amount=100)
 
         # Get created line item ID
         with flask_app.app_context():
@@ -595,18 +595,18 @@ class TestEventAPI:
         test_client,
         jwt_token,
         flask_app,
-        create_line_item_via_cash,
+        create_line_item_via_manual,
         create_event_via_api,
     ):
         """Event line items endpoint returns all line items for an event"""
         # Create test line items via API
-        create_line_item_via_cash(
+        create_line_item_via_manual(
             date="2009-02-13",
             person="John Doe",
             description="Transaction 1",
             amount=100,
         )
-        create_line_item_via_cash(
+        create_line_item_via_manual(
             date="2009-02-14",
             person="Jane Smith",
             description="Transaction 2",
@@ -658,10 +658,10 @@ class TestEventAPI:
         data = response.get_json()
         assert data["error"] == "Event not found"
 
-    def test_missing_line_items_are_skipped_in_response(self, test_client, jwt_token, flask_app, create_line_item_via_cash):
+    def test_missing_line_items_are_skipped_in_response(self, test_client, jwt_token, flask_app, create_line_item_via_manual):
         """Missing line items are skipped when retrieving event line items"""
         # Create one line item via API
-        create_line_item_via_cash(
+        create_line_item_via_manual(
             date="2009-02-13",
             person="John Doe",
             description="Transaction 1",
