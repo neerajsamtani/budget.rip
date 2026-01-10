@@ -1,12 +1,7 @@
 import pytest
 import stripe
 
-from dao import (
-    bank_accounts_collection,
-    get_all_bank_accounts,
-    stripe_raw_transaction_data_collection,
-    upsert,
-)
+from dao import get_all_bank_accounts
 from resources.stripe import refresh_stripe, stripe_to_line_items
 
 
@@ -205,7 +200,15 @@ class TestStripeAPI:
                 "last4": "1234",
                 "status": "active",
             }
-            upsert(bank_accounts_collection, test_account)
+            from models.database import SessionLocal
+            from utils.pg_bulk_ops import _bulk_upsert_bank_accounts
+
+            db = SessionLocal()
+            try:
+                _bulk_upsert_bank_accounts(db, [test_account])
+                db.commit()
+            finally:
+                db.close()
 
             response = test_client.get(
                 "/api/accounts",
@@ -233,7 +236,15 @@ class TestStripeAPI:
                 "currency": "usd",
                 "balance_as_of": datetime(2023, 1, 15, 10, 30, 0, tzinfo=timezone.utc),
             }
-            upsert(bank_accounts_collection, test_account)
+            from models.database import SessionLocal
+            from utils.pg_bulk_ops import _bulk_upsert_bank_accounts
+
+            db = SessionLocal()
+            try:
+                _bulk_upsert_bank_accounts(db, [test_account])
+                db.commit()
+            finally:
+                db.close()
 
             response = test_client.get(
                 "/api/accounts_and_balances",
@@ -398,7 +409,15 @@ class TestStripeFunctions:
                 "display_name": "Checking Account",
                 "last4": "1234",
             }
-            upsert(bank_accounts_collection, test_account)
+            from models.database import SessionLocal
+            from utils.pg_bulk_ops import _bulk_upsert_bank_accounts
+
+            db = SessionLocal()
+            try:
+                _bulk_upsert_bank_accounts(db, [test_account])
+                db.commit()
+            finally:
+                db.close()
 
             # Call the function
             refresh_stripe()
@@ -433,13 +452,26 @@ class TestStripeFunctions:
                 "display_name": "Checking Account",
                 "last4": "1234",
             }
-            upsert(bank_accounts_collection, test_account)
+            from models.database import SessionLocal
+            from utils.pg_bulk_ops import _bulk_upsert_bank_accounts
+
+            db = SessionLocal()
+            try:
+                _bulk_upsert_bank_accounts(db, [test_account])
+                db.commit()
+            finally:
+                db.close()
 
             test_transaction = mock_stripe_transaction
-            upsert(
-                stripe_raw_transaction_data_collection,
-                test_transaction,
-            )
+            from models.database import SessionLocal
+            from utils.pg_bulk_ops import _bulk_upsert_transactions
+
+            db = SessionLocal()
+            try:
+                _bulk_upsert_transactions(db, [test_transaction], source="stripe_api")
+                db.commit()
+            finally:
+                db.close()
 
             # Call the function (writes to PostgreSQL)
             stripe_to_line_items()
@@ -474,10 +506,15 @@ class TestStripeFunctions:
         with flask_app.app_context():
             # Insert transaction without corresponding account
             test_transaction = mock_stripe_transaction
-            upsert(
-                stripe_raw_transaction_data_collection,
-                test_transaction,
-            )
+            from models.database import SessionLocal
+            from utils.pg_bulk_ops import _bulk_upsert_transactions
+
+            db = SessionLocal()
+            try:
+                _bulk_upsert_transactions(db, [test_transaction], source="stripe_api")
+                db.commit()
+            finally:
+                db.close()
 
             mocker.patch("resources.stripe.upsert_line_items")
 
@@ -494,7 +531,15 @@ class TestStripeFunctions:
                 "display_name": "Checking Account",
                 "last4": "1234",
             }
-            upsert(bank_accounts_collection, test_account)
+            from models.database import SessionLocal
+            from utils.pg_bulk_ops import _bulk_upsert_bank_accounts
+
+            db = SessionLocal()
+            try:
+                _bulk_upsert_bank_accounts(db, [test_account])
+                db.commit()
+            finally:
+                db.close()
 
             # Insert multiple transactions
             transactions = []
@@ -508,10 +553,16 @@ class TestStripeFunctions:
                     "transacted_at": 1673778600 + i,
                 }
                 transactions.append(transaction)
-                upsert(
-                    stripe_raw_transaction_data_collection,
-                    transaction,
-                )
+
+            from models.database import SessionLocal
+            from utils.pg_bulk_ops import _bulk_upsert_transactions
+
+            db = SessionLocal()
+            try:
+                _bulk_upsert_transactions(db, transactions, source="stripe_api")
+                db.commit()
+            finally:
+                db.close()
 
             mocker.patch("resources.stripe.upsert_line_items")
 
@@ -634,7 +685,15 @@ class TestStripeIntegration:
                 "display_name": "Checking Account",
                 "last4": "1234",
             }
-            upsert(bank_accounts_collection, test_account)
+            from models.database import SessionLocal
+            from utils.pg_bulk_ops import _bulk_upsert_bank_accounts
+
+            db = SessionLocal()
+            try:
+                _bulk_upsert_bank_accounts(db, [test_account])
+                db.commit()
+            finally:
+                db.close()
 
             # Insert test transaction
             test_transaction = {
@@ -645,10 +704,14 @@ class TestStripeIntegration:
                 "status": "posted",
                 "transacted_at": 1673778600,
             }
-            upsert(
-                stripe_raw_transaction_data_collection,
-                test_transaction,
-            )
+            from utils.pg_bulk_ops import _bulk_upsert_transactions
+
+            db2 = SessionLocal()
+            try:
+                _bulk_upsert_transactions(db2, [test_transaction], source="stripe_api")
+                db2.commit()
+            finally:
+                db2.close()
 
             # Call refresh function
             refresh_stripe()
@@ -665,7 +728,6 @@ class TestAccountBalances:
 
     def test_refresh_balances_updates_account_records(self, flask_app, mocker):
         """Refresh balances fetches and stores balance on account records"""
-        from dao import bank_accounts_collection, upsert
         from resources.stripe import refresh_account_balances
 
         with flask_app.app_context():
@@ -688,7 +750,15 @@ class TestAccountBalances:
                 "last4": "1234",
                 "status": "active",
             }
-            upsert(bank_accounts_collection, test_account)
+            from models.database import SessionLocal
+            from utils.pg_bulk_ops import _bulk_upsert_bank_accounts
+
+            db = SessionLocal()
+            try:
+                _bulk_upsert_bank_accounts(db, [test_account])
+                db.commit()
+            finally:
+                db.close()
 
             # Call refresh_account_balances
             count = refresh_account_balances()
@@ -708,8 +778,6 @@ class TestAccountBalances:
         """Accounts and balances endpoint reads stored balance data"""
         from datetime import UTC, datetime
 
-        from dao import bank_accounts_collection, upsert
-
         with flask_app.app_context():
             # Setup test account with balance
             test_account = {
@@ -723,7 +791,15 @@ class TestAccountBalances:
                 "currency": "usd",
                 "balance_as_of": datetime.fromtimestamp(1700000000, UTC),
             }
-            upsert(bank_accounts_collection, test_account)
+            from models.database import SessionLocal
+            from utils.pg_bulk_ops import _bulk_upsert_bank_accounts
+
+            db = SessionLocal()
+            try:
+                _bulk_upsert_bank_accounts(db, [test_account])
+                db.commit()
+            finally:
+                db.close()
 
             # Call API endpoint
             response = test_client.get(

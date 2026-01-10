@@ -1,9 +1,5 @@
 import pytest
 
-from dao import (
-    upsert,
-    venmo_raw_data_collection,
-)
 from resources.venmo import refresh_venmo, venmo_to_line_items
 
 
@@ -294,10 +290,16 @@ class TestVenmoFunctions:
         with flask_app.app_context():
             from models.database import SessionLocal
             from models.sql_models import LineItem
+            from utils.pg_bulk_ops import _bulk_upsert_transactions
 
             # Insert test transaction data
             test_transaction = mock_venmo_transaction
-            upsert(venmo_raw_data_collection, test_transaction)
+            db = SessionLocal()
+            try:
+                _bulk_upsert_transactions(db, [test_transaction], source="venmo_api")
+                db.commit()
+            finally:
+                db.close()
 
             # Call the function
             venmo_to_line_items()
@@ -321,10 +323,16 @@ class TestVenmoFunctions:
         with flask_app.app_context():
             from models.database import SessionLocal
             from models.sql_models import LineItem
+            from utils.pg_bulk_ops import _bulk_upsert_transactions
 
             # Insert test transaction data
             test_transaction = mock_venmo_transaction_charge
-            upsert(venmo_raw_data_collection, test_transaction)
+            db = SessionLocal()
+            try:
+                _bulk_upsert_transactions(db, [test_transaction], source="venmo_api")
+                db.commit()
+            finally:
+                db.close()
 
             # Call the function
             venmo_to_line_items()
@@ -348,10 +356,16 @@ class TestVenmoFunctions:
         with flask_app.app_context():
             from models.database import SessionLocal
             from models.sql_models import LineItem
+            from utils.pg_bulk_ops import _bulk_upsert_transactions
 
             # Insert test transaction data
             test_transaction = mock_venmo_transaction_received
-            upsert(venmo_raw_data_collection, test_transaction)
+            db = SessionLocal()
+            try:
+                _bulk_upsert_transactions(db, [test_transaction], source="venmo_api")
+                db.commit()
+            finally:
+                db.close()
 
             # Call the function
             venmo_to_line_items()
@@ -383,6 +397,7 @@ class TestVenmoFunctions:
         with flask_app.app_context():
             from models.database import SessionLocal
             from models.sql_models import LineItem
+            from utils.pg_bulk_ops import _bulk_upsert_transactions
 
             # Insert multiple test transactions
             transactions = [
@@ -415,8 +430,12 @@ class TestVenmoFunctions:
                 },
             ]
 
-            for transaction in transactions:
-                upsert(venmo_raw_data_collection, transaction)
+            db = SessionLocal()
+            try:
+                _bulk_upsert_transactions(db, transactions, source="venmo_api")
+                db.commit()
+            finally:
+                db.close()
 
             # Call the function
             venmo_to_line_items()
@@ -488,10 +507,14 @@ class TestVenmoIntegration:
                 "note": "Integration test payment",
                 "amount": 25.0,
             }
-            upsert(
-                venmo_raw_data_collection,
-                transaction_dict,
-            )
+            from utils.pg_bulk_ops import _bulk_upsert_transactions
+
+            db = SessionLocal()
+            try:
+                _bulk_upsert_transactions(db, [transaction_dict], source="venmo_api")
+                db.commit()
+            finally:
+                db.close()
 
             # Now call line items conversion with the stored data
             venmo_to_line_items()

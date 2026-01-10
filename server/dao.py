@@ -54,56 +54,6 @@ def get_user_by_email(email: str) -> Optional[Dict[str, Any]]:
         }
 
 
-# TODO: Remove this router function and let callers use the underlying functions directly
-def upsert(cur_collection_str: str, item: Dict[str, Any]) -> None:
-    """Upsert item to PostgreSQL for migrated collections"""
-    from models.database import SessionLocal
-
-    try:
-        with SessionLocal.begin() as db:
-            # PostgreSQL write for transaction collections
-            if cur_collection_str in [
-                venmo_raw_data_collection,
-                splitwise_raw_data_collection,
-                stripe_raw_transaction_data_collection,
-                manual_raw_data_collection,
-            ]:
-                from utils.pg_bulk_ops import _bulk_upsert_transactions
-
-                source_map = {
-                    venmo_raw_data_collection: "venmo_api",
-                    splitwise_raw_data_collection: "splitwise_api",
-                    stripe_raw_transaction_data_collection: "stripe_api",
-                    manual_raw_data_collection: "manual",
-                }
-                source = source_map[cur_collection_str]
-                _bulk_upsert_transactions(db, [item], source=source)
-
-            elif cur_collection_str == bank_accounts_collection:
-                from utils.pg_bulk_ops import _bulk_upsert_bank_accounts
-
-                _bulk_upsert_bank_accounts(db, [item])
-
-            elif cur_collection_str == line_items_collection:
-                from utils.pg_bulk_ops import _bulk_upsert_line_items
-
-                # Derive source from payment_method if not explicitly provided
-                payment_method = item.get("payment_method", "manual").lower()
-                source_map = {
-                    "venmo": "venmo_api",
-                    "splitwise": "splitwise_api",
-                    "credit card": "stripe_api",
-                    "debit card": "stripe_api",
-                    "cash": "manual",
-                }
-                source = source_map.get(payment_method, "manual")
-                _bulk_upsert_line_items(db, [item], source=source)
-
-            else:
-                raise NotImplementedError(f"Collection {cur_collection_str} not supported for upsert")
-    except Exception as e:
-        logger.error(f"Failed to upsert item to {cur_collection_str}: {e}")
-        raise
 
 
 def get_categorized_data() -> List[Dict[str, Any]]:

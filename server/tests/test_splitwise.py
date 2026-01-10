@@ -139,12 +139,17 @@ class TestSplitwiseFunctions:
     def test_expenses_convert_to_line_items_with_correct_amount(self, flask_app, mock_splitwise_expense_dict, mocker):
         """Expenses convert to line items with flipped user balance as amount"""
         with flask_app.app_context():
-            from dao import splitwise_raw_data_collection, upsert
             from models.database import SessionLocal
             from models.sql_models import LineItem
+            from utils.pg_bulk_ops import _bulk_upsert_transactions
 
             # Insert raw transaction data into database first
-            upsert(splitwise_raw_data_collection, mock_splitwise_expense_dict)
+            db = SessionLocal()
+            try:
+                _bulk_upsert_transactions(db, [mock_splitwise_expense_dict], source="splitwise_api")
+                db.commit()
+            finally:
+                db.close()
 
             # Call the function (writes to PostgreSQL)
             splitwise_to_line_items()
@@ -190,9 +195,9 @@ class TestSplitwiseFunctions:
     def test_non_ignored_parties_create_line_items(self, flask_app, mocker):
         """Non-ignored parties create line items correctly"""
         with flask_app.app_context():
-            from dao import splitwise_raw_data_collection, upsert
             from models.database import SessionLocal
             from models.sql_models import LineItem
+            from utils.pg_bulk_ops import _bulk_upsert_transactions
 
             # Insert raw expense with non-ignored party
             expense_with_non_ignored = {
@@ -204,7 +209,12 @@ class TestSplitwiseFunctions:
                     {"first_name": "Regular Person", "net_balance": 40.0},
                 ],
             }
-            upsert(splitwise_raw_data_collection, expense_with_non_ignored)
+            db = SessionLocal()
+            try:
+                _bulk_upsert_transactions(db, [expense_with_non_ignored], source="splitwise_api")
+                db.commit()
+            finally:
+                db.close()
 
             # Call the function
             splitwise_to_line_items()
@@ -223,9 +233,9 @@ class TestSplitwiseFunctions:
     def test_multiple_users_combined_into_responsible_party(self, flask_app, mocker):
         """Multiple users are combined into a single responsible party string"""
         with flask_app.app_context():
-            from dao import splitwise_raw_data_collection, upsert
             from models.database import SessionLocal
             from models.sql_models import LineItem
+            from utils.pg_bulk_ops import _bulk_upsert_transactions
 
             # Insert raw expense with multiple users
             expense_multiple_users = {
@@ -238,7 +248,12 @@ class TestSplitwiseFunctions:
                     {"first_name": "Bob", "net_balance": 30.0},
                 ],
             }
-            upsert(splitwise_raw_data_collection, expense_multiple_users)
+            db = SessionLocal()
+            try:
+                _bulk_upsert_transactions(db, [expense_multiple_users], source="splitwise_api")
+                db.commit()
+            finally:
+                db.close()
 
             # Call the function
             splitwise_to_line_items()
@@ -292,9 +307,9 @@ class TestSplitwiseFunctions:
     def test_iso_date_converts_to_datetime(self, flask_app, mocker):
         """ISO date strings convert to datetime objects correctly"""
         with flask_app.app_context():
-            from dao import splitwise_raw_data_collection, upsert
             from models.database import SessionLocal
             from models.sql_models import LineItem
+            from utils.pg_bulk_ops import _bulk_upsert_transactions
 
             # Insert raw expense with specific date
             expense_with_date = {
@@ -306,7 +321,12 @@ class TestSplitwiseFunctions:
                     {"first_name": "Charlie", "net_balance": 25.0},
                 ],
             }
-            upsert(splitwise_raw_data_collection, expense_with_date)
+            db = SessionLocal()
+            try:
+                _bulk_upsert_transactions(db, [expense_with_date], source="splitwise_api")
+                db.commit()
+            finally:
+                db.close()
 
             # Call the function
             splitwise_to_line_items()
@@ -328,9 +348,9 @@ class TestSplitwiseFunctions:
     def test_negative_balance_flips_to_positive_amount(self, flask_app, mocker):
         """Negative user balance becomes positive line item amount"""
         with flask_app.app_context():
-            from dao import splitwise_raw_data_collection, upsert
             from models.database import SessionLocal
             from models.sql_models import LineItem
+            from utils.pg_bulk_ops import _bulk_upsert_transactions
 
             # Insert raw expense with positive and negative balances
             expense_mixed_balances = {
@@ -342,7 +362,12 @@ class TestSplitwiseFunctions:
                     {"first_name": "David", "net_balance": 100.0},  # David is owed
                 ],
             }
-            upsert(splitwise_raw_data_collection, expense_mixed_balances)
+            db = SessionLocal()
+            try:
+                _bulk_upsert_transactions(db, [expense_mixed_balances], source="splitwise_api")
+                db.commit()
+            finally:
+                db.close()
 
             # Call the function
             splitwise_to_line_items()

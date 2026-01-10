@@ -1,11 +1,5 @@
 import pytest
 
-from dao import (
-    bank_accounts_collection,
-    line_items_collection,
-    upsert,
-)
-
 
 @pytest.fixture
 def mock_venmo_profile(mocker):
@@ -229,8 +223,16 @@ class TestApplicationRoutes:
     ):
         """Connected accounts endpoint returns Venmo, Splitwise, and Stripe accounts"""
         with flask_app.app_context():
+            from models.database import SessionLocal
+            from utils.pg_bulk_ops import _bulk_upsert_bank_accounts
+
             # Insert test bank account
-            upsert(bank_accounts_collection, mock_bank_account)
+            db = SessionLocal()
+            try:
+                _bulk_upsert_bank_accounts(db, [mock_bank_account])
+                db.commit()
+            finally:
+                db.close()
 
             # Mock venmoclient responses
             mock_venmo_client = mocker.Mock()
@@ -285,8 +287,16 @@ class TestApplicationRoutes:
     def test_payment_methods_includes_bank_accounts(self, test_client, jwt_token, flask_app, mock_bank_account):
         """Payment methods endpoint includes bank account display names"""
         with flask_app.app_context():
+            from models.database import SessionLocal
+            from utils.pg_bulk_ops import _bulk_upsert_bank_accounts
+
             # Insert test bank account
-            upsert(bank_accounts_collection, mock_bank_account)
+            db = SessionLocal()
+            try:
+                _bulk_upsert_bank_accounts(db, [mock_bank_account])
+                db.commit()
+            finally:
+                db.close()
 
             response = test_client.get(
                 "/api/payment_methods",
@@ -369,8 +379,26 @@ class TestApplicationIntegration:
     def test_refresh_workflow_syncs_data_and_creates_line_items(self, flask_app, mock_line_item, mocker):
         """Complete refresh workflow syncs data and creates line items"""
         with flask_app.app_context():
+            from models.database import SessionLocal
+            from utils.pg_bulk_ops import _bulk_upsert_line_items
+
             # Insert test line item
-            upsert(line_items_collection, mock_line_item)
+            db = SessionLocal()
+            try:
+                # Determine source from payment method
+                payment_method = mock_line_item.get("payment_method", "manual").lower()
+                source_map = {
+                    "venmo": "venmo_api",
+                    "splitwise": "splitwise_api",
+                    "credit card": "stripe_api",
+                    "debit card": "stripe_api",
+                    "cash": "manual",
+                }
+                source = source_map.get(payment_method, "manual")
+                _bulk_upsert_line_items(db, [mock_line_item], source=source)
+                db.commit()
+            finally:
+                db.close()
 
             mock_refresh_all = mocker.patch("application.refresh_all")
             mock_create_consistent = mocker.patch("application.create_consistent_line_items")
@@ -393,6 +421,9 @@ class TestApplicationIntegration:
     def test_connected_accounts_lists_all_bank_accounts(self, test_client, jwt_token, flask_app, mocker):
         """Connected accounts lists all bank accounts under Stripe"""
         with flask_app.app_context():
+            from models.database import SessionLocal
+            from utils.pg_bulk_ops import _bulk_upsert_bank_accounts
+
             # Insert multiple bank accounts
             bank_accounts = [
                 {
@@ -409,8 +440,12 @@ class TestApplicationIntegration:
                 },
             ]
 
-            for account in bank_accounts:
-                upsert(bank_accounts_collection, account)
+            db = SessionLocal()
+            try:
+                _bulk_upsert_bank_accounts(db, bank_accounts)
+                db.commit()
+            finally:
+                db.close()
 
             mock_venmo_client = mocker.Mock()
             mock_venmo_client.my_profile.return_value = mocker.Mock(username="test_user")
@@ -435,6 +470,9 @@ class TestApplicationIntegration:
     def test_payment_methods_lists_all_bank_account_names(self, test_client, jwt_token, flask_app):
         """Payment methods lists display names for all bank accounts"""
         with flask_app.app_context():
+            from models.database import SessionLocal
+            from utils.pg_bulk_ops import _bulk_upsert_bank_accounts
+
             # Insert multiple bank accounts
             bank_accounts = [
                 {
@@ -451,8 +489,12 @@ class TestApplicationIntegration:
                 },
             ]
 
-            for account in bank_accounts:
-                upsert(bank_accounts_collection, account)
+            db = SessionLocal()
+            try:
+                _bulk_upsert_bank_accounts(db, bank_accounts)
+                db.commit()
+            finally:
+                db.close()
 
             response = test_client.get(
                 "/api/payment_methods",
