@@ -498,3 +498,136 @@ def get_all_tags() -> List[Dict[str, Any]]:
         return [{"id": tag.id, "name": tag.name} for tag in tags]
     finally:
         db_session.close()
+
+
+def create_manual_transaction(
+    transaction_id: str,
+    line_item_id: str,
+    transaction_date: Any,
+    posix_date: float,
+    amount: Any,
+    description: str,
+    payment_method_id: str,
+    responsible_party: str,
+) -> None:
+    """
+    Create a manual transaction with its associated line item.
+
+    Manual transactions bypass the bulk upsert pipeline since they don't need
+    deduplication logic (there's no external API to re-import from).
+
+    Args:
+        transaction_id: Generated txn_xxx ID for the transaction
+        line_item_id: Generated li_xxx ID for the line item
+        transaction_date: datetime object for the transaction
+        posix_date: POSIX timestamp of the transaction date
+        amount: Decimal amount for the line item
+        description: Transaction description
+        payment_method_id: ID of the payment method
+        responsible_party: Name of the responsible party
+    """
+    from models.database import SessionLocal
+    from models.sql_models import LineItem, Transaction
+
+    db_session = SessionLocal()
+    try:
+        transaction = Transaction(
+            id=transaction_id,
+            source="manual",
+            source_id=transaction_id,
+            source_data={
+                "date": posix_date,
+                "person": responsible_party,
+                "description": description,
+                "amount": float(amount),
+                "payment_method_id": payment_method_id,
+            },
+            transaction_date=transaction_date,
+        )
+        db_session.add(transaction)
+
+        line_item = LineItem(
+            id=line_item_id,
+            transaction_id=transaction_id,
+            date=transaction_date,
+            amount=amount,
+            description=description,
+            payment_method_id=payment_method_id,
+            responsible_party=responsible_party,
+        )
+        db_session.add(line_item)
+
+        db_session.commit()
+    except Exception as e:
+        db_session.rollback()
+        logger.error(f"Failed to create manual transaction: {e}")
+        raise
+    finally:
+        db_session.close()
+
+
+def delete_manual_transaction(transaction_id: str) -> bool:
+    """
+    Delete a manual transaction and its associated line items.
+
+    Args:
+        transaction_id: The transaction ID to delete
+
+    Returns:
+        True if deleted, False if not found
+
+    Raises:
+        ValueError: If the transaction's line item is assigned to an event
+    """
+    from models.database import SessionLocal
+    from models.sql_models import EventLineItem, LineItem, Transaction
+
+    db_session = SessionLocal()
+    try:
+        transaction = (
+            db_session.query(Transaction).filter(Transaction.id == transaction_id, Transaction.source == "manual").first()
+        )
+
+        if not transaction:
+            return False
+
+        line_item = db_session.query(LineItem).filter(LineItem.transaction_id == transaction.id).first()
+
+        if line_item:
+            is_assigned = db_session.query(EventLineItem).filter(EventLineItem.line_item_id == line_item.id).first()
+            if is_assigned:
+                raise ValueError("Cannot delete transaction with line item assigned to an event")
+
+        db_session.delete(transaction)
+        db_session.commit()
+        return True
+
+    except ValueError:
+        db_session.rollback()
+        raise
+    except Exception as e:
+        db_session.rollback()
+        logger.error(f"Failed to delete manual transaction {transaction_id}: {e}")
+        raise
+    finally:
+        db_session.close()
+
+
+def get_payment_method_by_id(payment_method_id: str) -> Optional[Dict[str, Any]]:
+    """Get payment method by ID"""
+    from models.database import SessionLocal
+    from models.sql_models import PaymentMethod
+
+    db_session = SessionLocal()
+    try:
+        pm = db_session.query(PaymentMethod).filter(PaymentMethod.id == payment_method_id).first()
+        if not pm:
+            return None
+        return {
+            "id": pm.id,
+            "name": pm.name,
+            "type": pm.type,
+            "is_active": pm.is_active,
+        }
+    finally:
+        db_session.close()

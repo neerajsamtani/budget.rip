@@ -1,9 +1,18 @@
+from datetime import UTC, datetime
+from decimal import Decimal
+
+import pytest
+
 from dao import (
+    create_manual_transaction,
+    delete_manual_transaction,
     get_all_data,
+    get_payment_method_by_id,
     line_items_collection,
     manual_raw_data_collection,
 )
 from helpers import html_date_to_posix
+from utils.id_generator import generate_id
 
 
 def test_manual_transaction_is_stored_in_database(test_client, jwt_token, flask_app):
@@ -261,3 +270,128 @@ def test_cannot_delete_transaction_assigned_to_event(test_client, jwt_token, fla
     with flask_app.app_context():
         line_items_db = get_all_data(line_items_collection)
         assert len(line_items_db) == 1
+
+
+# DAO Function Tests
+
+
+def test_create_manual_transaction_creates_transaction_and_line_item(flask_app):
+    """create_manual_transaction creates both a transaction and line item in the database"""
+    with flask_app.app_context():
+        transaction_id = generate_id("txn")
+        line_item_id = generate_id("li")
+        transaction_date = datetime.fromtimestamp(1694736000, UTC)
+
+        create_manual_transaction(
+            transaction_id=transaction_id,
+            line_item_id=line_item_id,
+            transaction_date=transaction_date,
+            posix_date=1694736000,
+            amount=Decimal("50.00"),
+            description="DAO test transaction",
+            payment_method_id="pm_cash",
+            responsible_party="Test Person",
+        )
+
+        # Verify transaction was stored
+        manual_db = get_all_data(manual_raw_data_collection)
+        assert len(manual_db) == 1
+        assert manual_db[0]["description"] == "DAO test transaction"
+        assert manual_db[0]["amount"] == 50.0
+
+        # Verify line item was stored
+        line_items_db = get_all_data(line_items_collection)
+        assert len(line_items_db) == 1
+        assert line_items_db[0]["id"] == line_item_id
+        assert line_items_db[0]["description"] == "DAO test transaction"
+        assert line_items_db[0]["responsible_party"] == "Test Person"
+
+
+def test_delete_manual_transaction_removes_transaction_and_line_item(flask_app):
+    """delete_manual_transaction removes both the transaction and its line item"""
+    with flask_app.app_context():
+        transaction_id = generate_id("txn")
+        line_item_id = generate_id("li")
+        transaction_date = datetime.fromtimestamp(1694736000, UTC)
+
+        create_manual_transaction(
+            transaction_id=transaction_id,
+            line_item_id=line_item_id,
+            transaction_date=transaction_date,
+            posix_date=1694736000,
+            amount=Decimal("75.00"),
+            description="To be deleted",
+            payment_method_id="pm_cash",
+            responsible_party="Delete Test",
+        )
+
+        # Verify it exists
+        assert len(get_all_data(manual_raw_data_collection)) == 1
+        assert len(get_all_data(line_items_collection)) == 1
+
+        # Delete it
+        result = delete_manual_transaction(transaction_id)
+        assert result is True
+
+        # Verify it's gone
+        assert len(get_all_data(manual_raw_data_collection)) == 0
+        assert len(get_all_data(line_items_collection)) == 0
+
+
+def test_delete_manual_transaction_returns_false_for_nonexistent(flask_app):
+    """delete_manual_transaction returns False when transaction doesn't exist"""
+    with flask_app.app_context():
+        result = delete_manual_transaction("txn_nonexistent")
+        assert result is False
+
+
+def test_delete_manual_transaction_raises_for_assigned_line_item(flask_app, test_client, jwt_token):
+    """delete_manual_transaction raises ValueError when line item is assigned to an event"""
+    with flask_app.app_context():
+        transaction_id = generate_id("txn")
+        line_item_id = generate_id("li")
+        transaction_date = datetime.fromtimestamp(1694736000, UTC)
+
+        create_manual_transaction(
+            transaction_id=transaction_id,
+            line_item_id=line_item_id,
+            transaction_date=transaction_date,
+            posix_date=1694736000,
+            amount=Decimal("100.00"),
+            description="Assigned to event",
+            payment_method_id="pm_cash",
+            responsible_party="Event Test",
+        )
+
+    # Create an event with this line item (via API since event creation is complex)
+    event_response = test_client.post(
+        "/api/events",
+        json={
+            "name": "Test Event",
+            "category": "Food",
+            "line_items": [line_item_id],
+        },
+        headers={"Authorization": "Bearer " + jwt_token},
+    )
+    assert event_response.status_code == 201
+
+    # Try to delete - should raise ValueError
+    with flask_app.app_context():
+        with pytest.raises(ValueError, match="assigned to an event"):
+            delete_manual_transaction(transaction_id)
+
+
+def test_get_payment_method_by_id_returns_payment_method(flask_app):
+    """get_payment_method_by_id returns the payment method details"""
+    with flask_app.app_context():
+        result = get_payment_method_by_id("pm_cash")
+        assert result is not None
+        assert result["id"] == "pm_cash"
+        assert result["name"] == "Cash"
+
+
+def test_get_payment_method_by_id_returns_none_for_nonexistent(flask_app):
+    """get_payment_method_by_id returns None for non-existent payment method"""
+    with flask_app.app_context():
+        result = get_payment_method_by_id("pm_nonexistent")
+        assert result is None
