@@ -230,8 +230,8 @@ describe('LineItemsToReviewPage', () => {
         it('opens manual transaction modal when button is clicked', async () => {
             render(<LineItemsToReviewPage />);
 
-            const cashButton = screen.getByRole('button', { name: /create manual transaction/i });
-            await userEvent.click(cashButton);
+            const manualButton = screen.getByRole('button', { name: /create manual transaction/i });
+            await userEvent.click(manualButton);
 
             expect(screen.getByTestId('manual-transaction-modal')).toBeInTheDocument();
         });
@@ -250,8 +250,8 @@ describe('LineItemsToReviewPage', () => {
             render(<LineItemsToReviewPage />);
 
             // Open modal
-            const cashButton = screen.getByRole('button', { name: /create manual transaction/i });
-            await userEvent.click(cashButton);
+            const manualButton = screen.getByRole('button', { name: /create manual transaction/i });
+            await userEvent.click(manualButton);
             expect(screen.getByTestId('manual-transaction-modal')).toBeInTheDocument();
 
             // Close modal
@@ -281,15 +281,15 @@ describe('LineItemsToReviewPage', () => {
             mockUseLineItems.mockReturnValue({ lineItems: mockLineItemsWithSelection, isLoading: false });
             render(<LineItemsToReviewPage />);
 
-            const cashButton = screen.getByRole('button', { name: /create manual transaction/i });
+            const manualButton = screen.getByRole('button', { name: /create manual transaction/i });
             const eventButton = screen.getByRole('button', { name: /create event/i });
 
-            // Open cash modal first
-            await userEvent.click(cashButton);
+            // Open manual transaction modal first
+            await userEvent.click(manualButton);
             expect(screen.getByTestId('manual-transaction-modal')).toBeInTheDocument();
             expect(screen.queryByTestId('event-modal')).not.toBeInTheDocument();
 
-            // Opening event modal closes cash modal
+            // Opening event modal closes manual transaction modal
             await userEvent.click(eventButton);
             expect(screen.queryByTestId('manual-transaction-modal')).not.toBeInTheDocument();
             expect(screen.getByTestId('event-modal')).toBeInTheDocument();
@@ -365,13 +365,13 @@ describe('LineItemsToReviewPage', () => {
             expect(screen.queryByTestId('event-modal')).not.toBeInTheDocument();
         });
 
-        it('does not open event modal when Enter key is pressed while cash modal is open', async () => {
+        it('does not open event modal when Enter key is pressed while manual transaction modal is open', async () => {
             mockUseLineItems.mockReturnValue({ lineItems: mockLineItemsWithSelection, isLoading: false });
             render(<LineItemsToReviewPage />);
 
-            // Open cash modal first
-            const cashButton = screen.getByRole('button', { name: /create manual transaction/i });
-            await userEvent.click(cashButton);
+            // Open manual transaction modal first
+            const manualButton = screen.getByRole('button', { name: /create manual transaction/i });
+            await userEvent.click(manualButton);
             expect(screen.getByTestId('manual-transaction-modal')).toBeInTheDocument();
 
             // Press Enter - should not open event modal
@@ -462,8 +462,8 @@ describe('LineItemsToReviewPage', () => {
         it('passes correct props to CreateManualTransactionModal', async () => {
             render(<LineItemsToReviewPage />);
 
-            const cashButton = screen.getByRole('button', { name: /create manual transaction/i });
-            await userEvent.click(cashButton);
+            const manualButton = screen.getByRole('button', { name: /create manual transaction/i });
+            await userEvent.click(manualButton);
 
             expect(screen.getByTestId('manual-transaction-modal')).toBeInTheDocument();
         });
@@ -488,9 +488,9 @@ describe('LineItemsToReviewPage', () => {
             expect(bottomContainer).toBeInTheDocument();
 
             // Verify buttons are present in the fixed bottom area
-            const cashButton = screen.getByRole('button', { name: /create manual transaction/i });
+            const manualButton = screen.getByRole('button', { name: /create manual transaction/i });
             const eventButton = screen.getByRole('button', { name: /create event/i });
-            expect(cashButton).toBeInTheDocument();
+            expect(manualButton).toBeInTheDocument();
             expect(eventButton).toBeInTheDocument();
         });
 
@@ -505,12 +505,12 @@ describe('LineItemsToReviewPage', () => {
         it('renders buttons with correct attributes', () => {
             render(<LineItemsToReviewPage />);
 
-            const cashButton = screen.getByRole('button', { name: /create manual transaction/i });
+            const manualButton = screen.getByRole('button', { name: /create manual transaction/i });
             const eventButton = screen.getByRole('button', { name: /create event/i });
 
-            expect(cashButton).toBeInTheDocument();
+            expect(manualButton).toBeInTheDocument();
             expect(eventButton).toBeInTheDocument();
-            expect(cashButton).toHaveAttribute('data-slot', 'button');
+            expect(manualButton).toHaveAttribute('data-slot', 'button');
             expect(eventButton).toHaveAttribute('data-slot', 'button');
         });
     });
