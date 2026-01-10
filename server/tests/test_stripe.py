@@ -203,12 +203,8 @@ class TestStripeAPI:
             from models.database import SessionLocal
             from utils.pg_bulk_ops import _bulk_upsert_bank_accounts
 
-            db = SessionLocal()
-            try:
+            with SessionLocal.begin() as db:
                 _bulk_upsert_bank_accounts(db, [test_account])
-                db.commit()
-            finally:
-                db.close()
 
             response = test_client.get(
                 "/api/accounts",
@@ -239,12 +235,8 @@ class TestStripeAPI:
             from models.database import SessionLocal
             from utils.pg_bulk_ops import _bulk_upsert_bank_accounts
 
-            db = SessionLocal()
-            try:
+            with SessionLocal.begin() as db:
                 _bulk_upsert_bank_accounts(db, [test_account])
-                db.commit()
-            finally:
-                db.close()
 
             response = test_client.get(
                 "/api/accounts_and_balances",
@@ -412,12 +404,8 @@ class TestStripeFunctions:
             from models.database import SessionLocal
             from utils.pg_bulk_ops import _bulk_upsert_bank_accounts
 
-            db = SessionLocal()
-            try:
+            with SessionLocal.begin() as db:
                 _bulk_upsert_bank_accounts(db, [test_account])
-                db.commit()
-            finally:
-                db.close()
 
             # Call the function
             refresh_stripe()
@@ -455,23 +443,15 @@ class TestStripeFunctions:
             from models.database import SessionLocal
             from utils.pg_bulk_ops import _bulk_upsert_bank_accounts
 
-            db = SessionLocal()
-            try:
+            with SessionLocal.begin() as db:
                 _bulk_upsert_bank_accounts(db, [test_account])
-                db.commit()
-            finally:
-                db.close()
 
             test_transaction = mock_stripe_transaction
             from models.database import SessionLocal
             from utils.pg_bulk_ops import _bulk_upsert_transactions
 
-            db = SessionLocal()
-            try:
+            with SessionLocal.begin() as db:
                 _bulk_upsert_transactions(db, [test_transaction], source="stripe_api")
-                db.commit()
-            finally:
-                db.close()
 
             # Call the function (writes to PostgreSQL)
             stripe_to_line_items()
@@ -480,8 +460,7 @@ class TestStripeFunctions:
             from models.database import SessionLocal
             from models.sql_models import LineItem
 
-            db = SessionLocal()
-            try:
+            with SessionLocal.begin() as db:
                 line_items = db.query(LineItem).all()
                 assert len(line_items) == 1
 
@@ -490,8 +469,6 @@ class TestStripeFunctions:
                 assert line_item.responsible_party == "Test transaction"
                 assert line_item.description == "Test transaction"
                 assert line_item.amount == 50.0
-            finally:
-                db.close()
 
     def test_empty_transactions_creates_no_line_items(self, flask_app, mocker):
         """Empty transaction list creates no line items"""
@@ -509,12 +486,8 @@ class TestStripeFunctions:
             from models.database import SessionLocal
             from utils.pg_bulk_ops import _bulk_upsert_transactions
 
-            db = SessionLocal()
-            try:
+            with SessionLocal.begin() as db:
                 _bulk_upsert_transactions(db, [test_transaction], source="stripe_api")
-                db.commit()
-            finally:
-                db.close()
 
             mocker.patch("resources.stripe.upsert_line_items")
 
@@ -534,12 +507,8 @@ class TestStripeFunctions:
             from models.database import SessionLocal
             from utils.pg_bulk_ops import _bulk_upsert_bank_accounts
 
-            db = SessionLocal()
-            try:
+            with SessionLocal.begin() as db:
                 _bulk_upsert_bank_accounts(db, [test_account])
-                db.commit()
-            finally:
-                db.close()
 
             # Insert multiple transactions
             transactions = []
@@ -557,12 +526,8 @@ class TestStripeFunctions:
             from models.database import SessionLocal
             from utils.pg_bulk_ops import _bulk_upsert_transactions
 
-            db = SessionLocal()
-            try:
+            with SessionLocal.begin() as db:
                 _bulk_upsert_transactions(db, transactions, source="stripe_api")
-                db.commit()
-            finally:
-                db.close()
 
             mocker.patch("resources.stripe.upsert_line_items")
 
@@ -688,12 +653,8 @@ class TestStripeIntegration:
             from models.database import SessionLocal
             from utils.pg_bulk_ops import _bulk_upsert_bank_accounts
 
-            db = SessionLocal()
-            try:
+            with SessionLocal.begin() as db:
                 _bulk_upsert_bank_accounts(db, [test_account])
-                db.commit()
-            finally:
-                db.close()
 
             # Insert test transaction
             test_transaction = {
@@ -706,12 +667,8 @@ class TestStripeIntegration:
             }
             from utils.pg_bulk_ops import _bulk_upsert_transactions
 
-            db2 = SessionLocal()
-            try:
-                _bulk_upsert_transactions(db2, [test_transaction], source="stripe_api")
-                db2.commit()
-            finally:
-                db2.close()
+            with SessionLocal.begin() as db:
+                _bulk_upsert_transactions(db, [test_transaction], source="stripe_api")
 
             # Call refresh function
             refresh_stripe()
@@ -753,12 +710,8 @@ class TestAccountBalances:
             from models.database import SessionLocal
             from utils.pg_bulk_ops import _bulk_upsert_bank_accounts
 
-            db = SessionLocal()
-            try:
+            with SessionLocal.begin() as db:
                 _bulk_upsert_bank_accounts(db, [test_account])
-                db.commit()
-            finally:
-                db.close()
 
             # Call refresh_account_balances
             count = refresh_account_balances()
@@ -794,12 +747,8 @@ class TestAccountBalances:
             from models.database import SessionLocal
             from utils.pg_bulk_ops import _bulk_upsert_bank_accounts
 
-            db = SessionLocal()
-            try:
+            with SessionLocal.begin() as db:
                 _bulk_upsert_bank_accounts(db, [test_account])
-                db.commit()
-            finally:
-                db.close()
 
             # Call API endpoint
             response = test_client.get(

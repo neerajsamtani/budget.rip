@@ -54,8 +54,6 @@ def get_user_by_email(email: str) -> Optional[Dict[str, Any]]:
         }
 
 
-
-
 def get_categorized_data() -> List[Dict[str, Any]]:
     """Group totalExpense by month, year, and category"""
     from sqlalchemy import extract, func

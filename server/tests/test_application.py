@@ -227,12 +227,8 @@ class TestApplicationRoutes:
             from utils.pg_bulk_ops import _bulk_upsert_bank_accounts
 
             # Insert test bank account
-            db = SessionLocal()
-            try:
+            with SessionLocal.begin() as db:
                 _bulk_upsert_bank_accounts(db, [mock_bank_account])
-                db.commit()
-            finally:
-                db.close()
 
             # Mock venmoclient responses
             mock_venmo_client = mocker.Mock()
@@ -291,12 +287,8 @@ class TestApplicationRoutes:
             from utils.pg_bulk_ops import _bulk_upsert_bank_accounts
 
             # Insert test bank account
-            db = SessionLocal()
-            try:
+            with SessionLocal.begin() as db:
                 _bulk_upsert_bank_accounts(db, [mock_bank_account])
-                db.commit()
-            finally:
-                db.close()
 
             response = test_client.get(
                 "/api/payment_methods",
@@ -383,8 +375,7 @@ class TestApplicationIntegration:
             from utils.pg_bulk_ops import _bulk_upsert_line_items
 
             # Insert test line item
-            db = SessionLocal()
-            try:
+            with SessionLocal.begin() as db:
                 # Determine source from payment method
                 payment_method = mock_line_item.get("payment_method", "manual").lower()
                 source_map = {
@@ -396,9 +387,6 @@ class TestApplicationIntegration:
                 }
                 source = source_map.get(payment_method, "manual")
                 _bulk_upsert_line_items(db, [mock_line_item], source=source)
-                db.commit()
-            finally:
-                db.close()
 
             mock_refresh_all = mocker.patch("application.refresh_all")
             mock_create_consistent = mocker.patch("application.create_consistent_line_items")
@@ -440,12 +428,8 @@ class TestApplicationIntegration:
                 },
             ]
 
-            db = SessionLocal()
-            try:
+            with SessionLocal.begin() as db:
                 _bulk_upsert_bank_accounts(db, bank_accounts)
-                db.commit()
-            finally:
-                db.close()
 
             mock_venmo_client = mocker.Mock()
             mock_venmo_client.my_profile.return_value = mocker.Mock(username="test_user")
@@ -489,12 +473,8 @@ class TestApplicationIntegration:
                 },
             ]
 
-            db = SessionLocal()
-            try:
+            with SessionLocal.begin() as db:
                 _bulk_upsert_bank_accounts(db, bank_accounts)
-                db.commit()
-            finally:
-                db.close()
 
             response = test_client.get(
                 "/api/payment_methods",

@@ -691,15 +691,8 @@ class TestEventAPI:
             from models.database import SessionLocal
             from utils.pg_event_operations import upsert_event_to_postgresql
 
-            db = SessionLocal()
-            try:
+            with SessionLocal.begin() as db:
                 upsert_event_to_postgresql(test_event, db)
-                db.commit()
-            except Exception:
-                db.rollback()
-                raise
-            finally:
-                db.close()
 
             # Get the actual PostgreSQL event ID that was created
             all_events = get_all_events(None)
