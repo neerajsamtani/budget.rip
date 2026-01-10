@@ -37,7 +37,7 @@ def create_manual_transaction_api() -> tuple[Response, int]:
     data: Dict[str, Any] = request.get_json()
 
     # Validate required fields
-    required_fields = ["date", "amount", "payment_method_id"]
+    required_fields = ["date", "person", "description", "amount", "payment_method_id"]
     missing_fields = [field for field in required_fields if field not in data]
     if missing_fields:
         logger.warning(f"Manual transaction creation attempt missing required fields: {missing_fields}")
@@ -63,8 +63,8 @@ def create_manual_transaction_api() -> tuple[Response, int]:
     transaction = {
         "id": transaction_id,
         "date": posix_date,
-        "person": data.get("person", ""),
-        "description": data.get("description", ""),
+        "person": data["person"],
+        "description": data["description"],
         "amount": float(data["amount"]),
         "payment_method_id": data["payment_method_id"],
     }
@@ -75,16 +75,16 @@ def create_manual_transaction_api() -> tuple[Response, int]:
     # Create the line item
     line_item = LineItem(
         posix_date,
-        data.get("person", ""),
+        data["person"],
         payment_method_name,
-        data.get("description", ""),
+        data["description"],
         float(data["amount"]),
         source_id=transaction_id,  # Use transaction_id as source_id for linking
     )
 
     upsert_line_items([line_item], source="manual")
 
-    desc = data.get("description", "No description")
+    desc = data["description"]
     logger.info(f"Manual transaction created: {desc} - ${data['amount']} ({payment_method_name})")
     return jsonify({"message": "Created Manual Transaction", "transaction_id": transaction_id}), 201
 
@@ -117,36 +117,29 @@ def delete_manual_transaction_api(transaction_id: str) -> tuple[Response, int]:
             logger.warning(f"Delete attempt for non-existent transaction: {transaction_id}")
             return jsonify({"error": f"Transaction not found: {transaction_id}"}), 404
 
-        # Find associated line items
-        line_items = db.query(LineItem).filter(LineItem.transaction_id == transaction.id).all()
-        line_item_ids = [li.id for li in line_items]
+        # Find associated line item
+        line_item = db.query(LineItem).filter(LineItem.transaction_id == transaction.id).first()
 
-        # Check if any line items are assigned to events
-        if line_item_ids:
-            assigned_count = db.query(EventLineItem).filter(EventLineItem.line_item_id.in_(line_item_ids)).count()
-            if assigned_count > 0:
-                logger.warning(
-                    f"Delete blocked: transaction {transaction_id} has {assigned_count} line items assigned to events"
-                )
+        # Check if line item is assigned to an event
+        if line_item:
+            is_assigned = db.query(EventLineItem).filter(EventLineItem.line_item_id == line_item.id).first()
+            if is_assigned:
+                logger.warning(f"Delete blocked: transaction {transaction_id} has line item assigned to an event")
                 return (
                     jsonify(
                         {
-                            "error": "Cannot delete transaction with line items assigned to events. "
-                            "Remove the line items from their events first."
+                            "error": "Cannot delete transaction with line item assigned to an event. "
+                            "Remove the line item from the event first."
                         }
                     ),
                     400,
                 )
 
-        # Delete line items
-        for li in line_items:
-            db.delete(li)
-
-        # Delete the transaction
+        # Delete transaction (line item cascades due to foreign key)
         db.delete(transaction)
         db.commit()
 
-        logger.info(f"Deleted manual transaction {transaction_id} with {len(line_items)} line items")
+        logger.info(f"Deleted manual transaction {transaction_id}")
         return jsonify({}), 204
 
     except Exception as e:

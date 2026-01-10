@@ -255,7 +255,7 @@ def test_cannot_delete_transaction_assigned_to_event(test_client, jwt_token, fla
     )
 
     assert delete_response.status_code == 400
-    assert "assigned to events" in delete_response.get_json()["error"]
+    assert "assigned to an event" in delete_response.get_json()["error"]
 
     # Verify the transaction still exists
     with flask_app.app_context():

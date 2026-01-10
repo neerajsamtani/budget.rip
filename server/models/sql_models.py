@@ -137,6 +137,7 @@ class Transaction(Base):
 
 class LineItem(Base):
     __tablename__ = "line_items"
+    __table_args__ = (UniqueConstraint("transaction_id", name="uq_line_item_transaction"),)
 
     id = Column(String(255), primary_key=True)  # li_xxx
     transaction_id = Column(String(255), ForeignKey("transactions.id", ondelete="CASCADE"), nullable=False)
