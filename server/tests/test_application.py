@@ -3,7 +3,7 @@ import pytest
 from dao import (
     bank_accounts_collection,
     line_items_collection,
-    upsert_with_id,
+    upsert,
 )
 
 
@@ -219,7 +219,7 @@ class TestApplicationRoutes:
         """Connected accounts endpoint returns Venmo, Splitwise, and Stripe accounts"""
         with flask_app.app_context():
             # Insert test bank account
-            upsert_with_id(bank_accounts_collection, mock_bank_account, mock_bank_account["id"])
+            upsert(bank_accounts_collection, mock_bank_account)
 
             # Mock venmoclient responses
             mock_venmo_client = mocker.Mock()
@@ -274,7 +274,7 @@ class TestApplicationRoutes:
         """Payment methods endpoint includes bank account display names"""
         with flask_app.app_context():
             # Insert test bank account
-            upsert_with_id(bank_accounts_collection, mock_bank_account, mock_bank_account["id"])
+            upsert(bank_accounts_collection, mock_bank_account)
 
             response = test_client.get(
                 "/api/payment_methods",
@@ -358,7 +358,7 @@ class TestApplicationIntegration:
         """Complete refresh workflow syncs data and creates line items"""
         with flask_app.app_context():
             # Insert test line item
-            upsert_with_id(line_items_collection, mock_line_item, mock_line_item["id"])
+            upsert(line_items_collection, mock_line_item)
 
             mock_refresh_all = mocker.patch("application.refresh_all")
             mock_create_consistent = mocker.patch("application.create_consistent_line_items")
@@ -398,7 +398,7 @@ class TestApplicationIntegration:
             ]
 
             for account in bank_accounts:
-                upsert_with_id(bank_accounts_collection, account, account["id"])
+                upsert(bank_accounts_collection, account)
 
             mock_venmo_client = mocker.Mock()
             mock_venmo_client.my_profile.return_value = mocker.Mock(username="test_user")
@@ -440,7 +440,7 @@ class TestApplicationIntegration:
             ]
 
             for account in bank_accounts:
-                upsert_with_id(bank_accounts_collection, account, account["id"])
+                upsert(bank_accounts_collection, account)
 
             response = test_client.get(
                 "/api/payment_methods",

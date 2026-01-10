@@ -134,9 +134,9 @@ def flask_app():
             user_id = jwt_payload.get("sub")
             if user_id:
                 # Query PostgreSQL using the dao layer
-                from dao import get_item_by_id, users_collection
+                from dao import get_user_by_id
 
-                user = get_item_by_id(users_collection, user_id)
+                user = get_user_by_id(user_id)
                 if user:
                     return user
             # Fallback for tests that use the old jwt_token fixture

@@ -8,9 +8,8 @@ from flask_jwt_extended import jwt_required
 
 from constants import BATCH_SIZE, STRIPE_API_KEY, STRIPE_CUSTOMER_EMAIL, STRIPE_CUSTOMER_ID, STRIPE_CUSTOMER_NAME
 from dao import (
-    bank_accounts_collection,
-    get_all_data,
-    stripe_raw_transaction_data_collection,
+    get_all_bank_accounts,
+    get_transactions,
 )
 from helpers import cents_to_dollars, flip_amount
 from resources.line_item import LineItem
@@ -89,10 +88,10 @@ def refresh_account_balances(account_ids: Optional[List[str]] = None) -> int:
     from datetime import datetime, timezone
 
     if account_ids:
-        all_accounts = get_all_data(bank_accounts_collection)
+        all_accounts = get_all_bank_accounts(None)
         accounts = [acc for acc in all_accounts if acc["id"] in account_ids]
     else:
-        accounts = get_all_data(bank_accounts_collection)
+        accounts = get_all_bank_accounts(None)
 
     updated_count = 0
 
@@ -199,7 +198,7 @@ def get_accounts_and_balances_api() -> tuple[Response, int]:
     Balances are pre-fetched and stored on account records via refresh_account_balances()
     to avoid N+1 query problem (previously made one Stripe API call per account).
     """
-    accounts: List[Dict[str, Any]] = get_all_data(bank_accounts_collection)
+    accounts: List[Dict[str, Any]] = get_all_bank_accounts(None)
     accounts_and_balances: Dict[str, Dict[str, Any]] = {}
 
     for account in accounts:
@@ -321,7 +320,7 @@ def refresh_transactions_api(account_id: str) -> tuple[Response, int]:
 
 def refresh_stripe() -> None:
     logger.info("Refreshing Stripe Data")
-    bank_accounts: List[Dict[str, Any]] = get_all_data(bank_accounts_collection)
+    bank_accounts: List[Dict[str, Any]] = get_all_bank_accounts(None)
     for account in bank_accounts:
         refresh_account_api(account["id"])
         refresh_transactions_api(account["id"])
@@ -339,10 +338,10 @@ def stripe_to_line_items() -> None:
     2. Use bulk upsert operations instead of individual upserts
     3. Process transactions in batches to handle large datasets efficiently
     """
-    all_bank_accounts: List[Dict[str, Any]] = get_all_data(bank_accounts_collection)
+    all_bank_accounts: List[Dict[str, Any]] = get_all_bank_accounts(None)
     bank_account_lookup: Dict[str, Dict[str, Any]] = {account["id"]: account for account in all_bank_accounts}
 
-    stripe_raw_data: List[Dict[str, Any]] = get_all_data(stripe_raw_transaction_data_collection)
+    stripe_raw_data: List[Dict[str, Any]] = get_transactions("stripe_api", None)
 
     line_items_batch: List[LineItem] = []
 

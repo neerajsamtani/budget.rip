@@ -1,6 +1,6 @@
 import pytest
 
-from dao import events_collection, line_items_collection, upsert_with_id
+from dao import events_collection, get_all_events, upsert
 
 
 @pytest.fixture
@@ -56,9 +56,9 @@ class TestEventAPI:
 
         # Get created line item IDs
         with flask_app.app_context():
-            from dao import get_all_data
+            from dao import get_all_line_items
 
-            all_line_items = get_all_data(line_items_collection)
+            all_line_items = get_all_line_items(None)
             line_item_ids = [item["id"] for item in all_line_items]
             assert len(line_item_ids) == 2
 
@@ -112,9 +112,9 @@ class TestEventAPI:
 
         # Get created line item IDs and dates (sort by date to ensure consistent ordering)
         with flask_app.app_context():
-            from dao import get_all_data
+            from dao import get_all_line_items
 
-            all_line_items = get_all_data(line_items_collection)
+            all_line_items = get_all_line_items(None)
             all_line_items_sorted = sorted(all_line_items, key=lambda x: x["date"])
             assert len(all_line_items_sorted) == 2
             line_item_feb13 = all_line_items_sorted[0]  # 2009-02-13, amount=100
@@ -170,9 +170,9 @@ class TestEventAPI:
 
         # Get created line item ID
         with flask_app.app_context():
-            from dao import get_all_data
+            from dao import get_all_line_items
 
-            all_line_items = get_all_data(line_items_collection)
+            all_line_items = get_all_line_items(None)
             line_item_ids = [item["id"] for item in all_line_items]
             assert len(line_item_ids) == 1
 
@@ -230,9 +230,9 @@ class TestEventAPI:
 
         # Get created line item IDs
         with flask_app.app_context():
-            from dao import get_all_data
+            from dao import get_all_line_items
 
-            all_line_items = get_all_data(line_items_collection)
+            all_line_items = get_all_line_items(None)
             line_item_ids = [item["id"] for item in all_line_items]
             assert len(line_item_ids) == 2
 
@@ -263,9 +263,10 @@ class TestEventAPI:
 
         # Verify event was created
         with flask_app.app_context():
-            from dao import get_item_by_id
+            from dao import get_event_by_id
+            from dao import get_line_item_by_id
 
-            created_event = get_item_by_id(events_collection, created_event_id)
+            created_event = get_event_by_id(created_event_id)
             assert created_event is not None
             assert created_event["name"] == "Test Event"
             assert created_event["amount"] == 150  # 100 + 50
@@ -273,7 +274,7 @@ class TestEventAPI:
 
             # Verify line items were updated with event_id
             for li_id in line_item_ids:
-                line_item = get_item_by_id(line_items_collection, li_id)
+                line_item = get_line_item_by_id(li_id)
                 assert line_item is not None
                 assert line_item["event_id"] == created_event_id
 
@@ -308,9 +309,9 @@ class TestEventAPI:
 
         # Get created line item ID
         with flask_app.app_context():
-            from dao import get_all_data
+            from dao import get_all_line_items
 
-            all_line_items = get_all_data(line_items_collection)
+            all_line_items = get_all_line_items(None)
             line_item_ids = [item["id"] for item in all_line_items]
             assert len(line_item_ids) == 1
 
@@ -336,9 +337,9 @@ class TestEventAPI:
 
         # Verify event was created with correct amount (should be line_item_1 amount only)
         with flask_app.app_context():
-            from dao import get_item_by_id
+            from dao import get_event_by_id
 
-            created_event = get_item_by_id(events_collection, created_event_id)
+            created_event = get_event_by_id(created_event_id)
             assert created_event is not None
             assert created_event["amount"] == 100  # Only the first line item amount
 
@@ -354,9 +355,9 @@ class TestEventAPI:
 
         # Get created line item ID
         with flask_app.app_context():
-            from dao import get_all_data
+            from dao import get_all_line_items
 
-            all_line_items = get_all_data(line_items_collection)
+            all_line_items = get_all_line_items(None)
             line_item_ids = [item["id"] for item in all_line_items]
             assert len(line_item_ids) == 1
 
@@ -382,9 +383,9 @@ class TestEventAPI:
 
         # Verify event was created with earliest line item date
         with flask_app.app_context():
-            from dao import get_item_by_id
+            from dao import get_event_by_id
 
-            created_event = get_item_by_id(events_collection, created_event_id)
+            created_event = get_event_by_id(created_event_id)
             assert created_event is not None
             assert created_event["date"] == all_line_items[0]["date"]  # Should use earliest line item date
 
@@ -407,9 +408,9 @@ class TestEventAPI:
 
         # Get created line item ID
         with flask_app.app_context():
-            from dao import get_all_data
+            from dao import get_all_line_items
 
-            all_line_items = get_all_data(line_items_collection)
+            all_line_items = get_all_line_items(None)
             line_item_ids = [item["id"] for item in all_line_items]
             assert len(line_item_ids) == 1
 
@@ -436,13 +437,14 @@ class TestEventAPI:
 
         # Verify event was deleted
         with flask_app.app_context():
-            from dao import get_item_by_id
+            from dao import get_event_by_id
+            from dao import get_line_item_by_id
 
-            deleted_event = get_item_by_id(events_collection, event_id)
+            deleted_event = get_event_by_id(event_id)
             assert deleted_event is None
 
             # Verify line item event_id was removed
-            line_item = get_item_by_id(line_items_collection, line_item_ids[0])
+            line_item = get_line_item_by_id(line_item_ids[0])
             assert line_item is not None
             assert "event_id" not in line_item
 
@@ -472,9 +474,9 @@ class TestEventAPI:
 
         # Get created line item IDs
         with flask_app.app_context():
-            from dao import get_all_data
+            from dao import get_all_line_items
 
-            all_line_items = get_all_data(line_items_collection)
+            all_line_items = get_all_line_items(None)
             line_item_ids = [item["id"] for item in all_line_items]
             assert len(line_item_ids) == 2
 
@@ -516,9 +518,9 @@ class TestEventAPI:
 
         # Verify event was updated in database
         with flask_app.app_context():
-            from dao import get_item_by_id
+            from dao import get_event_by_id
 
-            updated_event = get_item_by_id(events_collection, event_id)
+            updated_event = get_event_by_id(event_id)
             assert updated_event is not None
             assert updated_event["name"] == "Updated Event"
             assert updated_event["category"] == "Shopping"
@@ -555,9 +557,9 @@ class TestEventAPI:
 
         # Get created line item ID
         with flask_app.app_context():
-            from dao import get_all_data
+            from dao import get_all_line_items
 
-            all_line_items = get_all_data(line_items_collection)
+            all_line_items = get_all_line_items(None)
             line_item_ids = [item["id"] for item in all_line_items]
 
         # Create event via API
@@ -615,9 +617,9 @@ class TestEventAPI:
 
         # Get created line item IDs
         with flask_app.app_context():
-            from dao import get_all_data
+            from dao import get_all_line_items
 
-            all_line_items = get_all_data(line_items_collection)
+            all_line_items = get_all_line_items(None)
             line_item_ids = [item["id"] for item in all_line_items]
             assert len(line_item_ids) == 2
 
@@ -670,9 +672,9 @@ class TestEventAPI:
 
         # Get created line item ID
         with flask_app.app_context():
-            from dao import get_all_data
+            from dao import get_all_line_items
 
-            all_line_items = get_all_data(line_items_collection)
+            all_line_items = get_all_line_items(None)
             line_item_ids = [item["id"] for item in all_line_items]
             assert len(line_item_ids) == 1
 
@@ -688,10 +690,10 @@ class TestEventAPI:
                 "line_items": [line_item_ids[0], "nonexistent_line_item"],
                 "tags": ["test"],
             }
-            upsert_with_id(events_collection, test_event, test_event["id"])
+            upsert(events_collection, test_event)
 
             # Get the actual PostgreSQL event ID that was created
-            all_events = get_all_data(events_collection)
+            all_events = get_all_events(None)
             assert len(all_events) == 1
             actual_event_id = all_events[0]["id"]
 
@@ -712,7 +714,7 @@ class TestEventAPI:
         from tests.test_helpers import setup_test_event, setup_test_line_item_with_event
 
         with flask_app.app_context():
-            from dao import get_item_by_id, remove_event_from_line_item
+            from dao import get_line_item_by_id, remove_event_from_line_item
 
             # Create events
             event1 = setup_test_event(
@@ -789,9 +791,9 @@ class TestEventAPI:
             pg_session.commit()
 
             # Verify all line items have event_id using actual PostgreSQL IDs
-            line_item_data1 = get_item_by_id(line_items_collection, line_item1.id)
-            line_item_data2 = get_item_by_id(line_items_collection, line_item2.id)
-            line_item_data3 = get_item_by_id(line_items_collection, line_item3.id)
+            line_item_data1 = get_line_item_by_id(line_item1.id)
+            line_item_data2 = get_line_item_by_id(line_item2.id)
+            line_item_data3 = get_line_item_by_id(line_item3.id)
 
             assert line_item_data1 is not None
             assert line_item_data2 is not None

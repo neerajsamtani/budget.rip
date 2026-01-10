@@ -29,10 +29,8 @@ from constants import (
     VENMO_ACCESS_TOKEN,
 )
 from dao import (
-    bank_accounts_collection,
-    get_all_data,
-    get_item_by_id,
-    users_collection,
+    get_all_bank_accounts,
+    get_user_by_id
 )
 from resources.auth import auth_blueprint
 from resources.category import categories_blueprint
@@ -140,7 +138,7 @@ load_dotenv()
 @jwt.user_lookup_loader
 def user_lookup_callback(_jwt_header: Dict[str, Any], jwt_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     user_id: str = jwt_data["sub"]
-    return get_item_by_id(users_collection, user_id)
+    return get_user_by_id(user_id)
 
 
 @application.route("/api/")
@@ -223,7 +221,7 @@ def get_connected_accounts_api() -> tuple[Response, int]:
         }
     )
     # stripe
-    bank_accounts: List[Dict[str, Any]] = get_all_data(bank_accounts_collection)
+    bank_accounts: List[Dict[str, Any]] = get_all_bank_accounts(None)
     connected_accounts.append({"stripe": bank_accounts})
     return jsonify(connected_accounts), 200
 

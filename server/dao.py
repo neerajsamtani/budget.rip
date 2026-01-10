@@ -4,8 +4,6 @@ from typing import Any, Dict, List, Optional, Union
 
 from sqlalchemy.orm import joinedload, subqueryload
 
-from helpers import to_dict
-
 logger = logging.getLogger(__name__)
 
 venmo_raw_data_collection: str = "venmo_raw_data"
@@ -18,38 +16,6 @@ events_collection: str = "events"
 bank_accounts_collection: str = "accounts"
 users_collection: str = "users"
 test_collection: str = "test_data"
-
-
-def get_all_data(cur_collection_str: str, filters: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
-    """Get all data from PostgreSQL for the specified collection"""
-    if cur_collection_str == line_items_collection:
-        return _pg_get_all_line_items(filters)
-    elif cur_collection_str == events_collection:
-        return _pg_get_all_events(filters)
-    elif cur_collection_str == bank_accounts_collection:
-        return _pg_get_all_bank_accounts(filters)
-    elif cur_collection_str == venmo_raw_data_collection:
-        return _pg_get_transactions("venmo_api", filters)
-    elif cur_collection_str == splitwise_raw_data_collection:
-        return _pg_get_transactions("splitwise_api", filters)
-    elif cur_collection_str == stripe_raw_transaction_data_collection:
-        return _pg_get_transactions("stripe_api", filters)
-    elif cur_collection_str == manual_raw_data_collection:
-        return _pg_get_transactions("manual", filters)
-    else:
-        raise NotImplementedError(f"Collection {cur_collection_str} not supported for get_all_data")
-
-
-def get_item_by_id(cur_collection_str: str, id: Union[str, int]) -> Optional[Dict[str, Any]]:
-    """Get item by ID from PostgreSQL for the specified collection"""
-    if cur_collection_str == line_items_collection:
-        return _pg_get_line_item_by_id(str(id))
-    elif cur_collection_str == events_collection:
-        return _pg_get_event_by_id(str(id))
-    elif cur_collection_str == users_collection:
-        return _pg_get_user_by_id(str(id))
-    else:
-        raise NotImplementedError(f"Collection {cur_collection_str} not supported for get_item_by_id")
 
 
 def remove_event_from_line_item(line_item_id: Union[str, int]) -> None:
@@ -83,15 +49,27 @@ def remove_event_from_line_item(line_item_id: Union[str, int]) -> None:
 
 def get_user_by_email(email: str) -> Optional[Dict[str, Any]]:
     logger.debug("Reading user by email from PostgreSQL")
-    return _pg_get_user_by_email(email)
+    from models.database import SessionLocal
+    from models.sql_models import User
+
+    db_session = SessionLocal()
+    try:
+        user = db_session.query(User).filter(User.email == email).first()
+        if not user:
+            return None
+        return {
+            "id": user.id,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "email": user.email,
+            "password_hash": user.password_hash,
+        }
+    finally:
+        db_session.close()
 
 
-def upsert(cur_collection_str: str, item: Any) -> None:
-    item_dict: Dict[str, Any] = to_dict(item)
-    upsert_with_id(cur_collection_str, item_dict, item_dict["id"])
-
-
-def upsert_with_id(cur_collection_str: str, item: Dict[str, Any], id: Union[str, int]) -> None:
+# TODO: Remove this router function and let callers use the underlying functions directly
+def upsert(cur_collection_str: str, item: Dict[str, Any]) -> None:
     """Upsert item to PostgreSQL for migrated collections"""
     from models.database import SessionLocal
 
@@ -141,7 +119,7 @@ def upsert_with_id(cur_collection_str: str, item: Dict[str, Any], id: Union[str,
             _bulk_upsert_line_items(db, [item], source=source)
 
         else:
-            raise NotImplementedError(f"Collection {cur_collection_str} not supported for upsert_with_id")
+            raise NotImplementedError(f"Collection {cur_collection_str} not supported for upsert")
 
         db.commit()
     except Exception as e:
@@ -155,7 +133,38 @@ def upsert_with_id(cur_collection_str: str, item: Dict[str, Any], id: Union[str,
 def get_categorized_data() -> List[Dict[str, Any]]:
     """Group totalExpense by month, year, and category"""
     logger.debug("Reading categorized data from PostgreSQL")
-    return _pg_get_categorized_data()
+    from sqlalchemy import extract, func
+
+    from models.database import SessionLocal
+    from models.sql_models import Category, Event, LineItem
+
+    db_session = SessionLocal()
+    try:
+        results = (
+            db_session.query(
+                extract("year", Event.date).label("year"),
+                extract("month", Event.date).label("month"),
+                Category.name.label("category"),
+                func.sum(LineItem.amount).label("totalExpense"),
+            )
+            .join(Event.category)
+            .join(Event.line_items)
+            .group_by(extract("year", Event.date), extract("month", Event.date), Category.name)
+            .order_by("year", "month", Category.name)
+            .all()
+        )
+
+        return [
+            {
+                "year": int(row.year) if row.year else 0,
+                "month": int(row.month) if row.month else 0,
+                "category": row.category,
+                "totalExpense": float(row.totalExpense) if row.totalExpense else 0.0,
+            }
+            for row in results
+        ]
+    finally:
+        db_session.close()
 
 
 def _serialize_datetime(dt: Optional[Any]) -> float:
@@ -218,7 +227,7 @@ def _pg_serialize_event(event: Any) -> Dict[str, Any]:
     }
 
 
-def _pg_get_all_line_items(filters: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def get_all_line_items(filters: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """Get line items from PostgreSQL"""
     from models.database import SessionLocal
     from models.sql_models import Event, LineItem, PaymentMethod
@@ -257,7 +266,7 @@ def _pg_get_all_line_items(filters: Optional[Dict[str, Any]]) -> List[Dict[str, 
         db_session.close()
 
 
-def _pg_get_line_item_by_id(id: str) -> Optional[Dict[str, Any]]:
+def get_line_item_by_id(id: str) -> Optional[Dict[str, Any]]:
     """Get line item from PostgreSQL by ID"""
     from models.database import SessionLocal
     from models.sql_models import LineItem
@@ -275,7 +284,7 @@ def _pg_get_line_item_by_id(id: str) -> Optional[Dict[str, Any]]:
         db_session.close()
 
 
-def _pg_get_user_by_id(id: str) -> Optional[Dict[str, Any]]:
+def get_user_by_id(id: str) -> Optional[Dict[str, Any]]:
     """Get user from PostgreSQL by ID"""
     from models.database import SessionLocal
     from models.sql_models import User
@@ -289,7 +298,7 @@ def _pg_get_user_by_id(id: str) -> Optional[Dict[str, Any]]:
         db_session.close()
 
 
-def _pg_get_all_events(filters: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def get_all_events(filters: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """Get events from PostgreSQL"""
     from datetime import datetime
 
@@ -322,7 +331,7 @@ def _pg_get_all_events(filters: Optional[Dict[str, Any]]) -> List[Dict[str, Any]
         db_session.close()
 
 
-def _pg_get_event_by_id(id: str) -> Optional[Dict[str, Any]]:
+def get_event_by_id(id: str) -> Optional[Dict[str, Any]]:
     """Get event from PostgreSQL by ID"""
     from models.database import SessionLocal
     from models.sql_models import Event, LineItem
@@ -341,72 +350,7 @@ def _pg_get_event_by_id(id: str) -> Optional[Dict[str, Any]]:
         db_session.close()
 
 
-def _pg_get_line_items_for_event(event_id: str) -> List[Dict[str, Any]]:
-    """Get line items for event from PostgreSQL"""
-    from models.database import SessionLocal
-    from models.sql_models import Event, EventLineItem, LineItem
-
-    db_session = SessionLocal()
-    try:
-        pg_event = db_session.query(Event).filter(Event.id == event_id).first()
-
-        if not pg_event:
-            return []
-
-        line_items = (
-            db_session.query(LineItem)
-            .join(EventLineItem, LineItem.id == EventLineItem.line_item_id)
-            .filter(EventLineItem.event_id == pg_event.id)
-            .options(
-                joinedload(LineItem.payment_method),
-                joinedload(LineItem.events),
-                joinedload(LineItem.transaction),
-            )
-            .all()
-        )
-
-        return [_pg_serialize_line_item(li) for li in line_items]
-    finally:
-        db_session.close()
-
-
-def _pg_get_categorized_data() -> List[Dict[str, Any]]:
-    """Get monthly breakdown from PostgreSQL"""
-    from sqlalchemy import extract, func
-
-    from models.database import SessionLocal
-    from models.sql_models import Category, Event, LineItem
-
-    db_session = SessionLocal()
-    try:
-        results = (
-            db_session.query(
-                extract("year", Event.date).label("year"),
-                extract("month", Event.date).label("month"),
-                Category.name.label("category"),
-                func.sum(LineItem.amount).label("totalExpense"),
-            )
-            .join(Event.category)
-            .join(Event.line_items)
-            .group_by(extract("year", Event.date), extract("month", Event.date), Category.name)
-            .order_by("year", "month", Category.name)
-            .all()
-        )
-
-        return [
-            {
-                "year": int(row.year) if row.year else 0,
-                "month": int(row.month) if row.month else 0,
-                "category": row.category,
-                "totalExpense": float(row.totalExpense) if row.totalExpense else 0.0,
-            }
-            for row in results
-        ]
-    finally:
-        db_session.close()
-
-
-def _pg_get_transactions(source: str, filters: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def get_transactions(source: str, filters: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """Get raw transactions from PostgreSQL by source (venmo_api, splitwise_api, stripe_api, manual)"""
     from models.database import SessionLocal
     from models.sql_models import Transaction
@@ -434,7 +378,7 @@ def _pg_get_transactions(source: str, filters: Optional[Dict[str, Any]]) -> List
         db_session.close()
 
 
-def _pg_get_all_bank_accounts(
+def get_all_bank_accounts(
     filters: Optional[Dict[str, Any]],
 ) -> List[Dict[str, Any]]:
     """Get bank accounts from PostgreSQL"""
@@ -463,27 +407,6 @@ def _pg_get_all_bank_accounts(
             }
             for acc in accounts
         ]
-    finally:
-        db_session.close()
-
-
-def _pg_get_user_by_email(email: str) -> Optional[Dict[str, Any]]:
-    """Get user from PostgreSQL by email"""
-    from models.database import SessionLocal
-    from models.sql_models import User
-
-    db_session = SessionLocal()
-    try:
-        user = db_session.query(User).filter(User.email == email).first()
-        if not user:
-            return None
-        return {
-            "id": user.id,
-            "first_name": user.first_name,
-            "last_name": user.last_name,
-            "email": user.email,
-            "password_hash": user.password_hash,
-        }
     finally:
         db_session.close()
 

@@ -7,7 +7,7 @@ from venmo_api.models.user import User
 
 from clients import get_venmo_client
 from constants import MOVING_DATE_POSIX, PARTIES_TO_IGNORE, USER_FIRST_NAME
-from dao import get_all_data, venmo_raw_data_collection
+from dao import get_transactions
 from helpers import flip_amount
 from resources.line_item import LineItem
 from utils.pg_bulk_ops import upsert_line_items, upsert_transactions
@@ -73,7 +73,7 @@ def venmo_to_line_items() -> None:
     3. Improved logic flow for better performance
     """
     payment_method: str = "Venmo"
-    venmo_raw_data: List[Dict[str, Any]] = get_all_data(venmo_raw_data_collection)
+    venmo_raw_data: List[Dict[str, Any]] = get_transactions("venmo_api", None)
 
     # Collect all line items for bulk upsert
     all_line_items: List[LineItem] = []

@@ -1,7 +1,7 @@
 import pytest
 
 from dao import (
-    upsert_with_id,
+    upsert,
     venmo_raw_data_collection,
 )
 from resources.venmo import refresh_venmo, venmo_to_line_items
@@ -297,7 +297,7 @@ class TestVenmoFunctions:
 
             # Insert test transaction data
             test_transaction = mock_venmo_transaction
-            upsert_with_id(venmo_raw_data_collection, test_transaction, test_transaction["id"])
+            upsert(venmo_raw_data_collection, test_transaction)
 
             # Call the function
             venmo_to_line_items()
@@ -324,7 +324,7 @@ class TestVenmoFunctions:
 
             # Insert test transaction data
             test_transaction = mock_venmo_transaction_charge
-            upsert_with_id(venmo_raw_data_collection, test_transaction, test_transaction["id"])
+            upsert(venmo_raw_data_collection, test_transaction)
 
             # Call the function
             venmo_to_line_items()
@@ -351,7 +351,7 @@ class TestVenmoFunctions:
 
             # Insert test transaction data
             test_transaction = mock_venmo_transaction_received
-            upsert_with_id(venmo_raw_data_collection, test_transaction, test_transaction["id"])
+            upsert(venmo_raw_data_collection, test_transaction)
 
             # Call the function
             venmo_to_line_items()
@@ -416,7 +416,7 @@ class TestVenmoFunctions:
             ]
 
             for transaction in transactions:
-                upsert_with_id(venmo_raw_data_collection, transaction, transaction["id"])
+                upsert(venmo_raw_data_collection, transaction)
 
             # Call the function
             venmo_to_line_items()
@@ -488,10 +488,9 @@ class TestVenmoIntegration:
                 "note": "Integration test payment",
                 "amount": 25.0,
             }
-            upsert_with_id(
+            upsert(
                 venmo_raw_data_collection,
                 transaction_dict,
-                transaction_dict["id"],
             )
 
             # Now call line items conversion with the stored data

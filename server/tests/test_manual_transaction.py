@@ -6,10 +6,9 @@ import pytest
 from dao import (
     create_manual_transaction,
     delete_manual_transaction,
-    get_all_data,
+    get_all_line_items,
     get_payment_method_by_id,
-    line_items_collection,
-    manual_raw_data_collection,
+    get_transactions,
 )
 from helpers import html_date_to_posix
 from utils.id_generator import generate_id
@@ -38,7 +37,7 @@ def test_manual_transaction_is_stored_in_database(test_client, jwt_token, flask_
 
     # Verify transaction was stored
     with flask_app.app_context():
-        manual_db = get_all_data(manual_raw_data_collection)
+        manual_db = get_transactions("manual", None)
         assert len(manual_db) == 1
         item_in_db = manual_db[0]
         assert item_in_db["date"] == html_date_to_posix(mock_request_data["date"])
@@ -67,7 +66,7 @@ def test_manual_transaction_creates_line_item(test_client, jwt_token, flask_app)
 
     # Verify line item was created
     with flask_app.app_context():
-        line_items_db = get_all_data(line_items_collection)
+        line_items_db = get_all_line_items(None)
         assert len(line_items_db) == 1
         item_in_db = line_items_db[0]
         assert item_in_db["id"].startswith("li_")
@@ -97,7 +96,7 @@ def test_manual_transaction_with_venmo_payment_method(test_client, jwt_token, fl
     assert response.status_code == 201
 
     with flask_app.app_context():
-        line_items_db = get_all_data(line_items_collection)
+        line_items_db = get_all_line_items(None)
         assert len(line_items_db) == 1
         item_in_db = line_items_db[0]
         assert item_in_db["payment_method"] == "Venmo"
@@ -123,7 +122,7 @@ def test_decimal_amounts_are_preserved(test_client, jwt_token, flask_app):
     assert response.status_code == 201
 
     with flask_app.app_context():
-        manual_db = get_all_data(manual_raw_data_collection)
+        manual_db = get_transactions("manual", None)
         assert len(manual_db) == 1
         item_in_db = manual_db[0]
         assert item_in_db["amount"] == -110.5  # Decimal preserved
@@ -191,7 +190,7 @@ def test_delete_manual_transaction(test_client, jwt_token, flask_app):
 
     # Verify it exists
     with flask_app.app_context():
-        line_items_db = get_all_data(line_items_collection)
+        line_items_db = get_all_line_items(None)
         assert len(line_items_db) == 1
 
     # Delete it
@@ -204,9 +203,9 @@ def test_delete_manual_transaction(test_client, jwt_token, flask_app):
 
     # Verify it's gone
     with flask_app.app_context():
-        line_items_db = get_all_data(line_items_collection)
+        line_items_db = get_all_line_items(None)
         assert len(line_items_db) == 0
-        manual_db = get_all_data(manual_raw_data_collection)
+        manual_db = get_transactions("manual", None)
         assert len(manual_db) == 0
 
 
@@ -241,7 +240,7 @@ def test_cannot_delete_transaction_assigned_to_event(test_client, jwt_token, fla
 
     # Get the line item ID
     with flask_app.app_context():
-        line_items_db = get_all_data(line_items_collection)
+        line_items_db = get_all_line_items(None)
         assert len(line_items_db) == 1
         line_item_id = line_items_db[0]["id"]
 
@@ -264,11 +263,13 @@ def test_cannot_delete_transaction_assigned_to_event(test_client, jwt_token, fla
     )
 
     assert delete_response.status_code == 400
-    assert "assigned to an event" in delete_response.get_json()["error"]
+    assert delete_response.get_json()["error"] == (
+        "Cannot delete transaction with line item assigned to an event. Remove the line item from the event first."
+    )
 
     # Verify the transaction still exists
     with flask_app.app_context():
-        line_items_db = get_all_data(line_items_collection)
+        line_items_db = get_all_line_items(None)
         assert len(line_items_db) == 1
 
 
@@ -294,13 +295,13 @@ def test_create_manual_transaction_creates_transaction_and_line_item(flask_app):
         )
 
         # Verify transaction was stored
-        manual_db = get_all_data(manual_raw_data_collection)
+        manual_db = get_transactions("manual", None)
         assert len(manual_db) == 1
         assert manual_db[0]["description"] == "DAO test transaction"
         assert manual_db[0]["amount"] == 50.0
 
         # Verify line item was stored
-        line_items_db = get_all_data(line_items_collection)
+        line_items_db = get_all_line_items(None)
         assert len(line_items_db) == 1
         assert line_items_db[0]["id"] == line_item_id
         assert line_items_db[0]["description"] == "DAO test transaction"
@@ -326,16 +327,16 @@ def test_delete_manual_transaction_removes_transaction_and_line_item(flask_app):
         )
 
         # Verify it exists
-        assert len(get_all_data(manual_raw_data_collection)) == 1
-        assert len(get_all_data(line_items_collection)) == 1
+        assert len(get_transactions("manual", None)) == 1
+        assert len(get_all_line_items(None)) == 1
 
         # Delete it
         result = delete_manual_transaction(transaction_id)
         assert result is True
 
         # Verify it's gone
-        assert len(get_all_data(manual_raw_data_collection)) == 0
-        assert len(get_all_data(line_items_collection)) == 0
+        assert len(get_transactions("manual", None)) == 0
+        assert len(get_all_line_items(None)) == 0
 
 
 def test_delete_manual_transaction_returns_false_for_nonexistent(flask_app):

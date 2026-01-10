@@ -1,6 +1,5 @@
 import pytest
 
-from dao import line_items_collection
 from resources.line_item import LineItem, all_line_items
 
 
@@ -174,9 +173,9 @@ class TestLineItemAPI:
 
         # Get created line item IDs (sort by amount to ensure consistent ordering)
         with flask_app.app_context():
-            from dao import get_all_data
+            from dao import get_all_line_items
 
-            all_line_items = get_all_data(line_items_collection)
+            all_line_items = get_all_line_items(None)
             all_line_items_sorted = sorted(all_line_items, key=lambda x: x["amount"])
             assert len(all_line_items_sorted) == 2
             line_item_100 = all_line_items_sorted[1]  # amount=100
@@ -218,9 +217,9 @@ class TestLineItemAPI:
 
         # Get created line item ID
         with flask_app.app_context():
-            from dao import get_all_data
+            from dao import get_all_line_items
 
-            all_line_items = get_all_data(line_items_collection)
+            all_line_items = get_all_line_items(None)
             assert len(all_line_items) == 1
             line_item_id = all_line_items[0]["id"]
 

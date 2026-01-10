@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional
 from flask import Blueprint, Response, jsonify, request
 from flask_jwt_extended import jwt_required
 
-from dao import get_all_data, get_item_by_id, line_items_collection
+from dao import get_all_line_items, get_line_item_by_id
 from helpers import sort_by_date_amount_descending, str_to_bool
 
 logger = logging.getLogger(__name__)
@@ -102,7 +102,7 @@ def all_line_items(
         # Only get line items that don't have an event associated
         filters["event_id"] = {"$exists": False}
 
-    line_items: List[Dict[str, Any]] = get_all_data(line_items_collection, filters)
+    line_items: List[Dict[str, Any]] = get_all_line_items(filters)
     line_items = sort_by_date_amount_descending(line_items)
     return line_items
 
@@ -112,7 +112,7 @@ def get_line_item_api(line_item_id: str) -> tuple[Response, int]:
     """
     Get A Line Item
     """
-    line_item: Optional[Dict[str, Any]] = get_item_by_id(line_items_collection, line_item_id)
+    line_item: Optional[Dict[str, Any]] = get_line_item_by_id(line_item_id)
     if line_item is None:
         logger.warning(f"Line item not found: {line_item_id}")
         return jsonify({"error": "Line item not found"}), 404

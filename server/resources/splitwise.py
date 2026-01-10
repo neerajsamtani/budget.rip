@@ -6,7 +6,7 @@ from flask_jwt_extended import jwt_required
 
 from clients import splitwise_client
 from constants import LIMIT, MOVING_DATE, PARTIES_TO_IGNORE, USER_FIRST_NAME
-from dao import get_all_data, splitwise_raw_data_collection
+from dao import get_transactions
 from helpers import flip_amount, iso_8601_to_posix
 from resources.line_item import LineItem
 from utils.pg_bulk_ops import upsert_line_items, upsert_transactions
@@ -65,7 +65,7 @@ def splitwise_to_line_items() -> None:
     3. Improved logic flow for better performance
     """
     payment_method: str = "Splitwise"
-    splitwise_raw_data: List[Dict[str, Any]] = get_all_data(splitwise_raw_data_collection)
+    splitwise_raw_data: List[Dict[str, Any]] = get_transactions("splitwise_api", None)
 
     # Collect all line items for bulk upsert
     all_line_items: List[LineItem] = []
