@@ -30,11 +30,11 @@ describe('PaymentMethodFilter', () => {
 
     // Payment method names for assertions
     const mockPaymentMethodNames = [
-        'credit_card',
-        'debit_card',
+        'Bank of America Credit Card',
+        'Chase Credit Card',
         'cash',
         'venmo',
-        'paypal'
+        'splitwise'
     ];
 
     // Full payment method objects as returned by the API
@@ -77,11 +77,11 @@ describe('PaymentMethodFilter', () => {
         });
 
         it('current payment method value is displayed after API loads', async () => {
-            render(<PaymentMethodFilter paymentMethod="credit_card" setPaymentMethod={mockSetPaymentMethod} />);
+            render(<PaymentMethodFilter paymentMethod="Bank of America Credit Card" setPaymentMethod={mockSetPaymentMethod} />);
 
             await waitFor(() => {
                 const trigger = screen.getByRole('combobox');
-                expect(trigger).toHaveTextContent('credit_card');
+                expect(trigger).toHaveTextContent('Bank of America Credit Card');
             });
         });
     });
@@ -132,7 +132,7 @@ describe('PaymentMethodFilter', () => {
             });
 
             // Rerender with different props
-            rerender(<PaymentMethodFilter paymentMethod="credit_card" setPaymentMethod={mockSetPaymentMethod} />);
+            rerender(<PaymentMethodFilter paymentMethod="Bank of America Credit Card" setPaymentMethod={mockSetPaymentMethod} />);
 
             // Should not fetch again
             expect(mockAxiosInstance.get).toHaveBeenCalledTimes(1);
@@ -147,16 +147,16 @@ describe('PaymentMethodFilter', () => {
             await userEvent.click(trigger);
 
             await waitFor(() => {
-                expect(screen.getByRole('option', { name: 'credit_card' })).toBeInTheDocument();
+                expect(screen.getByRole('option', { name: 'Bank of America Credit Card' })).toBeInTheDocument();
             });
 
-            await userEvent.click(screen.getByRole('option', { name: 'credit_card' }));
+            await userEvent.click(screen.getByRole('option', { name: 'Bank of America Credit Card' }));
 
-            expect(mockSetPaymentMethod).toHaveBeenCalledWith('credit_card');
+            expect(mockSetPaymentMethod).toHaveBeenCalledWith('Bank of America Credit Card');
         });
 
         it('selection of "All" option is handled correctly', async () => {
-            render(<PaymentMethodFilter paymentMethod="credit_card" setPaymentMethod={mockSetPaymentMethod} />);
+            render(<PaymentMethodFilter paymentMethod="Bank of America Credit Card" setPaymentMethod={mockSetPaymentMethod} />);
 
             const trigger = screen.getByRole('combobox');
             await userEvent.click(trigger);
@@ -171,11 +171,11 @@ describe('PaymentMethodFilter', () => {
             let trigger = screen.getByRole('combobox');
             expect(trigger).toHaveTextContent('All');
 
-            rerender(<PaymentMethodFilter paymentMethod="debit_card" setPaymentMethod={mockSetPaymentMethod} />);
+            rerender(<PaymentMethodFilter paymentMethod="Chase Credit Card" setPaymentMethod={mockSetPaymentMethod} />);
 
             await waitFor(() => {
                 trigger = screen.getByRole('combobox');
-                expect(trigger).toHaveTextContent('debit_card');
+                expect(trigger).toHaveTextContent('Chase Credit Card');
             });
         });
 
@@ -186,19 +186,19 @@ describe('PaymentMethodFilter', () => {
 
             await userEvent.click(trigger);
             await waitFor(() => {
-                expect(screen.getByRole('option', { name: 'credit_card' })).toBeInTheDocument();
+                expect(screen.getByRole('option', { name: 'Bank of America Credit Card' })).toBeInTheDocument();
             });
-            await userEvent.click(screen.getByRole('option', { name: 'credit_card' }));
+            await userEvent.click(screen.getByRole('option', { name: 'Bank of America Credit Card' }));
 
             await userEvent.click(trigger);
-            await userEvent.click(screen.getByRole('option', { name: 'debit_card' }));
+            await userEvent.click(screen.getByRole('option', { name: 'Chase Credit Card' }));
 
             await userEvent.click(trigger);
             await userEvent.click(screen.getByRole('option', { name: 'cash' }));
 
             expect(mockSetPaymentMethod).toHaveBeenCalledTimes(3);
-            expect(mockSetPaymentMethod).toHaveBeenNthCalledWith(1, 'credit_card');
-            expect(mockSetPaymentMethod).toHaveBeenNthCalledWith(2, 'debit_card');
+            expect(mockSetPaymentMethod).toHaveBeenNthCalledWith(1, 'Bank of America Credit Card');
+            expect(mockSetPaymentMethod).toHaveBeenNthCalledWith(2, 'Chase Credit Card');
             expect(mockSetPaymentMethod).toHaveBeenNthCalledWith(3, 'cash');
         });
     });
@@ -221,12 +221,12 @@ describe('PaymentMethodFilter', () => {
             await userEvent.click(trigger);
 
             await waitFor(() => {
-                expect(screen.getByRole('option', { name: 'credit_card' })).toBeInTheDocument();
+                expect(screen.getByRole('option', { name: 'Bank of America Credit Card' })).toBeInTheDocument();
             });
 
-            await userEvent.click(screen.getByRole('option', { name: 'credit_card' }));
+            await userEvent.click(screen.getByRole('option', { name: 'Bank of America Credit Card' }));
 
-            expect(customSetPaymentMethod).toHaveBeenCalledWith('credit_card');
+            expect(customSetPaymentMethod).toHaveBeenCalledWith('Bank of America Credit Card');
         });
 
         it('empty payment methods array is handled correctly', async () => {
@@ -384,11 +384,11 @@ describe('PaymentMethodFilter', () => {
             let trigger = screen.getByRole('combobox');
             expect(trigger).toHaveTextContent('All');
 
-            rerender(<PaymentMethodFilter paymentMethod="credit_card" setPaymentMethod={mockSetPaymentMethod} />);
+            rerender(<PaymentMethodFilter paymentMethod="Bank of America Credit Card" setPaymentMethod={mockSetPaymentMethod} />);
 
             await waitFor(() => {
                 trigger = screen.getByRole('combobox');
-                expect(trigger).toHaveTextContent('credit_card');
+                expect(trigger).toHaveTextContent('Bank of America Credit Card');
             });
 
             // Payment methods should still be loaded
@@ -432,16 +432,16 @@ describe('PaymentMethodFilter', () => {
         });
 
         it('selected value is preserved during state updates', async () => {
-            render(<PaymentMethodFilter paymentMethod="credit_card" setPaymentMethod={mockSetPaymentMethod} />);
+            render(<PaymentMethodFilter paymentMethod="Bank of America Credit Card" setPaymentMethod={mockSetPaymentMethod} />);
 
             await waitFor(() => {
                 const trigger = screen.getByRole('combobox');
-                expect(trigger).toHaveTextContent('credit_card');
+                expect(trigger).toHaveTextContent('Bank of America Credit Card');
             });
 
-            // Should still show credit_card as selected
+            // Should still show Bank of America Credit Card as selected
             const trigger = screen.getByRole('combobox');
-            expect(trigger).toHaveTextContent('credit_card');
+            expect(trigger).toHaveTextContent('Bank of America Credit Card');
         });
     });
 }); 
