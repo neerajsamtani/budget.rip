@@ -89,16 +89,16 @@ class TestLineItemClass:
 
 
 class TestLineItemAPI:
-    def test_line_items_returns_all_items_with_total(self, test_client, jwt_token, flask_app, create_line_item_via_cash):
+    def test_line_items_returns_all_items_with_total(self, test_client, jwt_token, flask_app, create_line_item_via_manual):
         """Line items endpoint returns all items with summed total"""
         # Create test line items via API
-        create_line_item_via_cash(
+        create_line_item_via_manual(
             date="2009-02-13",
             person="John Doe",
             description="Transaction 1",
             amount=100,
         )
-        create_line_item_via_cash(
+        create_line_item_via_manual(
             date="2009-02-14",
             person="Jane Smith",
             description="Transaction 2",
@@ -118,16 +118,18 @@ class TestLineItemAPI:
         assert data["total"] == 150  # 100 + 50
         assert len(data["data"]) == 2
 
-    def test_line_items_can_be_filtered_by_payment_method(self, test_client, jwt_token, flask_app, create_line_item_via_cash):
+    def test_line_items_can_be_filtered_by_payment_method(
+        self, test_client, jwt_token, flask_app, create_line_item_via_manual
+    ):
         """Line items can be filtered by payment method"""
         # Create test line items via API (both will be Cash payment method)
-        create_line_item_via_cash(
+        create_line_item_via_manual(
             date="2009-02-13",
             person="John Doe",
             description="Transaction 1",
             amount=100,
         )
-        create_line_item_via_cash(
+        create_line_item_via_manual(
             date="2009-02-14",
             person="Jane Smith",
             description="Transaction 2",
@@ -152,18 +154,18 @@ class TestLineItemAPI:
         test_client,
         jwt_token,
         flask_app,
-        create_line_item_via_cash,
+        create_line_item_via_manual,
         create_event_via_api,
     ):
         """Review filter excludes line items already assigned to events"""
         # Create two line items via API
-        create_line_item_via_cash(
+        create_line_item_via_manual(
             date="2009-02-13",
             person="John Doe",
             description="Transaction 1",
             amount=100,
         )
-        create_line_item_via_cash(
+        create_line_item_via_manual(
             date="2009-02-14",
             person="Jane Smith",
             description="Transaction 2",
@@ -204,10 +206,10 @@ class TestLineItemAPI:
         assert len(data["data"]) == 1
         assert data["data"][0]["id"] == line_item_100["id"]  # Only the one without event_id
 
-    def test_line_item_can_be_retrieved_by_id(self, test_client, flask_app, jwt_token, create_line_item_via_cash):
+    def test_line_item_can_be_retrieved_by_id(self, test_client, flask_app, jwt_token, create_line_item_via_manual):
         """Line item can be retrieved by its ID"""
         # Create test line item via API
-        create_line_item_via_cash(
+        create_line_item_via_manual(
             date="2009-02-13",
             person="John Doe",
             description="Test transaction",

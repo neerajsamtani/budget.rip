@@ -152,7 +152,6 @@ def test_event_total_amount_sums_all_linked_line_items(db_session, common_fixtur
     """Event total_amount property sums all linked line item amounts"""
     category = common_fixtures["category"]
     payment_method = common_fixtures["payment_method"]
-    transaction = common_fixtures["transaction"]
 
     # Create event
     event = Event(
@@ -165,9 +164,19 @@ def test_event_total_amount_sums_all_linked_line_items(db_session, common_fixtur
     db_session.add(event)
     db_session.commit()
 
-    # Add multiple line items
+    # Add multiple line items (each with its own transaction due to unique constraint)
     amounts = [Decimal("25.00"), Decimal("30.50"), Decimal("15.25")]
-    for amount in amounts:
+    for i, amount in enumerate(amounts):
+        transaction = Transaction(
+            id=generate_id("txn"),
+            source="manual",
+            source_id=f"test_total_{i}",
+            source_data={},
+            transaction_date=datetime.now(UTC),
+        )
+        db_session.add(transaction)
+        db_session.commit()
+
         line_item = LineItem(
             id=generate_id("li"),
             transaction_id=transaction.id,
@@ -195,7 +204,6 @@ def test_duplicate_event_uses_first_line_item_amount_only(db_session, common_fix
     """Duplicate event uses only the first line item amount"""
     category = common_fixtures["category"]
     payment_method = common_fixtures["payment_method"]
-    transaction = common_fixtures["transaction"]
 
     # Create duplicate event
     event = Event(
@@ -208,9 +216,19 @@ def test_duplicate_event_uses_first_line_item_amount_only(db_session, common_fix
     db_session.add(event)
     db_session.commit()
 
-    # Add two line items with different amounts
+    # Add two line items with different amounts (each with its own transaction)
     amounts = [Decimal("100.00"), Decimal("100.00")]
-    for amount in amounts:
+    for i, amount in enumerate(amounts):
+        transaction = Transaction(
+            id=generate_id("txn"),
+            source="manual",
+            source_id=f"test_dup_{i}",
+            source_data={},
+            transaction_date=datetime.now(UTC),
+        )
+        db_session.add(transaction)
+        db_session.commit()
+
         line_item = LineItem(
             id=generate_id("li"),
             transaction_id=transaction.id,
@@ -284,7 +302,7 @@ def test_deleting_transaction_cascades_to_line_items(db_session):
     payment_method = PaymentMethod(id=generate_id("pm"), name="Test PM", type="credit", is_active=True)
     transaction = Transaction(
         id=generate_id("txn"),
-        source="stripe",
+        source="stripe_api",
         source_id="txn_cascade",
         source_data={},
         transaction_date=datetime.now(UTC),
@@ -341,7 +359,7 @@ def test_payment_method_with_line_items_cannot_be_deleted(db_session):
     payment_method = PaymentMethod(id=generate_id("pm"), name="Protected PM", type="credit", is_active=True)
     transaction = Transaction(
         id=generate_id("txn"),
-        source="stripe",
+        source="stripe_api",
         source_id="stripe_123",
         source_data={},
         transaction_date=datetime.now(UTC),

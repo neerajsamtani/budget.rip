@@ -225,6 +225,7 @@ Test names should read as statements of fact about system behavior, not as descr
 - Setup file at `src/setupTests.ts`
 - MSW for API mocking
 - Coverage reports in `coverage/` directory
+- **Simulate user behavior**: Prefer clicking buttons, typing in inputs, etc. over directly manipulating props via `rerender`. This exercises the component's event handlers and state management as users would experience them.
 
 ### Server
 - pytest with fixtures in `tests/conftest.py`

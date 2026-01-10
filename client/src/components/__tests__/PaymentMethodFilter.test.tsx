@@ -28,17 +28,27 @@ describe('PaymentMethodFilter', () => {
     const mockSetPaymentMethod = jest.fn();
     const mockPaymentMethod = 'All';
 
-    const mockPaymentMethods = [
-        'credit_card',
-        'debit_card',
+    // Payment method names for assertions
+    const mockPaymentMethodNames = [
+        'Bank of America Credit Card',
+        'Chase Debit Card',
         'cash',
         'venmo',
-        'paypal'
+        'splitwise'
     ];
+
+    // Full payment method objects as returned by the API
+    const mockPaymentMethodObjects = mockPaymentMethodNames.map((name, i) => ({
+        id: `pm_${i}`,
+        name,
+        type: 'credit',
+        is_active: true
+    }));
 
     beforeEach(() => {
         jest.clearAllMocks();
-        mockAxiosInstance.get.mockResolvedValue({ data: mockPaymentMethods });
+        // API now returns { data: [...PaymentMethod objects...] }
+        mockAxiosInstance.get.mockResolvedValue({ data: { data: mockPaymentMethodObjects } });
     });
 
     describe('Rendering', () => {
@@ -67,11 +77,11 @@ describe('PaymentMethodFilter', () => {
         });
 
         it('current payment method value is displayed after API loads', async () => {
-            render(<PaymentMethodFilter paymentMethod="credit_card" setPaymentMethod={mockSetPaymentMethod} />);
+            render(<PaymentMethodFilter paymentMethod="Bank of America Credit Card" setPaymentMethod={mockSetPaymentMethod} />);
 
             await waitFor(() => {
                 const trigger = screen.getByRole('combobox');
-                expect(trigger).toHaveTextContent('credit_card');
+                expect(trigger).toHaveTextContent('Bank of America Credit Card');
             });
         });
     });
@@ -94,7 +104,7 @@ describe('PaymentMethodFilter', () => {
             await userEvent.click(trigger);
 
             await waitFor(() => {
-                mockPaymentMethods.forEach(method => {
+                mockPaymentMethodNames.forEach(method => {
                     expect(screen.getByRole('option', { name: method })).toBeInTheDocument();
                 });
             });
@@ -122,7 +132,7 @@ describe('PaymentMethodFilter', () => {
             });
 
             // Rerender with different props
-            rerender(<PaymentMethodFilter paymentMethod="credit_card" setPaymentMethod={mockSetPaymentMethod} />);
+            rerender(<PaymentMethodFilter paymentMethod="Bank of America Credit Card" setPaymentMethod={mockSetPaymentMethod} />);
 
             // Should not fetch again
             expect(mockAxiosInstance.get).toHaveBeenCalledTimes(1);
@@ -137,16 +147,16 @@ describe('PaymentMethodFilter', () => {
             await userEvent.click(trigger);
 
             await waitFor(() => {
-                expect(screen.getByRole('option', { name: 'credit_card' })).toBeInTheDocument();
+                expect(screen.getByRole('option', { name: 'Bank of America Credit Card' })).toBeInTheDocument();
             });
 
-            await userEvent.click(screen.getByRole('option', { name: 'credit_card' }));
+            await userEvent.click(screen.getByRole('option', { name: 'Bank of America Credit Card' }));
 
-            expect(mockSetPaymentMethod).toHaveBeenCalledWith('credit_card');
+            expect(mockSetPaymentMethod).toHaveBeenCalledWith('Bank of America Credit Card');
         });
 
         it('selection of "All" option is handled correctly', async () => {
-            render(<PaymentMethodFilter paymentMethod="credit_card" setPaymentMethod={mockSetPaymentMethod} />);
+            render(<PaymentMethodFilter paymentMethod="Bank of America Credit Card" setPaymentMethod={mockSetPaymentMethod} />);
 
             const trigger = screen.getByRole('combobox');
             await userEvent.click(trigger);
@@ -161,11 +171,11 @@ describe('PaymentMethodFilter', () => {
             let trigger = screen.getByRole('combobox');
             expect(trigger).toHaveTextContent('All');
 
-            rerender(<PaymentMethodFilter paymentMethod="debit_card" setPaymentMethod={mockSetPaymentMethod} />);
+            rerender(<PaymentMethodFilter paymentMethod="Chase Debit Card" setPaymentMethod={mockSetPaymentMethod} />);
 
             await waitFor(() => {
                 trigger = screen.getByRole('combobox');
-                expect(trigger).toHaveTextContent('debit_card');
+                expect(trigger).toHaveTextContent('Chase Debit Card');
             });
         });
 
@@ -176,19 +186,19 @@ describe('PaymentMethodFilter', () => {
 
             await userEvent.click(trigger);
             await waitFor(() => {
-                expect(screen.getByRole('option', { name: 'credit_card' })).toBeInTheDocument();
+                expect(screen.getByRole('option', { name: 'Bank of America Credit Card' })).toBeInTheDocument();
             });
-            await userEvent.click(screen.getByRole('option', { name: 'credit_card' }));
+            await userEvent.click(screen.getByRole('option', { name: 'Bank of America Credit Card' }));
 
             await userEvent.click(trigger);
-            await userEvent.click(screen.getByRole('option', { name: 'debit_card' }));
+            await userEvent.click(screen.getByRole('option', { name: 'Chase Debit Card' }));
 
             await userEvent.click(trigger);
             await userEvent.click(screen.getByRole('option', { name: 'cash' }));
 
             expect(mockSetPaymentMethod).toHaveBeenCalledTimes(3);
-            expect(mockSetPaymentMethod).toHaveBeenNthCalledWith(1, 'credit_card');
-            expect(mockSetPaymentMethod).toHaveBeenNthCalledWith(2, 'debit_card');
+            expect(mockSetPaymentMethod).toHaveBeenNthCalledWith(1, 'Bank of America Credit Card');
+            expect(mockSetPaymentMethod).toHaveBeenNthCalledWith(2, 'Chase Debit Card');
             expect(mockSetPaymentMethod).toHaveBeenNthCalledWith(3, 'cash');
         });
     });
@@ -211,16 +221,16 @@ describe('PaymentMethodFilter', () => {
             await userEvent.click(trigger);
 
             await waitFor(() => {
-                expect(screen.getByRole('option', { name: 'credit_card' })).toBeInTheDocument();
+                expect(screen.getByRole('option', { name: 'Bank of America Credit Card' })).toBeInTheDocument();
             });
 
-            await userEvent.click(screen.getByRole('option', { name: 'credit_card' }));
+            await userEvent.click(screen.getByRole('option', { name: 'Bank of America Credit Card' }));
 
-            expect(customSetPaymentMethod).toHaveBeenCalledWith('credit_card');
+            expect(customSetPaymentMethod).toHaveBeenCalledWith('Bank of America Credit Card');
         });
 
         it('empty payment methods array is handled correctly', async () => {
-            mockAxiosInstance.get.mockResolvedValue({ data: [] });
+            mockAxiosInstance.get.mockResolvedValue({ data: { data: [] } });
 
             render(<PaymentMethodFilter paymentMethod={mockPaymentMethod} setPaymentMethod={mockSetPaymentMethod} />);
 
@@ -276,7 +286,7 @@ describe('PaymentMethodFilter', () => {
             expect(screen.getByRole('option', { name: 'All' })).toBeInTheDocument();
 
             await waitFor(() => {
-                mockPaymentMethods.forEach(method => {
+                mockPaymentMethodNames.forEach(method => {
                     expect(screen.getByRole('option', { name: method })).toBeInTheDocument();
                 });
             });
@@ -291,7 +301,7 @@ describe('PaymentMethodFilter', () => {
 
     describe('Edge Cases', () => {
         it('API response with null data is handled correctly', async () => {
-            mockAxiosInstance.get.mockResolvedValue({ data: null });
+            mockAxiosInstance.get.mockResolvedValue({ data: { data: null } });
 
             render(<PaymentMethodFilter paymentMethod={mockPaymentMethod} setPaymentMethod={mockSetPaymentMethod} />);
 
@@ -309,7 +319,7 @@ describe('PaymentMethodFilter', () => {
         });
 
         it('API response with undefined data is handled correctly', async () => {
-            mockAxiosInstance.get.mockResolvedValue({ data: undefined });
+            mockAxiosInstance.get.mockResolvedValue({ data: { data: undefined } });
 
             render(<PaymentMethodFilter paymentMethod={mockPaymentMethod} setPaymentMethod={mockSetPaymentMethod} />);
 
@@ -327,8 +337,14 @@ describe('PaymentMethodFilter', () => {
         });
 
         it('payment methods with special characters are handled correctly', async () => {
-            const specialPaymentMethods = ['credit-card', 'debit_card', 'cash_money', 'pay-pal'];
-            mockAxiosInstance.get.mockResolvedValue({ data: specialPaymentMethods });
+            const specialPaymentMethodNames = ['credit-card', 'debit_card', 'cash_money', 'pay-pal'];
+            const specialPaymentMethodObjects = specialPaymentMethodNames.map((name, i) => ({
+                id: `pm_special_${i}`,
+                name,
+                type: 'credit',
+                is_active: true
+            }));
+            mockAxiosInstance.get.mockResolvedValue({ data: { data: specialPaymentMethodObjects } });
 
             render(<PaymentMethodFilter paymentMethod={mockPaymentMethod} setPaymentMethod={mockSetPaymentMethod} />);
 
@@ -336,15 +352,21 @@ describe('PaymentMethodFilter', () => {
             await userEvent.click(trigger);
 
             await waitFor(() => {
-                specialPaymentMethods.forEach(method => {
+                specialPaymentMethodNames.forEach(method => {
                     expect(screen.getByRole('option', { name: method })).toBeInTheDocument();
                 });
             });
         });
 
         it('very long payment method names are handled correctly', async () => {
-            const longPaymentMethods = ['very_long_payment_method_name_that_might_wrap'];
-            mockAxiosInstance.get.mockResolvedValue({ data: longPaymentMethods });
+            const longPaymentMethodNames = ['very_long_payment_method_name_that_might_wrap'];
+            const longPaymentMethodObjects = longPaymentMethodNames.map((name, i) => ({
+                id: `pm_long_${i}`,
+                name,
+                type: 'credit',
+                is_active: true
+            }));
+            mockAxiosInstance.get.mockResolvedValue({ data: { data: longPaymentMethodObjects } });
 
             render(<PaymentMethodFilter paymentMethod={mockPaymentMethod} setPaymentMethod={mockSetPaymentMethod} />);
 
@@ -352,7 +374,7 @@ describe('PaymentMethodFilter', () => {
             await userEvent.click(trigger);
 
             await waitFor(() => {
-                expect(screen.getByRole('option', { name: longPaymentMethods[0] })).toBeInTheDocument();
+                expect(screen.getByRole('option', { name: longPaymentMethodNames[0] })).toBeInTheDocument();
             });
         });
 
@@ -362,17 +384,17 @@ describe('PaymentMethodFilter', () => {
             let trigger = screen.getByRole('combobox');
             expect(trigger).toHaveTextContent('All');
 
-            rerender(<PaymentMethodFilter paymentMethod="credit_card" setPaymentMethod={mockSetPaymentMethod} />);
+            rerender(<PaymentMethodFilter paymentMethod="Bank of America Credit Card" setPaymentMethod={mockSetPaymentMethod} />);
 
             await waitFor(() => {
                 trigger = screen.getByRole('combobox');
-                expect(trigger).toHaveTextContent('credit_card');
+                expect(trigger).toHaveTextContent('Bank of America Credit Card');
             });
 
             // Payment methods should still be loaded
             await userEvent.click(trigger);
             await waitFor(() => {
-                mockPaymentMethods.forEach(method => {
+                mockPaymentMethodNames.forEach(method => {
                     expect(screen.getByRole('option', { name: method })).toBeInTheDocument();
                 });
             });
@@ -399,27 +421,27 @@ describe('PaymentMethodFilter', () => {
             await userEvent.click(trigger);
 
             await waitFor(() => {
-                mockPaymentMethods.forEach(method => {
+                mockPaymentMethodNames.forEach(method => {
                     expect(screen.getByRole('option', { name: method })).toBeInTheDocument();
                 });
             });
 
             // Should have "All" + payment methods
             const options = screen.getAllByRole('option');
-            expect(options).toHaveLength(mockPaymentMethods.length + 1);
+            expect(options).toHaveLength(mockPaymentMethodNames.length + 1);
         });
 
         it('selected value is preserved during state updates', async () => {
-            render(<PaymentMethodFilter paymentMethod="credit_card" setPaymentMethod={mockSetPaymentMethod} />);
+            render(<PaymentMethodFilter paymentMethod="Bank of America Credit Card" setPaymentMethod={mockSetPaymentMethod} />);
 
             await waitFor(() => {
                 const trigger = screen.getByRole('combobox');
-                expect(trigger).toHaveTextContent('credit_card');
+                expect(trigger).toHaveTextContent('Bank of America Credit Card');
             });
 
-            // Should still show credit_card as selected
+            // Should still show Bank of America Credit Card as selected
             const trigger = screen.getByRole('combobox');
-            expect(trigger).toHaveTextContent('credit_card');
+            expect(trigger).toHaveTextContent('Bank of America Credit Card');
         });
     });
 }); 

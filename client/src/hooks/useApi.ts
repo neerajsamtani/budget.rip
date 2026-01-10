@@ -1,7 +1,7 @@
-import { useMutation, useQuery, useQueryClient, UseMutationResult, UseQueryResult } from '@tanstack/react-query';
-import axiosInstance from '../utils/axiosInstance';
+import { useMutation, UseMutationResult, useQuery, useQueryClient, UseQueryResult } from '@tanstack/react-query';
 import { EventInterface } from '../components/Event';
 import { LineItemInterface } from '../contexts/LineItemsContext';
+import axiosInstance from '../utils/axiosInstance';
 
 // Query Keys
 export const queryKeys = {
@@ -116,12 +116,19 @@ export function useAccountsAndBalances(): UseQueryResult<unknown> {
   });
 }
 
-export function usePaymentMethods(): UseQueryResult<string[]> {
+export interface PaymentMethod {
+  id: string;
+  name: string;
+  type: string;
+  is_active: boolean;
+}
+
+export function usePaymentMethods(): UseQueryResult<PaymentMethod[]> {
   return useQuery({
     queryKey: queryKeys.paymentMethods(),
     queryFn: async () => {
       const response = await axiosInstance.get('api/payment_methods');
-      return Array.isArray(response.data) ? response.data : [];
+      return response.data.data as PaymentMethod[];
     },
   });
 }
@@ -196,20 +203,36 @@ export function useUpdateEvent(): UseMutationResult<unknown, Error, UpdateEventD
   });
 }
 
-export interface CreateCashTransactionData {
-  date: string;        // YYYY-MM-DD format
+export interface CreateManualTransactionData {
+  date: string;              // YYYY-MM-DD format
   person: string;
   description: string;
   amount: number;
+  payment_method_id: string; // ID of the payment method (e.g., pm_xxx)
 }
 
-export function useCreateCashTransaction(): UseMutationResult<unknown, Error, CreateCashTransactionData> {
+export function useCreateManualTransaction(): UseMutationResult<unknown, Error, CreateManualTransactionData> {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (transactionData: CreateCashTransactionData) => {
-      const response = await axiosInstance.post('api/cash_transaction', transactionData);
+    mutationFn: async (transactionData: CreateManualTransactionData) => {
+      const response = await axiosInstance.post('api/manual_transaction', transactionData);
       return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['events'] });
+      queryClient.invalidateQueries({ queryKey: ['lineItems'] });
+      queryClient.invalidateQueries({ queryKey: ['monthlyBreakdown'] });
+    },
+  });
+}
+
+export function useDeleteManualTransaction(): UseMutationResult<void, Error, string> {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (transactionId: string) => {
+      await axiosInstance.delete(`api/manual_transaction/${transactionId}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['events'] });

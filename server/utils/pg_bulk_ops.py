@@ -20,18 +20,15 @@ logger = logging.getLogger(__name__)
 
 def get_transaction_date(transaction: Dict[str, Any], source: str) -> datetime:
     """Extract transaction date based on source type."""
-    if source == "venmo":
+    if source == "venmo_api":
         posix_timestamp = float(transaction.get("date_created", 0))
         return datetime.fromtimestamp(posix_timestamp, UTC)
-    elif source == "splitwise":
+    elif source == "splitwise_api":
         iso_date = transaction.get("date", "")
         posix_timestamp = iso_8601_to_posix(iso_date)
         return datetime.fromtimestamp(posix_timestamp, UTC)
-    elif source == "stripe":
+    elif source == "stripe_api":
         posix_timestamp = float(transaction.get("transacted_at", 0))
-        return datetime.fromtimestamp(posix_timestamp, UTC)
-    elif source == "cash":
-        posix_timestamp = float(transaction.get("date", 0))
         return datetime.fromtimestamp(posix_timestamp, UTC)
     else:
         logger.warning(f"Unknown source type: {source}, using current time")
@@ -252,26 +249,15 @@ def _bulk_upsert_line_items(db_session, line_items_data: List[Any], source: str)
         if source_id and source_id in existing_source_ids:
             continue
 
-        if source_id:
-            # Look up the database transaction ID using the external source ID
-            transaction_id = transaction_lookup.get(source_id)
-            if not transaction_id:
-                logger.warning(f"Transaction not found for line item (source={source}, source_id={source_id})")
-                continue
-        else:
-            # Orphaned line items (no transaction reference) get a stub transaction.
-            # This handles edge cases like manually-created line items or data inconsistencies.
-            manual_txn_id = generate_id("txn")
-            manual_txn = Transaction(
-                id=manual_txn_id,
-                source="manual",
-                source_id=f"manual_{manual_txn_id}",
-                source_data={},
-                transaction_date=datetime.now(UTC),
-            )
-            db_session.add(manual_txn)
-            db_session.flush()
-            transaction_id = manual_txn.id
+        if not source_id:
+            logger.warning(f"Skipping line item without source_id (source={source})")
+            continue
+
+        # Look up the database transaction ID using the external source ID
+        transaction_id = transaction_lookup.get(source_id)
+        if not transaction_id:
+            logger.warning(f"Transaction not found for line item (source={source}, source_id={source_id})")
+            continue
 
         payment_method_name = li_dict.get("payment_method", "Unknown")
         payment_method_id = payment_method_map.get(payment_method_name)

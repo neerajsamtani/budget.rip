@@ -125,7 +125,7 @@ class Transaction(Base):
 
     id = Column(String(255), primary_key=True)  # txn_xxx
     source = Column(
-        Enum("venmo", "splitwise", "stripe", "cash", "manual", name="transaction_source"),
+        Enum("venmo_api", "splitwise_api", "stripe_api", "manual", name="transaction_source"),
         nullable=False,
     )
     source_id = Column(String(255), nullable=False)
@@ -137,6 +137,7 @@ class Transaction(Base):
 
 class LineItem(Base):
     __tablename__ = "line_items"
+    __table_args__ = (UniqueConstraint("transaction_id", name="uq_line_item_transaction"),)
 
     id = Column(String(255), primary_key=True)  # li_xxx
     transaction_id = Column(String(255), ForeignKey("transactions.id", ondelete="CASCADE"), nullable=False)

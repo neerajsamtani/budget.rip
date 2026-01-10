@@ -10,6 +10,8 @@ if DATABASE_HOST == "sqlite":
     # Use a creator function to avoid SQLite creating physical files
     import sqlite3
 
+    from sqlalchemy import event as sa_event
+
     def get_shared_memory_connection():
         return sqlite3.connect("file::memory:?cache=shared", uri=True, check_same_thread=False)
 
@@ -18,6 +20,13 @@ if DATABASE_HOST == "sqlite":
         creator=get_shared_memory_connection,
         echo=False,
     )
+
+    # Enable foreign key constraints for SQLite (required for CASCADE)
+    @sa_event.listens_for(engine, "connect")
+    def set_sqlite_pragma(dbapi_conn, connection_record):
+        cursor = dbapi_conn.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
 else:
     # PostgreSQL configuration using psycopg2 directly for connection
     # This avoids URL encoding issues with special characters in credentials

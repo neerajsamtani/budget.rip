@@ -284,13 +284,15 @@ class TestApplicationRoutes:
             assert response.status_code == 200
             data = response.get_json()
 
-            # Should include default payment methods
-            assert "Cash" in data
-            assert "Venmo" in data
-            assert "Splitwise" in data
+            # Should return data object with payment method objects
+            assert "data" in data
+            payment_methods = data["data"]
+            payment_method_names = [pm["name"] for pm in payment_methods]
 
-            # Should include bank account display name
-            assert "Checking Account" in data
+            # Should include default payment methods
+            assert "Cash" in payment_method_names
+            assert "Venmo" in payment_method_names
+            assert "Splitwise" in payment_method_names
 
     def test_payment_methods_returns_defaults_when_no_bank_accounts(self, test_client, jwt_token):
         """Payment methods returns only default methods when no bank accounts exist"""
@@ -302,8 +304,15 @@ class TestApplicationRoutes:
         assert response.status_code == 200
         data = response.get_json()
 
-        # Should only include default payment methods
-        assert data == ["Cash", "Venmo", "Splitwise"]
+        # Should return data object with payment method objects
+        assert "data" in data
+        payment_methods = data["data"]
+        payment_method_names = [pm["name"] for pm in payment_methods]
+
+        # Should include default payment methods
+        assert "Cash" in payment_method_names
+        assert "Venmo" in payment_method_names
+        assert "Splitwise" in payment_method_names
 
     def test_payment_methods_requires_authentication(self, test_client):
         """Payment methods endpoint requires authentication"""
@@ -327,13 +336,13 @@ class TestApplicationFunctions:
             mock_refresh_venmo.assert_called_once()
             mock_refresh_stripe.assert_called_once()
 
-    def test_create_consistent_line_items_normalizes_all_sources(self, flask_app, mocker):
-        """Create consistent line items normalizes data from all sources"""
+    def test_create_consistent_line_items_normalizes_api_sources(self, flask_app, mocker):
+        """Create consistent line items normalizes data from API sources"""
         with flask_app.app_context():
             mock_splitwise_to_line_items = mocker.patch("application.splitwise_to_line_items")
             mock_venmo_to_line_items = mocker.patch("application.venmo_to_line_items")
             mock_stripe_to_line_items = mocker.patch("application.stripe_to_line_items")
-            mock_cash_to_line_items = mocker.patch("application.cash_to_line_items")
+            # Note: Manual transactions don't need refresh - they're created directly
 
             from application import create_consistent_line_items
 
@@ -342,7 +351,6 @@ class TestApplicationFunctions:
             mock_splitwise_to_line_items.assert_called_once()
             mock_venmo_to_line_items.assert_called_once()
             mock_stripe_to_line_items.assert_called_once()
-            mock_cash_to_line_items.assert_called_once()
 
 
 class TestApplicationIntegration:
@@ -442,11 +450,12 @@ class TestApplicationIntegration:
             assert response.status_code == 200
             data = response.get_json()
 
-            # Should include default payment methods
-            assert "Cash" in data
-            assert "Venmo" in data
-            assert "Splitwise" in data
+            # Should return data object with payment method objects
+            assert "data" in data
+            payment_methods = data["data"]
+            payment_method_names = [pm["name"] for pm in payment_methods]
 
-            # Should include both bank account display names
-            assert "Checking Account 1" in data
-            assert "Savings Account 2" in data
+            # Should include default payment methods
+            assert "Cash" in payment_method_names
+            assert "Venmo" in payment_method_names
+            assert "Splitwise" in payment_method_names

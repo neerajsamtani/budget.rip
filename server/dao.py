@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 venmo_raw_data_collection: str = "venmo_raw_data"
 splitwise_raw_data_collection: str = "splitwise_raw_data"
-cash_raw_data_collection: str = "cash_raw_data"
+manual_raw_data_collection: str = "manual_raw_data"
 stripe_raw_transaction_data_collection: str = "stripe_raw_transaction_data"
 stripe_raw_account_data_collection: str = "stripe_raw_account_data"
 line_items_collection: str = "line_items"
@@ -29,13 +29,13 @@ def get_all_data(cur_collection_str: str, filters: Optional[Dict[str, Any]] = No
     elif cur_collection_str == bank_accounts_collection:
         return _pg_get_all_bank_accounts(filters)
     elif cur_collection_str == venmo_raw_data_collection:
-        return _pg_get_transactions("venmo", filters)
+        return _pg_get_transactions("venmo_api", filters)
     elif cur_collection_str == splitwise_raw_data_collection:
-        return _pg_get_transactions("splitwise", filters)
+        return _pg_get_transactions("splitwise_api", filters)
     elif cur_collection_str == stripe_raw_transaction_data_collection:
-        return _pg_get_transactions("stripe", filters)
-    elif cur_collection_str == cash_raw_data_collection:
-        return _pg_get_transactions("cash", filters)
+        return _pg_get_transactions("stripe_api", filters)
+    elif cur_collection_str == manual_raw_data_collection:
+        return _pg_get_transactions("manual", filters)
     else:
         raise NotImplementedError(f"Collection {cur_collection_str} not supported for get_all_data")
 
@@ -102,15 +102,15 @@ def upsert_with_id(cur_collection_str: str, item: Dict[str, Any], id: Union[str,
             venmo_raw_data_collection,
             splitwise_raw_data_collection,
             stripe_raw_transaction_data_collection,
-            cash_raw_data_collection,
+            manual_raw_data_collection,
         ]:
             from utils.pg_bulk_ops import _bulk_upsert_transactions
 
             source_map = {
-                venmo_raw_data_collection: "venmo",
-                splitwise_raw_data_collection: "splitwise",
-                stripe_raw_transaction_data_collection: "stripe",
-                cash_raw_data_collection: "cash",
+                venmo_raw_data_collection: "venmo_api",
+                splitwise_raw_data_collection: "splitwise_api",
+                stripe_raw_transaction_data_collection: "stripe_api",
+                manual_raw_data_collection: "manual",
             }
             source = source_map[cur_collection_str]
             _bulk_upsert_transactions(db, [item], source=source)
@@ -129,15 +129,15 @@ def upsert_with_id(cur_collection_str: str, item: Dict[str, Any], id: Union[str,
             from utils.pg_bulk_ops import _bulk_upsert_line_items
 
             # Derive source from payment_method if not explicitly provided
-            payment_method = item.get("payment_method", "cash").lower()
+            payment_method = item.get("payment_method", "manual").lower()
             source_map = {
-                "venmo": "venmo",
-                "splitwise": "splitwise",
-                "credit card": "stripe",
-                "debit card": "stripe",
-                "cash": "cash",
+                "venmo": "venmo_api",
+                "splitwise": "splitwise_api",
+                "credit card": "stripe_api",
+                "debit card": "stripe_api",
+                "cash": "manual",
             }
-            source = source_map.get(payment_method, "cash")
+            source = source_map.get(payment_method, "manual")
             _bulk_upsert_line_items(db, [item], source=source)
 
         else:
@@ -171,6 +171,9 @@ def _serialize_datetime(dt: Optional[Any]) -> float:
 
 def _pg_serialize_line_item(li: Any) -> Dict[str, Any]:
     """Convert LineItem ORM to dict"""
+    # Determine if this is a manual transaction based on the source
+    is_manual = li.transaction.source == "manual" if li.transaction else False
+
     data = {
         "id": li.id,
         "date": _serialize_datetime(li.date),
@@ -179,6 +182,7 @@ def _pg_serialize_line_item(li: Any) -> Dict[str, Any]:
         "amount": float(li.amount or 0.0),
         "responsible_party": li.responsible_party,
         "notes": li.notes,
+        "is_manual": is_manual,
     }
     if li.events:
         data["event_id"] = li.events[0].id
@@ -221,7 +225,11 @@ def _pg_get_all_line_items(filters: Optional[Dict[str, Any]]) -> List[Dict[str, 
 
     db_session = SessionLocal()
     try:
-        query = db_session.query(LineItem).options(joinedload(LineItem.payment_method), joinedload(LineItem.events))
+        query = db_session.query(LineItem).options(
+            joinedload(LineItem.payment_method),
+            joinedload(LineItem.events),
+            joinedload(LineItem.transaction),
+        )
 
         if filters:
             # Handle id: {$in: [...]} pattern (used in event creation)
@@ -256,7 +264,11 @@ def _pg_get_line_item_by_id(id: str) -> Optional[Dict[str, Any]]:
 
     db_session = SessionLocal()
     try:
-        query = db_session.query(LineItem).options(joinedload(LineItem.payment_method), joinedload(LineItem.events))
+        query = db_session.query(LineItem).options(
+            joinedload(LineItem.payment_method),
+            joinedload(LineItem.events),
+            joinedload(LineItem.transaction),
+        )
         line_item = query.filter(LineItem.id == id).first()
         return _pg_serialize_line_item(line_item) if line_item else None
     finally:
@@ -345,7 +357,11 @@ def _pg_get_line_items_for_event(event_id: str) -> List[Dict[str, Any]]:
             db_session.query(LineItem)
             .join(EventLineItem, LineItem.id == EventLineItem.line_item_id)
             .filter(EventLineItem.event_id == pg_event.id)
-            .options(joinedload(LineItem.payment_method), joinedload(LineItem.events))
+            .options(
+                joinedload(LineItem.payment_method),
+                joinedload(LineItem.events),
+                joinedload(LineItem.transaction),
+            )
             .all()
         )
 
@@ -391,7 +407,7 @@ def _pg_get_categorized_data() -> List[Dict[str, Any]]:
 
 
 def _pg_get_transactions(source: str, filters: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """Get raw transactions from PostgreSQL by source (venmo, splitwise, stripe, cash)"""
+    """Get raw transactions from PostgreSQL by source (venmo_api, splitwise_api, stripe_api, manual)"""
     from models.database import SessionLocal
     from models.sql_models import Transaction
 
@@ -480,5 +496,138 @@ def get_all_tags() -> List[Dict[str, Any]]:
     try:
         tags = db_session.query(Tag).order_by(Tag.name).all()
         return [{"id": tag.id, "name": tag.name} for tag in tags]
+    finally:
+        db_session.close()
+
+
+def create_manual_transaction(
+    transaction_id: str,
+    line_item_id: str,
+    transaction_date: Any,
+    posix_date: float,
+    amount: Any,
+    description: str,
+    payment_method_id: str,
+    responsible_party: str,
+) -> None:
+    """
+    Create a manual transaction with its associated line item.
+
+    Manual transactions bypass the bulk upsert pipeline since they don't need
+    deduplication logic (there's no external API to re-import from).
+
+    Args:
+        transaction_id: Generated txn_xxx ID for the transaction
+        line_item_id: Generated li_xxx ID for the line item
+        transaction_date: datetime object for the transaction
+        posix_date: POSIX timestamp of the transaction date
+        amount: Decimal amount for the line item
+        description: Transaction description
+        payment_method_id: ID of the payment method
+        responsible_party: Name of the responsible party
+    """
+    from models.database import SessionLocal
+    from models.sql_models import LineItem, Transaction
+
+    db_session = SessionLocal()
+    try:
+        transaction = Transaction(
+            id=transaction_id,
+            source="manual",
+            source_id=transaction_id,
+            source_data={
+                "date": posix_date,
+                "person": responsible_party,
+                "description": description,
+                "amount": float(amount),
+                "payment_method_id": payment_method_id,
+            },
+            transaction_date=transaction_date,
+        )
+        db_session.add(transaction)
+
+        line_item = LineItem(
+            id=line_item_id,
+            transaction_id=transaction_id,
+            date=transaction_date,
+            amount=amount,
+            description=description,
+            payment_method_id=payment_method_id,
+            responsible_party=responsible_party,
+        )
+        db_session.add(line_item)
+
+        db_session.commit()
+    except Exception as e:
+        db_session.rollback()
+        logger.error(f"Failed to create manual transaction: {e}")
+        raise
+    finally:
+        db_session.close()
+
+
+def delete_manual_transaction(transaction_id: str) -> bool:
+    """
+    Delete a manual transaction and its associated line items.
+
+    Args:
+        transaction_id: The transaction ID to delete
+
+    Returns:
+        True if deleted, False if not found
+
+    Raises:
+        ValueError: If the transaction's line item is assigned to an event
+    """
+    from models.database import SessionLocal
+    from models.sql_models import EventLineItem, LineItem, Transaction
+
+    db_session = SessionLocal()
+    try:
+        transaction = (
+            db_session.query(Transaction).filter(Transaction.id == transaction_id, Transaction.source == "manual").first()
+        )
+
+        if not transaction:
+            return False
+
+        line_item = db_session.query(LineItem).filter(LineItem.transaction_id == transaction.id).first()
+
+        if line_item:
+            is_assigned = db_session.query(EventLineItem).filter(EventLineItem.line_item_id == line_item.id).first()
+            if is_assigned:
+                raise ValueError("Cannot delete transaction with line item assigned to an event")
+
+        db_session.delete(transaction)
+        db_session.commit()
+        return True
+
+    except ValueError:
+        db_session.rollback()
+        raise
+    except Exception as e:
+        db_session.rollback()
+        logger.error(f"Failed to delete manual transaction {transaction_id}: {e}")
+        raise
+    finally:
+        db_session.close()
+
+
+def get_payment_method_by_id(payment_method_id: str) -> Optional[Dict[str, Any]]:
+    """Get payment method by ID"""
+    from models.database import SessionLocal
+    from models.sql_models import PaymentMethod
+
+    db_session = SessionLocal()
+    try:
+        pm = db_session.query(PaymentMethod).filter(PaymentMethod.id == payment_method_id).first()
+        if not pm:
+            return None
+        return {
+            "id": pm.id,
+            "name": pm.name,
+            "type": pm.type,
+            "is_active": pm.is_active,
+        }
     finally:
         db_session.close()

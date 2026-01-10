@@ -136,10 +136,10 @@ class TestVenmoFunctions:
 
             db = SessionLocal()
             try:
-                transactions = db.query(Transaction).filter(Transaction.source == "venmo").all()
+                transactions = db.query(Transaction).filter(Transaction.source == "venmo_api").all()
                 assert len(transactions) == 1
                 # Verify transaction has correct source
-                assert transactions[0].source == "venmo"
+                assert transactions[0].source == "venmo_api"
                 assert transactions[0].source_id == "venmo_test_txn_1"
             finally:
                 db.close()
@@ -272,7 +272,7 @@ class TestVenmoFunctions:
 
             db = SessionLocal()
             try:
-                transactions = db.query(Transaction).filter(Transaction.source == "venmo").all()
+                transactions = db.query(Transaction).filter(Transaction.source == "venmo_api").all()
                 assert len(transactions) == 2
             finally:
                 db.close()
@@ -474,7 +474,7 @@ class TestVenmoIntegration:
 
             db = SessionLocal()
             try:
-                db.query(Transaction).filter(Transaction.source == "venmo").delete()
+                db.query(Transaction).filter(Transaction.source == "venmo_api").delete()
                 db.commit()
             finally:
                 db.close()
@@ -556,7 +556,7 @@ class TestVenmoIntegration:
 
             db = SessionLocal()
             try:
-                transactions = db.query(Transaction).filter(Transaction.source == "venmo").all()
+                transactions = db.query(Transaction).filter(Transaction.source == "venmo_api").all()
                 assert len(transactions) == 2
             finally:
                 db.close()

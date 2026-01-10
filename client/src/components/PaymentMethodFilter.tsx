@@ -3,16 +3,19 @@ import React, { useEffect, useMemo } from "react";
 import { usePaymentMethods } from "../hooks/useApi";
 import { showErrorToast } from "../utils/toast-helpers";
 
-type PaymentMethod = string
 interface PaymentMethodFilterProps {
-  paymentMethod: PaymentMethod,
+  paymentMethod: string,
   // eslint-disable-next-line no-unused-vars
-  setPaymentMethod: (paymentMethod: PaymentMethod) => void
+  setPaymentMethod: (paymentMethod: string) => void
 }
 
 export default function PaymentMethodFilter({ paymentMethod, setPaymentMethod }: PaymentMethodFilterProps) {
   const { data: fetchedMethods = [], error } = usePaymentMethods();
-  const paymentMethods = useMemo(() => ["All", ...fetchedMethods], [fetchedMethods]);
+  // Extract names and add "All" option at the beginning
+  const paymentMethodNames = useMemo(
+    () => ["All", ...fetchedMethods.map(pm => pm.name)],
+    [fetchedMethods]
+  );
 
   useEffect(() => {
     if (error) {
@@ -25,7 +28,7 @@ export default function PaymentMethodFilter({ paymentMethod, setPaymentMethod }:
       label="Payment Method"
       value={paymentMethod}
       onChange={setPaymentMethod}
-      options={paymentMethods}
+      options={paymentMethodNames}
       placeholder="Select payment method"
     />
   );

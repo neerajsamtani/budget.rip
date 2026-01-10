@@ -1,9 +1,11 @@
+import { UserPenIcon } from "lucide-react";
 import React from "react";
 import { LineItemInterface, useLineItems, useLineItemsDispatch } from "../contexts/LineItemsContext";
 import { CurrencyFormatter, DateFormatter } from "../utils/formatters";
 import { Checkbox } from "./ui/checkbox";
 import { StatusBadge } from "./ui/status-badge";
 import { TableCell, TableRow } from "./ui/table";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 
 interface LineItemProps {
     lineItem: LineItemInterface;
@@ -40,8 +42,20 @@ function LineItemCard({ lineItem, showCheckBox, isChecked, handleToggle, amountS
                     <p className="font-medium text-foreground truncate" title={lineItem.description}>
                         {lineItem.description}
                     </p>
-                    <div className="flex gap-2 mt-1 text-sm text-muted-foreground">
+                    <div className="flex gap-2 mt-1 text-sm text-muted-foreground items-center">
                         <span>{lineItem.payment_method}</span>
+                        {lineItem.is_manual && (
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <UserPenIcon className="h-3 w-3 text-muted-foreground" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>Manual transaction</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                        )}
                         {lineItem.responsible_party && (
                             <>
                                 <span>•</span>
@@ -72,7 +86,21 @@ function LineItemRow({ lineItem, showCheckBox, isChecked, handleToggle, amountSt
                 {readableDate}
             </TableCell>
             <TableCell>
-                {lineItem.payment_method}
+                <span className="flex items-center gap-1.5">
+                    {lineItem.payment_method}
+                    {lineItem.is_manual && (
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <UserPenIcon className="h-3 w-3 text-muted-foreground" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>Manual transaction</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    )}
+                </span>
             </TableCell>
             <TableCell className="w-2/5 min-w-0">
                 <span className="block" title={lineItem.description}>

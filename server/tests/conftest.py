@@ -32,11 +32,11 @@ from sqlalchemy.orm import sessionmaker
 from constants import JWT_SECRET_KEY
 from models.sql_models import Base
 from resources.auth import auth_blueprint
-from resources.cash import cash_blueprint
 from resources.category import categories_blueprint
 from resources.event import events_blueprint
 from resources.event_hint import event_hints_blueprint
 from resources.line_item import line_items_blueprint
+from resources.manual_transaction import manual_transaction_blueprint
 from resources.monthly_breakdown import monthly_breakdown_blueprint
 from resources.splitwise import splitwise_blueprint
 from resources.stripe import stripe_blueprint
@@ -109,7 +109,7 @@ def flask_app():
     app = Flask(__name__)
     app.debug = True
     app.register_blueprint(auth_blueprint)
-    app.register_blueprint(cash_blueprint)
+    app.register_blueprint(manual_transaction_blueprint)
     app.register_blueprint(categories_blueprint)
     app.register_blueprint(event_hints_blueprint)
     app.register_blueprint(line_items_blueprint)
@@ -306,8 +306,8 @@ def setup_teardown(flask_app, request):
 
 
 @pytest.fixture
-def create_line_item_via_cash(test_client, jwt_token):
-    """Helper to create line items via cash transaction API"""
+def create_line_item_via_manual(test_client, jwt_token):
+    """Helper to create line items via manual transaction API"""
 
     def _create(**kwargs):
         transaction_data = {
@@ -315,9 +315,10 @@ def create_line_item_via_cash(test_client, jwt_token):
             "person": kwargs.get("person", "Test Person"),
             "description": kwargs.get("description", "Test Transaction"),
             "amount": kwargs.get("amount", 100.0),
+            "payment_method_id": kwargs.get("payment_method_id", "pm_cash"),
         }
         response = test_client.post(
-            "/api/cash_transaction",
+            "/api/manual_transaction",
             json=transaction_data,
             headers={"Authorization": f"Bearer {jwt_token}"},
         )

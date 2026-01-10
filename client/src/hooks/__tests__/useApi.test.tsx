@@ -1,6 +1,6 @@
-import { renderHook, waitFor, act } from '@testing-library/react';
-import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { act, renderHook, waitFor } from '@testing-library/react';
+import React from 'react';
 
 // Mock axios instance - define mocks inline in the factory to avoid hoisting issues
 jest.mock('../../utils/axiosInstance', () => ({
@@ -19,17 +19,17 @@ const mockPost = axiosInstance.post as jest.Mock;
 const mockDelete = axiosInstance.delete as jest.Mock;
 
 import {
+    queryKeys,
+    useCreateEvent,
+    useCreateManualTransaction,
+    useDeleteEvent,
+    useEventLineItems,
     useEvents,
     useLineItems,
-    useEventLineItems,
-    useMonthlyBreakdown,
-    usePaymentMethods,
-    useCreateEvent,
-    useCreateCashTransaction,
-    useDeleteEvent,
     useLogin,
     useLogout,
-    queryKeys,
+    useMonthlyBreakdown,
+    usePaymentMethods,
 } from '../useApi';
 
 const createTestQueryClient = () => new QueryClient({
@@ -142,14 +142,14 @@ describe('useApi hooks', () => {
         it('fetches line items with payment method filter', async () => {
             mockGet.mockResolvedValue({ data: { data: [] } });
 
-            const { result } = renderHook(() => useLineItems({ paymentMethod: 'credit_card' }), {
+            const { result } = renderHook(() => useLineItems({ paymentMethod: 'Chase Debit Card' }), {
                 wrapper: createWrapper(),
             });
 
             await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
             expect(mockGet).toHaveBeenCalledWith('api/line_items', {
-                params: { payment_method: 'credit_card' },
+                params: { payment_method: 'Chase Debit Card' },
             });
         });
 
@@ -223,8 +223,12 @@ describe('useApi hooks', () => {
 
     describe('usePaymentMethods', () => {
         it('fetches payment methods', async () => {
-            const mockMethods = ['credit_card', 'cash', 'debit_card'];
-            mockGet.mockResolvedValue({ data: mockMethods });
+            const mockMethods = [
+                { id: 'pm_1', name: 'Bank of America Credit Card', type: 'credit', is_active: true },
+                { id: 'pm_2', name: 'cash', type: 'cash', is_active: true },
+                { id: 'pm_3', name: 'Chase Debit Card', type: 'debit', is_active: true },
+            ];
+            mockGet.mockResolvedValue({ data: { data: mockMethods } });
 
             const { result } = renderHook(() => usePaymentMethods(), {
                 wrapper: createWrapper(),
@@ -236,8 +240,8 @@ describe('useApi hooks', () => {
             expect(result.current.data).toEqual(mockMethods);
         });
 
-        it('returns empty array when response is not an array', async () => {
-            mockGet.mockResolvedValue({ data: null });
+        it('returns empty array when response data is empty', async () => {
+            mockGet.mockResolvedValue({ data: { data: [] } });
 
             const { result } = renderHook(() => usePaymentMethods(), {
                 wrapper: createWrapper(),
@@ -297,28 +301,30 @@ describe('useApi hooks', () => {
         });
     });
 
-    describe('useCreateCashTransaction', () => {
-        it('creates a cash transaction', async () => {
-            mockPost.mockResolvedValue({ data: { id: 'new-transaction' } });
+    describe('useCreateManualTransaction', () => {
+        it('creates a manual transaction', async () => {
+            mockPost.mockResolvedValue({ data: { transaction_id: 'manual_123' } });
 
-            const { result } = renderHook(() => useCreateCashTransaction(), {
+            const { result } = renderHook(() => useCreateManualTransaction(), {
                 wrapper: createWrapper(),
             });
 
             await act(async () => {
                 await result.current.mutateAsync({
-                    name: 'Cash Payment',
-                    category: 'Groceries',
+                    date: '2024-01-15',
+                    person: 'John Doe',
+                    description: 'Cash Payment',
                     amount: 50,
-                    date: 1640995200,
+                    payment_method_id: 'pm_cash',
                 });
             });
 
-            expect(mockPost).toHaveBeenCalledWith('api/cash_transaction', {
-                name: 'Cash Payment',
-                category: 'Groceries',
+            expect(mockPost).toHaveBeenCalledWith('api/manual_transaction', {
+                date: '2024-01-15',
+                person: 'John Doe',
+                description: 'Cash Payment',
                 amount: 50,
-                date: 1640995200,
+                payment_method_id: 'pm_cash',
             });
         });
     });
