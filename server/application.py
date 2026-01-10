@@ -28,10 +28,7 @@ from constants import (
     TESTING,
     VENMO_ACCESS_TOKEN,
 )
-from dao import (
-    get_all_bank_accounts,
-    get_user_by_id
-)
+from dao import get_all_bank_accounts, get_user_by_id
 from resources.auth import auth_blueprint
 from resources.category import categories_blueprint
 from resources.event import events_blueprint

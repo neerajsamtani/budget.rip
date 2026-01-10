@@ -1,6 +1,6 @@
 import pytest
 
-from dao import events_collection, get_all_events, upsert
+from dao import get_all_events
 
 
 @pytest.fixture
@@ -263,8 +263,7 @@ class TestEventAPI:
 
         # Verify event was created
         with flask_app.app_context():
-            from dao import get_event_by_id
-            from dao import get_line_item_by_id
+            from dao import get_event_by_id, get_line_item_by_id
 
             created_event = get_event_by_id(created_event_id)
             assert created_event is not None
@@ -437,8 +436,7 @@ class TestEventAPI:
 
         # Verify event was deleted
         with flask_app.app_context():
-            from dao import get_event_by_id
-            from dao import get_line_item_by_id
+            from dao import get_event_by_id, get_line_item_by_id
 
             deleted_event = get_event_by_id(event_id)
             assert deleted_event is None
@@ -690,7 +688,18 @@ class TestEventAPI:
                 "line_items": [line_item_ids[0], "nonexistent_line_item"],
                 "tags": ["test"],
             }
-            upsert(events_collection, test_event)
+            from models.database import SessionLocal
+            from utils.pg_event_operations import upsert_event_to_postgresql
+
+            db = SessionLocal()
+            try:
+                upsert_event_to_postgresql(test_event, db)
+                db.commit()
+            except Exception:
+                db.rollback()
+                raise
+            finally:
+                db.close()
 
             # Get the actual PostgreSQL event ID that was created
             all_events = get_all_events(None)
@@ -804,18 +813,18 @@ class TestEventAPI:
 
             # Test removing event_id from first line item
             remove_event_from_line_item(line_item1.id)
-            line_item_data1_after = get_item_by_id(line_items_collection, line_item1.id)
+            line_item_data1_after = get_line_item_by_id(line_item1.id)
             assert line_item_data1_after is not None
             assert "event_id" not in line_item_data1_after
 
             # Test removing event_id from second line item
             remove_event_from_line_item(line_item2.id)
-            line_item_data2_after = get_item_by_id(line_items_collection, line_item2.id)
+            line_item_data2_after = get_line_item_by_id(line_item2.id)
             assert line_item_data2_after is not None
             assert "event_id" not in line_item_data2_after
 
             # Test removing event_id from third line item
             remove_event_from_line_item(line_item3.id)
-            line_item_data3_after = get_item_by_id(line_items_collection, line_item3.id)
+            line_item_data3_after = get_line_item_by_id(line_item3.id)
             assert line_item_data3_after is not None
             assert "event_id" not in line_item_data3_after

@@ -6,10 +6,9 @@ from flask_jwt_extended import get_current_user, jwt_required
 
 from constants import LARGEST_EPOCH_TIME, SMALLEST_EPOCH_TIME
 from dao import (
-    get_event_by_id,
     get_all_events,
     get_all_line_items,
-    line_items_collection,
+    get_event_by_id,
     get_line_item_by_id,
 )
 from helpers import html_date_to_posix

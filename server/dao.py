@@ -20,41 +20,29 @@ test_collection: str = "test_data"
 
 def remove_event_from_line_item(line_item_id: Union[str, int]) -> None:
     """
-    Remove event association from a line item by its ID (PostgreSQL only).
-
-    Args:
-        line_item_id: The ID of the line item (can be string, int, or ObjectId)
+    Remove event association from a line item by its ID.
     """
     from models.database import SessionLocal
     from models.sql_models import EventLineItem, LineItem
 
-    db = SessionLocal()
-    try:
-        # Find the line item by ID
-        line_item = db.query(LineItem).filter(LineItem.id == str(line_item_id)).first()
-
-        if line_item:
-            # Delete all EventLineItem junctions for this line item
-            db.query(EventLineItem).filter(EventLineItem.line_item_id == line_item.id).delete()
-            db.commit()
-        else:
-            logger.warning(f"Could not find line item with ID {line_item_id}")
-    except Exception as e:
-        db.rollback()
-        logger.error(f"Failed to remove event from line item: {e}")
-        raise
-    finally:
-        db.close()
+    with SessionLocal.begin() as db:
+        try:
+            line_item = db.query(LineItem).filter(LineItem.id == str(line_item_id)).first()
+            if line_item:
+                db.query(EventLineItem).filter(EventLineItem.line_item_id == line_item.id).delete()
+            else:
+                logger.warning(f"Could not find line item with ID {line_item_id}")
+        except Exception:
+            logger.error(f"Failed to remove event from line item: {line_item_id}")
+            raise
 
 
 def get_user_by_email(email: str) -> Optional[Dict[str, Any]]:
-    logger.debug("Reading user by email from PostgreSQL")
     from models.database import SessionLocal
     from models.sql_models import User
 
-    db_session = SessionLocal()
-    try:
-        user = db_session.query(User).filter(User.email == email).first()
+    with SessionLocal.begin() as db:
+        user = db.query(User).filter(User.email == email).first()
         if not user:
             return None
         return {
@@ -64,8 +52,6 @@ def get_user_by_email(email: str) -> Optional[Dict[str, Any]]:
             "email": user.email,
             "password_hash": user.password_hash,
         }
-    finally:
-        db_session.close()
 
 
 # TODO: Remove this router function and let callers use the underlying functions directly
@@ -73,75 +59,63 @@ def upsert(cur_collection_str: str, item: Dict[str, Any]) -> None:
     """Upsert item to PostgreSQL for migrated collections"""
     from models.database import SessionLocal
 
-    db = SessionLocal()
-    try:
-        # PostgreSQL write for transaction collections
-        if cur_collection_str in [
-            venmo_raw_data_collection,
-            splitwise_raw_data_collection,
-            stripe_raw_transaction_data_collection,
-            manual_raw_data_collection,
-        ]:
-            from utils.pg_bulk_ops import _bulk_upsert_transactions
+    with SessionLocal.begin() as db:
+        try:
+            # PostgreSQL write for transaction collections
+            if cur_collection_str in [
+                venmo_raw_data_collection,
+                splitwise_raw_data_collection,
+                stripe_raw_transaction_data_collection,
+                manual_raw_data_collection,
+            ]:
+                from utils.pg_bulk_ops import _bulk_upsert_transactions
 
-            source_map = {
-                venmo_raw_data_collection: "venmo_api",
-                splitwise_raw_data_collection: "splitwise_api",
-                stripe_raw_transaction_data_collection: "stripe_api",
-                manual_raw_data_collection: "manual",
-            }
-            source = source_map[cur_collection_str]
-            _bulk_upsert_transactions(db, [item], source=source)
+                source_map = {
+                    venmo_raw_data_collection: "venmo_api",
+                    splitwise_raw_data_collection: "splitwise_api",
+                    stripe_raw_transaction_data_collection: "stripe_api",
+                    manual_raw_data_collection: "manual",
+                }
+                source = source_map[cur_collection_str]
+                _bulk_upsert_transactions(db, [item], source=source)
 
-        elif cur_collection_str == events_collection:
-            from utils.pg_event_operations import upsert_event_to_postgresql
+            elif cur_collection_str == bank_accounts_collection:
+                from utils.pg_bulk_ops import _bulk_upsert_bank_accounts
 
-            upsert_event_to_postgresql(item, db)
+                _bulk_upsert_bank_accounts(db, [item])
 
-        elif cur_collection_str == bank_accounts_collection:
-            from utils.pg_bulk_ops import _bulk_upsert_bank_accounts
+            elif cur_collection_str == line_items_collection:
+                from utils.pg_bulk_ops import _bulk_upsert_line_items
 
-            _bulk_upsert_bank_accounts(db, [item])
+                # Derive source from payment_method if not explicitly provided
+                payment_method = item.get("payment_method", "manual").lower()
+                source_map = {
+                    "venmo": "venmo_api",
+                    "splitwise": "splitwise_api",
+                    "credit card": "stripe_api",
+                    "debit card": "stripe_api",
+                    "cash": "manual",
+                }
+                source = source_map.get(payment_method, "manual")
+                _bulk_upsert_line_items(db, [item], source=source)
 
-        elif cur_collection_str == line_items_collection:
-            from utils.pg_bulk_ops import _bulk_upsert_line_items
-
-            # Derive source from payment_method if not explicitly provided
-            payment_method = item.get("payment_method", "manual").lower()
-            source_map = {
-                "venmo": "venmo_api",
-                "splitwise": "splitwise_api",
-                "credit card": "stripe_api",
-                "debit card": "stripe_api",
-                "cash": "manual",
-            }
-            source = source_map.get(payment_method, "manual")
-            _bulk_upsert_line_items(db, [item], source=source)
-
-        else:
-            raise NotImplementedError(f"Collection {cur_collection_str} not supported for upsert")
-
-        db.commit()
-    except Exception as e:
-        db.rollback()
-        logger.error(f"Failed to upsert item to {cur_collection_str}: {e}")
-        raise
-    finally:
-        db.close()
+            else:
+                raise NotImplementedError(f"Collection {cur_collection_str} not supported for upsert")
+        except Exception as e:
+            logger.error(f"Failed to upsert item to {cur_collection_str}: {e}")
+            raise
 
 
 def get_categorized_data() -> List[Dict[str, Any]]:
     """Group totalExpense by month, year, and category"""
-    logger.debug("Reading categorized data from PostgreSQL")
     from sqlalchemy import extract, func
 
     from models.database import SessionLocal
     from models.sql_models import Category, Event, LineItem
 
-    db_session = SessionLocal()
-    try:
+    with SessionLocal.begin() as db:
         results = (
-            db_session.query(
+            db.query(
                 extract("year", Event.date).label("year"),
                 extract("month", Event.date).label("month"),
                 Category.name.label("category"),
@@ -163,8 +137,6 @@ def get_categorized_data() -> List[Dict[str, Any]]:
             }
             for row in results
         ]
-    finally:
-        db_session.close()
 
 
 def _serialize_datetime(dt: Optional[Any]) -> float:
@@ -232,9 +204,8 @@ def get_all_line_items(filters: Optional[Dict[str, Any]]) -> List[Dict[str, Any]
     from models.database import SessionLocal
     from models.sql_models import Event, LineItem, PaymentMethod
 
-    db_session = SessionLocal()
-    try:
-        query = db_session.query(LineItem).options(
+    with SessionLocal.begin() as db:
+        query = db.query(LineItem).options(
             joinedload(LineItem.payment_method),
             joinedload(LineItem.events),
             joinedload(LineItem.transaction),
@@ -262,8 +233,6 @@ def get_all_line_items(filters: Optional[Dict[str, Any]]) -> List[Dict[str, Any]
         query = query.order_by(LineItem.date.desc())
         line_items = query.all()
         return [_pg_serialize_line_item(li) for li in line_items]
-    finally:
-        db_session.close()
 
 
 def get_line_item_by_id(id: str) -> Optional[Dict[str, Any]]:
@@ -271,17 +240,14 @@ def get_line_item_by_id(id: str) -> Optional[Dict[str, Any]]:
     from models.database import SessionLocal
     from models.sql_models import LineItem
 
-    db_session = SessionLocal()
-    try:
-        query = db_session.query(LineItem).options(
+    with SessionLocal.begin() as db:
+        query = db.query(LineItem).options(
             joinedload(LineItem.payment_method),
             joinedload(LineItem.events),
             joinedload(LineItem.transaction),
         )
         line_item = query.filter(LineItem.id == id).first()
         return _pg_serialize_line_item(line_item) if line_item else None
-    finally:
-        db_session.close()
 
 
 def get_user_by_id(id: str) -> Optional[Dict[str, Any]]:
@@ -289,13 +255,10 @@ def get_user_by_id(id: str) -> Optional[Dict[str, Any]]:
     from models.database import SessionLocal
     from models.sql_models import User
 
-    db_session = SessionLocal()
-    try:
-        query = db_session.query(User)
+    with SessionLocal.begin() as db:
+        query = db.query(User)
         user = query.filter(User.id == id).first()
         return _pg_serialize_user(user) if user else None
-    finally:
-        db_session.close()
 
 
 def get_all_events(filters: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -305,11 +268,10 @@ def get_all_events(filters: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
     from models.database import SessionLocal
     from models.sql_models import Event, LineItem
 
-    db_session = SessionLocal()
-    try:
+    with SessionLocal.begin() as db:
         # Use subqueryload for one-to-many relationships to avoid duplicate rows
         # joinedload is fine for many-to-one (category)
-        query = db_session.query(Event).options(
+        query = db.query(Event).options(
             joinedload(Event.category),
             subqueryload(Event.line_items).joinedload(LineItem.payment_method),
             subqueryload(Event.tags),
@@ -327,8 +289,6 @@ def get_all_events(filters: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
 
         events = query.order_by(Event.date.desc()).all()
         return [_pg_serialize_event(event) for event in events]
-    finally:
-        db_session.close()
 
 
 def get_event_by_id(id: str) -> Optional[Dict[str, Any]]:
@@ -336,9 +296,8 @@ def get_event_by_id(id: str) -> Optional[Dict[str, Any]]:
     from models.database import SessionLocal
     from models.sql_models import Event, LineItem
 
-    db_session = SessionLocal()
-    try:
-        query = db_session.query(Event).options(
+    with SessionLocal.begin() as db:
+        query = db.query(Event).options(
             joinedload(Event.category),
             joinedload(Event.line_items).joinedload(LineItem.payment_method),
             joinedload(Event.tags),
@@ -346,8 +305,6 @@ def get_event_by_id(id: str) -> Optional[Dict[str, Any]]:
 
         event = query.filter(Event.id == id).first()
         return _pg_serialize_event(event) if event else None
-    finally:
-        db_session.close()
 
 
 def get_transactions(source: str, filters: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -355,9 +312,8 @@ def get_transactions(source: str, filters: Optional[Dict[str, Any]]) -> List[Dic
     from models.database import SessionLocal
     from models.sql_models import Transaction
 
-    db_session = SessionLocal()
-    try:
-        query = db_session.query(Transaction).filter(Transaction.source == source)
+    with SessionLocal.begin() as db:
+        query = db.query(Transaction).filter(Transaction.source == source)
 
         # Apply filters if provided (though typically raw data reads don't use filters)
         if filters:
@@ -374,8 +330,6 @@ def get_transactions(source: str, filters: Optional[Dict[str, Any]]) -> List[Dic
             }
             for txn in transactions
         ]
-    finally:
-        db_session.close()
 
 
 def get_all_bank_accounts(
@@ -385,9 +339,8 @@ def get_all_bank_accounts(
     from models.database import SessionLocal
     from models.sql_models import BankAccount
 
-    db_session = SessionLocal()
-    try:
-        query = db_session.query(BankAccount)
+    with SessionLocal.begin() as db:
+        query = db.query(BankAccount)
 
         if filters and "status" in filters:
             query = query.filter(BankAccount.status == filters["status"])
@@ -407,20 +360,15 @@ def get_all_bank_accounts(
             }
             for acc in accounts
         ]
-    finally:
-        db_session.close()
 
 
 def get_all_tags() -> List[Dict[str, Any]]:
     from models.database import SessionLocal
     from models.sql_models import Tag
 
-    db_session = SessionLocal()
-    try:
-        tags = db_session.query(Tag).order_by(Tag.name).all()
+    with SessionLocal.begin() as db:
+        tags = db.query(Tag).order_by(Tag.name).all()
         return [{"id": tag.id, "name": tag.name} for tag in tags]
-    finally:
-        db_session.close()
 
 
 def create_manual_transaction(
@@ -452,41 +400,36 @@ def create_manual_transaction(
     from models.database import SessionLocal
     from models.sql_models import LineItem, Transaction
 
-    db_session = SessionLocal()
-    try:
-        transaction = Transaction(
-            id=transaction_id,
-            source="manual",
-            source_id=transaction_id,
-            source_data={
-                "date": posix_date,
-                "person": responsible_party,
-                "description": description,
-                "amount": float(amount),
-                "payment_method_id": payment_method_id,
-            },
-            transaction_date=transaction_date,
-        )
-        db_session.add(transaction)
+    with SessionLocal.begin() as db:
+        try:
+            transaction = Transaction(
+                id=transaction_id,
+                source="manual",
+                source_id=transaction_id,
+                source_data={
+                    "date": posix_date,
+                    "person": responsible_party,
+                    "description": description,
+                    "amount": float(amount),
+                    "payment_method_id": payment_method_id,
+                },
+                transaction_date=transaction_date,
+            )
+            db.add(transaction)
 
-        line_item = LineItem(
-            id=line_item_id,
-            transaction_id=transaction_id,
-            date=transaction_date,
-            amount=amount,
-            description=description,
-            payment_method_id=payment_method_id,
-            responsible_party=responsible_party,
-        )
-        db_session.add(line_item)
-
-        db_session.commit()
-    except Exception as e:
-        db_session.rollback()
-        logger.error(f"Failed to create manual transaction: {e}")
-        raise
-    finally:
-        db_session.close()
+            line_item = LineItem(
+                id=line_item_id,
+                transaction_id=transaction_id,
+                date=transaction_date,
+                amount=amount,
+                description=description,
+                payment_method_id=payment_method_id,
+                responsible_party=responsible_party,
+            )
+            db.add(line_item)
+        except Exception as e:
+            logger.error(f"Failed to create manual transaction: {e}")
+            raise
 
 
 def delete_manual_transaction(transaction_id: str) -> bool:
@@ -505,35 +448,28 @@ def delete_manual_transaction(transaction_id: str) -> bool:
     from models.database import SessionLocal
     from models.sql_models import EventLineItem, LineItem, Transaction
 
-    db_session = SessionLocal()
-    try:
-        transaction = (
-            db_session.query(Transaction).filter(Transaction.id == transaction_id, Transaction.source == "manual").first()
-        )
+    with SessionLocal.begin() as db:
+        try:
+            transaction = (
+                db.query(Transaction).filter(Transaction.id == transaction_id, Transaction.source == "manual").first()
+            )
 
-        if not transaction:
-            return False
+            if not transaction:
+                return False
 
-        line_item = db_session.query(LineItem).filter(LineItem.transaction_id == transaction.id).first()
+            line_item = db.query(LineItem).filter(LineItem.transaction_id == transaction.id).first()
 
-        if line_item:
-            is_assigned = db_session.query(EventLineItem).filter(EventLineItem.line_item_id == line_item.id).first()
-            if is_assigned:
-                raise ValueError("Cannot delete transaction with line item assigned to an event")
+            if line_item:
+                is_assigned = db.query(EventLineItem).filter(EventLineItem.line_item_id == line_item.id).first()
+                if is_assigned:
+                    raise ValueError("Cannot delete transaction with line item assigned to an event")
 
-        db_session.delete(transaction)
-        db_session.commit()
-        return True
-
-    except ValueError:
-        db_session.rollback()
-        raise
-    except Exception as e:
-        db_session.rollback()
-        logger.error(f"Failed to delete manual transaction {transaction_id}: {e}")
-        raise
-    finally:
-        db_session.close()
+            # line item is deleted by cascade
+            db.delete(transaction)
+            return True
+        except Exception as e:
+            logger.error(f"Failed to delete manual transaction {transaction_id}: {e}")
+            raise
 
 
 def get_payment_method_by_id(payment_method_id: str) -> Optional[Dict[str, Any]]:
@@ -541,9 +477,8 @@ def get_payment_method_by_id(payment_method_id: str) -> Optional[Dict[str, Any]]
     from models.database import SessionLocal
     from models.sql_models import PaymentMethod
 
-    db_session = SessionLocal()
-    try:
-        pm = db_session.query(PaymentMethod).filter(PaymentMethod.id == payment_method_id).first()
+    with SessionLocal.begin() as db:
+        pm = db.query(PaymentMethod).filter(PaymentMethod.id == payment_method_id).first()
         if not pm:
             return None
         return {
@@ -552,5 +487,3 @@ def get_payment_method_by_id(payment_method_id: str) -> Optional[Dict[str, Any]]
             "type": pm.type,
             "is_active": pm.is_active,
         }
-    finally:
-        db_session.close()
