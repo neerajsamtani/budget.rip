@@ -1,6 +1,6 @@
-import { renderHook, waitFor, act } from '@testing-library/react';
-import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { act, renderHook, waitFor } from '@testing-library/react';
+import React from 'react';
 
 // Mock axios instance - define mocks inline in the factory to avoid hoisting issues
 jest.mock('../../utils/axiosInstance', () => ({
@@ -19,17 +19,17 @@ const mockPost = axiosInstance.post as jest.Mock;
 const mockDelete = axiosInstance.delete as jest.Mock;
 
 import {
-    useEvents,
-    useLineItems,
-    useEventLineItems,
-    useMonthlyBreakdown,
-    usePaymentMethods,
+    queryKeys,
     useCreateEvent,
     useCreateManualTransaction,
     useDeleteEvent,
+    useEventLineItems,
+    useEvents,
+    useLineItems,
     useLogin,
     useLogout,
-    queryKeys,
+    useMonthlyBreakdown,
+    usePaymentMethods,
 } from '../useApi';
 
 const createTestQueryClient = () => new QueryClient({
@@ -142,14 +142,14 @@ describe('useApi hooks', () => {
         it('fetches line items with payment method filter', async () => {
             mockGet.mockResolvedValue({ data: { data: [] } });
 
-            const { result } = renderHook(() => useLineItems({ paymentMethod: 'credit_card' }), {
+            const { result } = renderHook(() => useLineItems({ paymentMethod: 'Chase Debit Card' }), {
                 wrapper: createWrapper(),
             });
 
             await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
             expect(mockGet).toHaveBeenCalledWith('api/line_items', {
-                params: { payment_method: 'credit_card' },
+                params: { payment_method: 'Chase Debit Card' },
             });
         });
 
@@ -224,9 +224,9 @@ describe('useApi hooks', () => {
     describe('usePaymentMethods', () => {
         it('fetches payment methods', async () => {
             const mockMethods = [
-                { id: 'pm_1', name: 'credit_card', type: 'credit', is_active: true },
+                { id: 'pm_1', name: 'Bank of America Credit Card', type: 'credit', is_active: true },
                 { id: 'pm_2', name: 'cash', type: 'cash', is_active: true },
-                { id: 'pm_3', name: 'debit_card', type: 'debit', is_active: true },
+                { id: 'pm_3', name: 'Chase Debit Card', type: 'debit', is_active: true },
             ];
             mockGet.mockResolvedValue({ data: { data: mockMethods } });
 

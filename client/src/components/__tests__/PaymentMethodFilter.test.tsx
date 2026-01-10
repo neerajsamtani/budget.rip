@@ -31,7 +31,7 @@ describe('PaymentMethodFilter', () => {
     // Payment method names for assertions
     const mockPaymentMethodNames = [
         'Bank of America Credit Card',
-        'Chase Credit Card',
+        'Chase Debit Card',
         'cash',
         'venmo',
         'splitwise'
@@ -171,11 +171,11 @@ describe('PaymentMethodFilter', () => {
             let trigger = screen.getByRole('combobox');
             expect(trigger).toHaveTextContent('All');
 
-            rerender(<PaymentMethodFilter paymentMethod="Chase Credit Card" setPaymentMethod={mockSetPaymentMethod} />);
+            rerender(<PaymentMethodFilter paymentMethod="Chase Debit Card" setPaymentMethod={mockSetPaymentMethod} />);
 
             await waitFor(() => {
                 trigger = screen.getByRole('combobox');
-                expect(trigger).toHaveTextContent('Chase Credit Card');
+                expect(trigger).toHaveTextContent('Chase Debit Card');
             });
         });
 
@@ -191,14 +191,14 @@ describe('PaymentMethodFilter', () => {
             await userEvent.click(screen.getByRole('option', { name: 'Bank of America Credit Card' }));
 
             await userEvent.click(trigger);
-            await userEvent.click(screen.getByRole('option', { name: 'Chase Credit Card' }));
+            await userEvent.click(screen.getByRole('option', { name: 'Chase Debit Card' }));
 
             await userEvent.click(trigger);
             await userEvent.click(screen.getByRole('option', { name: 'cash' }));
 
             expect(mockSetPaymentMethod).toHaveBeenCalledTimes(3);
             expect(mockSetPaymentMethod).toHaveBeenNthCalledWith(1, 'Bank of America Credit Card');
-            expect(mockSetPaymentMethod).toHaveBeenNthCalledWith(2, 'Chase Credit Card');
+            expect(mockSetPaymentMethod).toHaveBeenNthCalledWith(2, 'Chase Debit Card');
             expect(mockSetPaymentMethod).toHaveBeenNthCalledWith(3, 'cash');
         });
     });
