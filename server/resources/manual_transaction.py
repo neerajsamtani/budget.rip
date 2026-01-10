@@ -55,13 +55,13 @@ def create_manual_transaction_api() -> tuple[Response, int]:
     finally:
         db.close()
 
-    # Generate transaction ID
-    transaction_id = generate_id("txn")
+    # Generate manual transaction ID
+    manual_transaction_id = generate_id("mantxn")
     posix_date = html_date_to_posix(data["date"])
 
     # Create the raw transaction record with empty source_data (manual transactions have no imported data)
     transaction = {
-        "id": transaction_id,
+        "id": manual_transaction_id,
         "date": posix_date,
         "person": data["person"],
         "description": data["description"],
@@ -69,7 +69,7 @@ def create_manual_transaction_api() -> tuple[Response, int]:
         "payment_method_id": data["payment_method_id"],
     }
 
-    # Upsert with source_id="0" and source_data={} for manual transactions
+    # upsert_transactions uses the "id" field as source_id for deduplication
     upsert_transactions([transaction], source="manual")
 
     # Create the line item
@@ -79,14 +79,14 @@ def create_manual_transaction_api() -> tuple[Response, int]:
         payment_method_name,
         data["description"],
         float(data["amount"]),
-        source_id=transaction_id,  # Use transaction_id as source_id for linking
+        source_id=manual_transaction_id,  # Links line item to transaction via source_id lookup
     )
 
     upsert_line_items([line_item], source="manual")
 
     desc = data["description"]
     logger.info(f"Manual transaction created: {desc} - ${data['amount']} ({payment_method_name})")
-    return jsonify({"message": "Created Manual Transaction", "transaction_id": transaction_id}), 201
+    return jsonify({"message": "Created Manual Transaction", "transaction_id": manual_transaction_id}), 201
 
 
 @manual_transaction_blueprint.route("/api/manual_transaction/<transaction_id>", methods=["DELETE"])
