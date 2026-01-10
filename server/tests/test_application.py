@@ -71,6 +71,17 @@ class TestApplicationRoutes:
         assert response.status_code == 200
         assert response.get_json() == "Welcome to Budgit API"
 
+    def test_unhandled_exception_returns_500_with_generic_error(self, test_client, jwt_token, mocker):
+        """Unhandled exceptions return 500 with generic error message"""
+        # Mock SessionLocal.begin to raise an unexpected exception
+        mocker.patch("resources.category.SessionLocal.begin", side_effect=RuntimeError("Unexpected database failure"))
+
+        response = test_client.get("/api/categories", headers={"Authorization": f"Bearer {jwt_token}"})
+
+        assert response.status_code == 500
+        data = response.get_json()
+        assert data == {"error": "Internal server error"}
+
     def test_scheduled_refresh_triggers_data_sync(self, test_client, mocker):
         """Scheduled refresh triggers data refresh and line item creation"""
         mock_refresh_all = mocker.patch("application.refresh_all")
@@ -253,17 +264,18 @@ class TestApplicationRoutes:
             assert stripe_data["stripe"][0]["id"] == "fca_test123"
 
     def test_connected_accounts_fails_when_venmo_profile_unavailable(self, test_client, jwt_token, mocker):
-        """Connected accounts endpoint fails when Venmo profile is unavailable"""
+        """Connected accounts endpoint returns 500 when Venmo profile is unavailable"""
         mock_venmo_client = mocker.Mock()
         mock_venmo_client.my_profile.return_value = None
         mocker.patch("application.get_venmo_client", return_value=mock_venmo_client)
 
-        # The route raises an exception when Venmo profile is None
-        with pytest.raises(Exception, match="Failed to get Venmo profile"):
-            test_client.get(
-                "/api/connected_accounts",
-                headers={"Authorization": "Bearer " + jwt_token},
-            )
+        response = test_client.get(
+            "/api/connected_accounts",
+            headers={"Authorization": "Bearer " + jwt_token},
+        )
+
+        assert response.status_code == 500
+        assert response.get_json() == {"error": "Internal server error"}
 
     def test_connected_accounts_requires_authentication(self, test_client):
         """Connected accounts endpoint requires authentication"""

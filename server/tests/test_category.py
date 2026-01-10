@@ -154,9 +154,7 @@ class TestCategoryAPI:
 
         # Delete it
         response = test_client.delete(f"/api/categories/{category_id}", headers={"Authorization": f"Bearer {jwt_token}"})
-        assert response.status_code == 200
-        data = response.get_json()
-        assert "deleted" in data["message"].lower()
+        assert response.status_code == 204
 
         # Verify it's no longer in the categories list
         list_response = test_client.get("/api/categories", headers={"Authorization": f"Bearer {jwt_token}"})
@@ -278,7 +276,7 @@ class TestCategoryIntegration:
         delete_response = test_client.delete(
             f"/api/categories/{category_id}", headers={"Authorization": f"Bearer {jwt_token}"}
         )
-        assert delete_response.status_code == 200
+        assert delete_response.status_code == 204
 
         # Verify deleted (not in list)
         list_response = test_client.get("/api/categories", headers={"Authorization": f"Bearer {jwt_token}"})

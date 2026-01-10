@@ -353,51 +353,27 @@ def upsert_transactions(transactions_source_data: List[Any], source: str) -> int
     """
     Wrapper around bulk_upsert_transactions that manages the session lifecycle.
     """
-    db_session = SessionLocal()
-    try:
+    with SessionLocal.begin() as db_session:
         count = _bulk_upsert_transactions(db_session, transactions_source_data, source)
-        db_session.commit()
         return count
-    except Exception as e:
-        db_session.rollback()
-        logger.error(f"Failed to upsert {source} transactions: {e}")
-        raise
-    finally:
-        db_session.close()
 
 
 def upsert_line_items(line_items_data: List[Any], source: str) -> int:
     """
     Wrapper around bulk_upsert_line_items that manages the session lifecycle.
     """
-    db_session = SessionLocal()
-    try:
+    with SessionLocal.begin() as db_session:
         count = _bulk_upsert_line_items(db_session, line_items_data, source)
-        db_session.commit()
         return count
-    except Exception as e:
-        db_session.rollback()
-        logger.error(f"Failed to upsert {source} line items: {e}")
-        raise
-    finally:
-        db_session.close()
 
 
 def upsert_bank_accounts(accounts_data: List[Any]) -> int:
     """
     Wrapper around bulk_upsert_bank_accounts that manages the session lifecycle.
     """
-    db_session = SessionLocal()
-    try:
+    with SessionLocal.begin() as db_session:
         count = _bulk_upsert_bank_accounts(db_session, accounts_data)
-        db_session.commit()
         return count
-    except Exception as e:
-        db_session.rollback()
-        logger.error(f"Failed to upsert bank accounts: {e}")
-        raise
-    finally:
-        db_session.close()
 
 
 def _seed_default_categories(db_session: Any, user_id: str) -> None:
@@ -454,8 +430,7 @@ def upsert_user(user_data: Dict[str, Any]) -> bool:
         logger.warning("Cannot upsert user without id")
         raise ValueError("Cannot upsert user without id")
 
-    db_session = SessionLocal()
-    try:
+    with SessionLocal.begin() as db_session:
         existing = db_session.query(User).filter(User.id == user_id).first()
         if existing:
             return False
@@ -473,13 +448,4 @@ def upsert_user(user_data: Dict[str, Any]) -> bool:
         # Seed default categories for new user
         _seed_default_categories(db_session, user_id)
 
-        db_session.commit()
-    except Exception as e:
-        db_session.rollback()
-        logger.error(f"Failed to create user: {e}")
-        raise
-    finally:
-        db_session.close()
-
-    logger.info(f"Inserted user {user_id} to PostgreSQL")
     return True

@@ -25,16 +25,16 @@ def remove_event_from_line_item(line_item_id: Union[str, int]) -> None:
     from models.database import SessionLocal
     from models.sql_models import EventLineItem, LineItem
 
-    with SessionLocal.begin() as db:
-        try:
+    try:
+        with SessionLocal.begin() as db:
             line_item = db.query(LineItem).filter(LineItem.id == str(line_item_id)).first()
             if line_item:
                 db.query(EventLineItem).filter(EventLineItem.line_item_id == line_item.id).delete()
             else:
                 logger.warning(f"Could not find line item with ID {line_item_id}")
-        except Exception:
-            logger.error(f"Failed to remove event from line item: {line_item_id}")
-            raise
+    except Exception:
+        logger.error(f"Failed to remove event from line item: {line_item_id}")
+        raise
 
 
 def get_user_by_email(email: str) -> Optional[Dict[str, Any]]:
@@ -59,8 +59,8 @@ def upsert(cur_collection_str: str, item: Dict[str, Any]) -> None:
     """Upsert item to PostgreSQL for migrated collections"""
     from models.database import SessionLocal
 
-    with SessionLocal.begin() as db:
-        try:
+    try:
+        with SessionLocal.begin() as db:
             # PostgreSQL write for transaction collections
             if cur_collection_str in [
                 venmo_raw_data_collection,
@@ -101,9 +101,9 @@ def upsert(cur_collection_str: str, item: Dict[str, Any]) -> None:
 
             else:
                 raise NotImplementedError(f"Collection {cur_collection_str} not supported for upsert")
-        except Exception as e:
-            logger.error(f"Failed to upsert item to {cur_collection_str}: {e}")
-            raise
+    except Exception as e:
+        logger.error(f"Failed to upsert item to {cur_collection_str}: {e}")
+        raise
 
 
 def get_categorized_data() -> List[Dict[str, Any]]:
@@ -362,15 +362,6 @@ def get_all_bank_accounts(
         ]
 
 
-def get_all_tags() -> List[Dict[str, Any]]:
-    from models.database import SessionLocal
-    from models.sql_models import Tag
-
-    with SessionLocal.begin() as db:
-        tags = db.query(Tag).order_by(Tag.name).all()
-        return [{"id": tag.id, "name": tag.name} for tag in tags]
-
-
 def create_manual_transaction(
     transaction_id: str,
     line_item_id: str,
@@ -400,8 +391,8 @@ def create_manual_transaction(
     from models.database import SessionLocal
     from models.sql_models import LineItem, Transaction
 
-    with SessionLocal.begin() as db:
-        try:
+    try:
+        with SessionLocal.begin() as db:
             transaction = Transaction(
                 id=transaction_id,
                 source="manual",
@@ -427,9 +418,9 @@ def create_manual_transaction(
                 responsible_party=responsible_party,
             )
             db.add(line_item)
-        except Exception as e:
-            logger.error(f"Failed to create manual transaction: {e}")
-            raise
+    except Exception as e:
+        logger.error(f"Failed to create manual transaction: {e}")
+        raise
 
 
 def delete_manual_transaction(transaction_id: str) -> bool:
@@ -448,8 +439,8 @@ def delete_manual_transaction(transaction_id: str) -> bool:
     from models.database import SessionLocal
     from models.sql_models import EventLineItem, LineItem, Transaction
 
-    with SessionLocal.begin() as db:
-        try:
+    try:
+        with SessionLocal.begin() as db:
             transaction = (
                 db.query(Transaction).filter(Transaction.id == transaction_id, Transaction.source == "manual").first()
             )
@@ -467,9 +458,9 @@ def delete_manual_transaction(transaction_id: str) -> bool:
             # line item is deleted by cascade
             db.delete(transaction)
             return True
-        except Exception as e:
-            logger.error(f"Failed to delete manual transaction {transaction_id}: {e}")
-            raise
+    except Exception as e:
+        logger.error(f"Failed to delete manual transaction {transaction_id}: {e}")
+        raise
 
 
 def get_payment_method_by_id(payment_method_id: str) -> Optional[Dict[str, Any]]:
