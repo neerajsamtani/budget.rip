@@ -24,8 +24,8 @@ def remove_event_from_line_item(line_item_id: Union[str, int]) -> None:
                 db.query(EventLineItem).filter(EventLineItem.line_item_id == line_item.id).delete()
             else:
                 logger.warning(f"Could not find line item with ID {line_item_id}")
-    except Exception:
-        logger.error(f"Failed to remove event from line item: {line_item_id}")
+    except Exception as e:
+        logger.error(f"Failed to remove event from line item {line_item_id}: {e}")
         raise
 
 
