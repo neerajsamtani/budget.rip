@@ -96,7 +96,7 @@ class TestSplitwiseFunctions:
         """Refresh fetches expenses dated after the moving date"""
         with flask_app.app_context():
             mock_splitwise_client = mocker.patch("resources.splitwise.splitwise_client")
-            mocker.patch("resources.splitwise.upsert_transactions")
+            mocker.patch("resources.splitwise.bulk_upsert_transactions")
 
             # Mock the getExpenses method
             mock_splitwise_client.getExpenses.return_value = [mock_splitwise_expense]
@@ -113,7 +113,7 @@ class TestSplitwiseFunctions:
         """Deleted expenses are filtered out during refresh"""
         with flask_app.app_context():
             mock_splitwise_client = mocker.patch("resources.splitwise.splitwise_client")
-            mocker.patch("resources.splitwise.upsert_transactions")
+            mocker.patch("resources.splitwise.bulk_upsert_transactions")
 
             # Mock the getExpenses method to return both regular and deleted expenses
             mock_splitwise_client.getExpenses.return_value = [
@@ -128,7 +128,7 @@ class TestSplitwiseFunctions:
         """Empty expenses list completes without error"""
         with flask_app.app_context():
             mock_splitwise_client = mocker.patch("resources.splitwise.splitwise_client")
-            mocker.patch("resources.splitwise.upsert_transactions")
+            mocker.patch("resources.splitwise.bulk_upsert_transactions")
 
             # Mock the getExpenses method to return empty list
             mock_splitwise_client.getExpenses.return_value = []
@@ -141,11 +141,11 @@ class TestSplitwiseFunctions:
         with flask_app.app_context():
             from models.database import SessionLocal
             from models.sql_models import LineItem
-            from utils.pg_bulk_ops import _bulk_upsert_transactions
+            from utils.pg_bulk_ops import bulk_upsert_transactions
 
             # Insert raw transaction data into database first
             with SessionLocal.begin() as db:
-                _bulk_upsert_transactions(db, [mock_splitwise_expense_dict], source="splitwise_api")
+                bulk_upsert_transactions(db, [mock_splitwise_expense_dict], source="splitwise_api")
 
             # Call the function (writes to PostgreSQL)
             splitwise_to_line_items()
@@ -165,7 +165,7 @@ class TestSplitwiseFunctions:
         """Expenses where responsible party is in ignore list are skipped"""
         with flask_app.app_context():
             mock_get_data = mocker.patch("resources.splitwise.get_transactions")
-            mocker.patch("resources.splitwise.upsert_line_items")
+            mocker.patch("resources.splitwise.bulk_upsert_line_items")
 
             # Mock expense where the responsible party is in the ignore list
             expense_with_ignored = {
@@ -190,7 +190,7 @@ class TestSplitwiseFunctions:
         with flask_app.app_context():
             from models.database import SessionLocal
             from models.sql_models import LineItem
-            from utils.pg_bulk_ops import _bulk_upsert_transactions
+            from utils.pg_bulk_ops import bulk_upsert_transactions
 
             # Insert raw expense with non-ignored party
             expense_with_non_ignored = {
@@ -203,7 +203,7 @@ class TestSplitwiseFunctions:
                 ],
             }
             with SessionLocal.begin() as db:
-                _bulk_upsert_transactions(db, [expense_with_non_ignored], source="splitwise_api")
+                bulk_upsert_transactions(db, [expense_with_non_ignored], source="splitwise_api")
 
             # Call the function
             splitwise_to_line_items()
@@ -221,7 +221,7 @@ class TestSplitwiseFunctions:
         with flask_app.app_context():
             from models.database import SessionLocal
             from models.sql_models import LineItem
-            from utils.pg_bulk_ops import _bulk_upsert_transactions
+            from utils.pg_bulk_ops import bulk_upsert_transactions
 
             # Insert raw expense with multiple users
             expense_multiple_users = {
@@ -235,7 +235,7 @@ class TestSplitwiseFunctions:
                 ],
             }
             with SessionLocal.begin() as db:
-                _bulk_upsert_transactions(db, [expense_multiple_users], source="splitwise_api")
+                bulk_upsert_transactions(db, [expense_multiple_users], source="splitwise_api")
 
             # Call the function
             splitwise_to_line_items()
@@ -254,7 +254,7 @@ class TestSplitwiseFunctions:
         """Empty expense list creates no line items"""
         with flask_app.app_context():
             mock_get_data = mocker.patch("resources.splitwise.get_transactions")
-            mocker.patch("resources.splitwise.upsert_line_items")
+            mocker.patch("resources.splitwise.bulk_upsert_line_items")
 
             # Mock get_transactions to return empty list
             mock_get_data.return_value = []
@@ -266,7 +266,7 @@ class TestSplitwiseFunctions:
         """Expenses without the current user are skipped"""
         with flask_app.app_context():
             mock_get_data = mocker.patch("resources.splitwise.get_transactions")
-            mocker.patch("resources.splitwise.upsert_line_items")
+            mocker.patch("resources.splitwise.bulk_upsert_line_items")
 
             # Mock expense without the current user
             expense_no_user = {
@@ -288,7 +288,7 @@ class TestSplitwiseFunctions:
         with flask_app.app_context():
             from models.database import SessionLocal
             from models.sql_models import LineItem
-            from utils.pg_bulk_ops import _bulk_upsert_transactions
+            from utils.pg_bulk_ops import bulk_upsert_transactions
 
             # Insert raw expense with specific date
             expense_with_date = {
@@ -301,7 +301,7 @@ class TestSplitwiseFunctions:
                 ],
             }
             with SessionLocal.begin() as db:
-                _bulk_upsert_transactions(db, [expense_with_date], source="splitwise_api")
+                bulk_upsert_transactions(db, [expense_with_date], source="splitwise_api")
 
             # Call the function
             splitwise_to_line_items()
@@ -322,7 +322,7 @@ class TestSplitwiseFunctions:
         with flask_app.app_context():
             from models.database import SessionLocal
             from models.sql_models import LineItem
-            from utils.pg_bulk_ops import _bulk_upsert_transactions
+            from utils.pg_bulk_ops import bulk_upsert_transactions
 
             # Insert raw expense with positive and negative balances
             expense_mixed_balances = {
@@ -335,7 +335,7 @@ class TestSplitwiseFunctions:
                 ],
             }
             with SessionLocal.begin() as db:
-                _bulk_upsert_transactions(db, [expense_mixed_balances], source="splitwise_api")
+                bulk_upsert_transactions(db, [expense_mixed_balances], source="splitwise_api")
 
             # Call the function
             splitwise_to_line_items()
@@ -354,8 +354,8 @@ class TestSplitwiseIntegration:
         """Complete workflow fetches expenses and converts to line items"""
         with flask_app.app_context():
             mock_splitwise_client = mocker.patch("resources.splitwise.splitwise_client")
-            mocker.patch("resources.splitwise.upsert_line_items")
-            mocker.patch("resources.splitwise.upsert_transactions")
+            mocker.patch("resources.splitwise.bulk_upsert_line_items")
+            mocker.patch("resources.splitwise.bulk_upsert_transactions")
             mock_get_data = mocker.patch("resources.splitwise.get_transactions")
 
             # Mock expense for refresh

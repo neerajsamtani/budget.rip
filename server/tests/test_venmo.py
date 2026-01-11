@@ -145,7 +145,7 @@ class TestVenmoFunctions:
             mock_venmo_client.my_profile.return_value = mock_venmo_user
             mocker.patch("resources.venmo.get_venmo_client", return_value=mock_venmo_client)
 
-            mocker.patch("resources.venmo.upsert_transactions")
+            mocker.patch("resources.venmo.bulk_upsert_transactions")
 
             # Mock transactions - all before moving date (1659510000.0)
             mock_transactions = mocker.Mock()
@@ -175,7 +175,7 @@ class TestVenmoFunctions:
             mock_venmo_client.my_profile.return_value = mock_venmo_user
             mocker.patch("resources.venmo.get_venmo_client", return_value=mock_venmo_client)
 
-            mocker.patch("resources.venmo.upsert_transactions")
+            mocker.patch("resources.venmo.bulk_upsert_transactions")
 
             # Mock transactions - one with ignored party
             mock_transactions = mocker.Mock()
@@ -284,12 +284,12 @@ class TestVenmoFunctions:
         with flask_app.app_context():
             from models.database import SessionLocal
             from models.sql_models import LineItem
-            from utils.pg_bulk_ops import _bulk_upsert_transactions
+            from utils.pg_bulk_ops import bulk_upsert_transactions
 
             # Insert test transaction data
             test_transaction = mock_venmo_transaction
             with SessionLocal.begin() as db:
-                _bulk_upsert_transactions(db, [test_transaction], source="venmo_api")
+                bulk_upsert_transactions(db, [test_transaction], source="venmo_api")
 
             # Call the function
             venmo_to_line_items()
@@ -310,12 +310,12 @@ class TestVenmoFunctions:
         with flask_app.app_context():
             from models.database import SessionLocal
             from models.sql_models import LineItem
-            from utils.pg_bulk_ops import _bulk_upsert_transactions
+            from utils.pg_bulk_ops import bulk_upsert_transactions
 
             # Insert test transaction data
             test_transaction = mock_venmo_transaction_charge
             with SessionLocal.begin() as db:
-                _bulk_upsert_transactions(db, [test_transaction], source="venmo_api")
+                bulk_upsert_transactions(db, [test_transaction], source="venmo_api")
 
             # Call the function
             venmo_to_line_items()
@@ -336,12 +336,12 @@ class TestVenmoFunctions:
         with flask_app.app_context():
             from models.database import SessionLocal
             from models.sql_models import LineItem
-            from utils.pg_bulk_ops import _bulk_upsert_transactions
+            from utils.pg_bulk_ops import bulk_upsert_transactions
 
             # Insert test transaction data
             test_transaction = mock_venmo_transaction_received
             with SessionLocal.begin() as db:
-                _bulk_upsert_transactions(db, [test_transaction], source="venmo_api")
+                bulk_upsert_transactions(db, [test_transaction], source="venmo_api")
 
             # Call the function
             venmo_to_line_items()
@@ -360,7 +360,7 @@ class TestVenmoFunctions:
     def test_empty_transactions_creates_no_line_items(self, flask_app, mocker):
         """Empty transaction list creates no line items"""
         with flask_app.app_context():
-            mocker.patch("resources.venmo.upsert_line_items")
+            mocker.patch("resources.venmo.bulk_upsert_line_items")
 
             # Call the function with no transactions
             venmo_to_line_items()
@@ -370,7 +370,7 @@ class TestVenmoFunctions:
         with flask_app.app_context():
             from models.database import SessionLocal
             from models.sql_models import LineItem
-            from utils.pg_bulk_ops import _bulk_upsert_transactions
+            from utils.pg_bulk_ops import bulk_upsert_transactions
 
             # Insert multiple test transactions
             transactions = [
@@ -404,7 +404,7 @@ class TestVenmoFunctions:
             ]
 
             with SessionLocal.begin() as db:
-                _bulk_upsert_transactions(db, transactions, source="venmo_api")
+                bulk_upsert_transactions(db, transactions, source="venmo_api")
 
             # Call the function
             venmo_to_line_items()
@@ -447,7 +447,7 @@ class TestVenmoIntegration:
             mock_venmo_client.user.get_user_transactions.return_value = mock_transactions
 
             # Mock bulk_upsert_transactions to avoid trying to serialize Mock objects to PostgreSQL
-            mocker.patch("resources.venmo.upsert_transactions")
+            mocker.patch("resources.venmo.bulk_upsert_transactions")
 
             # Call refresh function (PostgreSQL write mocked to avoid Mock serialization issues)
             refresh_venmo()
@@ -469,10 +469,10 @@ class TestVenmoIntegration:
                 "note": "Integration test payment",
                 "amount": 25.0,
             }
-            from utils.pg_bulk_ops import _bulk_upsert_transactions
+            from utils.pg_bulk_ops import bulk_upsert_transactions
 
             with SessionLocal.begin() as db:
-                _bulk_upsert_transactions(db, [transaction_dict], source="venmo_api")
+                bulk_upsert_transactions(db, [transaction_dict], source="venmo_api")
 
             # Now call line items conversion with the stored data
             venmo_to_line_items()

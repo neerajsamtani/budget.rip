@@ -12,11 +12,12 @@ from dao import (
     get_transactions,
 )
 from helpers import cents_to_dollars, flip_amount
+from models.database import SessionLocal
 from resources.line_item import LineItem
 from utils.pg_bulk_ops import (
-    upsert_bank_accounts,
-    upsert_line_items,
-    upsert_transactions,
+    bulk_upsert_bank_accounts,
+    bulk_upsert_line_items,
+    bulk_upsert_transactions,
 )
 
 logger = logging.getLogger(__name__)
@@ -117,7 +118,8 @@ def refresh_account_balances(account_ids: Optional[List[str]] = None) -> int:
                 account["latest_balance"] = balance_cents / 100  # Convert from cents
                 account["balance_as_of"] = datetime.fromtimestamp(balance_data.as_of, tz=timezone.utc)
 
-                upsert_bank_accounts([account])
+                with SessionLocal.begin() as db:
+                    bulk_upsert_bank_accounts(db, [account])
 
                 updated_count += 1
                 logger.info(f"Updated balance for account {account_id}: {balance_cents / 100} {currency}")
@@ -170,7 +172,8 @@ def create_accounts_api() -> tuple[Response, int]:
     if len(new_accounts) == 0:
         return jsonify("Failed to Create Accounts: No Accounts Submitted"), 400
 
-    upsert_bank_accounts(new_accounts)
+    with SessionLocal.begin() as db:
+        bulk_upsert_bank_accounts(db, new_accounts)
 
     return jsonify({"data": new_accounts}), 201
 
@@ -182,7 +185,8 @@ def get_accounts_api(session_id: str) -> tuple[Response, int]:
         session: stripe.financial_connections.Session = stripe.financial_connections.Session.retrieve(session_id)
         accounts: List[Dict[str, Any]] = session["accounts"]
 
-        upsert_bank_accounts(accounts)
+        with SessionLocal.begin() as db:
+            bulk_upsert_bank_accounts(db, accounts)
 
         return jsonify({"accounts": accounts}), 200
     except Exception as e:
@@ -248,7 +252,8 @@ def refresh_account_api(account_id: str) -> tuple[Response, int]:
         account: stripe.financial_connections.Account = stripe.financial_connections.Account.retrieve(account_id)
         account["can_relink"] = check_can_relink(account)
 
-        upsert_bank_accounts([account])
+        with SessionLocal.begin() as db:
+            bulk_upsert_bank_accounts(db, [account])
 
         return jsonify({"data": "success"}), 200
     except Exception as e:
@@ -307,7 +312,8 @@ def refresh_transactions_api(account_id: str) -> tuple[Response, int]:
             starting_after = transactions[-1].id if transactions else ""
 
         if all_transactions:
-            upsert_transactions(all_transactions, source="stripe_api")
+            with SessionLocal.begin() as db:
+                bulk_upsert_transactions(db, all_transactions, source="stripe_api")
 
         # Best-effort: fetch latest balance for this account (won't fail transaction refresh)
         refresh_account_balances(account_ids=[account_id])
@@ -366,8 +372,10 @@ def stripe_to_line_items() -> None:
         line_items_batch.append(line_item)
 
         if len(line_items_batch) >= BATCH_SIZE:
-            upsert_line_items(line_items_batch, source="stripe_api")
+            with SessionLocal.begin() as db:
+                bulk_upsert_line_items(db, line_items_batch, source="stripe_api")
             line_items_batch = []
 
     if line_items_batch:
-        upsert_line_items(line_items_batch, source="stripe_api")
+        with SessionLocal.begin() as db:
+            bulk_upsert_line_items(db, line_items_batch, source="stripe_api")

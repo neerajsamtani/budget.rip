@@ -201,10 +201,10 @@ class TestStripeAPI:
                 "status": "active",
             }
             from models.database import SessionLocal
-            from utils.pg_bulk_ops import _bulk_upsert_bank_accounts
+            from utils.pg_bulk_ops import bulk_upsert_bank_accounts
 
             with SessionLocal.begin() as db:
-                _bulk_upsert_bank_accounts(db, [test_account])
+                bulk_upsert_bank_accounts(db, [test_account])
 
             response = test_client.get(
                 "/api/accounts",
@@ -233,10 +233,10 @@ class TestStripeAPI:
                 "balance_as_of": datetime(2023, 1, 15, 10, 30, 0, tzinfo=timezone.utc),
             }
             from models.database import SessionLocal
-            from utils.pg_bulk_ops import _bulk_upsert_bank_accounts
+            from utils.pg_bulk_ops import bulk_upsert_bank_accounts
 
             with SessionLocal.begin() as db:
-                _bulk_upsert_bank_accounts(db, [test_account])
+                bulk_upsert_bank_accounts(db, [test_account])
 
             response = test_client.get(
                 "/api/accounts_and_balances",
@@ -281,7 +281,7 @@ class TestStripeAPI:
         with flask_app.app_context():
             mock_retrieve = mocker.patch("resources.stripe.stripe.financial_connections.Account.retrieve")
             # Mock bulk_upsert_bank_accounts to avoid trying to serialize Mock objects to PostgreSQL
-            mocker.patch("resources.stripe.upsert_bank_accounts")
+            mocker.patch("resources.stripe.bulk_upsert_bank_accounts")
 
             # Mock account
             mock_account = mocker.MagicMock()
@@ -402,10 +402,10 @@ class TestStripeFunctions:
                 "last4": "1234",
             }
             from models.database import SessionLocal
-            from utils.pg_bulk_ops import _bulk_upsert_bank_accounts
+            from utils.pg_bulk_ops import bulk_upsert_bank_accounts
 
             with SessionLocal.begin() as db:
-                _bulk_upsert_bank_accounts(db, [test_account])
+                bulk_upsert_bank_accounts(db, [test_account])
 
             # Call the function
             refresh_stripe()
@@ -441,17 +441,17 @@ class TestStripeFunctions:
                 "last4": "1234",
             }
             from models.database import SessionLocal
-            from utils.pg_bulk_ops import _bulk_upsert_bank_accounts
+            from utils.pg_bulk_ops import bulk_upsert_bank_accounts
 
             with SessionLocal.begin() as db:
-                _bulk_upsert_bank_accounts(db, [test_account])
+                bulk_upsert_bank_accounts(db, [test_account])
 
             test_transaction = mock_stripe_transaction
             from models.database import SessionLocal
-            from utils.pg_bulk_ops import _bulk_upsert_transactions
+            from utils.pg_bulk_ops import bulk_upsert_transactions
 
             with SessionLocal.begin() as db:
-                _bulk_upsert_transactions(db, [test_transaction], source="stripe_api")
+                bulk_upsert_transactions(db, [test_transaction], source="stripe_api")
 
             # Call the function (writes to PostgreSQL)
             stripe_to_line_items()
@@ -473,7 +473,7 @@ class TestStripeFunctions:
     def test_empty_transactions_creates_no_line_items(self, flask_app, mocker):
         """Empty transaction list creates no line items"""
         with flask_app.app_context():
-            mocker.patch("resources.stripe.upsert_line_items")
+            mocker.patch("resources.stripe.bulk_upsert_line_items")
 
             # Call the function with no transactions
             stripe_to_line_items()
@@ -484,12 +484,12 @@ class TestStripeFunctions:
             # Insert transaction without corresponding account
             test_transaction = mock_stripe_transaction
             from models.database import SessionLocal
-            from utils.pg_bulk_ops import _bulk_upsert_transactions
+            from utils.pg_bulk_ops import bulk_upsert_transactions
 
             with SessionLocal.begin() as db:
-                _bulk_upsert_transactions(db, [test_transaction], source="stripe_api")
+                bulk_upsert_transactions(db, [test_transaction], source="stripe_api")
 
-            mocker.patch("resources.stripe.upsert_line_items")
+            mocker.patch("resources.stripe.bulk_upsert_line_items")
 
             # Call the function
             stripe_to_line_items()
@@ -505,10 +505,10 @@ class TestStripeFunctions:
                 "last4": "1234",
             }
             from models.database import SessionLocal
-            from utils.pg_bulk_ops import _bulk_upsert_bank_accounts
+            from utils.pg_bulk_ops import bulk_upsert_bank_accounts
 
             with SessionLocal.begin() as db:
-                _bulk_upsert_bank_accounts(db, [test_account])
+                bulk_upsert_bank_accounts(db, [test_account])
 
             # Insert multiple transactions
             transactions = []
@@ -524,12 +524,12 @@ class TestStripeFunctions:
                 transactions.append(transaction)
 
             from models.database import SessionLocal
-            from utils.pg_bulk_ops import _bulk_upsert_transactions
+            from utils.pg_bulk_ops import bulk_upsert_transactions
 
             with SessionLocal.begin() as db:
-                _bulk_upsert_transactions(db, transactions, source="stripe_api")
+                bulk_upsert_transactions(db, transactions, source="stripe_api")
 
-            mocker.patch("resources.stripe.upsert_line_items")
+            mocker.patch("resources.stripe.bulk_upsert_line_items")
 
             # Call the function
             stripe_to_line_items()
@@ -641,7 +641,7 @@ class TestStripeIntegration:
         with flask_app.app_context():
             mock_refresh_account = mocker.patch("resources.stripe.refresh_account_api")
             mock_refresh_transactions = mocker.patch("resources.stripe.refresh_transactions_api")
-            mocker.patch("resources.stripe.upsert_line_items")
+            mocker.patch("resources.stripe.bulk_upsert_line_items")
 
             # Insert test account
             test_account = {
@@ -651,10 +651,10 @@ class TestStripeIntegration:
                 "last4": "1234",
             }
             from models.database import SessionLocal
-            from utils.pg_bulk_ops import _bulk_upsert_bank_accounts
+            from utils.pg_bulk_ops import bulk_upsert_bank_accounts
 
             with SessionLocal.begin() as db:
-                _bulk_upsert_bank_accounts(db, [test_account])
+                bulk_upsert_bank_accounts(db, [test_account])
 
             # Insert test transaction
             test_transaction = {
@@ -665,10 +665,10 @@ class TestStripeIntegration:
                 "status": "posted",
                 "transacted_at": 1673778600,
             }
-            from utils.pg_bulk_ops import _bulk_upsert_transactions
+            from utils.pg_bulk_ops import bulk_upsert_transactions
 
             with SessionLocal.begin() as db:
-                _bulk_upsert_transactions(db, [test_transaction], source="stripe_api")
+                bulk_upsert_transactions(db, [test_transaction], source="stripe_api")
 
             # Call refresh function
             refresh_stripe()
@@ -708,10 +708,10 @@ class TestAccountBalances:
                 "status": "active",
             }
             from models.database import SessionLocal
-            from utils.pg_bulk_ops import _bulk_upsert_bank_accounts
+            from utils.pg_bulk_ops import bulk_upsert_bank_accounts
 
             with SessionLocal.begin() as db:
-                _bulk_upsert_bank_accounts(db, [test_account])
+                bulk_upsert_bank_accounts(db, [test_account])
 
             # Call refresh_account_balances
             count = refresh_account_balances()
@@ -745,10 +745,10 @@ class TestAccountBalances:
                 "balance_as_of": datetime.fromtimestamp(1700000000, UTC),
             }
             from models.database import SessionLocal
-            from utils.pg_bulk_ops import _bulk_upsert_bank_accounts
+            from utils.pg_bulk_ops import bulk_upsert_bank_accounts
 
             with SessionLocal.begin() as db:
-                _bulk_upsert_bank_accounts(db, [test_account])
+                bulk_upsert_bank_accounts(db, [test_account])
 
             # Call API endpoint
             response = test_client.get(

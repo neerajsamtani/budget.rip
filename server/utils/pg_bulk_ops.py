@@ -35,7 +35,7 @@ def get_transaction_date(transaction: Dict[str, Any], source: str) -> datetime:
         return datetime.now(UTC)
 
 
-def _bulk_upsert_transactions(db_session, transactions_source_data: List[Any], source: str) -> int:
+def bulk_upsert_transactions(db_session, transactions_source_data: List[Any], source: str) -> int:
     """
     Bulk upsert transactions to PostgreSQL.
 
@@ -163,7 +163,7 @@ def _build_line_item_insert_mapping(
     }
 
 
-def _bulk_upsert_line_items(db_session, line_items_data: List[Any], source: str) -> int:
+def bulk_upsert_line_items(db_session, line_items_data: List[Any], source: str) -> int:
     """
     Bulk upsert line items to PostgreSQL.
 
@@ -281,7 +281,7 @@ def _bulk_upsert_line_items(db_session, line_items_data: List[Any], source: str)
     return 0
 
 
-def _bulk_upsert_bank_accounts(db_session, accounts_data: List[Any]) -> int:
+def bulk_upsert_bank_accounts(db_session, accounts_data: List[Any]) -> int:
     """
     Bulk upsert bank accounts to PostgreSQL.
 
@@ -347,33 +347,6 @@ def _bulk_upsert_bank_accounts(db_session, accounts_data: List[Any]) -> int:
         count += len(bulk_updates)
 
     return count
-
-
-def upsert_transactions(transactions_source_data: List[Any], source: str) -> int:
-    """
-    Wrapper around bulk_upsert_transactions that manages the session lifecycle.
-    """
-    with SessionLocal.begin() as db_session:
-        count = _bulk_upsert_transactions(db_session, transactions_source_data, source)
-        return count
-
-
-def upsert_line_items(line_items_data: List[Any], source: str) -> int:
-    """
-    Wrapper around bulk_upsert_line_items that manages the session lifecycle.
-    """
-    with SessionLocal.begin() as db_session:
-        count = _bulk_upsert_line_items(db_session, line_items_data, source)
-        return count
-
-
-def upsert_bank_accounts(accounts_data: List[Any]) -> int:
-    """
-    Wrapper around bulk_upsert_bank_accounts that manages the session lifecycle.
-    """
-    with SessionLocal.begin() as db_session:
-        count = _bulk_upsert_bank_accounts(db_session, accounts_data)
-        return count
 
 
 def _seed_default_categories(db_session: Any, user_id: str) -> None:
