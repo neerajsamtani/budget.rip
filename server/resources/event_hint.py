@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 event_hints_blueprint = Blueprint("event_hints", __name__)
 
 
-def _serialize_event_hint(hint: EventHint) -> dict[str, Any]:
+def serialize_event_hint(hint: EventHint) -> dict[str, Any]:
     """Convert EventHint ORM object to dict."""
     return {
         "id": hint.id,
@@ -37,7 +37,7 @@ def _serialize_event_hint(hint: EventHint) -> dict[str, Any]:
     }
 
 
-def _serialize_line_item_for_cel(line_item: LineItem) -> dict[str, Any]:
+def serialize_line_item_for_cel(line_item: LineItem) -> dict[str, Any]:
     """Convert LineItem ORM object to dict for CEL evaluation."""
     return {
         "description": line_item.description or "",
@@ -62,7 +62,7 @@ def get_all_event_hints() -> tuple[Response, int]:
             .order_by(EventHint.display_order)
             .all()
         )
-        hints_list = [_serialize_event_hint(h) for h in hints]
+        hints_list = [serialize_event_hint(h) for h in hints]
         return jsonify({"data": hints_list}), 200
 
 
@@ -82,7 +82,7 @@ def get_event_hint(hint_id: str) -> tuple[Response, int]:
         )
         if not hint:
             return jsonify({"error": "Event hint not found"}), 404
-        hint_dict = _serialize_event_hint(hint)
+        hint_dict = serialize_event_hint(hint)
         return jsonify({"data": hint_dict}), 200
 
 
@@ -133,7 +133,7 @@ def create_event_hint() -> tuple[Response, int]:
         db.flush()
         hint = db.query(EventHint).options(joinedload(EventHint.prefill_category)).filter(EventHint.id == hint.id).first()
 
-        hint_dict = _serialize_event_hint(hint)
+        hint_dict = serialize_event_hint(hint)
         return jsonify({"data": hint_dict}), 201
 
 
@@ -178,7 +178,7 @@ def update_event_hint(hint_id: str) -> tuple[Response, int]:
         db.flush()
         hint = db.query(EventHint).options(joinedload(EventHint.prefill_category)).filter(EventHint.id == hint_id).first()
 
-        hint_dict = _serialize_event_hint(hint)
+        hint_dict = serialize_event_hint(hint)
         return jsonify({"data": hint_dict}), 200
 
 
@@ -269,8 +269,8 @@ def evaluate_event_hints() -> tuple[Response, int]:
             return jsonify({"data": {"suggestion": None}}), 200
 
         # Convert to dicts for CEL evaluation
-        line_item_dicts = [_serialize_line_item_for_cel(li) for li in line_items]
-        hint_dicts = [_serialize_event_hint(h) for h in hints]
+        line_item_dicts = [serialize_line_item_for_cel(li) for li in line_items]
+        hint_dicts = [serialize_event_hint(h) for h in hints]
 
         # Evaluate hints
         suggestion = evaluate_hints(hint_dicts, line_item_dicts)

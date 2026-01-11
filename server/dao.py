@@ -1,21 +1,13 @@
 import logging
+from datetime import datetime
 from datetime import timezone as tz
 from typing import Any, Dict, List, Optional, Union
 
 from sqlalchemy.orm import joinedload, subqueryload
 
-logger = logging.getLogger(__name__)
+from models.sql_models import Event, LineItem, User
 
-venmo_raw_data_collection: str = "venmo_raw_data"
-splitwise_raw_data_collection: str = "splitwise_raw_data"
-manual_raw_data_collection: str = "manual_raw_data"
-stripe_raw_transaction_data_collection: str = "stripe_raw_transaction_data"
-stripe_raw_account_data_collection: str = "stripe_raw_account_data"
-line_items_collection: str = "line_items"
-events_collection: str = "events"
-bank_accounts_collection: str = "accounts"
-users_collection: str = "users"
-test_collection: str = "test_data"
+logger = logging.getLogger(__name__)
 
 
 def remove_event_from_line_item(line_item_id: Union[str, int]) -> None:
@@ -87,7 +79,7 @@ def get_categorized_data() -> List[Dict[str, Any]]:
         ]
 
 
-def _serialize_datetime(dt: Optional[Any]) -> float:
+def serialize_datetime(dt: Optional[datetime]) -> float:
     """Treats naive datetimes from SQLite as UTC to ensure consistent timestamp conversion"""
     if not dt:
         return 0.0
@@ -98,14 +90,14 @@ def _serialize_datetime(dt: Optional[Any]) -> float:
         return dt.timestamp()
 
 
-def _pg_serialize_line_item(li: Any) -> Dict[str, Any]:
+def serialize_line_item(li: LineItem) -> Dict[str, Any]:
     """Convert LineItem ORM to dict"""
     # Determine if this is a manual transaction based on the source
     is_manual = li.transaction.source == "manual" if li.transaction else False
 
     data = {
         "id": li.id,
-        "date": _serialize_datetime(li.date),
+        "date": serialize_datetime(li.date),
         "payment_method": li.payment_method.name if li.payment_method else "Unknown",
         "description": li.description or "",
         "amount": float(li.amount or 0.0),
@@ -118,7 +110,7 @@ def _pg_serialize_line_item(li: Any) -> Dict[str, Any]:
     return data
 
 
-def _pg_serialize_user(user: Any) -> Dict[str, Any]:
+def serialize_user(user: User) -> Dict[str, Any]:
     """Convert User ORM to dict"""
     return {
         "id": user.id,
@@ -129,7 +121,7 @@ def _pg_serialize_user(user: Any) -> Dict[str, Any]:
     }
 
 
-def _pg_serialize_event(event: Any) -> Dict[str, Any]:
+def serialize_event(event: Event) -> Dict[str, Any]:
     """Convert Event ORM to dict"""
     amount = float(event.total_amount) if event.total_amount else 0.0
     line_item_ids = [li.id for li in event.line_items]
@@ -137,7 +129,7 @@ def _pg_serialize_event(event: Any) -> Dict[str, Any]:
 
     return {
         "id": event.id,
-        "date": _serialize_datetime(event.date),
+        "date": serialize_datetime(event.date),
         "name": event.description or "",
         "category": event.category.name if event.category else "Unknown",
         "amount": amount,
@@ -180,7 +172,7 @@ def get_all_line_items(filters: Optional[Dict[str, Any]]) -> List[Dict[str, Any]
 
         query = query.order_by(LineItem.date.desc())
         line_items = query.all()
-        return [_pg_serialize_line_item(li) for li in line_items]
+        return [serialize_line_item(li) for li in line_items]
 
 
 def get_line_item_by_id(id: str) -> Optional[Dict[str, Any]]:
@@ -195,7 +187,7 @@ def get_line_item_by_id(id: str) -> Optional[Dict[str, Any]]:
             joinedload(LineItem.transaction),
         )
         line_item = query.filter(LineItem.id == id).first()
-        return _pg_serialize_line_item(line_item) if line_item else None
+        return serialize_line_item(line_item) if line_item else None
 
 
 def get_user_by_id(id: str) -> Optional[Dict[str, Any]]:
@@ -206,7 +198,7 @@ def get_user_by_id(id: str) -> Optional[Dict[str, Any]]:
     with SessionLocal.begin() as db:
         query = db.query(User)
         user = query.filter(User.id == id).first()
-        return _pg_serialize_user(user) if user else None
+        return serialize_user(user) if user else None
 
 
 def get_all_events(filters: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -236,7 +228,7 @@ def get_all_events(filters: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
                     query = query.filter(Event.date <= datetime.fromtimestamp(date_filter["$lte"], UTC))
 
         events = query.order_by(Event.date.desc()).all()
-        return [_pg_serialize_event(event) for event in events]
+        return [serialize_event(event) for event in events]
 
 
 def get_event_by_id(id: str) -> Optional[Dict[str, Any]]:
@@ -252,7 +244,7 @@ def get_event_by_id(id: str) -> Optional[Dict[str, Any]]:
         )
 
         event = query.filter(Event.id == id).first()
-        return _pg_serialize_event(event) if event else None
+        return serialize_event(event) if event else None
 
 
 def get_transactions(source: str, filters: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
