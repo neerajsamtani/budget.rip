@@ -134,23 +134,27 @@ def flask_app():
             user_id = jwt_payload.get("sub")
             if user_id:
                 # Query PostgreSQL using the dao layer
-                from dao import get_item_by_id, users_collection
+                from dao import get_user_by_id
 
-                user = get_item_by_id(users_collection, user_id)
+                user = get_user_by_id(user_id)
                 if user:
                     return user
             # Fallback for tests that use the old jwt_token fixture
             return {"email": "test@example.com", "id": "user_id"}
 
-        # Import and register main application routes from application.py
+        # Import and register main application routes and error handler from application.py
         from application import (
             get_connected_accounts_api,
             get_payment_methods_api,
+            handle_unexpected_error,
             index_api,
             refresh_all_api,
             refresh_single_account_api,
             schedule_refresh_api,
         )
+
+        # Register global error handler to match production behavior
+        app.register_error_handler(Exception, handle_unexpected_error)
 
         app.add_url_rule("/api/", "index_api", index_api, methods=["GET"])
         app.add_url_rule(

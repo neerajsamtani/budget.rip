@@ -116,17 +116,9 @@ def upsert_event(event_dict: Dict[str, Any]) -> str:
     """
     Upsert an event while managing the session lifecycle.
     """
-    db_session = SessionLocal()
-    try:
+    with SessionLocal.begin() as db_session:
         pg_event_id = upsert_event_to_postgresql(event_dict, db_session)
-        db_session.commit()
         return pg_event_id
-    except Exception as e:
-        db_session.rollback()
-        logger.error(f"Failed to upsert event {event_dict.get('id')}: {e}")
-        raise
-    finally:
-        db_session.close()
 
 
 def delete_event_from_postgresql(event_id: str) -> bool:
@@ -136,19 +128,11 @@ def delete_event_from_postgresql(event_id: str) -> bool:
     Returns:
         True if an event was deleted, False if not found.
     """
-    db_session = SessionLocal()
-    try:
+    with SessionLocal.begin() as db_session:
         pg_event = db_session.query(Event).filter(Event.id == event_id).first()
 
         if not pg_event:
             return False
 
         db_session.delete(pg_event)
-        db_session.commit()
         return True
-    except Exception as e:
-        db_session.rollback()
-        logger.error(f"Failed to delete event {event_id}: {e}")
-        raise
-    finally:
-        db_session.close()

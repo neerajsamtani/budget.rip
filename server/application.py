@@ -9,6 +9,7 @@ from flask_bcrypt import Bcrypt
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager, jwt_required
 from venmo_api.models.user import User
+from werkzeug.exceptions import HTTPException
 
 from clients import get_venmo_client, splitwise_client
 from constants import (
@@ -28,12 +29,7 @@ from constants import (
     TESTING,
     VENMO_ACCESS_TOKEN,
 )
-from dao import (
-    bank_accounts_collection,
-    get_all_data,
-    get_item_by_id,
-    users_collection,
-)
+from dao import get_all_bank_accounts, get_user_by_id
 from resources.auth import auth_blueprint
 from resources.category import categories_blueprint
 from resources.event import events_blueprint
@@ -133,6 +129,15 @@ application.register_blueprint(categories_blueprint)
 load_dotenv()
 
 
+@application.errorhandler(Exception)
+def handle_unexpected_error(err):
+    # Let HTTP exceptions (404, 401, etc.) pass through with their original status codes
+    if isinstance(err, HTTPException):
+        return err.get_response()
+    logger.exception("Unhandled exception", exc_info=err)
+    return jsonify({"error": "Internal server error"}), 500
+
+
 # Register a callback function that loads a user from your database whenever
 # a protected route is accessed. This should return any python object on a
 # successful lookup, or None if the lookup failed for any reason (for example
@@ -140,7 +145,7 @@ load_dotenv()
 @jwt.user_lookup_loader
 def user_lookup_callback(_jwt_header: Dict[str, Any], jwt_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     user_id: str = jwt_data["sub"]
-    return get_item_by_id(users_collection, user_id)
+    return get_user_by_id(user_id)
 
 
 @application.route("/api/")
@@ -223,7 +228,7 @@ def get_connected_accounts_api() -> tuple[Response, int]:
         }
     )
     # stripe
-    bank_accounts: List[Dict[str, Any]] = get_all_data(bank_accounts_collection)
+    bank_accounts: List[Dict[str, Any]] = get_all_bank_accounts(None)
     connected_accounts.append({"stripe": bank_accounts})
     return jsonify(connected_accounts), 200
 
@@ -239,8 +244,7 @@ def get_payment_methods_api() -> tuple[Response, int]:
     from models.database import SessionLocal
     from models.sql_models import PaymentMethod
 
-    db = SessionLocal()
-    try:
+    with SessionLocal.begin() as db:
         payment_methods = db.query(PaymentMethod).all()
         result = [
             {
@@ -252,8 +256,6 @@ def get_payment_methods_api() -> tuple[Response, int]:
             for pm in payment_methods
         ]
         return jsonify({"data": result}), 200
-    finally:
-        db.close()
 
 
 # TODO: Need to add webhooks for updates after the server has started

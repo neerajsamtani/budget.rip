@@ -35,13 +35,10 @@ def get_all_categories() -> tuple[Response, int]:
     user = get_current_user()
     user_id = user["id"]
 
-    db = SessionLocal()
-    try:
+    with SessionLocal.begin() as db:
         categories = db.query(Category).filter(Category.user_id == user_id).order_by(Category.name).all()
-        logger.info(f"Retrieved {len(categories)} categories for user {user_id}")
-        return jsonify({"data": [_serialize_category(c) for c in categories]}), 200
-    finally:
-        db.close()
+        categories_list = [_serialize_category(c) for c in categories]
+        return jsonify({"data": categories_list}), 200
 
 
 @categories_blueprint.route("/api/categories/<category_id>", methods=["GET"])
@@ -51,14 +48,12 @@ def get_category(category_id: str) -> tuple[Response, int]:
     user = get_current_user()
     user_id = user["id"]
 
-    db = SessionLocal()
-    try:
+    with SessionLocal.begin() as db:
         category = db.query(Category).filter(Category.id == category_id, Category.user_id == user_id).first()
         if not category:
             return jsonify({"error": "Category not found"}), 404
-        return jsonify({"data": _serialize_category(category)}), 200
-    finally:
-        db.close()
+        category_dict = _serialize_category(category)
+        return jsonify({"data": category_dict}), 200
 
 
 @categories_blueprint.route("/api/categories", methods=["POST"])
@@ -75,8 +70,7 @@ def create_category() -> tuple[Response, int]:
     if not name:
         return jsonify({"error": "Category name is required"}), 400
 
-    db = SessionLocal()
-    try:
+    with SessionLocal.begin() as db:
         # Check for duplicate name for this user (case-insensitive)
         existing = db.query(Category).filter(Category.user_id == user_id, Category.name.ilike(name)).first()
         if existing:
@@ -88,17 +82,10 @@ def create_category() -> tuple[Response, int]:
             name=name,
         )
         db.add(category)
-        db.commit()
-        db.refresh(category)
 
         logger.info(f"Created category: {category.id} for user {user_id}")
-        return jsonify({"data": _serialize_category(category)}), 201
-    except Exception as e:
-        db.rollback()
-        logger.error(f"Error creating category: {e}")
-        return jsonify({"error": str(e)}), 500
-    finally:
-        db.close()
+        category_dict = _serialize_category(category)
+        return jsonify({"data": category_dict}), 201
 
 
 @categories_blueprint.route("/api/categories/<category_id>", methods=["PUT"])
@@ -110,8 +97,7 @@ def update_category(category_id: str) -> tuple[Response, int]:
 
     data = request.get_json()
 
-    db = SessionLocal()
-    try:
+    with SessionLocal.begin() as db:
         category = db.query(Category).filter(Category.id == category_id, Category.user_id == user_id).first()
         if not category:
             return jsonify({"error": "Category not found"}), 404
@@ -133,17 +119,8 @@ def update_category(category_id: str) -> tuple[Response, int]:
 
             category.name = name
 
-        db.commit()
-        db.refresh(category)
-
-        logger.info(f"Updated category: {category_id} for user {user_id}")
-        return jsonify({"data": _serialize_category(category)}), 200
-    except Exception as e:
-        db.rollback()
-        logger.error(f"Error updating category: {e}")
-        return jsonify({"error": str(e)}), 500
-    finally:
-        db.close()
+        category_dict = _serialize_category(category)
+        return jsonify({"data": category_dict}), 200
 
 
 @categories_blueprint.route("/api/categories/<category_id>", methods=["DELETE"])
@@ -157,24 +134,16 @@ def delete_category(category_id: str) -> tuple[Response, int]:
     user = get_current_user()
     user_id = user["id"]
 
-    db = SessionLocal()
     try:
-        category = db.query(Category).filter(Category.id == category_id, Category.user_id == user_id).first()
-        if not category:
-            return jsonify({"error": "Category not found"}), 404
+        with SessionLocal.begin() as db:
+            category = db.query(Category).filter(Category.id == category_id, Category.user_id == user_id).first()
+            if not category:
+                return jsonify({"error": "Category not found"}), 404
 
-        db.delete(category)
-        db.commit()
+            db.delete(category)
 
-        logger.info(f"Deleted category: {category_id} for user {user_id}")
-        return jsonify({"message": "Category deleted"}), 200
+            logger.info(f"Deleted category: {category_id} for user {user_id}")
+            return jsonify({"message": "Category deleted"}), 204
     except IntegrityError:
-        db.rollback()
         logger.warning(f"Cannot delete category {category_id}: in use by events")
         return jsonify({"error": "Cannot delete category: it is in use by one or more events"}), 400
-    except Exception as e:
-        db.rollback()
-        logger.error(f"Error deleting category: {e}")
-        return jsonify({"error": str(e)}), 500
-    finally:
-        db.close()

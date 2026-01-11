@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 event_hints_blueprint = Blueprint("event_hints", __name__)
 
 
-def _serialize_event_hint(hint: EventHint) -> dict[str, Any]:
+def serialize_event_hint(hint: EventHint) -> dict[str, Any]:
     """Convert EventHint ORM object to dict."""
     return {
         "id": hint.id,
@@ -37,7 +37,7 @@ def _serialize_event_hint(hint: EventHint) -> dict[str, Any]:
     }
 
 
-def _serialize_line_item_for_cel(line_item: LineItem) -> dict[str, Any]:
+def serialize_line_item_for_cel(line_item: LineItem) -> dict[str, Any]:
     """Convert LineItem ORM object to dict for CEL evaluation."""
     return {
         "description": line_item.description or "",
@@ -54,8 +54,7 @@ def get_all_event_hints() -> tuple[Response, int]:
     user = get_current_user()
     user_id = user["id"]
 
-    db = SessionLocal()
-    try:
+    with SessionLocal.begin() as db:
         hints = (
             db.query(EventHint)
             .options(joinedload(EventHint.prefill_category))
@@ -63,10 +62,8 @@ def get_all_event_hints() -> tuple[Response, int]:
             .order_by(EventHint.display_order)
             .all()
         )
-        logger.info(f"Retrieved {len(hints)} event hints for user {user_id}")
-        return jsonify({"data": [_serialize_event_hint(h) for h in hints]}), 200
-    finally:
-        db.close()
+        hints_list = [serialize_event_hint(h) for h in hints]
+        return jsonify({"data": hints_list}), 200
 
 
 @event_hints_blueprint.route("/api/event-hints/<hint_id>", methods=["GET"])
@@ -76,8 +73,7 @@ def get_event_hint(hint_id: str) -> tuple[Response, int]:
     user = get_current_user()
     user_id = user["id"]
 
-    db = SessionLocal()
-    try:
+    with SessionLocal.begin() as db:
         hint = (
             db.query(EventHint)
             .options(joinedload(EventHint.prefill_category))
@@ -86,9 +82,8 @@ def get_event_hint(hint_id: str) -> tuple[Response, int]:
         )
         if not hint:
             return jsonify({"error": "Event hint not found"}), 404
-        return jsonify({"data": _serialize_event_hint(hint)}), 200
-    finally:
-        db.close()
+        hint_dict = serialize_event_hint(hint)
+        return jsonify({"data": hint_dict}), 200
 
 
 @event_hints_blueprint.route("/api/event-hints", methods=["POST"])
@@ -110,8 +105,7 @@ def create_event_hint() -> tuple[Response, int]:
     if not is_valid:
         return jsonify({"error": f"Invalid CEL expression: {error_msg}"}), 400
 
-    db = SessionLocal()
-    try:
+    with SessionLocal.begin() as db:
         # Get the next display_order for this user
         max_order = db.query(func.max(EventHint.display_order)).filter(EventHint.user_id == user_id).scalar()
         next_order = (max_order or 0) + 1
@@ -134,21 +128,13 @@ def create_event_hint() -> tuple[Response, int]:
             is_active=data.get("is_active", True),
         )
         db.add(hint)
-        db.commit()
-        db.refresh(hint)
 
-        # Load the category relationship for serialization
-        if hint.prefill_category_id:
-            hint.prefill_category = db.query(Category).filter(Category.id == hint.prefill_category_id).first()
+        # Flush to ensure hint is persisted, then reload with category relationship
+        db.flush()
+        hint = db.query(EventHint).options(joinedload(EventHint.prefill_category)).filter(EventHint.id == hint.id).first()
 
-        logger.info(f"Created event hint {hint.id} for user {user_id}")
-        return jsonify({"data": _serialize_event_hint(hint)}), 201
-    except Exception as e:
-        db.rollback()
-        logger.error(f"Error creating event hint: {e}")
-        return jsonify({"error": str(e)}), 500
-    finally:
-        db.close()
+        hint_dict = serialize_event_hint(hint)
+        return jsonify({"data": hint_dict}), 201
 
 
 @event_hints_blueprint.route("/api/event-hints/<hint_id>", methods=["PUT"])
@@ -159,8 +145,7 @@ def update_event_hint(hint_id: str) -> tuple[Response, int]:
     user_id = user["id"]
     data = request.get_json()
 
-    db = SessionLocal()
-    try:
+    with SessionLocal.begin() as db:
         hint = db.query(EventHint).filter(EventHint.id == hint_id, EventHint.user_id == user_id).first()
         if not hint:
             return jsonify({"error": "Event hint not found"}), 404
@@ -189,21 +174,12 @@ def update_event_hint(hint_id: str) -> tuple[Response, int]:
         if "is_active" in data:
             hint.is_active = data["is_active"]
 
-        db.commit()
-        db.refresh(hint)
+        # Flush changes, then reload with category relationship
+        db.flush()
+        hint = db.query(EventHint).options(joinedload(EventHint.prefill_category)).filter(EventHint.id == hint_id).first()
 
-        # Load the category relationship for serialization
-        if hint.prefill_category_id:
-            hint.prefill_category = db.query(Category).filter(Category.id == hint.prefill_category_id).first()
-
-        logger.info(f"Updated event hint {hint_id} for user {user_id}")
-        return jsonify({"data": _serialize_event_hint(hint)}), 200
-    except Exception as e:
-        db.rollback()
-        logger.error(f"Error updating event hint: {e}")
-        return jsonify({"error": str(e)}), 500
-    finally:
-        db.close()
+        hint_dict = serialize_event_hint(hint)
+        return jsonify({"data": hint_dict}), 200
 
 
 @event_hints_blueprint.route("/api/event-hints/<hint_id>", methods=["DELETE"])
@@ -213,23 +189,13 @@ def delete_event_hint(hint_id: str) -> tuple[Response, int]:
     user = get_current_user()
     user_id = user["id"]
 
-    db = SessionLocal()
-    try:
+    with SessionLocal.begin() as db:
         hint = db.query(EventHint).filter(EventHint.id == hint_id, EventHint.user_id == user_id).first()
         if not hint:
             return jsonify({"error": "Event hint not found"}), 404
-
         db.delete(hint)
-        db.commit()
 
-        logger.info(f"Deleted event hint {hint_id} for user {user_id}")
-        return jsonify({"message": "Event hint deleted"}), 200
-    except Exception as e:
-        db.rollback()
-        logger.error(f"Error deleting event hint: {e}")
-        return jsonify({"error": str(e)}), 500
-    finally:
-        db.close()
+    return jsonify({"message": "Event hint deleted"}), 204
 
 
 @event_hints_blueprint.route("/api/event-hints/reorder", methods=["PUT"])
@@ -249,8 +215,7 @@ def reorder_event_hints() -> tuple[Response, int]:
     if not hint_ids:
         return jsonify({"error": "hint_ids array is required"}), 400
 
-    db = SessionLocal()
-    try:
+    with SessionLocal.begin() as db:
         # Verify all hints belong to this user
         hints = db.query(EventHint).filter(EventHint.id.in_(hint_ids), EventHint.user_id == user_id).all()
         if len(hints) != len(hint_ids):
@@ -262,16 +227,7 @@ def reorder_event_hints() -> tuple[Response, int]:
             if hint_id in hint_map:
                 hint_map[hint_id].display_order = order
 
-        db.commit()
-
-        logger.info(f"Reordered {len(hint_ids)} event hints for user {user_id}")
         return jsonify({"message": "Hints reordered"}), 200
-    except Exception as e:
-        db.rollback()
-        logger.error(f"Error reordering event hints: {e}")
-        return jsonify({"error": str(e)}), 500
-    finally:
-        db.close()
 
 
 @event_hints_blueprint.route("/api/event-hints/evaluate", methods=["POST"])
@@ -291,8 +247,7 @@ def evaluate_event_hints() -> tuple[Response, int]:
     if not line_item_ids:
         return jsonify({"data": {"suggestion": None}}), 200
 
-    db = SessionLocal()
-    try:
+    with SessionLocal.begin() as db:
         # Get line items
         line_items = (
             db.query(LineItem).options(joinedload(LineItem.payment_method)).filter(LineItem.id.in_(line_item_ids)).all()
@@ -314,16 +269,13 @@ def evaluate_event_hints() -> tuple[Response, int]:
             return jsonify({"data": {"suggestion": None}}), 200
 
         # Convert to dicts for CEL evaluation
-        line_item_dicts = [_serialize_line_item_for_cel(li) for li in line_items]
-        hint_dicts = [_serialize_event_hint(h) for h in hints]
+        line_item_dicts = [serialize_line_item_for_cel(li) for li in line_items]
+        hint_dicts = [serialize_event_hint(h) for h in hints]
 
         # Evaluate hints
         suggestion = evaluate_hints(hint_dicts, line_item_dicts)
 
-        logger.debug(f"Evaluated {len(hints)} hints against {len(line_items)} line items for user {user_id}")
         return jsonify({"data": {"suggestion": suggestion}}), 200
-    finally:
-        db.close()
 
 
 @event_hints_blueprint.route("/api/event-hints/validate", methods=["POST"])

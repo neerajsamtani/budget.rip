@@ -7,10 +7,11 @@ from venmo_api.models.user import User
 
 from clients import get_venmo_client
 from constants import MOVING_DATE_POSIX, PARTIES_TO_IGNORE, USER_FIRST_NAME
-from dao import get_all_data, venmo_raw_data_collection
+from dao import get_transactions
 from helpers import flip_amount
+from models.database import SessionLocal
 from resources.line_item import LineItem
-from utils.pg_bulk_ops import upsert_line_items, upsert_transactions
+from utils.pg_bulk_ops import bulk_upsert_line_items, bulk_upsert_transactions
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +58,8 @@ def refresh_venmo() -> None:
 
     # Bulk upsert all collected transactions at once
     if all_transactions:
-        upsert_transactions(all_transactions, source="venmo_api")
+        with SessionLocal.begin() as db:
+            bulk_upsert_transactions(db, all_transactions, source="venmo_api")
         logger.info(f"Refreshed {len(all_transactions)} Venmo transactions")
     else:
         logger.info("No new Venmo transactions to refresh")
@@ -73,7 +75,7 @@ def venmo_to_line_items() -> None:
     3. Improved logic flow for better performance
     """
     payment_method: str = "Venmo"
-    venmo_raw_data: List[Dict[str, Any]] = get_all_data(venmo_raw_data_collection)
+    venmo_raw_data: List[Dict[str, Any]] = get_transactions("venmo_api", None)
 
     # Collect all line items for bulk upsert
     all_line_items: List[LineItem] = []
@@ -120,7 +122,8 @@ def venmo_to_line_items() -> None:
 
     # Bulk upsert all collected line items at once
     if all_line_items:
-        upsert_line_items(all_line_items, source="venmo_api")
+        with SessionLocal.begin() as db:
+            bulk_upsert_line_items(db, all_line_items, source="venmo_api")
         logger.info(f"Converted {len(all_line_items)} Venmo transactions to line items")
     else:
         logger.info("No Venmo transactions to convert to line items")

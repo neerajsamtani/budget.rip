@@ -8,16 +8,16 @@ from flask_jwt_extended import jwt_required
 
 from constants import BATCH_SIZE, STRIPE_API_KEY, STRIPE_CUSTOMER_EMAIL, STRIPE_CUSTOMER_ID, STRIPE_CUSTOMER_NAME
 from dao import (
-    bank_accounts_collection,
-    get_all_data,
-    stripe_raw_transaction_data_collection,
+    get_all_bank_accounts,
+    get_transactions,
 )
 from helpers import cents_to_dollars, flip_amount
+from models.database import SessionLocal
 from resources.line_item import LineItem
 from utils.pg_bulk_ops import (
-    upsert_bank_accounts,
-    upsert_line_items,
-    upsert_transactions,
+    bulk_upsert_bank_accounts,
+    bulk_upsert_line_items,
+    bulk_upsert_transactions,
 )
 
 logger = logging.getLogger(__name__)
@@ -89,10 +89,10 @@ def refresh_account_balances(account_ids: Optional[List[str]] = None) -> int:
     from datetime import datetime, timezone
 
     if account_ids:
-        all_accounts = get_all_data(bank_accounts_collection)
+        all_accounts = get_all_bank_accounts(None)
         accounts = [acc for acc in all_accounts if acc["id"] in account_ids]
     else:
-        accounts = get_all_data(bank_accounts_collection)
+        accounts = get_all_bank_accounts(None)
 
     updated_count = 0
 
@@ -118,7 +118,8 @@ def refresh_account_balances(account_ids: Optional[List[str]] = None) -> int:
                 account["latest_balance"] = balance_cents / 100  # Convert from cents
                 account["balance_as_of"] = datetime.fromtimestamp(balance_data.as_of, tz=timezone.utc)
 
-                upsert_bank_accounts([account])
+                with SessionLocal.begin() as db:
+                    bulk_upsert_bank_accounts(db, [account])
 
                 updated_count += 1
                 logger.info(f"Updated balance for account {account_id}: {balance_cents / 100} {currency}")
@@ -171,7 +172,8 @@ def create_accounts_api() -> tuple[Response, int]:
     if len(new_accounts) == 0:
         return jsonify("Failed to Create Accounts: No Accounts Submitted"), 400
 
-    upsert_bank_accounts(new_accounts)
+    with SessionLocal.begin() as db:
+        bulk_upsert_bank_accounts(db, new_accounts)
 
     return jsonify({"data": new_accounts}), 201
 
@@ -183,7 +185,8 @@ def get_accounts_api(session_id: str) -> tuple[Response, int]:
         session: stripe.financial_connections.Session = stripe.financial_connections.Session.retrieve(session_id)
         accounts: List[Dict[str, Any]] = session["accounts"]
 
-        upsert_bank_accounts(accounts)
+        with SessionLocal.begin() as db:
+            bulk_upsert_bank_accounts(db, accounts)
 
         return jsonify({"accounts": accounts}), 200
     except Exception as e:
@@ -199,7 +202,7 @@ def get_accounts_and_balances_api() -> tuple[Response, int]:
     Balances are pre-fetched and stored on account records via refresh_account_balances()
     to avoid N+1 query problem (previously made one Stripe API call per account).
     """
-    accounts: List[Dict[str, Any]] = get_all_data(bank_accounts_collection)
+    accounts: List[Dict[str, Any]] = get_all_bank_accounts(None)
     accounts_and_balances: Dict[str, Dict[str, Any]] = {}
 
     for account in accounts:
@@ -249,7 +252,8 @@ def refresh_account_api(account_id: str) -> tuple[Response, int]:
         account: stripe.financial_connections.Account = stripe.financial_connections.Account.retrieve(account_id)
         account["can_relink"] = check_can_relink(account)
 
-        upsert_bank_accounts([account])
+        with SessionLocal.begin() as db:
+            bulk_upsert_bank_accounts(db, [account])
 
         return jsonify({"data": "success"}), 200
     except Exception as e:
@@ -308,7 +312,8 @@ def refresh_transactions_api(account_id: str) -> tuple[Response, int]:
             starting_after = transactions[-1].id if transactions else ""
 
         if all_transactions:
-            upsert_transactions(all_transactions, source="stripe_api")
+            with SessionLocal.begin() as db:
+                bulk_upsert_transactions(db, all_transactions, source="stripe_api")
 
         # Best-effort: fetch latest balance for this account (won't fail transaction refresh)
         refresh_account_balances(account_ids=[account_id])
@@ -321,7 +326,7 @@ def refresh_transactions_api(account_id: str) -> tuple[Response, int]:
 
 def refresh_stripe() -> None:
     logger.info("Refreshing Stripe Data")
-    bank_accounts: List[Dict[str, Any]] = get_all_data(bank_accounts_collection)
+    bank_accounts: List[Dict[str, Any]] = get_all_bank_accounts(None)
     for account in bank_accounts:
         refresh_account_api(account["id"])
         refresh_transactions_api(account["id"])
@@ -339,10 +344,10 @@ def stripe_to_line_items() -> None:
     2. Use bulk upsert operations instead of individual upserts
     3. Process transactions in batches to handle large datasets efficiently
     """
-    all_bank_accounts: List[Dict[str, Any]] = get_all_data(bank_accounts_collection)
+    all_bank_accounts: List[Dict[str, Any]] = get_all_bank_accounts(None)
     bank_account_lookup: Dict[str, Dict[str, Any]] = {account["id"]: account for account in all_bank_accounts}
 
-    stripe_raw_data: List[Dict[str, Any]] = get_all_data(stripe_raw_transaction_data_collection)
+    stripe_raw_data: List[Dict[str, Any]] = get_transactions("stripe_api", None)
 
     line_items_batch: List[LineItem] = []
 
@@ -367,8 +372,10 @@ def stripe_to_line_items() -> None:
         line_items_batch.append(line_item)
 
         if len(line_items_batch) >= BATCH_SIZE:
-            upsert_line_items(line_items_batch, source="stripe_api")
+            with SessionLocal.begin() as db:
+                bulk_upsert_line_items(db, line_items_batch, source="stripe_api")
             line_items_batch = []
 
     if line_items_batch:
-        upsert_line_items(line_items_batch, source="stripe_api")
+        with SessionLocal.begin() as db:
+            bulk_upsert_line_items(db, line_items_batch, source="stripe_api")

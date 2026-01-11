@@ -1,9 +1,5 @@
 import pytest
 
-from dao import (
-    upsert_with_id,
-    venmo_raw_data_collection,
-)
 from resources.venmo import refresh_venmo, venmo_to_line_items
 
 
@@ -134,15 +130,12 @@ class TestVenmoFunctions:
             from models.database import SessionLocal
             from models.sql_models import Transaction
 
-            db = SessionLocal()
-            try:
+            with SessionLocal.begin() as db:
                 transactions = db.query(Transaction).filter(Transaction.source == "venmo_api").all()
                 assert len(transactions) == 1
                 # Verify transaction has correct source
                 assert transactions[0].source == "venmo_api"
                 assert transactions[0].source_id == "venmo_test_txn_1"
-            finally:
-                db.close()
 
     def test_transactions_before_moving_date_are_ignored(self, flask_app, mock_venmo_user, mocker):
         """Transactions before the moving date are not imported"""
@@ -152,7 +145,7 @@ class TestVenmoFunctions:
             mock_venmo_client.my_profile.return_value = mock_venmo_user
             mocker.patch("resources.venmo.get_venmo_client", return_value=mock_venmo_client)
 
-            mocker.patch("resources.venmo.upsert_transactions")
+            mocker.patch("resources.venmo.bulk_upsert_transactions")
 
             # Mock transactions - all before moving date (1659510000.0)
             mock_transactions = mocker.Mock()
@@ -182,7 +175,7 @@ class TestVenmoFunctions:
             mock_venmo_client.my_profile.return_value = mock_venmo_user
             mocker.patch("resources.venmo.get_venmo_client", return_value=mock_venmo_client)
 
-            mocker.patch("resources.venmo.upsert_transactions")
+            mocker.patch("resources.venmo.bulk_upsert_transactions")
 
             # Mock transactions - one with ignored party
             mock_transactions = mocker.Mock()
@@ -270,12 +263,9 @@ class TestVenmoFunctions:
             from models.database import SessionLocal
             from models.sql_models import Transaction
 
-            db = SessionLocal()
-            try:
+            with SessionLocal.begin() as db:
                 transactions = db.query(Transaction).filter(Transaction.source == "venmo_api").all()
                 assert len(transactions) == 2
-            finally:
-                db.close()
 
     def test_missing_venmo_profile_raises_error(self, flask_app, mocker):
         """Missing Venmo profile raises exception"""
@@ -294,17 +284,18 @@ class TestVenmoFunctions:
         with flask_app.app_context():
             from models.database import SessionLocal
             from models.sql_models import LineItem
+            from utils.pg_bulk_ops import bulk_upsert_transactions
 
             # Insert test transaction data
             test_transaction = mock_venmo_transaction
-            upsert_with_id(venmo_raw_data_collection, test_transaction, test_transaction["id"])
+            with SessionLocal.begin() as db:
+                bulk_upsert_transactions(db, [test_transaction], source="venmo_api")
 
             # Call the function
             venmo_to_line_items()
 
             # Query database to verify line items were created
-            db = SessionLocal()
-            try:
+            with SessionLocal.begin() as db:
                 line_items = db.query(LineItem).all()
                 assert len(line_items) == 1
                 line_item = line_items[0]
@@ -313,25 +304,24 @@ class TestVenmoFunctions:
                 assert line_item.payment_method_id is not None
                 assert line_item.description == "Test payment"
                 assert line_item.amount == 25.0
-            finally:
-                db.close()
 
     def test_charge_transaction_uses_actor_as_responsible_party(self, flask_app, mock_venmo_transaction_charge, mocker):
         """Charge transactions use the actor as the responsible party"""
         with flask_app.app_context():
             from models.database import SessionLocal
             from models.sql_models import LineItem
+            from utils.pg_bulk_ops import bulk_upsert_transactions
 
             # Insert test transaction data
             test_transaction = mock_venmo_transaction_charge
-            upsert_with_id(venmo_raw_data_collection, test_transaction, test_transaction["id"])
+            with SessionLocal.begin() as db:
+                bulk_upsert_transactions(db, [test_transaction], source="venmo_api")
 
             # Call the function
             venmo_to_line_items()
 
             # Query database to verify line item was created
-            db = SessionLocal()
-            try:
+            with SessionLocal.begin() as db:
                 line_items = db.query(LineItem).all()
                 assert len(line_items) == 1
                 line_item = line_items[0]
@@ -340,25 +330,24 @@ class TestVenmoFunctions:
                 assert line_item.payment_method_id is not None
                 assert line_item.description == "Test charge"
                 assert line_item.amount == 15.0
-            finally:
-                db.close()
 
     def test_received_payment_flips_amount_to_negative(self, flask_app, mock_venmo_transaction_received, mocker):
         """Received payments have negative amounts"""
         with flask_app.app_context():
             from models.database import SessionLocal
             from models.sql_models import LineItem
+            from utils.pg_bulk_ops import bulk_upsert_transactions
 
             # Insert test transaction data
             test_transaction = mock_venmo_transaction_received
-            upsert_with_id(venmo_raw_data_collection, test_transaction, test_transaction["id"])
+            with SessionLocal.begin() as db:
+                bulk_upsert_transactions(db, [test_transaction], source="venmo_api")
 
             # Call the function
             venmo_to_line_items()
 
             # Query database to verify line item was created
-            db = SessionLocal()
-            try:
+            with SessionLocal.begin() as db:
                 line_items = db.query(LineItem).all()
                 assert len(line_items) == 1
                 line_item = line_items[0]
@@ -367,13 +356,11 @@ class TestVenmoFunctions:
                 assert line_item.payment_method_id is not None
                 assert line_item.description == "Test received payment"
                 assert line_item.amount == -10.0
-            finally:
-                db.close()
 
     def test_empty_transactions_creates_no_line_items(self, flask_app, mocker):
         """Empty transaction list creates no line items"""
         with flask_app.app_context():
-            mocker.patch("resources.venmo.upsert_line_items")
+            mocker.patch("resources.venmo.bulk_upsert_line_items")
 
             # Call the function with no transactions
             venmo_to_line_items()
@@ -383,6 +370,7 @@ class TestVenmoFunctions:
         with flask_app.app_context():
             from models.database import SessionLocal
             from models.sql_models import LineItem
+            from utils.pg_bulk_ops import bulk_upsert_transactions
 
             # Insert multiple test transactions
             transactions = [
@@ -415,15 +403,14 @@ class TestVenmoFunctions:
                 },
             ]
 
-            for transaction in transactions:
-                upsert_with_id(venmo_raw_data_collection, transaction, transaction["id"])
+            with SessionLocal.begin() as db:
+                bulk_upsert_transactions(db, transactions, source="venmo_api")
 
             # Call the function
             venmo_to_line_items()
 
             # Query database to verify line items were created
-            db = SessionLocal()
-            try:
+            with SessionLocal.begin() as db:
                 line_items = db.query(LineItem).all()
                 assert len(line_items) == 3
 
@@ -432,8 +419,6 @@ class TestVenmoFunctions:
                 assert 25.0 in amounts  # Payment
                 assert 15.0 in amounts  # Charge
                 assert -10.0 in amounts  # Received (flipped)
-            finally:
-                db.close()
 
 
 class TestVenmoIntegration:
@@ -462,7 +447,7 @@ class TestVenmoIntegration:
             mock_venmo_client.user.get_user_transactions.return_value = mock_transactions
 
             # Mock bulk_upsert_transactions to avoid trying to serialize Mock objects to PostgreSQL
-            mocker.patch("resources.venmo.upsert_transactions")
+            mocker.patch("resources.venmo.bulk_upsert_transactions")
 
             # Call refresh function (PostgreSQL write mocked to avoid Mock serialization issues)
             refresh_venmo()
@@ -472,12 +457,8 @@ class TestVenmoIntegration:
             from models.database import SessionLocal
             from models.sql_models import Transaction
 
-            db = SessionLocal()
-            try:
+            with SessionLocal.begin() as db:
                 db.query(Transaction).filter(Transaction.source == "venmo_api").delete()
-                db.commit()
-            finally:
-                db.close()
 
             transaction_dict = {
                 "id": "venmo_txn_integration",
@@ -488,11 +469,10 @@ class TestVenmoIntegration:
                 "note": "Integration test payment",
                 "amount": 25.0,
             }
-            upsert_with_id(
-                venmo_raw_data_collection,
-                transaction_dict,
-                transaction_dict["id"],
-            )
+            from utils.pg_bulk_ops import bulk_upsert_transactions
+
+            with SessionLocal.begin() as db:
+                bulk_upsert_transactions(db, [transaction_dict], source="venmo_api")
 
             # Now call line items conversion with the stored data
             venmo_to_line_items()
@@ -554,9 +534,6 @@ class TestVenmoIntegration:
             from models.database import SessionLocal
             from models.sql_models import Transaction
 
-            db = SessionLocal()
-            try:
+            with SessionLocal.begin() as db:
                 transactions = db.query(Transaction).filter(Transaction.source == "venmo_api").all()
                 assert len(transactions) == 2
-            finally:
-                db.close()

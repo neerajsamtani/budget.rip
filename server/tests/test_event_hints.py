@@ -469,7 +469,7 @@ class TestEventHintsAPI:
             "/api/event-hints/eh_1",
             headers={"Authorization": f"Bearer {jwt_token}"},
         )
-        assert response.status_code == 200
+        assert response.status_code == 204
 
         # Verify it's deleted
         response = test_client.get("/api/event-hints", headers={"Authorization": f"Bearer {jwt_token}"})

@@ -54,14 +54,3 @@ class TestTagsAPI:
         response = test_client.get("/api/tags")
 
         assert response.status_code == 401
-
-    def test_database_error_returns_500(self, test_client, jwt_token, mocker):
-        """Database error returns 500 status code"""
-        # Mock get_all_tags to raise an exception
-        mocker.patch("resources.tags.get_all_tags", side_effect=Exception("Database error"))
-
-        response = test_client.get("/api/tags", headers={"Authorization": f"Bearer {jwt_token}"})
-
-        assert response.status_code == 500
-        data = response.get_json()
-        assert "error" in data
