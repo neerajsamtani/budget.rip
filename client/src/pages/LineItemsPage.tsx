@@ -66,6 +66,7 @@ export default function LineItemsPage() {
                                 <TableHead>Description</TableHead>
                                 <TableHead>Party</TableHead>
                                 <TableHead className="text-right">Amount</TableHead>
+                                <TableHead>Info</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
