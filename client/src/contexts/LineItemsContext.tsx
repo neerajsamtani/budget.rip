@@ -6,11 +6,13 @@ import { useAuth } from './AuthContext';
 // Define TypeScript interfaces for the line item and props
 export interface LineItemInterface {
     id: string;
+    transaction_id?: string;
     date: number; // Assuming date is a UNIX timestamp in seconds
     payment_method: string;
     description: string;
     responsible_party: string;
     amount: number;
+    notes?: string;
     is_manual?: boolean; // Whether this transaction was manually created vs synced from API (defaults to false)
     isSelected?: boolean; // Optional if not used in this context
 }

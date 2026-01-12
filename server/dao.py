@@ -97,6 +97,7 @@ def serialize_line_item(li: LineItem) -> Dict[str, Any]:
 
     data = {
         "id": li.id,
+        "transaction_id": li.transaction_id,
         "date": serialize_datetime(li.date),
         "payment_method": li.payment_method.name if li.payment_method else "Unknown",
         "description": li.description or "",
@@ -188,6 +189,33 @@ def get_line_item_by_id(id: str) -> Optional[Dict[str, Any]]:
         )
         line_item = query.filter(LineItem.id == id).first()
         return serialize_line_item(line_item) if line_item else None
+
+
+def update_line_item(line_item_id: str, updates: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Update a line item's editable fields (currently only notes)."""
+    from models.database import SessionLocal
+    from models.sql_models import LineItem
+
+    with SessionLocal.begin() as db:
+        line_item = (
+            db.query(LineItem)
+            .options(
+                joinedload(LineItem.payment_method),
+                joinedload(LineItem.events),
+                joinedload(LineItem.transaction),
+            )
+            .filter(LineItem.id == line_item_id)
+            .first()
+        )
+
+        if not line_item:
+            return None
+
+        if "notes" in updates:
+            line_item.notes = updates["notes"]
+
+        db.flush()
+        return serialize_line_item(line_item)
 
 
 def get_user_by_id(id: str) -> Optional[Dict[str, Any]]:
