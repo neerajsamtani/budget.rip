@@ -114,7 +114,7 @@ export default function LineItemsToReviewPage() {
                         <TableBody>
                             {isLoading ? (
                                 <TableRow>
-                                    <TableCell colSpan={6} className="text-center py-8">
+                                    <TableCell colSpan={7} className="text-center py-8">
                                         <Spinner size="md" className="text-muted-foreground mx-auto" />
                                     </TableCell>
                                 </TableRow>
@@ -128,7 +128,7 @@ export default function LineItemsToReviewPage() {
                                 )
                             ) : (
                                 <TableRow>
-                                    <TableCell colSpan={6} className="text-center text-muted-foreground">
+                                    <TableCell colSpan={7} className="text-center text-muted-foreground">
                                         No line items to review
                                     </TableCell>
                                 </TableRow>

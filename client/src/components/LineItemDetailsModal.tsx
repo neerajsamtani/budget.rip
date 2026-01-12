@@ -25,11 +25,11 @@ export default function LineItemDetailsModal({ show, lineItem, onHide }: LineIte
   const isMobile = useIsMobile();
 
   useEffect(() => {
-    if (show) {
+    if (show && !updateLineItemMutation.isPending) {
       setNotes(lineItem.notes || '');
       setIsEditing(false);
     }
-  }, [show, lineItem]);
+  }, [show, lineItem, updateLineItemMutation.isPending]);
 
   const handleOpenChange = (open: boolean) => {
     if (!open) {
@@ -69,7 +69,11 @@ export default function LineItemDetailsModal({ show, lineItem, onHide }: LineIte
         onHide();
       },
       onError: (error) => {
-        showErrorToast(error);
+        if (error.message?.includes('assigned to an event')) {
+          showErrorToast(new Error("Cannot delete transaction that's assigned to an event. Remove it from the event first."));
+        } else {
+          showErrorToast(error);
+        }
       },
     });
   };

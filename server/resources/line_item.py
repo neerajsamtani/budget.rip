@@ -108,6 +108,7 @@ def all_line_items(
 
 
 @line_items_blueprint.route("/api/line_items/<line_item_id>", methods=["GET"])
+@jwt_required()
 def get_line_item_api(line_item_id: str) -> tuple[Response, int]:
     """
     Get A Line Item
