@@ -6,6 +6,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import CreateEventModal from "../components/CreateEventModal";
 import CreateManualTransactionModal from "../components/CreateManualTransactionModal";
 import LineItem, { LineItemCard } from "../components/LineItem";
+import LineItemDetailsModal from "../components/LineItemDetailsModal";
 import { PageContainer, PageHeader } from "../components/ui/layout";
 import { Body, H1 } from "../components/ui/typography";
 import { LineItemInterface, useLineItems, useLineItemsDispatch } from "../contexts/LineItemsContext";
@@ -15,6 +16,7 @@ function MobileLineItemCard({ lineItem }: { lineItem: LineItemInterface }) {
     const { lineItems } = useLineItems();
     const lineItemsDispatch = useLineItemsDispatch();
     const isChecked = (lineItems || []).some(li => li.isSelected && li.id === lineItem.id);
+    const [showDetailsModal, setShowDetailsModal] = useState(false);
 
     const handleToggle = () => {
         lineItemsDispatch({
@@ -26,13 +28,21 @@ function MobileLineItemCard({ lineItem }: { lineItem: LineItemInterface }) {
     const amountStatus = lineItem.amount < 0 ? 'success' : 'warning';
 
     return (
-        <LineItemCard
-            lineItem={lineItem}
-            showCheckBox={true}
-            isChecked={isChecked}
-            handleToggle={handleToggle}
-            amountStatus={amountStatus}
-        />
+        <>
+            <LineItemCard
+                lineItem={lineItem}
+                showCheckBox={true}
+                isChecked={isChecked}
+                handleToggle={handleToggle}
+                amountStatus={amountStatus}
+                onShowDetails={() => setShowDetailsModal(true)}
+            />
+            <LineItemDetailsModal
+                show={showDetailsModal}
+                lineItem={lineItem}
+                onHide={() => setShowDetailsModal(false)}
+            />
+        </>
     );
 }
 

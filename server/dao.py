@@ -108,6 +108,19 @@ def serialize_line_item(li: LineItem) -> Dict[str, Any]:
     }
     if li.events:
         data["event_id"] = li.events[0].id
+
+    # Add payment method type and bank account details for bank/credit payments
+    if li.payment_method:
+        data["payment_method_type"] = li.payment_method.type
+        if li.payment_method.type in ("bank", "credit") and li.payment_method.external_id:
+            bank_account = get_bank_account_by_id(li.payment_method.external_id)
+            if bank_account:
+                data["bank_account"] = {
+                    "institution_name": bank_account["institution_name"],
+                    "display_name": bank_account["display_name"],
+                    "last4": bank_account["last4"],
+                }
+
     return data
 
 
@@ -328,6 +341,24 @@ def get_all_bank_accounts(
             }
             for acc in accounts
         ]
+
+
+def get_bank_account_by_id(account_id: str) -> Optional[Dict[str, Any]]:
+    """Get a bank account by ID. Returns None if not found."""
+    from models.database import SessionLocal
+    from models.sql_models import BankAccount
+
+    with SessionLocal.begin() as db:
+        account = db.query(BankAccount).filter(BankAccount.id == account_id).first()
+        if not account:
+            return None
+        return {
+            "id": account.id,
+            "institution_name": account.institution_name,
+            "display_name": account.display_name,
+            "last4": account.last4,
+            "status": account.status,
+        }
 
 
 def create_manual_transaction(

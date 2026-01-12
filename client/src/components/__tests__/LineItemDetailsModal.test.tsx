@@ -231,4 +231,59 @@ describe('LineItemDetailsModal', () => {
             expect(mockUpdateLineItem).not.toHaveBeenCalled();
         });
     });
+
+    describe('Bank account display', () => {
+        const mockLineItemWithBankAccount: LineItemInterface = {
+            ...mockLineItem,
+            payment_method_type: 'bank',
+            bank_account: {
+                institution_name: 'Chase',
+                display_name: 'Chase Checking',
+                last4: '1234',
+            },
+        };
+
+        it('modal shows bank account details when present', () => {
+            render(
+                <LineItemDetailsModal
+                    show={true}
+                    lineItem={mockLineItemWithBankAccount}
+                    onHide={mockOnHide}
+                />
+            );
+
+            expect(screen.getByText('Account Details')).toBeInTheDocument();
+            expect(screen.getByText(/Chase - Chase Checking \(\*\*\*\*1234\)/)).toBeInTheDocument();
+        });
+
+        it('modal hides bank account section when not present', () => {
+            render(
+                <LineItemDetailsModal
+                    show={true}
+                    lineItem={mockLineItem}
+                    onHide={mockOnHide}
+                />
+            );
+
+            expect(screen.queryByText('Account Details')).not.toBeInTheDocument();
+        });
+
+        it('modal hides bank account section for non-bank payment types', () => {
+            const venmoLineItem: LineItemInterface = {
+                ...mockLineItem,
+                payment_method: 'Venmo',
+                payment_method_type: 'venmo',
+            };
+
+            render(
+                <LineItemDetailsModal
+                    show={true}
+                    lineItem={venmoLineItem}
+                    onHide={mockOnHide}
+                />
+            );
+
+            expect(screen.queryByText('Account Details')).not.toBeInTheDocument();
+        });
+    });
 });

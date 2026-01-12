@@ -146,6 +146,14 @@ export default function LineItemDetailsModal({ show, lineItem, onHide }: LineIte
                 <Label className="text-muted-foreground text-sm">Responsible Party</Label>
                 <p className="text-foreground">{lineItem.responsible_party || '-'}</p>
               </div>
+              {lineItem.bank_account && (
+                <div className="col-span-2">
+                  <Label className="text-muted-foreground text-sm">Account Details</Label>
+                  <p className="text-foreground">
+                    {lineItem.bank_account.institution_name} - {lineItem.bank_account.display_name} (****{lineItem.bank_account.last4})
+                  </p>
+                </div>
+              )}
             </div>
             {lineItem.notes && (
               <div>
