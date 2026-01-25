@@ -224,7 +224,10 @@ class TestLineItemAPI:
             line_item_id = all_line_items[0]["id"]
 
         # Test API call
-        response = test_client.get(f"/api/line_items/{line_item_id}")
+        response = test_client.get(
+            f"/api/line_items/{line_item_id}",
+            headers={"Authorization": "Bearer " + jwt_token},
+        )
 
         assert response.status_code == 200
         data = response.get_json()
@@ -234,9 +237,12 @@ class TestLineItemAPI:
         assert data["description"] == "Test transaction"
         assert data["amount"] == 100
 
-    def test_nonexistent_line_item_returns_404(self, test_client):
+    def test_nonexistent_line_item_returns_404(self, test_client, jwt_token):
         """Requesting a nonexistent line item returns 404"""
-        response = test_client.get("/api/line_items/nonexistent_id")
+        response = test_client.get(
+            "/api/line_items/nonexistent_id",
+            headers={"Authorization": "Bearer " + jwt_token},
+        )
 
         assert response.status_code == 404
         data = response.get_json()
