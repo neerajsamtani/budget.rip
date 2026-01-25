@@ -97,7 +97,6 @@ def serialize_line_item(li: LineItem) -> Dict[str, Any]:
 
     data = {
         "id": li.id,
-        "transaction_id": li.transaction_id,
         "date": serialize_datetime(li.date),
         "payment_method": li.payment_method.name if li.payment_method else "Unknown",
         "description": li.description or "",
@@ -108,19 +107,6 @@ def serialize_line_item(li: LineItem) -> Dict[str, Any]:
     }
     if li.events:
         data["event_id"] = li.events[0].id
-
-    # Add payment method type and bank account details for bank/credit payments
-    if li.payment_method:
-        data["payment_method_type"] = li.payment_method.type
-        if li.payment_method.type in ("bank", "credit") and li.payment_method.external_id:
-            bank_account = get_bank_account_by_id(li.payment_method.external_id)
-            if bank_account:
-                data["bank_account"] = {
-                    "institution_name": bank_account["institution_name"],
-                    "display_name": bank_account["display_name"],
-                    "last4": bank_account["last4"],
-                }
-
     return data
 
 
@@ -202,33 +188,6 @@ def get_line_item_by_id(id: str) -> Optional[Dict[str, Any]]:
         )
         line_item = query.filter(LineItem.id == id).first()
         return serialize_line_item(line_item) if line_item else None
-
-
-def update_line_item(line_item_id: str, updates: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-    """Update a line item's editable fields (currently only notes)."""
-    from models.database import SessionLocal
-    from models.sql_models import LineItem
-
-    with SessionLocal.begin() as db:
-        line_item = (
-            db.query(LineItem)
-            .options(
-                joinedload(LineItem.payment_method),
-                joinedload(LineItem.events),
-                joinedload(LineItem.transaction),
-            )
-            .filter(LineItem.id == line_item_id)
-            .first()
-        )
-
-        if not line_item:
-            return None
-
-        if "notes" in updates:
-            line_item.notes = updates["notes"]
-
-        db.flush()
-        return serialize_line_item(line_item)
 
 
 def get_user_by_id(id: str) -> Optional[Dict[str, Any]]:
@@ -341,24 +300,6 @@ def get_all_bank_accounts(
             }
             for acc in accounts
         ]
-
-
-def get_bank_account_by_id(account_id: str) -> Optional[Dict[str, Any]]:
-    """Get a bank account by ID. Returns None if not found."""
-    from models.database import SessionLocal
-    from models.sql_models import BankAccount
-
-    with SessionLocal.begin() as db:
-        account = db.query(BankAccount).filter(BankAccount.id == account_id).first()
-        if not account:
-            return None
-        return {
-            "id": account.id,
-            "institution_name": account.institution_name,
-            "display_name": account.display_name,
-            "last4": account.last4,
-            "status": account.status,
-        }
 
 
 def create_manual_transaction(

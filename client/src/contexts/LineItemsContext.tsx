@@ -4,23 +4,13 @@ import { showErrorToast } from '../utils/toast-helpers';
 import { useAuth } from './AuthContext';
 
 // Define TypeScript interfaces for the line item and props
-export interface BankAccountInfo {
-    institution_name: string;
-    display_name: string;
-    last4: string;
-}
-
 export interface LineItemInterface {
     id: string;
-    transaction_id?: string;
     date: number; // Assuming date is a UNIX timestamp in seconds
     payment_method: string;
-    payment_method_type?: 'bank' | 'credit' | 'venmo' | 'splitwise' | 'cash';
-    bank_account?: BankAccountInfo;
     description: string;
     responsible_party: string;
     amount: number;
-    notes?: string;
     is_manual?: boolean; // Whether this transaction was manually created vs synced from API (defaults to false)
     isSelected?: boolean; // Optional if not used in this context
 }
