@@ -2,10 +2,36 @@ import { Spinner } from "@/components/ui/spinner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import React, { useState } from "react";
 import LineItem, { LineItemCard } from "../components/LineItem";
+import LineItemDetailsModal from "../components/LineItemDetailsModal";
 import PaymentMethodFilter from "../components/PaymentMethodFilter";
 import { PageContainer, PageHeader } from "../components/ui/layout";
 import { Body, H1 } from "../components/ui/typography";
+import { LineItemInterface } from "../contexts/LineItemsContext";
 import { useLineItems } from "../hooks/useApi";
+
+// Mobile card wrapper with details modal
+function MobileLineItemCard({ lineItem }: { lineItem: LineItemInterface }) {
+    const [showDetailsModal, setShowDetailsModal] = useState(false);
+    const amountStatus = lineItem.amount < 0 ? 'success' : 'warning';
+
+    return (
+        <>
+            <LineItemCard
+                lineItem={lineItem}
+                showCheckBox={false}
+                isChecked={false}
+                handleToggle={() => { }}
+                amountStatus={amountStatus}
+                onShowDetails={() => setShowDetailsModal(true)}
+            />
+            <LineItemDetailsModal
+                show={showDetailsModal}
+                lineItem={lineItem}
+                onHide={() => setShowDetailsModal(false)}
+            />
+        </>
+    );
+}
 
 export default function LineItemsPage() {
     const [paymentMethod, setPaymentMethod] = useState("All")
@@ -39,14 +65,7 @@ export default function LineItemsPage() {
                             </div>
                         ) : lineItems.length > 0 ? (
                             lineItems.map(lineItem => (
-                                <LineItemCard
-                                    key={lineItem.id}
-                                    lineItem={lineItem}
-                                    showCheckBox={false}
-                                    isChecked={false}
-                                    handleToggle={() => { }}
-                                    amountStatus={lineItem.amount < 0 ? 'success' : 'warning'}
-                                />
+                                <MobileLineItemCard key={lineItem.id} lineItem={lineItem} />
                             ))
                         ) : (
                             <div className="p-4 text-center text-muted-foreground">
@@ -66,18 +85,19 @@ export default function LineItemsPage() {
                                 <TableHead>Description</TableHead>
                                 <TableHead>Party</TableHead>
                                 <TableHead className="text-right">Amount</TableHead>
+                                <TableHead>Info</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {isLoading ? (
                                 <TableRow>
-                                    <TableCell colSpan={5} className="text-center py-8">
+                                    <TableCell colSpan={6} className="text-center py-8">
                                         <Spinner size="md" className="text-muted-foreground mx-auto" />
                                     </TableCell>
                                 </TableRow>
                             ) : error ? (
                                 <TableRow>
-                                    <TableCell colSpan={5} className="text-center text-destructive">
+                                    <TableCell colSpan={6} className="text-center text-destructive">
                                         Error loading line items. Please try again.
                                     </TableCell>
                                 </TableRow>
@@ -87,7 +107,7 @@ export default function LineItemsPage() {
                                 ))
                             ) : (
                                 <TableRow>
-                                    <TableCell colSpan={5} className="text-center text-muted-foreground">
+                                    <TableCell colSpan={6} className="text-center text-muted-foreground">
                                         No Line Items found
                                     </TableCell>
                                 </TableRow>

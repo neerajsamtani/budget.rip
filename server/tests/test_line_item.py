@@ -224,7 +224,10 @@ class TestLineItemAPI:
             line_item_id = all_line_items[0]["id"]
 
         # Test API call
-        response = test_client.get(f"/api/line_items/{line_item_id}")
+        response = test_client.get(
+            f"/api/line_items/{line_item_id}",
+            headers={"Authorization": "Bearer " + jwt_token},
+        )
 
         assert response.status_code == 200
         data = response.get_json()
@@ -234,13 +237,135 @@ class TestLineItemAPI:
         assert data["description"] == "Test transaction"
         assert data["amount"] == 100
 
-    def test_nonexistent_line_item_returns_404(self, test_client):
+    def test_nonexistent_line_item_returns_404(self, test_client, jwt_token):
         """Requesting a nonexistent line item returns 404"""
-        response = test_client.get("/api/line_items/nonexistent_id")
+        response = test_client.get(
+            "/api/line_items/nonexistent_id",
+            headers={"Authorization": "Bearer " + jwt_token},
+        )
 
         assert response.status_code == 404
         data = response.get_json()
         assert data["error"] == "Line item not found"
+
+    def test_line_item_notes_can_be_updated(self, test_client, jwt_token, flask_app, create_line_item_via_manual):
+        """Line item notes can be updated via PATCH"""
+        create_line_item_via_manual(
+            date="2009-02-13",
+            person="John Doe",
+            description="Test transaction",
+            amount=100,
+        )
+
+        with flask_app.app_context():
+            from dao import get_all_line_items
+
+            all_line_items = get_all_line_items(None)
+            assert len(all_line_items) == 1
+            line_item_id = all_line_items[0]["id"]
+
+        response = test_client.patch(
+            f"/api/line_items/{line_item_id}",
+            headers={"Authorization": "Bearer " + jwt_token},
+            json={"notes": "Test note content"},
+        )
+
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data["data"]["notes"] == "Test note content"
+        assert data["message"] == "Line item updated"
+
+    def test_line_item_notes_can_be_cleared(self, test_client, jwt_token, flask_app, create_line_item_via_manual):
+        """Line item notes can be cleared by setting to empty string"""
+        create_line_item_via_manual(
+            date="2009-02-13",
+            person="John Doe",
+            description="Test transaction",
+            amount=100,
+        )
+
+        with flask_app.app_context():
+            from dao import get_all_line_items
+
+            all_line_items = get_all_line_items(None)
+            line_item_id = all_line_items[0]["id"]
+
+        # First set notes
+        test_client.patch(
+            f"/api/line_items/{line_item_id}",
+            headers={"Authorization": "Bearer " + jwt_token},
+            json={"notes": "Some notes"},
+        )
+
+        # Then clear them
+        response = test_client.patch(
+            f"/api/line_items/{line_item_id}",
+            headers={"Authorization": "Bearer " + jwt_token},
+            json={"notes": ""},
+        )
+
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data["data"]["notes"] == ""
+
+    def test_update_nonexistent_line_item_returns_404(self, test_client, jwt_token):
+        """PATCH on non-existent line item returns 404"""
+        response = test_client.patch(
+            "/api/line_items/nonexistent_id",
+            headers={"Authorization": "Bearer " + jwt_token},
+            json={"notes": "Test notes"},
+        )
+
+        assert response.status_code == 404
+        data = response.get_json()
+        assert data["error"] == "Line item not found"
+
+    def test_update_with_invalid_fields_returns_400(self, test_client, jwt_token, flask_app, create_line_item_via_manual):
+        """PATCH with invalid fields returns 400"""
+        create_line_item_via_manual(
+            date="2009-02-13",
+            person="John Doe",
+            description="Test transaction",
+            amount=100,
+        )
+
+        with flask_app.app_context():
+            from dao import get_all_line_items
+
+            all_line_items = get_all_line_items(None)
+            line_item_id = all_line_items[0]["id"]
+
+        response = test_client.patch(
+            f"/api/line_items/{line_item_id}",
+            headers={"Authorization": "Bearer " + jwt_token},
+            json={"notes": "Valid", "amount": 999, "description": "Invalid"},
+        )
+
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "Invalid fields" in data["error"]
+
+    def test_update_line_item_requires_authentication(self, test_client, flask_app, create_line_item_via_manual, jwt_token):
+        """PATCH requires authentication"""
+        create_line_item_via_manual(
+            date="2009-02-13",
+            person="John Doe",
+            description="Test transaction",
+            amount=100,
+        )
+
+        with flask_app.app_context():
+            from dao import get_all_line_items
+
+            all_line_items = get_all_line_items(None)
+            line_item_id = all_line_items[0]["id"]
+
+        response = test_client.patch(
+            f"/api/line_items/{line_item_id}",
+            json={"notes": "Test notes"},
+        )
+
+        assert response.status_code == 401
 
 
 class TestLineItemFunctions:
@@ -484,3 +609,194 @@ class TestLineItemFunctions:
             result = all_line_items(payment_method="All")
 
             assert len(result) == 2  # Should return all items, same as no filter
+
+
+class TestLineItemBankAccountSerialization:
+    def test_bank_payment_with_external_id_includes_bank_account(self, flask_app, pg_session):
+        """Line item with bank payment method and external_id includes bank_account in serialization"""
+        from models.sql_models import BankAccount, PaymentMethod
+
+        with flask_app.app_context():
+            # Create a bank account
+            bank_account = BankAccount(
+                id="fca_test123",
+                institution_name="Chase",
+                display_name="Chase Checking",
+                last4="1234",
+                status="active",
+            )
+            pg_session.add(bank_account)
+            pg_session.flush()
+
+            # Update the Debit Card payment method to have external_id
+            pm = pg_session.query(PaymentMethod).filter(PaymentMethod.name == "Debit Card").first()
+            pm.external_id = "fca_test123"
+            pg_session.flush()
+
+            # Create a line item with Debit Card payment method
+            from tests.test_helpers import setup_test_line_item
+
+            setup_test_line_item(
+                pg_session,
+                {
+                    "id": "line_item_bank",
+                    "date": 1234567890,
+                    "responsible_party": "John Doe",
+                    "payment_method": "Debit Card",
+                    "description": "Bank transaction",
+                    "amount": 100,
+                },
+            )
+            pg_session.commit()
+
+            # Test serialization
+            result = all_line_items()
+
+            assert len(result) == 1
+            assert result[0]["payment_method_type"] == "bank"
+            assert "bank_account" in result[0]
+            assert result[0]["bank_account"]["institution_name"] == "Chase"
+            assert result[0]["bank_account"]["display_name"] == "Chase Checking"
+            assert result[0]["bank_account"]["last4"] == "1234"
+
+    def test_credit_payment_with_external_id_includes_bank_account(self, flask_app, pg_session):
+        """Line item with credit payment method and external_id includes bank_account in serialization"""
+        from models.sql_models import BankAccount, PaymentMethod
+
+        with flask_app.app_context():
+            # Create a bank account for the credit card
+            bank_account = BankAccount(
+                id="fca_credit456",
+                institution_name="Amex",
+                display_name="Amex Gold",
+                last4="9999",
+                status="active",
+            )
+            pg_session.add(bank_account)
+            pg_session.flush()
+
+            # Update the Credit Card payment method to have external_id
+            pm = pg_session.query(PaymentMethod).filter(PaymentMethod.name == "Credit Card").first()
+            pm.external_id = "fca_credit456"
+            pg_session.flush()
+
+            # Create a line item with Credit Card payment method
+            from tests.test_helpers import setup_test_line_item
+
+            setup_test_line_item(
+                pg_session,
+                {
+                    "id": "line_item_credit",
+                    "date": 1234567890,
+                    "responsible_party": "Jane Smith",
+                    "payment_method": "Credit Card",
+                    "description": "Credit card transaction",
+                    "amount": 200,
+                },
+            )
+            pg_session.commit()
+
+            # Test serialization
+            result = all_line_items()
+
+            assert len(result) == 1
+            assert result[0]["payment_method_type"] == "credit"
+            assert "bank_account" in result[0]
+            assert result[0]["bank_account"]["institution_name"] == "Amex"
+            assert result[0]["bank_account"]["display_name"] == "Amex Gold"
+            assert result[0]["bank_account"]["last4"] == "9999"
+
+    def test_non_bank_payment_excludes_bank_account(self, flask_app, pg_session):
+        """Line item with non-bank payment method (venmo/cash) excludes bank_account"""
+        from tests.test_helpers import setup_test_line_item
+
+        with flask_app.app_context():
+            # Create line items with Venmo and Cash payment methods
+            setup_test_line_item(
+                pg_session,
+                {
+                    "id": "line_item_venmo",
+                    "date": 1234567890,
+                    "responsible_party": "John Doe",
+                    "payment_method": "Venmo",
+                    "description": "Venmo transaction",
+                    "amount": 50,
+                },
+            )
+            setup_test_line_item(
+                pg_session,
+                {
+                    "id": "line_item_cash",
+                    "date": 1234567891,
+                    "responsible_party": "Jane Smith",
+                    "payment_method": "Cash",
+                    "description": "Cash transaction",
+                    "amount": 25,
+                },
+            )
+            pg_session.commit()
+
+            # Test serialization
+            result = all_line_items()
+
+            assert len(result) == 2
+            for item in result:
+                assert item["payment_method_type"] in ("venmo", "cash")
+                assert "bank_account" not in item
+
+    def test_bank_payment_without_external_id_excludes_bank_account(self, flask_app, pg_session):
+        """Line item with bank payment but no external_id excludes bank_account"""
+        from tests.test_helpers import setup_test_line_item
+
+        with flask_app.app_context():
+            # Debit Card has type "bank" but no external_id by default
+            setup_test_line_item(
+                pg_session,
+                {
+                    "id": "line_item_debit",
+                    "date": 1234567890,
+                    "responsible_party": "John Doe",
+                    "payment_method": "Debit Card",
+                    "description": "Debit transaction",
+                    "amount": 100,
+                },
+            )
+            pg_session.commit()
+
+            # Test serialization
+            result = all_line_items()
+
+            assert len(result) == 1
+            assert result[0]["payment_method_type"] == "bank"
+            assert "bank_account" not in result[0]
+
+    def test_bank_payment_with_invalid_external_id_excludes_bank_account(self, flask_app, pg_session):
+        """Line item with bank payment but invalid external_id (no matching bank account) excludes bank_account"""
+        from models.sql_models import PaymentMethod
+        from tests.test_helpers import setup_test_line_item
+
+        with flask_app.app_context():
+            # Set external_id to a non-existent bank account
+            pm = pg_session.query(PaymentMethod).filter(PaymentMethod.name == "Debit Card").first()
+            pm.external_id = "fca_nonexistent"
+            pg_session.flush()
+
+            setup_test_line_item(
+                pg_session,
+                {
+                    "id": "line_item_debit",
+                    "date": 1234567890,
+                    "responsible_party": "John Doe",
+                    "payment_method": "Debit Card",
+                    "description": "Debit transaction",
+                    "amount": 100,
+                },
+            )
+            pg_session.commit()
+
+            # Test serialization - should not crash and should exclude bank_account
+            result = all_line_items()
+
+            assert len(result) == 1
+            assert result[0]["payment_method_type"] == "bank"
+            assert "bank_account" not in result[0]

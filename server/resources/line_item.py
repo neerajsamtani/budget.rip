@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Optional
 from flask import Blueprint, Response, jsonify, request
 from flask_jwt_extended import jwt_required
 
-from dao import get_all_line_items, get_line_item_by_id
+from dao import get_all_line_items, get_line_item_by_id, update_line_item
 from helpers import sort_by_date_amount_descending, str_to_bool
 
 logger = logging.getLogger(__name__)
@@ -108,6 +108,7 @@ def all_line_items(
 
 
 @line_items_blueprint.route("/api/line_items/<line_item_id>", methods=["GET"])
+@jwt_required()
 def get_line_item_api(line_item_id: str) -> tuple[Response, int]:
     """
     Get A Line Item
@@ -118,3 +119,28 @@ def get_line_item_api(line_item_id: str) -> tuple[Response, int]:
         return jsonify({"error": "Line item not found"}), 404
     logger.info(f"Retrieved line item: {line_item_id}")
     return jsonify(line_item), 200
+
+
+@line_items_blueprint.route("/api/line_items/<line_item_id>", methods=["PATCH"])
+@jwt_required()
+def update_line_item_api(line_item_id: str) -> tuple[Response, int]:
+    """
+    Update a line item's editable fields.
+    Currently supports: notes
+    """
+    update_data: Dict[str, Any] = request.get_json()
+
+    allowed_fields = {"notes"}
+    invalid_fields = set(update_data.keys()) - allowed_fields
+    if invalid_fields:
+        logger.warning(f"Line item update attempt with invalid fields: {invalid_fields}")
+        return jsonify({"error": f"Invalid fields: {', '.join(invalid_fields)}"}), 400
+
+    updated_line_item = update_line_item(line_item_id, update_data)
+
+    if updated_line_item is None:
+        logger.warning(f"Line item update attempt for non-existent item: {line_item_id}")
+        return jsonify({"error": "Line item not found"}), 404
+
+    logger.info(f"Updated line item: {line_item_id}")
+    return jsonify({"data": updated_line_item, "message": "Line item updated"}), 200
