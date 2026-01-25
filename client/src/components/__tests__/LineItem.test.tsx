@@ -81,7 +81,7 @@ describe('LineItem', () => {
             );
 
             const cells = screen.getAllByRole('cell');
-            expect(cells).toHaveLength(7); // checkbox + 5 data cells + 1 details button cell
+            expect(cells).toHaveLength(6); // checkbox + 5 data cells
             expect(cells[1]).toHaveTextContent('Jan 1, 2022');
             expect(cells[2]).toHaveTextContent('credit_card');
             expect(cells[3]).toHaveTextContent('Test transaction');
@@ -96,7 +96,7 @@ describe('LineItem', () => {
             );
 
             const cells = screen.getAllByRole('cell');
-            expect(cells).toHaveLength(6); // 5 data cells + 1 details button cell
+            expect(cells).toHaveLength(5); // 5 data cells only
             expect(cells[0]).toHaveTextContent('Jan 1, 2022');
             expect(cells[1]).toHaveTextContent('credit_card');
             expect(cells[2]).toHaveTextContent('Test transaction');
@@ -317,7 +317,7 @@ describe('LineItem', () => {
 
             // Should render empty cells without errors
             const cells = screen.getAllByRole('cell');
-            expect(cells).toHaveLength(6); // 5 data cells + 1 details button cell
+            expect(cells).toHaveLength(5);
         });
     });
 

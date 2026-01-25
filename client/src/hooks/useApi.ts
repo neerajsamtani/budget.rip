@@ -242,26 +242,6 @@ export function useDeleteManualTransaction(): UseMutationResult<void, Error, str
   });
 }
 
-interface UpdateLineItemData {
-  lineItemId: string;
-  notes?: string;
-}
-
-export function useUpdateLineItem(): UseMutationResult<LineItemInterface, Error, UpdateLineItemData> {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ lineItemId, ...data }: UpdateLineItemData) => {
-      const response = await axiosInstance.patch(`api/line_items/${lineItemId}`, data);
-      return response.data.data as LineItemInterface;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['lineItems'] });
-      queryClient.invalidateQueries({ queryKey: ['eventLineItems'] });
-    },
-  });
-}
-
 export function useDeleteEvent(): UseMutationResult<void, Error, string> {
   const queryClient = useQueryClient();
 
