@@ -158,7 +158,7 @@ describe('EventHintsSettings', () => {
             );
 
             // At least some up buttons should be disabled (first hint in each view)
-            const disabledUpButtons = upButtons.filter(button => button.disabled);
+            const disabledUpButtons = upButtons.filter(button => (button as HTMLButtonElement).disabled);
             expect(disabledUpButtons.length).toBeGreaterThan(0);
         });
 
@@ -176,7 +176,7 @@ describe('EventHintsSettings', () => {
             );
 
             // At least some down buttons should be disabled (last hint in each view)
-            const disabledDownButtons = downButtons.filter(button => button.disabled);
+            const disabledDownButtons = downButtons.filter(button => (button as HTMLButtonElement).disabled);
             expect(disabledDownButtons.length).toBeGreaterThan(0);
         });
 
@@ -195,7 +195,7 @@ describe('EventHintsSettings', () => {
             // We'll use the table structure to find it
             const allButtons = screen.getAllByRole('button');
             const upButtons = allButtons.filter(
-                button => button.querySelector('svg.lucide-chevron-up') && !button.disabled
+                button => button.querySelector('svg.lucide-chevron-up') && !(button as HTMLButtonElement).disabled
             );
 
             // Click the first enabled up button (should be the second hint)
@@ -224,7 +224,7 @@ describe('EventHintsSettings', () => {
             // Find the first hint's down button
             const allButtons = screen.getAllByRole('button');
             const downButtons = allButtons.filter(
-                button => button.querySelector('svg.lucide-chevron-down') && !button.disabled
+                button => button.querySelector('svg.lucide-chevron-down') && !(button as HTMLButtonElement).disabled
             );
 
             // Click the first enabled down button (should be the first hint)
@@ -257,7 +257,7 @@ describe('EventHintsSettings', () => {
             // Find and click a down button
             const allButtons = screen.getAllByRole('button');
             const downButtons = allButtons.filter(
-                button => button.querySelector('svg.lucide-chevron-down') && !button.disabled
+                button => button.querySelector('svg.lucide-chevron-down') && !(button as HTMLButtonElement).disabled
             );
 
             await userEvent.click(downButtons[0]);
@@ -299,7 +299,7 @@ describe('EventHintsSettings', () => {
                 button => button.querySelector('svg.lucide-chevron-up')
             );
 
-            const disabledUpButtons = upButtons.filter(button => button.disabled);
+            const disabledUpButtons = upButtons.filter(button => (button as HTMLButtonElement).disabled);
             expect(disabledUpButtons.length).toBeGreaterThan(0);
 
             // No reorder API call should have been made
@@ -322,7 +322,7 @@ describe('EventHintsSettings', () => {
                 button => button.querySelector('svg.lucide-chevron-down')
             );
 
-            const disabledDownButtons = downButtons.filter(button => button.disabled);
+            const disabledDownButtons = downButtons.filter(button => (button as HTMLButtonElement).disabled);
             expect(disabledDownButtons.length).toBeGreaterThan(0);
 
             // No reorder API call should have been made

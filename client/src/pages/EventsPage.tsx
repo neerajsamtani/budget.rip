@@ -6,6 +6,7 @@ import { CurrencyFormatter } from "@/utils/formatters";
 import { ChevronDown, ChevronUp, Filter } from "lucide-react";
 import { DateTime } from "luxon";
 import React, { useState } from "react";
+import { NON_SPENDING_CATEGORIES } from "../components/charts/chart-utils";
 import CategoryFilter from "../components/CategoryFilter";
 import Event, { EventCard, EventInterface } from "../components/Event";
 import MonthFilter from "../components/MonthFilter";
@@ -46,9 +47,7 @@ export default function EventsPage() {
             .filter(event =>
                 matchCategory(event) &&
                 matchTags(event) &&
-                event.category !== "Rent" &&
-                event.category !== "Income" &&
-                event.category !== "Investment"
+                !NON_SPENDING_CATEGORIES.includes(event.category)
             );
         const sum = filteredEvents.reduce((acc, event) => acc + event.amount, 0);
         return sum;

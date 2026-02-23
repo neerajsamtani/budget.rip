@@ -176,6 +176,16 @@ const mockEvents = [
 ];
 
 describe('EventsPage', () => {
+    beforeAll(() => {
+        // Freeze time to January 15, 2024 so date-dependent assertions are stable
+        jest.useFakeTimers();
+        jest.setSystemTime(new Date('2024-01-15T00:00:00Z'));
+    });
+
+    afterAll(() => {
+        jest.useRealTimers();
+    });
+
     beforeEach(() => {
         jest.clearAllMocks();
         // Set up default environment variable

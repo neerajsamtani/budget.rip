@@ -52,10 +52,21 @@ if (!global.URL.revokeObjectURL) {
     global.URL.revokeObjectURL = jest.fn();
 }
 
-// Mock react-plotly.js to avoid canvas issues
-jest.mock('react-plotly.js', () => {
-    return function MockPlot(props: Record<string, unknown>) {
-        return <div data-testid="plotly-chart" {...props} />;
+// Mock recharts to avoid SVG rendering issues in jsdom
+jest.mock('recharts', () => {
+    const Original = jest.requireActual('recharts');
+    return {
+        ...Original,
+        ResponsiveContainer: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+        BarChart: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+        LineChart: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+        Bar: () => null,
+        Line: () => null,
+        XAxis: () => null,
+        YAxis: () => null,
+        CartesianGrid: () => null,
+        Tooltip: () => null,
+        Cell: () => null,
     };
 });
 
@@ -66,7 +77,7 @@ interface ToasterProps {
     richColors?: boolean;
 }
 
-const mockToaster = jest.fn(() => <div data-testid="toaster" />);
+const mockToaster = jest.fn((_props?: ToasterProps) => <div data-testid="toaster" />);
 jest.mock('sonner', () => {
     const mockToast = jest.fn();
     return {

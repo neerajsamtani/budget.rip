@@ -1,17 +1,17 @@
 import userEvent from '@testing-library/user-event';
 import React, { useState } from 'react';
 import { render, screen } from '../../utils/test-utils';
-import YearFilter from '../YearFilter';
+import YearFilter, { type Year } from '../YearFilter';
 
-function YearFilterControlledWrapper({ initialValue = '2024' }: { initialValue?: string }) {
-    const [value, setValue] = useState(initialValue);
+function YearFilterControlledWrapper({ initialValue = '2024' as Year }: { initialValue?: Year }) {
+    const [value, setValue] = useState<Year>(initialValue);
     return <YearFilter year={value} setYear={setValue} />;
 }
 
 describe('YearFilter', () => {
     let rerender: (_ui: React.ReactElement) => void;
 
-    function setup(initialValue = '2024') {
+    function setup(initialValue: Year = '2024') {
         const { rerender: setRerender } = render(<YearFilter year={initialValue} setYear={jest.fn()} />);
         rerender = setRerender;
     }
@@ -101,7 +101,7 @@ describe('YearFilter', () => {
         });
 
         it('all valid year values are handled', () => {
-            const years = ['2022', '2023', '2024', '2025'];
+            const years: Year[] = ['2022', '2023', '2024', '2025'];
             years.forEach(year => {
                 setup(year);
                 expect(screen.getByText(year)).toBeInTheDocument();
