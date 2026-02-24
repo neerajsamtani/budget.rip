@@ -14,4 +14,12 @@ export const chartColorSequence = [
   nordicChartColors.warning,
   nordicChartColors.neutral,
   nordicChartColors.error,
+  '#0891B2',  // Cyan
+  '#65A30D',  // Lime
+  '#CA8A04',  // Yellow
+  '#EA580C',  // Orange
+  '#DB2777',  // Pink
+  '#4338CA',  // Indigo
+  '#0D9488',  // Teal
+  '#B45309',  // Amber
 ];

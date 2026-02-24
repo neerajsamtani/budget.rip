@@ -21,6 +21,9 @@ const buttonVariants = cva(
         // Destructive button
         destructive: "bg-semantic-error text-white hover:bg-semantic-error-dark focus-visible:ring-semantic-error",
 
+        // Outline button
+        outline: "bg-transparent text-foreground border border-input hover:bg-muted focus-visible:ring-muted-foreground",
+
         // Link button
         link: "text-primary underline-offset-4 hover:underline focus-visible:ring-primary",
       },

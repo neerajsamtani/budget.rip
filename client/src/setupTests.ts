@@ -24,10 +24,14 @@ afterAll(() => {
 
 // Mock IntersectionObserver if not available in test environment
 (global as typeof globalThis).IntersectionObserver = class IntersectionObserver {
+    readonly root: Element | null = null;
+    readonly rootMargin: string = '';
+    readonly thresholds: readonly number[] = [];
     constructor() { }
     disconnect() { }
     observe() { }
     unobserve() { }
+    takeRecords(): IntersectionObserverEntry[] { return []; }
 };
 
 // Mock ResizeObserver if not available in test environment

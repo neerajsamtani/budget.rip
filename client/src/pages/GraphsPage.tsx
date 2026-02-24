@@ -1,83 +1,86 @@
 import { Spinner } from "@/components/ui/spinner";
-import React, { lazy, Suspense, useEffect, useState } from "react";
+import { Table2 } from "lucide-react";
+import { DateTime } from "luxon";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { buildChartConfig, filterByCategories, filterByYear, getAvailableYears, NON_SPENDING_CATEGORIES } from "../components/charts/chart-utils";
+import CumulativeSpendingChart from "../components/charts/CumulativeSpendingChart";
+import SpendingDrillDown from "../components/charts/SpendingDrillDown";
+import SpendingTable from "../components/charts/SpendingTable";
+import StackedSpendingChart from "../components/charts/StackedSpendingChart";
+import MultiSelectFilter from "../components/MultiSelectFilter";
+import { Button } from "../components/ui/button";
 import { PageContainer, PageHeader } from "../components/ui/layout";
 import { Body, H1 } from "../components/ui/typography";
-import { useMonthlyBreakdown } from "../hooks/useApi";
-import { chartColorSequence } from '../lib/chart-colors';
-
-const Plot = lazy(() => import('react-plotly.js'));
+import YearFilter from "../components/YearFilter";
+import { useCategories, useEvents, useMonthlyBreakdown } from "../hooks/useApi";
 
 export default function GraphsPage() {
-  const { data: categorizedData = {}, isLoading, error } = useMonthlyBreakdown()
-  const [isMobile, setIsMobile] = useState(false);
+  const [year, setYear] = useState<string>(() => String(DateTime.utc().year));
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [viewMode, setViewMode] = useState<'chart' | 'table'>('chart');
+  const [drillDown, setDrillDown] = useState<{ category: string; date: string } | null>(null);
 
+  const { data: breakdownData = {}, isLoading: isLoadingBreakdown, error: breakdownError } = useMonthlyBreakdown();
+  const availableYears = useMemo(() => getAvailableYears(breakdownData), [breakdownData]);
+  const { data: categories = [] } = useCategories();
+
+  // Initialize selectedCategories once categories load — exclude Income and Investment by default
+  const categoriesInitialized = useRef(false);
   useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768);
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
+    if (categories.length > 0 && !categoriesInitialized.current) {
+      categoriesInitialized.current = true;
+      setSelectedCategories(categories.map(c => c.name).filter(n => !NON_SPENDING_CATEGORIES.includes(n)));
+    }
+  }, [categories]);
 
-  const data = Object.keys(categorizedData)
-    .filter(category => Array.isArray(categorizedData[category]))
-    .map((category, index) => {
-      const amounts = categorizedData[category].map((item) => item.amount);
-      return {
-        x: categorizedData[category].map((item) => item.date),
-        y: amounts,
-        type: 'bar',
-        name: category,
-        marker: {
-          color: chartColorSequence[index % chartColorSequence.length]
-        }
-      };
-    });
+  // Compute time range for events from selected year
+  const { startTime, endTime } = useMemo(() => {
+    const start = DateTime.fromFormat(year, "yyyy", { zone: 'utc' });
+    return {
+      startTime: start.toUnixInteger(),
+      endTime: start.endOf("year").toUnixInteger(),
+    };
+  }, [year]);
 
-  const layout = {
-    barmode: 'relative',
-    xaxis: {
-      title: isMobile ? '' : 'Date',
-      gridcolor: '#F5F5F5',
-      linecolor: '#E0E0E0',
-      tickangle: -45,
-      tickfont: { size: isMobile ? 9 : 12 },
-      nticks: isMobile ? 6 : 12,
-      tickmode: 'auto',
-    },
-    yaxis: {
-      title: isMobile ? '' : 'Amount',
-      gridcolor: '#F5F5F5',
-      linecolor: '#E0E0E0',
-      tickfont: { size: isMobile ? 10 : 12 },
-    },
-    autosize: true,
-    margin: isMobile
-      ? { l: 40, r: 10, t: 10, b: 60 }
-      : { l: 60, r: 30, t: 30, b: 60 },
-    // Nordic styling
-    paper_bgcolor: '#FFFFFF',
-    plot_bgcolor: '#FFFFFF',
-    font: {
-      family: 'Source Sans Pro, sans-serif',
-      size: isMobile ? 10 : 12,
-      color: '#374151'
-    },
-    colorway: chartColorSequence,
-    legend: isMobile ? {
-      orientation: 'h',
-      y: -0.3,
-      x: 0.5,
-      xanchor: 'center',
-      font: { size: 10 },
-    } : {
-      orientation: 'v',
-      y: 0.5,
-      x: 1.02,
-      xanchor: 'left',
-    },
-    showlegend: true,
-  };
+  const { data: allEvents = [] } = useEvents(startTime, endTime);
+  const events = useMemo(
+    () => allEvents.filter(e => selectedCategories.includes(e.category)),
+    [allEvents, selectedCategories]
+  );
 
+  // Shared category-filtered breakdown data
+  const categoryFilteredData = useMemo(
+    () => filterByCategories(breakdownData, selectedCategories),
+    [breakdownData, selectedCategories]
+  );
+
+  const stackedData = useMemo(
+    () => filterByYear(categoryFilteredData, year),
+    [categoryFilteredData, year]
+  );
+
+  const chartConfig = useMemo(
+    () => buildChartConfig(Object.keys(stackedData).filter(k => Array.isArray(stackedData[k]))),
+    [stackedData]
+  );
+  const colorMap = useMemo(
+    () => Object.fromEntries(Object.keys(chartConfig).map(cat => [cat, chartConfig[cat]?.color ?? ''])),
+    [chartConfig]
+  );
+
+
+  if (breakdownError) {
+    return (
+      <PageContainer>
+        <PageHeader>
+          <H1>Graphs</H1>
+        </PageHeader>
+        <div className="flex items-center justify-center h-64">
+          <Body className="text-destructive">Error loading data. Please try again.</Body>
+        </div>
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer>
@@ -88,41 +91,57 @@ export default function GraphsPage() {
         </Body>
       </PageHeader>
 
-      <div className="space-y-6">
-        <div className="bg-white rounded-xl border p-2 md:p-6 shadow-sm overflow-x-auto">
-          {isLoading ? (
-            <div className="flex items-center justify-center h-64 md:h-96">
-              <Spinner size="md" className="text-muted-foreground" />
-            </div>
-          ) : error ? (
-            <div className="flex items-center justify-center h-64 md:h-96">
-              <Body className="text-destructive">Error loading data. Please try again.</Body>
-            </div>
-          ) : (
-            <Suspense fallback={
-              <div className="flex items-center justify-center h-64 md:h-96">
-                <Spinner size="md" className="text-muted-foreground" />
-              </div>
-            }>
-              <Plot
-                data={data}
-                layout={layout}
-                config={{
-                  displayModeBar: false,
-                  responsive: true,
-                  scrollZoom: false,
-                }}
-                style={{
-                  width: '100%',
-                  height: isMobile ? '350px' : '500px',
-                }}
-                useResizeHandler={true}
-                className="w-full"
-              />
-            </Suspense>
-          )}
+      {isLoadingBreakdown ? (
+        <div className="flex items-center justify-center h-64">
+          <Spinner size="md" className="text-muted-foreground" />
         </div>
-      </div>
+      ) : (
+        <div className="space-y-8">
+          {/* Shared filters */}
+          <div className="flex flex-wrap items-end gap-3">
+            <YearFilter years={availableYears} year={year} setYear={setYear} />
+            <MultiSelectFilter
+              label="Category"
+              options={categories}
+              selected={selectedCategories}
+              onChange={setSelectedCategories}
+            />
+          </div>
+
+          {/* Stacked Spending */}
+          <div className="bg-white rounded-xl border p-4 md:p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold">Monthly Spending by Category</h2>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setViewMode(viewMode === 'table' ? 'chart' : 'table')}
+              >
+                <Table2 className="size-4" />
+                {viewMode === 'table' ? 'Hide table' : 'Show table'}
+              </Button>
+            </div>
+            <StackedSpendingChart data={stackedData} chartConfig={chartConfig} />
+            {viewMode === 'table' && (
+              <SpendingTable data={stackedData} colorMap={colorMap} onCellClick={(cat, date) => setDrillDown({ category: cat, date })} />
+            )}
+          </div>
+          <SpendingDrillDown
+            open={drillDown !== null}
+            category={drillDown?.category ?? ''}
+            date={drillDown?.date ?? ''}
+            events={events}
+            onClose={() => setDrillDown(null)}
+          />
+
+          {/* Cumulative Spending (all years) */}
+          <div className="bg-white rounded-xl border p-4 md:p-6 shadow-sm">
+            <h2 className="text-lg font-semibold mb-4">Cumulative Spending (Year over Year)</h2>
+            <CumulativeSpendingChart data={categoryFilteredData} />
+          </div>
+
+        </div>
+      )}
     </PageContainer>
   );
 }

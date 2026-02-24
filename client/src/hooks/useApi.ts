@@ -67,7 +67,7 @@ export function useEventLineItems(eventId: string): UseQueryResult<LineItemInter
   });
 }
 
-interface MonthlyBreakdownData {
+export interface MonthlyBreakdownData {
   [category: string]: Array<{ amount: number; date: string }>;
 }
 

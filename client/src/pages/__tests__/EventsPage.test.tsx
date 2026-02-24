@@ -176,6 +176,16 @@ const mockEvents = [
 ];
 
 describe('EventsPage', () => {
+    beforeAll(() => {
+        // Freeze time to January 15, 2024 so date-dependent assertions are stable
+        jest.useFakeTimers();
+        jest.setSystemTime(new Date('2024-01-15T00:00:00Z'));
+    });
+
+    afterAll(() => {
+        jest.useRealTimers();
+    });
+
     beforeEach(() => {
         jest.clearAllMocks();
         // Set up default environment variable
@@ -426,12 +436,12 @@ describe('EventsPage', () => {
             });
         });
 
-        it('spending excludes rent and income', async () => {
+        it('spending excludes income and investment', async () => {
             render(<EventsPage />);
 
             await waitFor(() => {
-                // Spending should exclude Rent and Income: 50 + 100 + 25 = 175
-                expect(screen.getByText('$175.00')).toBeInTheDocument();
+                // Spending should exclude Income and Investment: 50 + 100 + 2000 + 25 = 2175
+                expect(screen.getByText('$2,175.00')).toBeInTheDocument();
             });
         });
 
@@ -733,7 +743,7 @@ describe('EventsPage', () => {
             await waitFor(() => {
                 // Summary cards should show actual values
                 expect(screen.getByText('$7,175.00')).toBeInTheDocument();
-                expect(screen.getByText('$175.00')).toBeInTheDocument();
+                expect(screen.getByText('$2,175.00')).toBeInTheDocument();
             });
 
             // Skeletons should be gone

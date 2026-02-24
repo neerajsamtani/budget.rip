@@ -56,7 +56,6 @@ const TestComponent = () => {
 
 const mockLineItems: LineItemInterface[] = [
     {
-        _id: '1',
         id: '1',
         date: 1640995200,
         payment_method: 'credit_card',
@@ -66,7 +65,6 @@ const mockLineItems: LineItemInterface[] = [
         isSelected: false,
     },
     {
-        _id: '2',
         id: '2',
         date: 1640995200,
         payment_method: 'cash',

@@ -12,14 +12,8 @@ import FinancialConnectionsForm from "../components/FinancialConnectionsForm";
 import { PageContainer, PageHeader } from "../components/ui/layout";
 import { StatusBadge } from "../components/ui/status-badge";
 import { Body, H1, H4 } from "../components/ui/typography";
-import { useAccountsAndBalances, useConnectedAccounts, useCreateFinancialConnectionsSession, useRefreshAccount, useRelinkAccount, useSubscribeToAccount } from "../hooks/useApi";
+import { ConnectedAccount, StripeAccount, useAccountsAndBalances, useConnectedAccounts, useCreateFinancialConnectionsSession, useRefreshAccount, useRelinkAccount, useSubscribeToAccount } from "../hooks/useApi";
 import { CurrencyFormatter, DateFormatter } from "../utils/formatters";
-
-interface ConnectedAccount {
-    venmo?: string[];
-    splitwise?: string[];
-    stripe?: FinancialConnectionsSession.Account[];
-}
 
 export default function ConnectedAccountsPage({ stripePromise }: { stripePromise: Promise<Stripe | null> }) {
     const [clientSecret, setClientSecret] = useState("");
@@ -241,7 +235,7 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
         return null;
     };
 
-    const renderStripeAccount = (stripeAccount: FinancialConnectionsSession.Account) => {
+    const renderStripeAccount = (stripeAccount: StripeAccount) => {
         const canRelink = accountsAndBalances[stripeAccount.id]?.can_relink ?? false;
         return (
             <TableRow key={stripeAccount.id}>
@@ -377,7 +371,7 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
         return null;
     };
 
-    const renderInactiveAccountCard = (stripeAccount: FinancialConnectionsSession.Account) => {
+    const renderInactiveAccountCard = (stripeAccount: StripeAccount) => {
         const canRelink = accountsAndBalances[stripeAccount.id]?.can_relink ?? false;
         return (
             <AccountCard

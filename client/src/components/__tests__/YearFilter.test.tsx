@@ -3,16 +3,18 @@ import React, { useState } from 'react';
 import { render, screen } from '../../utils/test-utils';
 import YearFilter from '../YearFilter';
 
-function YearFilterControlledWrapper({ initialValue = '2024' }: { initialValue?: string }) {
-    const [value, setValue] = useState(initialValue);
-    return <YearFilter year={value} setYear={setValue} />;
+const TEST_YEARS = ['2022', '2023', '2024', '2025', '2026'];
+
+function YearFilterControlledWrapper({ initialValue = '2024', years = TEST_YEARS }: { initialValue?: string; years?: string[] }) {
+    const [value, setValue] = useState<string>(initialValue);
+    return <YearFilter years={years} year={value} setYear={setValue} />;
 }
 
 describe('YearFilter', () => {
     let rerender: (_ui: React.ReactElement) => void;
 
-    function setup(initialValue = '2024') {
-        const { rerender: setRerender } = render(<YearFilter year={initialValue} setYear={jest.fn()} />);
+    function setup(initialValue: string = '2024') {
+        const { rerender: setRerender } = render(<YearFilter years={TEST_YEARS} year={initialValue} setYear={jest.fn()} />);
         rerender = setRerender;
     }
 
@@ -39,16 +41,12 @@ describe('YearFilter', () => {
             const trigger = screen.getByRole('combobox');
             await userEvent.click(trigger);
 
-            // Check that all option roles exist
             const options = screen.getAllByRole('option');
-            expect(options).toHaveLength(5);
+            expect(options).toHaveLength(TEST_YEARS.length);
 
-            // Check specific option text content
-            expect(options[0]).toHaveTextContent('2022');
-            expect(options[1]).toHaveTextContent('2023');
-            expect(options[2]).toHaveTextContent('2024');
-            expect(options[3]).toHaveTextContent('2025');
-            expect(options[4]).toHaveTextContent('2026');
+            TEST_YEARS.forEach((year, i) => {
+                expect(options[i]).toHaveTextContent(year);
+            });
         });
     });
 
@@ -60,7 +58,6 @@ describe('YearFilter', () => {
             await userEvent.click(trigger);
             await userEvent.click(screen.getByText('2023'));
 
-            // Check that the trigger now shows the selected value
             expect(trigger).toHaveTextContent('2023');
         });
 
@@ -79,7 +76,7 @@ describe('YearFilter', () => {
         it('display value is updated when year prop changes', () => {
             setup('2024');
             expect(screen.getByText('2024')).toBeInTheDocument();
-            rerender(<YearFilter year='2023' setYear={jest.fn()} />);
+            rerender(<YearFilter years={TEST_YEARS} year='2023' setYear={jest.fn()} />);
             expect(screen.getByText('2023')).toBeInTheDocument();
         });
 
@@ -118,7 +115,6 @@ describe('YearFilter', () => {
         it('proper input group structure is present', () => {
             setup();
             expect(screen.getByText('Year')).toBeInTheDocument();
-            expect(screen.getByText('Year')).toBeInTheDocument();
         });
 
         it('proper select element is present', () => {
@@ -146,12 +142,10 @@ describe('YearFilter', () => {
             await userEvent.click(trigger);
 
             const options = screen.getAllByRole('option');
-            expect(options).toHaveLength(5);
-            expect(options[0]).toHaveTextContent('2022');
-            expect(options[1]).toHaveTextContent('2023');
-            expect(options[2]).toHaveTextContent('2024');
-            expect(options[3]).toHaveTextContent('2025');
-            expect(options[4]).toHaveTextContent('2026');
+            expect(options).toHaveLength(TEST_YEARS.length);
+            TEST_YEARS.forEach((year, i) => {
+                expect(options[i]).toHaveTextContent(year);
+            });
         });
 
         it('focus is maintained during selection', async () => {
@@ -169,19 +163,16 @@ describe('YearFilter', () => {
         it('rapid year changes are handled correctly', async () => {
             render(<YearFilterControlledWrapper initialValue="2024" />);
 
-            // First change
             let trigger = screen.getByRole('combobox');
             await userEvent.click(trigger);
             await userEvent.click(screen.getByText('2022'));
             expect(trigger).toHaveTextContent('2022');
 
-            // Second change
             trigger = screen.getByRole('combobox');
             await userEvent.click(trigger);
             await userEvent.click(screen.getByText('2025'));
             expect(trigger).toHaveTextContent('2025');
 
-            // Third change
             trigger = screen.getByRole('combobox');
             await userEvent.click(trigger);
             await userEvent.click(screen.getByText('2023'));
@@ -191,7 +182,7 @@ describe('YearFilter', () => {
         it('state is maintained after prop updates', () => {
             setup('2024');
             expect(screen.getByText('2024')).toBeInTheDocument();
-            rerender(<YearFilter year={'2022' as any} setYear={jest.fn()} />);
+            rerender(<YearFilter years={TEST_YEARS} year='2022' setYear={jest.fn()} />);
             expect(screen.getByText('2022')).toBeInTheDocument();
         });
 
@@ -215,7 +206,7 @@ describe('YearFilter', () => {
         it('display is updated when year changes', () => {
             setup('2022');
             expect(screen.getByText('2022')).toBeInTheDocument();
-            rerender(<YearFilter year={'2025' as any} setYear={jest.fn()} />);
+            rerender(<YearFilter years={TEST_YEARS} year='2025' setYear={jest.fn()} />);
             expect(screen.getByText('2025')).toBeInTheDocument();
         });
 
@@ -227,7 +218,6 @@ describe('YearFilter', () => {
             await userEvent.click(screen.getByText('2023'));
             expect(trigger).toHaveTextContent('2023');
 
-            // Unmount and re-render with new initial value
             unmount();
             render(<YearFilterControlledWrapper initialValue="2025" />);
             const newTrigger = screen.getByRole('combobox');
@@ -236,13 +226,13 @@ describe('YearFilter', () => {
     });
 
     describe('Year Options', () => {
-        it('exactly 5 year options are rendered', async () => {
+        it('correct number of year options are rendered', async () => {
             setup();
             const trigger = screen.getByRole('combobox');
             await userEvent.click(trigger);
 
             const options = screen.getAllByRole('option');
-            expect(options).toHaveLength(5);
+            expect(options).toHaveLength(TEST_YEARS.length);
         });
 
         it('years are rendered in correct order', async () => {
@@ -251,11 +241,9 @@ describe('YearFilter', () => {
             await userEvent.click(trigger);
 
             const options = screen.getAllByRole('option');
-            expect(options[0]).toHaveTextContent('2022');
-            expect(options[1]).toHaveTextContent('2023');
-            expect(options[2]).toHaveTextContent('2024');
-            expect(options[3]).toHaveTextContent('2025');
-            expect(options[4]).toHaveTextContent('2026');
+            TEST_YEARS.forEach((year, i) => {
+                expect(options[i]).toHaveTextContent(year);
+            });
         });
 
         it('all options have correct values', async () => {
@@ -264,18 +252,29 @@ describe('YearFilter', () => {
             await userEvent.click(trigger);
 
             const options = screen.getAllByRole('option');
-            expect(options[0]).toHaveTextContent('2022');
-            expect(options[1]).toHaveTextContent('2023');
-            expect(options[2]).toHaveTextContent('2024');
-            expect(options[3]).toHaveTextContent('2025');
-            expect(options[4]).toHaveTextContent('2026');
+            TEST_YEARS.forEach((year, i) => {
+                expect(options[i]).toHaveTextContent(year);
+            });
+        });
+
+        it('renders options from the years prop', async () => {
+            const customYears = ['2020', '2021', '2022'];
+            render(<YearFilter years={customYears} year='2021' setYear={jest.fn()} />);
+            const trigger = screen.getByRole('combobox');
+            await userEvent.click(trigger);
+
+            const options = screen.getAllByRole('option');
+            expect(options).toHaveLength(3);
+            expect(options[0]).toHaveTextContent('2020');
+            expect(options[1]).toHaveTextContent('2021');
+            expect(options[2]).toHaveTextContent('2022');
         });
     });
 
     describe('Event Handling', () => {
         it('setYear is called with correct value on change', async () => {
             const mockSetYear = jest.fn();
-            render(<YearFilter year={'2024' as any} setYear={mockSetYear} />);
+            render(<YearFilter years={TEST_YEARS} year='2024' setYear={mockSetYear} />);
 
             const trigger = screen.getByRole('combobox');
             await userEvent.click(trigger);
@@ -286,7 +285,7 @@ describe('YearFilter', () => {
 
         it('multiple consecutive changes are handled correctly', async () => {
             const mockSetYear = jest.fn();
-            render(<YearFilter year={'2024' as any} setYear={mockSetYear} />);
+            render(<YearFilter years={TEST_YEARS} year='2024' setYear={mockSetYear} />);
 
             const trigger = screen.getByRole('combobox');
 
@@ -300,4 +299,4 @@ describe('YearFilter', () => {
             expect(mockSetYear).toHaveBeenCalledWith('2025');
         });
     });
-}); 
+});

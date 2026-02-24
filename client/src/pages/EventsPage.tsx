@@ -6,6 +6,7 @@ import { CurrencyFormatter } from "@/utils/formatters";
 import { ChevronDown, ChevronUp, Filter } from "lucide-react";
 import { DateTime } from "luxon";
 import React, { useState } from "react";
+import { NON_SPENDING_CATEGORIES } from "../components/charts/chart-utils";
 import CategoryFilter from "../components/CategoryFilter";
 import Event, { EventCard, EventInterface } from "../components/Event";
 import MonthFilter from "../components/MonthFilter";
@@ -13,7 +14,7 @@ import TagsFilter from "../components/TagsFilter";
 import { PageContainer, PageHeader } from "../components/ui/layout";
 import { StatusBadge } from "../components/ui/status-badge";
 import { Body, H1 } from "../components/ui/typography";
-import YearFilter, { type Year } from "../components/YearFilter";
+import YearFilter from "../components/YearFilter";
 import { useEvents } from "../hooks/useApi";
 
 export default function EventsPage() {
@@ -22,6 +23,7 @@ export default function EventsPage() {
     const [category, setCategory] = useState("All")
     const [month, setMonth] = useState(now.monthLong)
     const [year, setYear] = useState(String(now.year))
+    const years = Array.from({ length: now.year - 2021 }, (_, i) => String(2022 + i))
     const [tagFilter, setTagFilter] = useState<string>('');
     const [filtersOpen, setFiltersOpen] = useState(false);
 
@@ -46,9 +48,7 @@ export default function EventsPage() {
             .filter(event =>
                 matchCategory(event) &&
                 matchTags(event) &&
-                event.category !== "Rent" &&
-                event.category !== "Income" &&
-                event.category !== "Investment"
+                !NON_SPENDING_CATEGORIES.includes(event.category)
             );
         const sum = filteredEvents.reduce((acc, event) => acc + event.amount, 0);
         return sum;
@@ -113,7 +113,7 @@ export default function EventsPage() {
                 <div className={`space-y-4 ${filtersOpen ? 'block' : 'hidden'} md:block`}>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
                         <MonthFilter month={month} setMonth={setMonth} />
-                        <YearFilter year={year as Year} setYear={setYear} />
+                        <YearFilter years={years} year={year} setYear={setYear} />
                         <CategoryFilter category={category} setCategory={setCategory} />
                         <TagsFilter tagFilter={tagFilter} setTagFilter={setTagFilter} />
                     </div>
