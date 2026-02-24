@@ -3,6 +3,7 @@ import {
   filterByYear,
   formatMonthYear,
   getAvailableYears,
+  getCategorySign,
   toRowPerDate,
 } from '../charts/chart-utils';
 
@@ -61,6 +62,37 @@ describe('filterByCategories', () => {
 
   it('empty array returns all categories unchanged', () => {
     expect(filterByCategories(data, [])).toBe(data);
+  });
+});
+
+describe('getCategorySign', () => {
+  it('classifies a category as neg when majority of months have negative values', () => {
+    const data = {
+      Income: [
+        { date: '1-2024', amount: -500 },
+        { date: '2-2024', amount: -300 },
+        { date: '3-2024', amount: 100 },
+      ],
+    };
+    expect(getCategorySign(data)).toEqual({ Income: 'neg' });
+  });
+
+  it('classifies a category as pos when majority of months have positive values', () => {
+    const data = {
+      Dining: [
+        { date: '1-2024', amount: 100 },
+        { date: '2-2024', amount: 200 },
+        { date: '3-2024', amount: -50 },
+      ],
+    };
+    expect(getCategorySign(data)).toEqual({ Dining: 'pos' });
+  });
+
+  it('ties (exactly half negative) are classified as pos', () => {
+    const data = {
+      Mixed: [{ date: '1-2024', amount: -100 }, { date: '2-2024', amount: 100 }],
+    };
+    expect(getCategorySign(data)).toEqual({ Mixed: 'pos' });
   });
 });
 

@@ -73,3 +73,49 @@ describe('SpendingTable', () => {
     expect(onCellClick).toHaveBeenCalledWith('all', 'all');
   });
 });
+
+describe('negative categories (income/investment)', () => {
+  const incomeData = {
+    Income: [
+      { date: '1-2024', amount: -500 },
+      { date: '2-2024', amount: -300 },
+    ],
+  };
+
+  it('cell values display as negative', () => {
+    const onCellClick = jest.fn();
+    render(<SpendingTable data={incomeData} colorMap={{ Income: '#00ff00' }} onCellClick={onCellClick} />);
+    const rows = screen.getAllByRole('row');
+    const incomeRow = rows.find(row => within(row).queryByText('Income'))!;
+    const cells = within(incomeRow).getAllByRole('cell');
+    expect(cells[1]).toHaveTextContent('-$500.00');
+  });
+
+  it('row total displays as negative', () => {
+    const onCellClick = jest.fn();
+    render(<SpendingTable data={incomeData} colorMap={{ Income: '#00ff00' }} onCellClick={onCellClick} />);
+    const rows = screen.getAllByRole('row');
+    const incomeRow = rows.find(row => within(row).queryByText('Income'))!;
+    const cells = within(incomeRow).getAllByRole('cell');
+    expect(cells[cells.length - 1]).toHaveTextContent('-$800.00');
+  });
+
+  it('column total displays as negative', () => {
+    const onCellClick = jest.fn();
+    render(<SpendingTable data={incomeData} colorMap={{ Income: '#00ff00' }} onCellClick={onCellClick} />);
+    const rows = screen.getAllByRole('row');
+    const footerRow = rows[rows.length - 1];
+    const cells = within(footerRow).getAllByRole('cell');
+    // cells[1] = Jan '24 column total = -500
+    expect(cells[1]).toHaveTextContent('-$500.00');
+  });
+
+  it('grand total displays as negative', () => {
+    const onCellClick = jest.fn();
+    render(<SpendingTable data={incomeData} colorMap={{ Income: '#00ff00' }} onCellClick={onCellClick} />);
+    const rows = screen.getAllByRole('row');
+    const footerRow = rows[rows.length - 1];
+    const cells = within(footerRow).getAllByRole('cell');
+    expect(cells[cells.length - 1]).toHaveTextContent('-$800.00');
+  });
+});

@@ -36,7 +36,7 @@ export default function MultiSelectFilter({ label, options, selected, onChange }
 
   function handleClear(e: React.MouseEvent) {
     e.stopPropagation();
-    onChange([]);
+    onChange(options.map(o => o.name));
   }
 
   return (
@@ -46,19 +46,22 @@ export default function MultiSelectFilter({ label, options, selected, onChange }
         <PopoverTrigger asChild>
           <button className="border-input flex h-11 w-fit items-center gap-2 rounded-md border bg-transparent px-3 py-2 text-base whitespace-nowrap shadow-xs transition-colors outline-none focus-visible:ring-2">
             <span className={hasSelections ? 'text-foreground' : 'text-muted-foreground'}>
-              {hasSelections
-                ? sortedSelected.length > MAX_DISPLAY
-                  ? `${sortedSelected.slice(0, MAX_DISPLAY).join(', ')} +${sortedSelected.length - MAX_DISPLAY} more`
-                  : sortedSelected.join(', ')
-                : label}
+              {selected.length === options.length && options.length > 0
+                ? 'All'
+                : hasSelections
+                  ? sortedSelected.length > MAX_DISPLAY
+                    ? `${sortedSelected.slice(0, MAX_DISPLAY).join(', ')} +${sortedSelected.length - MAX_DISPLAY} more`
+                    : sortedSelected.join(', ')
+                  : label}
             </span>
-            {hasSelections && (
+            {selected.length > 0 && selected.length < options.length && (
               <XCircle
+                data-testid="clear-selection"
                 className="size-4 shrink-0 text-muted-foreground transition-colors hover:text-destructive"
                 onClick={handleClear}
               />
             )}
-            <ChevronDown className="size-4 shrink-0 opacity-50" />
+            <ChevronDown data-testid="chevron-down" className="size-4 shrink-0 opacity-50" />
           </button>
         </PopoverTrigger>
         <PopoverContent className="w-64 p-0" align="start">

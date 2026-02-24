@@ -1,7 +1,7 @@
 import { MonthlyBreakdownData } from '@/hooks/useApi';
 import React, { useMemo } from 'react';
 import { CurrencyFormatter } from '@/utils/formatters';
-import { formatMonthYear, getMonth, getYear } from './chart-utils';
+import { formatMonthYear, getMonth, getYear, getCategorySign } from './chart-utils';
 
 interface Props {
   data: MonthlyBreakdownData;
@@ -17,6 +17,8 @@ export default function SpendingTable({ data, colorMap, onCellClick }: Props) {
     () => Object.keys(data).filter(k => Array.isArray(data[k])),
     [data]
   );
+
+  const categorySign = useMemo(() => getCategorySign(data), [data]);
 
   const months = useMemo(() => {
     const dateSet = new Set<string>();
@@ -83,7 +85,7 @@ export default function SpendingTable({ data, colorMap, onCellClick }: Props) {
                       className={hasValue ? CLICKABLE_CELL : EMPTY_CELL}
                       onClick={hasValue ? () => onCellClick(category, date) : undefined}
                     >
-                      {hasValue ? <span className="underline">{CurrencyFormatter.format(Math.abs(val!))}</span> : '—'}
+                      {hasValue ? <span className="underline">{CurrencyFormatter.format(categorySign[category] === 'neg' ? val! : Math.abs(val!))}</span> : '—'}
                     </td>
                   );
                 })}
@@ -91,7 +93,7 @@ export default function SpendingTable({ data, colorMap, onCellClick }: Props) {
                   className={total !== 0 ? `${CLICKABLE_CELL} font-medium` : `${EMPTY_CELL} font-medium`}
                   onClick={total !== 0 ? () => onCellClick(category, 'all') : undefined}
                 >
-                  {total !== 0 ? <span className="underline">{CurrencyFormatter.format(Math.abs(total))}</span> : '—'}
+                  {total !== 0 ? <span className="underline">{CurrencyFormatter.format(categorySign[category] === 'neg' ? total : Math.abs(total))}</span> : '—'}
                 </td>
               </tr>
             );
@@ -108,7 +110,7 @@ export default function SpendingTable({ data, colorMap, onCellClick }: Props) {
                   className={total !== 0 ? CLICKABLE_CELL : EMPTY_CELL}
                   onClick={total !== 0 ? () => onCellClick('all', date) : undefined}
                 >
-                  {total !== 0 ? <span className="underline">{CurrencyFormatter.format(Math.abs(total))}</span> : '—'}
+                  {total !== 0 ? <span className="underline">{CurrencyFormatter.format(total)}</span> : '—'}
                 </td>
               );
             })}
@@ -116,7 +118,7 @@ export default function SpendingTable({ data, colorMap, onCellClick }: Props) {
               className={`${CLICKABLE_CELL} font-medium`}
               onClick={() => onCellClick('all', 'all')}
             >
-              <span className="underline">{CurrencyFormatter.format(Math.abs(grandTotal))}</span>
+              <span className="underline">{CurrencyFormatter.format(grandTotal)}</span>
             </td>
           </tr>
         </tfoot>

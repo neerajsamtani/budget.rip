@@ -22,6 +22,21 @@ export function getMonth(dateStr: string): number {
 }
 
 /**
+ * A category is "negative" (income-like) if the majority of its months have negative values.
+ * Using majority-of-months prevents spending categories with occasional reimbursements
+ * from being misclassified as income.
+ */
+export function getCategorySign(data: MonthlyBreakdownData): Record<string, 'pos' | 'neg'> {
+  const signs: Record<string, 'pos' | 'neg'> = {};
+  for (const [cat, entries] of Object.entries(data)) {
+    if (!Array.isArray(entries)) continue;
+    const negCount = entries.filter(e => e.amount < 0).length;
+    signs[cat] = negCount > entries.length / 2 ? 'neg' : 'pos';
+  }
+  return signs;
+}
+
+/**
  * Transforms MonthlyBreakdownData into recharts row-per-date format.
  * Input:  { "Dining": [{date: "1-2023", amount: 100}], "Shopping": [{date: "1-2023", amount: 200}] }
  * Output: [{ date: "1-2023", formattedDate: "Jan '23", Dining: 100, Shopping: 200 }]
