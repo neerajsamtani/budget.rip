@@ -8,15 +8,15 @@ import type { ChartConfig } from '@/components/ui/chart';
 
 interface Props {
   events: EventInterface[];
-  excludedCategories: string[];
+  selectedCategories: string[];
   topN: number;
 }
 
-export default function TopEventsChart({ events, excludedCategories, topN }: Props) {
+export default function TopEventsChart({ events, selectedCategories, topN }: Props) {
   const { rows, chartConfig, categoryColorMap } = useMemo(() => {
-    const excludedSet = new Set(excludedCategories);
-    const filtered = events
-      .filter(e => !excludedSet.has(e.category))
+    const filtered = (selectedCategories.length === 0
+      ? events
+      : events.filter(e => selectedCategories.includes(e.category)))
       .sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount))
       .slice(0, topN);
 
@@ -41,7 +41,7 @@ export default function TopEventsChart({ events, excludedCategories, topN }: Pro
     }));
 
     return { rows: chartRows, chartConfig: config, categoryColorMap: colorMap };
-  }, [events, excludedCategories, topN]);
+  }, [events, selectedCategories, topN]);
 
   if (rows.length === 0) {
     return <p className="text-sm text-muted-foreground text-center py-8">No events to display.</p>;
