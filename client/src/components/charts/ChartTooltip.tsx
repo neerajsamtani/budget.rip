@@ -1,9 +1,6 @@
 import React from 'react';
 import type { TooltipProps } from 'recharts';
-
-function formatCurrency(value: number): string {
-  return `$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
+import { CurrencyFormatter } from '@/utils/formatters';
 
 /**
  * Custom tooltip that filters zero-value items, formats values as currency,
@@ -14,7 +11,7 @@ export function SpendingTooltipContent({ active, payload, label, showTotal = tru
 
   const items = payload
     .filter(item => item.value !== 0 && item.value !== undefined)
-    .sort((a, b) => (Number(b.value) || 0) - (Number(a.value) || 0));
+    .sort((a, b) => String(a.name).localeCompare(String(b.name)));
 
   if (items.length === 0) return null;
 
@@ -33,7 +30,7 @@ export function SpendingTooltipContent({ active, payload, label, showTotal = tru
             <div className="flex flex-1 justify-between items-center gap-4">
               <span className="text-muted-foreground">{String(item.name)}</span>
               <span className="text-foreground font-mono font-medium tabular-nums">
-                {formatCurrency(Number(item.value))}
+                {CurrencyFormatter.format(Number(item.value))}
               </span>
             </div>
           </div>
@@ -46,7 +43,7 @@ export function SpendingTooltipContent({ active, payload, label, showTotal = tru
               <div className="flex flex-1 justify-between items-center gap-4">
                 <span className="font-medium">Total</span>
                 <span className="text-foreground font-mono font-medium tabular-nums">
-                  {formatCurrency(total)}
+                  {CurrencyFormatter.format(total)}
                 </span>
               </div>
             </div>

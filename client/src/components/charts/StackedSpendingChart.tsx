@@ -1,19 +1,19 @@
-import { ChartContainer, ChartTooltip } from '@/components/ui/chart';
+import { ChartContainer, ChartTooltip, type ChartConfig } from '@/components/ui/chart';
 import { SpendingTooltipContent } from './ChartTooltip';
 import { MonthlyBreakdownData } from '@/hooks/useApi';
 import React, { useMemo } from 'react';
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts';
-import { buildChartConfig, toRowPerDate, useHiddenSet } from './chart-utils';
+import { toRowPerDate, useHiddenSet } from './chart-utils';
 import ChartLegend from './ChartLegend';
 
 interface Props {
   data: MonthlyBreakdownData;
+  chartConfig: ChartConfig;
 }
 
-export default function StackedSpendingChart({ data }: Props) {
+export default function StackedSpendingChart({ data, chartConfig }: Props) {
   const [hiddenCategories, toggleCategory] = useHiddenSet();
-  const categories = Object.keys(data).filter(k => Array.isArray(data[k]));
-  const chartConfig = buildChartConfig(categories);
+  const categories = Object.keys(data).filter(k => Array.isArray(data[k])).sort().reverse();
   const colorMap = Object.fromEntries(categories.map(cat => [cat, chartConfig[cat]?.color]));
 
   // A category is "negative" (income-like) only if the majority of its months have negative values.
