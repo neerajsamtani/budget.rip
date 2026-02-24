@@ -14,20 +14,34 @@ export default function StackedSpendingChart({ data }: Props) {
   const [hiddenCategories, toggleCategory] = useHiddenSet();
   const categories = Object.keys(data).filter(k => Array.isArray(data[k]));
   const chartConfig = buildChartConfig(categories);
-  const rows = toRowPerDate(data);
+  const colorMap = Object.fromEntries(categories.map(cat => [cat, chartConfig[cat]?.color]));
 
-  // Determine sign of each category so positive and negative stack independently
+  // A category is "negative" (income-like) only if the majority of its months have negative values.
+  // Using majority-of-months rather than annual sum prevents spending categories with occasional
+  // reimbursements from being misclassified as income.
   const categorySign = useMemo(() => {
     const signs: Record<string, 'pos' | 'neg'> = {};
     for (const [cat, entries] of Object.entries(data)) {
       if (!Array.isArray(entries)) continue;
-      const total = entries.reduce((sum, e) => sum + e.amount, 0);
-      signs[cat] = total < 0 ? 'neg' : 'pos';
+      const negCount = entries.filter(e => e.amount < 0).length;
+      signs[cat] = negCount > entries.length / 2 ? 'neg' : 'pos';
     }
     return signs;
   }, [data]);
 
-  const colorMap = Object.fromEntries(categories.map(cat => [cat, chartConfig[cat]?.color]));
+  // Clip negative values for pos-stack categories to 0 so occasional reimbursements
+  // don't push the Y-axis below zero.
+  const rows = useMemo(() => {
+    return toRowPerDate(data).map(row => {
+      const clipped = { ...row };
+      for (const cat of categories) {
+        if (categorySign[cat] === 'pos' && typeof clipped[cat] === 'number' && (clipped[cat] as number) < 0) {
+          clipped[cat] = 0;
+        }
+      }
+      return clipped;
+    });
+  }, [data, categories, categorySign]);
 
   return (
     <div>

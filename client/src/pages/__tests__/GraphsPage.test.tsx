@@ -85,13 +85,12 @@ describe('GraphsPage', () => {
         });
     });
 
-    it('three chart sections are rendered when data loads', async () => {
+    it('chart sections are rendered when data loads', async () => {
         render(<GraphsPage />);
 
         await waitFor(() => {
             expect(screen.getByText('Monthly Spending by Category')).toBeInTheDocument();
             expect(screen.getByText('Cumulative Spending (Year over Year)')).toBeInTheDocument();
-            expect(screen.getByText(/Top Events/)).toBeInTheDocument();
         });
     });
 

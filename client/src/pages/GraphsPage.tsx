@@ -1,24 +1,24 @@
 import { Spinner } from "@/components/ui/spinner";
 import { DateTime } from "luxon";
+import { BarChart2, Table2 } from "lucide-react";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import CumulativeSpendingChart from "../components/charts/CumulativeSpendingChart";
 import { filterByCategories, filterByYear } from "../components/charts/chart-utils";
+import SpendingDrillDown from "../components/charts/SpendingDrillDown";
+import SpendingTable from "../components/charts/SpendingTable";
 import StackedSpendingChart from "../components/charts/StackedSpendingChart";
-import TopEventsChart from "../components/charts/TopEventsChart";
+import { Button } from "../components/ui/button";
 import { PageContainer, PageHeader } from "../components/ui/layout";
 import { Body, H1 } from "../components/ui/typography";
 import YearFilter, { type Year } from "../components/YearFilter";
 import { useCategories, useEvents, useMonthlyBreakdown } from "../hooks/useApi";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
-import { Label } from "../components/ui/label";
 import MultiSelectFilter from "../components/MultiSelectFilter";
-
-const TOP_N_OPTIONS = ['5', '10', '20'] as const;
 
 export default function GraphsPage() {
   const [year, setYear] = useState<Year>(() => String(DateTime.utc().year) as Year);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [topN, setTopN] = useState<string>('10');
+  const [viewMode, setViewMode] = useState<'chart' | 'table'>('chart');
+  const [drillDown, setDrillDown] = useState<{ category: string; date: string } | null>(null);
 
   const { data: breakdownData = {}, isLoading: isLoadingBreakdown, error: breakdownError } = useMonthlyBreakdown();
   const { data: categories = [] } = useCategories();
@@ -42,7 +42,11 @@ export default function GraphsPage() {
     };
   }, [year]);
 
-  const { data: events = [], isLoading: isLoadingEvents } = useEvents(startTime, endTime);
+  const { data: allEvents = [] } = useEvents(startTime, endTime);
+  const events = useMemo(
+    () => allEvents.filter(e => selectedCategories.includes(e.category)),
+    [allEvents, selectedCategories]
+  );
 
   // Shared category-filtered breakdown data
   const categoryFilteredData = useMemo(
@@ -97,9 +101,39 @@ export default function GraphsPage() {
 
           {/* Stacked Spending */}
           <div className="bg-white rounded-xl border p-4 md:p-6 shadow-sm">
-            <h2 className="text-lg font-semibold mb-4">Monthly Spending by Category</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold">Monthly Spending by Category</h2>
+              <div className="flex rounded-md border overflow-hidden">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setViewMode('chart')}
+                  className={viewMode === 'chart' ? 'bg-muted' : ''}
+                >
+                  <BarChart2 className="size-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setViewMode('table')}
+                  className={viewMode === 'table' ? 'bg-muted' : ''}
+                >
+                  <Table2 className="size-4" />
+                </Button>
+              </div>
+            </div>
             <StackedSpendingChart data={stackedData} />
+            {viewMode === 'table' && (
+              <SpendingTable data={stackedData} onCellClick={(cat, date) => setDrillDown({ category: cat, date })} />
+            )}
           </div>
+          <SpendingDrillDown
+            open={drillDown !== null}
+            category={drillDown?.category ?? ''}
+            date={drillDown?.date ?? ''}
+            events={events}
+            onClose={() => setDrillDown(null)}
+          />
 
           {/* Cumulative Spending (all years) */}
           <div className="bg-white rounded-xl border p-4 md:p-6 shadow-sm">
@@ -107,39 +141,6 @@ export default function GraphsPage() {
             <CumulativeSpendingChart data={categoryFilteredData} />
           </div>
 
-          {/* Top Events */}
-          <div className="bg-white rounded-xl border p-4 md:p-6 shadow-sm">
-            <h2 className="text-lg font-semibold mb-4">Top Events ({year})</h2>
-
-            <div className="flex flex-wrap items-end gap-4 mb-4">
-              {/* Top N selector */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Show Top</Label>
-                <Select value={topN} onValueChange={setTopN}>
-                  <SelectTrigger className="w-24">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white border">
-                    {TOP_N_OPTIONS.map(n => (
-                      <SelectItem key={n} value={n}>{n}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {isLoadingEvents ? (
-              <div className="flex items-center justify-center h-48">
-                <Spinner size="md" className="text-muted-foreground" />
-              </div>
-            ) : (
-              <TopEventsChart
-                events={events}
-                selectedCategories={selectedCategories}
-                topN={parseInt(topN)}
-              />
-            )}
-          </div>
         </div>
       )}
     </PageContainer>
