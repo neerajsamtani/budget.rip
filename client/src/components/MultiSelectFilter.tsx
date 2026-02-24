@@ -18,6 +18,7 @@ export default function MultiSelectFilter({ label, options, selected, onChange }
   const [pending, setPending] = useState<string[]>([]);
 
   const hasSelections = selected.length > 0;
+  const sortedSelected = [...selected].sort();
 
   function handleOpenChange(nextOpen: boolean) {
     if (nextOpen) setPending(selected);
@@ -46,9 +47,9 @@ export default function MultiSelectFilter({ label, options, selected, onChange }
           <button className="border-input flex h-11 w-fit items-center gap-2 rounded-md border bg-transparent px-3 py-2 text-base whitespace-nowrap shadow-xs transition-colors outline-none focus-visible:ring-2">
             <span className={hasSelections ? 'text-foreground' : 'text-muted-foreground'}>
               {hasSelections
-                ? selected.length > MAX_DISPLAY
-                  ? `${selected.slice(0, MAX_DISPLAY).join(', ')} +${selected.length - MAX_DISPLAY} more`
-                  : selected.join(', ')
+                ? sortedSelected.length > MAX_DISPLAY
+                  ? `${sortedSelected.slice(0, MAX_DISPLAY).join(', ')} +${sortedSelected.length - MAX_DISPLAY} more`
+                  : sortedSelected.join(', ')
                 : label}
             </span>
             {hasSelections && (

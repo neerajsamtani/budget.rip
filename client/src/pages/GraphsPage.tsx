@@ -2,7 +2,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { DateTime } from "luxon";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import CumulativeSpendingChart from "../components/charts/CumulativeSpendingChart";
-import { filterByCategories, filterByYear, filterToSpending } from "../components/charts/chart-utils";
+import { filterByCategories, filterByYear } from "../components/charts/chart-utils";
 import StackedSpendingChart from "../components/charts/StackedSpendingChart";
 import TopEventsChart from "../components/charts/TopEventsChart";
 import { PageContainer, PageHeader } from "../components/ui/layout";
@@ -55,10 +55,6 @@ export default function GraphsPage() {
     [categoryFilteredData, year]
   );
 
-  const cumulativeData = useMemo(
-    () => filterByCategories(filterToSpending(breakdownData), selectedCategories),
-    [breakdownData, selectedCategories]
-  );
 
   if (breakdownError) {
     return (
@@ -108,7 +104,7 @@ export default function GraphsPage() {
           {/* Cumulative Spending (all years) */}
           <div className="bg-white rounded-xl border p-4 md:p-6 shadow-sm">
             <h2 className="text-lg font-semibold mb-4">Cumulative Spending (Year over Year)</h2>
-            <CumulativeSpendingChart data={cumulativeData} />
+            <CumulativeSpendingChart data={categoryFilteredData} />
           </div>
 
           {/* Top Events */}

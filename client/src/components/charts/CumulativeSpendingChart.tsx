@@ -73,7 +73,7 @@ export default function CumulativeSpendingChart({ data }: Props) {
           <CartesianGrid strokeDasharray="3 3" vertical={false} />
           <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} />
           <YAxis tickLine={false} axisLine={false} tickFormatter={(v) => `$${v}`} />
-          <ChartTooltip content={<SpendingTooltipContent />} />
+          <ChartTooltip content={<SpendingTooltipContent showTotal={false} />} />
           {years.map((year) => (
             <Line
               key={year}

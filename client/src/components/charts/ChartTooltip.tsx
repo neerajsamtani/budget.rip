@@ -9,7 +9,7 @@ function formatCurrency(value: number): string {
  * Custom tooltip that filters zero-value items, formats values as currency,
  * and shows a total row at the bottom.
  */
-export function SpendingTooltipContent({ active, payload, label }: TooltipProps<number, string>) {
+export function SpendingTooltipContent({ active, payload, label, showTotal = true }: TooltipProps<number, string> & { showTotal?: boolean }) {
   if (!active || !payload?.length) return null;
 
   const items = payload
@@ -38,7 +38,7 @@ export function SpendingTooltipContent({ active, payload, label }: TooltipProps<
             </div>
           </div>
         ))}
-        {items.length > 1 && (
+        {showTotal && items.length > 1 && (
           <>
             <div className="border-t border-border/50 my-0.5" />
             <div className="flex items-center gap-2">
