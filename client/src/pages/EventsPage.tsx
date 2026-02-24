@@ -14,7 +14,7 @@ import TagsFilter from "../components/TagsFilter";
 import { PageContainer, PageHeader } from "../components/ui/layout";
 import { StatusBadge } from "../components/ui/status-badge";
 import { Body, H1 } from "../components/ui/typography";
-import YearFilter, { type Year } from "../components/YearFilter";
+import YearFilter from "../components/YearFilter";
 import { useEvents } from "../hooks/useApi";
 
 export default function EventsPage() {
@@ -23,6 +23,7 @@ export default function EventsPage() {
     const [category, setCategory] = useState("All")
     const [month, setMonth] = useState(now.monthLong)
     const [year, setYear] = useState(String(now.year))
+    const years = Array.from({ length: now.year - 2021 }, (_, i) => String(2022 + i))
     const [tagFilter, setTagFilter] = useState<string>('');
     const [filtersOpen, setFiltersOpen] = useState(false);
 
@@ -112,7 +113,7 @@ export default function EventsPage() {
                 <div className={`space-y-4 ${filtersOpen ? 'block' : 'hidden'} md:block`}>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
                         <MonthFilter month={month} setMonth={setMonth} />
-                        <YearFilter year={year as Year} setYear={setYear} />
+                        <YearFilter years={years} year={year} setYear={setYear} />
                         <CategoryFilter category={category} setCategory={setCategory} />
                         <TagsFilter tagFilter={tagFilter} setTagFilter={setTagFilter} />
                     </div>

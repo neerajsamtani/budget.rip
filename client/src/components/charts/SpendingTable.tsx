@@ -1,21 +1,18 @@
 import { MonthlyBreakdownData } from '@/hooks/useApi';
-import { chartColorSequence } from '@/lib/chart-colors';
 import React, { useMemo } from 'react';
+import { CurrencyFormatter } from '@/utils/formatters';
 import { formatMonthYear, getMonth, getYear } from './chart-utils';
-
-function formatAmount(amount: number): string {
-  return amount.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
-}
 
 interface Props {
   data: MonthlyBreakdownData;
+  colorMap: Record<string, string>;
   onCellClick: (category: string, date: string) => void;
 }
 
 const CLICKABLE_CELL = 'px-3 py-2 text-right tabular-nums cursor-pointer hover:bg-muted';
 const EMPTY_CELL = 'px-3 py-2 text-right tabular-nums text-muted-foreground';
 
-export default function SpendingTable({ data, onCellClick }: Props) {
+export default function SpendingTable({ data, colorMap, onCellClick }: Props) {
   const categories = useMemo(
     () => Object.keys(data).filter(k => Array.isArray(data[k])),
     [data]
@@ -63,8 +60,8 @@ export default function SpendingTable({ data, onCellClick }: Props) {
           </tr>
         </thead>
         <tbody className="[&_tr:last-child]:border-0">
-          {categories.map((category, i) => {
-            const color = chartColorSequence[i % chartColorSequence.length];
+          {categories.map((category) => {
+            const color = colorMap[category] ?? '';
             const total = rowTotal(category);
             return (
               <tr key={category} className="border-b transition-colors hover:bg-gray-50">
@@ -86,7 +83,7 @@ export default function SpendingTable({ data, onCellClick }: Props) {
                       className={hasValue ? CLICKABLE_CELL : EMPTY_CELL}
                       onClick={hasValue ? () => onCellClick(category, date) : undefined}
                     >
-                      {hasValue ? <span className="underline">{formatAmount(Math.abs(val!))}</span> : '—'}
+                      {hasValue ? <span className="underline">{CurrencyFormatter.format(Math.abs(val!))}</span> : '—'}
                     </td>
                   );
                 })}
@@ -94,7 +91,7 @@ export default function SpendingTable({ data, onCellClick }: Props) {
                   className={total !== 0 ? `${CLICKABLE_CELL} font-medium` : `${EMPTY_CELL} font-medium`}
                   onClick={total !== 0 ? () => onCellClick(category, 'all') : undefined}
                 >
-                  {total !== 0 ? <span className="underline">{formatAmount(Math.abs(total))}</span> : '—'}
+                  {total !== 0 ? <span className="underline">{CurrencyFormatter.format(Math.abs(total))}</span> : '—'}
                 </td>
               </tr>
             );
@@ -111,7 +108,7 @@ export default function SpendingTable({ data, onCellClick }: Props) {
                   className={total !== 0 ? CLICKABLE_CELL : EMPTY_CELL}
                   onClick={total !== 0 ? () => onCellClick('all', date) : undefined}
                 >
-                  {total !== 0 ? <span className="underline">{formatAmount(Math.abs(total))}</span> : '—'}
+                  {total !== 0 ? <span className="underline">{CurrencyFormatter.format(Math.abs(total))}</span> : '—'}
                 </td>
               );
             })}
@@ -119,7 +116,7 @@ export default function SpendingTable({ data, onCellClick }: Props) {
               className={`${CLICKABLE_CELL} font-medium`}
               onClick={() => onCellClick('all', 'all')}
             >
-              <span className="underline">{formatAmount(Math.abs(grandTotal))}</span>
+              <span className="underline">{CurrencyFormatter.format(Math.abs(grandTotal))}</span>
             </td>
           </tr>
         </tfoot>

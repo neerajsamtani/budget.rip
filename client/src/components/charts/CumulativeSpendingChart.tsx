@@ -1,14 +1,10 @@
 import { ChartContainer, ChartTooltip } from '@/components/ui/chart';
 import { SpendingTooltipContent } from './ChartTooltip';
 import { MonthlyBreakdownData } from '@/hooks/useApi';
-import { chartColorSequence } from '@/lib/chart-colors';
 import React, { useMemo } from 'react';
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from 'recharts';
-import { getAvailableYears, getMonth, getYear, useHiddenSet } from './chart-utils';
+import { buildChartConfig, getAvailableYears, getMonth, getYear, MONTH_ABBREVS, useHiddenSet } from './chart-utils';
 import ChartLegend from './ChartLegend';
-import type { ChartConfig } from '@/components/ui/chart';
-
-const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 interface Props {
   data: MonthlyBreakdownData;
@@ -39,7 +35,7 @@ export default function CumulativeSpendingChart({ data }: Props) {
     // Only include a data point if that month actually has data in the source.
     const chartRows: Record<string, unknown>[] = [];
     for (let m = 1; m <= 12; m++) {
-      const row: Record<string, unknown> = { month: MONTH_LABELS[m - 1] };
+      const row: Record<string, unknown> = { month: MONTH_ABBREVS[m - 1] };
       for (const year of availableYears) {
         const maxMonth = Math.max(0, ...Object.keys(monthlyTotals[year]).map(Number));
         if (m > maxMonth) continue;
@@ -52,15 +48,7 @@ export default function CumulativeSpendingChart({ data }: Props) {
       chartRows.push(row);
     }
 
-    const config: ChartConfig = {};
-    availableYears.forEach((year, i) => {
-      config[year] = {
-        label: year,
-        color: chartColorSequence[i % chartColorSequence.length],
-      };
-    });
-
-    return { rows: chartRows, years: availableYears, chartConfig: config };
+    return { rows: chartRows, years: availableYears, chartConfig: buildChartConfig(availableYears) };
   }, [data]);
 
   const currentYear = String(new Date().getFullYear());

@@ -3,7 +3,7 @@ import { MonthlyBreakdownData } from '@/hooks/useApi';
 import { chartColorSequence } from '@/lib/chart-colors';
 import { useCallback, useState } from 'react';
 
-const MONTH_ABBREVS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+export const MONTH_ABBREVS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 /** Converts "1-2023" → "Jan '23" */
 export function formatMonthYear(dateStr: string): string {
@@ -73,7 +73,7 @@ export function filterByYear(data: MonthlyBreakdownData, year: string): MonthlyB
 }
 
 // Categories excluded from spending charts — also used by EventsPage.calculateSpending
-export const NON_SPENDING_CATEGORIES = ['Rent', 'Income', 'Investment'];
+export const NON_SPENDING_CATEGORIES = ['Income', 'Investment'];
 
 /** Filters MonthlyBreakdownData to only include the specified categories.
  *  If categories is empty, returns data unmodified. */
@@ -83,17 +83,6 @@ export function filterByCategories(data: MonthlyBreakdownData, categories: strin
   const filtered: MonthlyBreakdownData = {};
   for (const [cat, entries] of Object.entries(data)) {
     if (allowed.has(cat)) filtered[cat] = entries;
-  }
-  return filtered;
-}
-
-/** Filters MonthlyBreakdownData to only include spending categories */
-export function filterToSpending(data: MonthlyBreakdownData): MonthlyBreakdownData {
-  const filtered: MonthlyBreakdownData = {};
-  for (const [category, entries] of Object.entries(data)) {
-    if (!Array.isArray(entries)) continue;
-    if (NON_SPENDING_CATEGORIES.includes(category)) continue;
-    filtered[category] = entries;
   }
   return filtered;
 }
