@@ -535,6 +535,59 @@ class TestMonthlyBreakdownAPI:
         feb_dining = next(item for item in data["Dining"] if item["date"] == "2-2023")
         assert feb_dining["amount"] == 75.0
 
+    def test_duplicate_events_are_counted_once(self, test_client, jwt_token, flask_app, pg_session):
+        """Duplicate events (is_duplicate=True) count only one line item's amount, not all line items"""
+        with flask_app.app_context():
+            # Two line items at $765 each represent the same charge from two sources
+            li1 = setup_test_line_item(
+                pg_session,
+                {
+                    "id": "li_dup_1",
+                    "date": 1672531200,  # 2023-01-01
+                    "payment_method": "Cash",
+                    "description": "Patio furniture",
+                    "responsible_party": "Test User",
+                    "amount": 765.0,
+                },
+            )
+            li2 = setup_test_line_item(
+                pg_session,
+                {
+                    "id": "li_dup_2",
+                    "date": 1672531200,  # 2023-01-01
+                    "payment_method": "Cash",
+                    "description": "Patio furniture",
+                    "responsible_party": "Test User",
+                    "amount": 765.0,
+                },
+            )
+            setup_test_event(
+                pg_session,
+                {
+                    "id": "event_dup",
+                    "date": 1672531200,  # 2023-01-01
+                    "category": "Shopping",
+                    "description": "Patio furniture",
+                    "is_duplicate": True,
+                },
+                line_items=[li1, li2],
+            )
+            pg_session.commit()
+
+        response = test_client.get(
+            "/api/monthly_breakdown",
+            headers={"Authorization": "Bearer " + jwt_token},
+        )
+
+        assert response.status_code == 200
+        data = response.get_json()
+
+        shopping_data = data["Shopping"]
+        jan_shopping = next(item for item in shopping_data if item["date"] == "1-2023")
+        assert jan_shopping["amount"] == 765.0, (
+            f"Expected 765.0 but got {jan_shopping['amount']} — is_duplicate events must not double-count line items"
+        )
+
     def test_response_has_correct_structure(self, test_client, jwt_token, flask_app, mock_event_data, pg_session):
         """Response has category names as keys with date and amount arrays"""
         # Insert test data

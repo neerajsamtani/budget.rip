@@ -48,34 +48,31 @@ def get_user_by_email(email: str) -> Optional[Dict[str, Any]]:
 
 def get_categorized_data() -> List[Dict[str, Any]]:
     """Group totalExpense by month, year, and category"""
-    from sqlalchemy import extract, func
+    from collections import defaultdict
+    from datetime import timezone as tz
+
+    from sqlalchemy.orm import joinedload, subqueryload
 
     from models.database import SessionLocal
-    from models.sql_models import Category, Event, LineItem
+    from models.sql_models import Event
 
     with SessionLocal.begin() as db:
-        results = (
-            db.query(
-                extract("year", Event.date).label("year"),
-                extract("month", Event.date).label("month"),
-                Category.name.label("category"),
-                func.sum(LineItem.amount).label("totalExpense"),
-            )
-            .join(Event.category)
-            .join(Event.line_items)
-            .group_by(extract("year", Event.date), extract("month", Event.date), Category.name)
-            .order_by("year", "month", Category.name)
-            .all()
-        )
+        events = db.query(Event).options(joinedload(Event.category), subqueryload(Event.line_items)).all()
+
+        # Group by (year, month, category) using total_amount, which correctly
+        # handles is_duplicate events (only counts the first line item's amount).
+        # Use UTC for date extraction to match client-side behavior.
+        breakdown: Dict[tuple, float] = defaultdict(float)
+        for event in events:
+            if not event.category:
+                continue
+            utc_date = event.date.astimezone(tz.utc)
+            key = (utc_date.year, utc_date.month, event.category.name)
+            breakdown[key] += float(event.total_amount)
 
         return [
-            {
-                "year": int(row.year) if row.year else 0,
-                "month": int(row.month) if row.month else 0,
-                "category": row.category,
-                "totalExpense": float(row.totalExpense) if row.totalExpense else 0.0,
-            }
-            for row in results
+            {"year": year, "month": month, "category": category, "totalExpense": amount}
+            for (year, month, category), amount in sorted(breakdown.items())
         ]
 
 
