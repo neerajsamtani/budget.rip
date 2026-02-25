@@ -1,4 +1,4 @@
-import React, { createContext, ReactNode, useContext, useEffect, useReducer } from 'react';
+import React, { createContext, ReactNode, useContext, useEffect, useMemo, useReducer } from 'react';
 import { useLineItems as useLineItemsQuery } from '../hooks/useApi';
 import { showErrorToast } from '../utils/toast-helpers';
 import { useAuth } from './AuthContext';
@@ -86,8 +86,10 @@ export function LineItemsProvider({ children }: { children: ReactNode }) {
         }
     }, [error])
 
+    const contextValue = useMemo(() => ({ lineItems, isLoading }), [lineItems, isLoading]);
+
     return (
-        <LineItemsContext.Provider value={{ lineItems, isLoading }}>
+        <LineItemsContext.Provider value={contextValue}>
             <LineItemsDispatchContext.Provider value={lineItemsDispatch}>
                 {children}
             </LineItemsDispatchContext.Provider>

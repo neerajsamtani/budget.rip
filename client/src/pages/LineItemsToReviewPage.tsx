@@ -10,40 +10,32 @@ import { PageContainer, PageHeader } from "../components/ui/layout";
 import { Body, H1 } from "../components/ui/typography";
 import { LineItemInterface, useLineItems, useLineItemsDispatch } from "../contexts/LineItemsContext";
 
-// Mobile card wrapper that includes context hooks
-function MobileLineItemCard({ lineItem }: { lineItem: LineItemInterface }) {
-    const { lineItems } = useLineItems();
-    const lineItemsDispatch = useLineItemsDispatch();
-    const isChecked = (lineItems || []).some(li => li.isSelected && li.id === lineItem.id);
-
-    const handleToggle = () => {
-        lineItemsDispatch({
-            type: "toggle_line_item_select",
-            lineItemId: lineItem.id
-        });
-    };
-
-    const amountStatus = lineItem.amount < 0 ? 'success' : 'warning';
+const MobileLineItemCard = React.memo(function MobileLineItemCard({ lineItem, isChecked, onToggle }: { lineItem: LineItemInterface; isChecked: boolean; onToggle: (lineItemId: string) => void }) {
+    const amountStatus: 'success' | 'warning' = lineItem.amount < 0 ? 'success' : 'warning';
 
     return (
         <LineItemCard
             lineItem={lineItem}
             showCheckBox={true}
             isChecked={isChecked}
-            handleToggle={handleToggle}
+            handleToggle={() => onToggle(lineItem.id)}
             amountStatus={amountStatus}
         />
     );
-}
+});
 
 export default function LineItemsToReviewPage() {
 
     const [eventModalShow, setEventModalShow] = useState(false);
     const [manualTransactionModalShow, setManualTransactionModalShow] = useState(false);
     const { lineItems, isLoading } = useLineItems();
+    const lineItemsDispatch = useLineItemsDispatch();
     const selectedLineItems = lineItems?.filter(lineItem => lineItem.isSelected) ?? [];
     const total = selectedLineItems.reduce((prev, cur) => prev + cur.amount, 0);
 
+    const handleToggle = useCallback((lineItemId: string) => {
+        lineItemsDispatch({ type: "toggle_line_item_select", lineItemId });
+    }, [lineItemsDispatch]);
 
     const handleKeyDown = useCallback((event) => {
         if (event.key === 'Enter' && selectedLineItems.length > 0 && !eventModalShow && !manualTransactionModalShow) {
@@ -78,7 +70,12 @@ export default function LineItemsToReviewPage() {
                         </div>
                     ) : lineItems && lineItems.length > 0 ? (
                         lineItems.map(lineItem => (
-                            <MobileLineItemCard key={lineItem.id} lineItem={lineItem} />
+                            <MobileLineItemCard
+                                key={lineItem.id}
+                                lineItem={lineItem}
+                                isChecked={!!lineItem.isSelected}
+                                onToggle={handleToggle}
+                            />
                         ))
                     ) : (
                         <div className="p-4 text-center text-muted-foreground">
@@ -113,6 +110,8 @@ export default function LineItemsToReviewPage() {
                                         key={lineItem.id}
                                         lineItem={lineItem}
                                         showCheckBox={true}
+                                        isChecked={!!lineItem.isSelected}
+                                        onToggle={handleToggle}
                                     />
                                 )
                             ) : (
