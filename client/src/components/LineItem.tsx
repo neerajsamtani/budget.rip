@@ -1,6 +1,6 @@
 import { UserPenIcon } from "lucide-react";
 import React from "react";
-import { LineItemInterface, useLineItems, useLineItemsDispatch } from "../contexts/LineItemsContext";
+import { LineItemInterface } from "../contexts/LineItemsContext";
 import { CurrencyFormatter, DateFormatter } from "../utils/formatters";
 import { Checkbox } from "./ui/checkbox";
 import { StatusBadge } from "./ui/status-badge";
@@ -10,6 +10,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/t
 interface LineItemProps {
     lineItem: LineItemInterface;
     showCheckBox?: boolean;
+    isChecked?: boolean;
+    onToggle?: () => void;
 }
 
 interface LineItemDisplayProps extends LineItemProps {
@@ -121,24 +123,9 @@ function LineItemRow({ lineItem, showCheckBox, isChecked, handleToggle, amountSt
     );
 }
 
-export default function LineItem({ lineItem, showCheckBox }: LineItemProps) {
-    const { lineItems } = useLineItems();
-    const lineItemsDispatch = useLineItemsDispatch();
-    const isChecked = (lineItems || []).some(li => li.isSelected && li.id === lineItem.id);
-
-    const handleToggle = () => {
-        lineItemsDispatch({
-            type: "toggle_line_item_select",
-            lineItemId: lineItem.id
-        });
-    }
-
-    // Determine amount status for color coding
+export default function LineItem({ lineItem, showCheckBox, isChecked = false, onToggle }: LineItemProps) {
     const amountStatus: 'success' | 'warning' = lineItem.amount < 0 ? 'success' : 'warning';
-
-    const props = { lineItem, showCheckBox, isChecked, handleToggle, amountStatus };
-
-    // Return only the table row - mobile layout is handled at the page level
+    const props = { lineItem, showCheckBox, isChecked, handleToggle: onToggle ?? (() => {}), amountStatus };
     return <LineItemRow {...props} />;
 }
 

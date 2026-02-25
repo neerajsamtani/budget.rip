@@ -167,10 +167,10 @@ export function useCreateEvent(): UseMutationResult<unknown, Error, CreateEventD
       return response.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['events'] });
       queryClient.invalidateQueries({ queryKey: ['lineItems'] });
-      queryClient.invalidateQueries({ queryKey: ['monthlyBreakdown'] });
-      queryClient.invalidateQueries({ queryKey: ['tags'] });
+      queryClient.invalidateQueries({ queryKey: ['events'], refetchType: 'none' });
+      queryClient.invalidateQueries({ queryKey: ['monthlyBreakdown'], refetchType: 'none' });
+      queryClient.invalidateQueries({ queryKey: ['tags'], refetchType: 'none' });
     },
   });
 }
@@ -195,10 +195,10 @@ export function useUpdateEvent(): UseMutationResult<unknown, Error, UpdateEventD
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['events'] });
-      queryClient.invalidateQueries({ queryKey: ['lineItems'] });
       queryClient.invalidateQueries({ queryKey: ['eventLineItems'] });
-      queryClient.invalidateQueries({ queryKey: ['monthlyBreakdown'] });
-      queryClient.invalidateQueries({ queryKey: ['tags'] });
+      queryClient.invalidateQueries({ queryKey: ['lineItems'], refetchType: 'none' });
+      queryClient.invalidateQueries({ queryKey: ['monthlyBreakdown'], refetchType: 'none' });
+      queryClient.invalidateQueries({ queryKey: ['tags'], refetchType: 'none' });
     },
   });
 }
@@ -220,9 +220,9 @@ export function useCreateManualTransaction(): UseMutationResult<unknown, Error, 
       return response.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['events'] });
       queryClient.invalidateQueries({ queryKey: ['lineItems'] });
-      queryClient.invalidateQueries({ queryKey: ['monthlyBreakdown'] });
+      queryClient.invalidateQueries({ queryKey: ['events'], refetchType: 'none' });
+      queryClient.invalidateQueries({ queryKey: ['monthlyBreakdown'], refetchType: 'none' });
     },
   });
 }
@@ -236,8 +236,9 @@ export function useDeleteManualTransaction(): UseMutationResult<void, Error, str
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['events'] });
-      queryClient.invalidateQueries({ queryKey: ['lineItems'] });
-      queryClient.invalidateQueries({ queryKey: ['monthlyBreakdown'] });
+      queryClient.invalidateQueries({ queryKey: ['eventLineItems'] });
+      queryClient.invalidateQueries({ queryKey: ['lineItems'], refetchType: 'none' });
+      queryClient.invalidateQueries({ queryKey: ['monthlyBreakdown'], refetchType: 'none' });
     },
   });
 }
@@ -251,9 +252,9 @@ export function useDeleteEvent(): UseMutationResult<void, Error, string> {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['events'] });
-      queryClient.invalidateQueries({ queryKey: ['lineItems'] });
-      queryClient.invalidateQueries({ queryKey: ['monthlyBreakdown'] });
-      queryClient.invalidateQueries({ queryKey: ['tags'] });
+      queryClient.invalidateQueries({ queryKey: ['lineItems'], refetchType: 'none' });
+      queryClient.invalidateQueries({ queryKey: ['monthlyBreakdown'], refetchType: 'none' });
+      queryClient.invalidateQueries({ queryKey: ['tags'], refetchType: 'none' });
     },
   });
 }
@@ -311,9 +312,9 @@ export function useRefreshAccount(): UseMutationResult<void, Error, RefreshAccou
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['connectedAccounts'] });
       queryClient.invalidateQueries({ queryKey: ['accountsAndBalances'] });
-      queryClient.invalidateQueries({ queryKey: ['events'] });
-      queryClient.invalidateQueries({ queryKey: ['lineItems'] });
-      queryClient.invalidateQueries({ queryKey: ['monthlyBreakdown'] });
+      queryClient.invalidateQueries({ queryKey: ['events'], refetchType: 'none' });
+      queryClient.invalidateQueries({ queryKey: ['lineItems'], refetchType: 'none' });
+      queryClient.invalidateQueries({ queryKey: ['monthlyBreakdown'], refetchType: 'none' });
     },
   });
 }

@@ -5,7 +5,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { Spinner } from "@/components/ui/spinner";
 import { loadStripe } from "@stripe/stripe-js";
 import { MenuIcon } from "lucide-react";
-import React, { useState } from "react";
+import React, { Suspense, useState } from "react";
 import {
   Link, Route,
   BrowserRouter as Router,
@@ -15,13 +15,14 @@ import { ProtectedRoute, PublicOnlyRoute } from "./components/ProtectedRoute";
 import { useAuth } from "./contexts/AuthContext";
 import { useLineItemsDispatch } from "./contexts/LineItemsContext";
 import { useRefreshAllData } from "./hooks/useApi";
-import ConnectedAccountsPage from "./pages/ConnectedAccountsPage";
-import EventsPage from "./pages/EventsPage";
-import GraphsPage from "./pages/GraphsPage";
-import LineItemsPage from "./pages/LineItemsPage";
 import LineItemsToReviewPage from "./pages/LineItemsToReviewPage";
-import LoginPage from "./pages/LoginPage";
-import SettingsPage from "./pages/SettingsPage";
+
+const ConnectedAccountsPage = React.lazy(() => import("./pages/ConnectedAccountsPage"));
+const EventsPage = React.lazy(() => import("./pages/EventsPage"));
+const GraphsPage = React.lazy(() => import("./pages/GraphsPage"));
+const LineItemsPage = React.lazy(() => import("./pages/LineItemsPage"));
+const LoginPage = React.lazy(() => import("./pages/LoginPage"));
+const SettingsPage = React.lazy(() => import("./pages/SettingsPage"));
 import { showErrorToast, showSuccessToast } from "./utils/toast-helpers";
 
 // Make sure to call loadStripe outside of a component's render to avoid
@@ -210,15 +211,17 @@ export default function App() {
           </div>
         </Navbar>
 
-        <Routes>
-          <Route path="/" element={<ProtectedRoute><LineItemsToReviewPage /></ProtectedRoute>} />
-          <Route path="/events" element={<ProtectedRoute><EventsPage /></ProtectedRoute>} />
-          <Route path="/line_items" element={<ProtectedRoute><LineItemsPage /></ProtectedRoute>} />
-          <Route path="/connected_accounts" element={<ProtectedRoute><ConnectedAccountsPage stripePromise={stripePromise} /></ProtectedRoute>} />
-          <Route path="/graphs" element={<ProtectedRoute><GraphsPage /></ProtectedRoute>} />
-          <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
-          <Route path="/login" element={<PublicOnlyRoute><LoginPage /></PublicOnlyRoute>} />
-        </Routes>
+        <Suspense fallback={<div className="flex justify-center py-20"><Spinner size="md" /></div>}>
+          <Routes>
+            <Route path="/" element={<ProtectedRoute><LineItemsToReviewPage /></ProtectedRoute>} />
+            <Route path="/events" element={<ProtectedRoute><EventsPage /></ProtectedRoute>} />
+            <Route path="/line_items" element={<ProtectedRoute><LineItemsPage /></ProtectedRoute>} />
+            <Route path="/connected_accounts" element={<ProtectedRoute><ConnectedAccountsPage stripePromise={stripePromise} /></ProtectedRoute>} />
+            <Route path="/graphs" element={<ProtectedRoute><GraphsPage /></ProtectedRoute>} />
+            <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+            <Route path="/login" element={<PublicOnlyRoute><LoginPage /></PublicOnlyRoute>} />
+          </Routes>
+        </Suspense>
       </Router>
     </React.StrictMode>
   );

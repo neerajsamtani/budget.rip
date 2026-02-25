@@ -280,10 +280,10 @@ describe('useApi hooks', () => {
                 line_items: ['line-1', 'line-2'],
             });
 
-            expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['events'] });
             expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['lineItems'] });
-            expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['monthlyBreakdown'] });
-            expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['tags'] });
+            expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['events'], refetchType: 'none' });
+            expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['monthlyBreakdown'], refetchType: 'none' });
+            expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['tags'], refetchType: 'none' });
         });
 
         it('handles mutation errors', async () => {
@@ -348,8 +348,9 @@ describe('useApi hooks', () => {
 
             expect(mockDelete).toHaveBeenCalledWith('api/events/event-to-delete');
             expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['events'] });
-            expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['lineItems'] });
-            expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['tags'] });
+            expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['lineItems'], refetchType: 'none' });
+            expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['monthlyBreakdown'], refetchType: 'none' });
+            expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['tags'], refetchType: 'none' });
         });
     });
 
