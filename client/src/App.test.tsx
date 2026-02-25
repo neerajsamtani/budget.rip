@@ -97,7 +97,7 @@ jest.mock('sonner', () => {
 // Mock the LineItemsContext
 jest.mock('./contexts/LineItemsContext', () => {
     return {
-        useLineItems: jest.fn(() => ({ lineItems: [], isLoading: false })),
+        useLineItems: jest.fn(() => ({ lineItems: [], isPending: false })),
         useLineItemsDispatch: jest.fn(),
     };
 });

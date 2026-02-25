@@ -9,6 +9,7 @@ from dao import (
     get_all_events,
     get_all_line_items,
     get_event_by_id,
+    get_line_item_amounts,
 )
 from helpers import html_date_to_posix
 
@@ -70,9 +71,7 @@ def post_event_api() -> tuple[Response, int]:
         logger.warning("Event creation attempt with no line items")
         return jsonify("Failed to Create Event: No Line Items Submitted"), 400
 
-    filters: Dict[str, Any] = {}
-    filters["id"] = {"$in": new_event["line_items"]}
-    line_items: List[Dict[str, Any]] = get_all_line_items(filters)
+    line_items: List[Dict[str, Any]] = get_line_item_amounts(new_event["line_items"])
     earliest_line_item: Dict[str, Any] = min(line_items, key=lambda line_item: line_item["date"])
 
     if new_event.get("date"):

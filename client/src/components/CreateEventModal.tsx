@@ -6,7 +6,7 @@ import { ResponsiveDialog, useIsMobile } from "@/components/ui/responsive-dialog
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import React, { useEffect, useState } from 'react';
 import { Body } from "../components/ui/typography";
-import { LineItemInterface, useLineItems, useLineItemsDispatch } from "../contexts/LineItemsContext";
+import { LineItemInterface, useLineItems } from "../contexts/LineItemsContext";
 import { useCategories, useCreateEvent, useEvaluateEventHints, useTags } from '../hooks/useApi';
 import { useField } from '../hooks/useField';
 import { calculateEventTotal } from '../utils/eventHelpers';
@@ -38,7 +38,6 @@ function CreateEventModalContent({
   onClose,
   isLoadingHints,
 }: CreateEventModalContentProps) {
-  const lineItemsDispatch = useLineItemsDispatch();
   const createEventMutation = useCreateEvent();
 
   // Form fields initialize with props - when parent changes the key, this component
@@ -84,10 +83,6 @@ function CreateEventModalContent({
     createEventMutation.mutate(newEvent, {
       onSuccess: (response: { name?: string }) => {
         onClose();
-        lineItemsDispatch({
-          type: 'remove_line_items',
-          lineItemIds: selectedLineItemIds
-        });
         showSuccessToast(response.name || newEvent.name, "Created Event");
       },
       onError: (error) => {

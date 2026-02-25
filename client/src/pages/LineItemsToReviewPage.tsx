@@ -28,7 +28,7 @@ export default function LineItemsToReviewPage() {
 
     const [eventModalShow, setEventModalShow] = useState(false);
     const [manualTransactionModalShow, setManualTransactionModalShow] = useState(false);
-    const { lineItems, isLoading } = useLineItems();
+    const { lineItems, isPending } = useLineItems();
     const lineItemsDispatch = useLineItemsDispatch();
     const selectedLineItems = lineItems?.filter(lineItem => lineItem.isSelected) ?? [];
     const total = selectedLineItems.reduce((prev, cur) => prev + cur.amount, 0);
@@ -64,7 +64,7 @@ export default function LineItemsToReviewPage() {
             <div className="space-y-6 pb-32">
                 {/* Mobile card layout */}
                 <div className="md:hidden rounded-xl bg-white shadow-sm border overflow-hidden">
-                    {isLoading ? (
+                    {isPending ? (
                         <div className="flex justify-center py-8">
                             <Spinner size="md" className="text-muted-foreground" />
                         </div>
@@ -98,7 +98,7 @@ export default function LineItemsToReviewPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {isLoading ? (
+                            {isPending ? (
                                 <TableRow>
                                     <TableCell colSpan={6} className="text-center py-8">
                                         <Spinner size="md" className="text-muted-foreground mx-auto" />

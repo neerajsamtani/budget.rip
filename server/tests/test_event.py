@@ -1,6 +1,6 @@
 import pytest
 
-from dao import get_all_events
+from dao import get_all_events, get_line_item_amounts
 
 
 @pytest.fixture
@@ -821,3 +821,32 @@ class TestEventAPI:
             line_item_data3_after = get_line_item_by_id(line_item3.id)
             assert line_item_data3_after is not None
             assert "event_id" not in line_item_data3_after
+
+    def test_get_line_item_amounts_returns_only_id_date_amount(
+        self, flask_app, create_line_item_via_manual
+    ):
+        """get_line_item_amounts returns only id, date, and amount keys"""
+        create_line_item_via_manual(
+            date="2009-02-13", person="John Doe", description="Transaction 1", amount=100
+        )
+        create_line_item_via_manual(
+            date="2009-02-14", person="Jane Smith", description="Transaction 2", amount=50
+        )
+
+        with flask_app.app_context():
+            from dao import get_all_line_items
+
+            all_line_items = get_all_line_items(None)
+            line_item_ids = [item["id"] for item in all_line_items]
+            assert len(line_item_ids) == 2
+
+            results = get_line_item_amounts(line_item_ids)
+            assert len(results) == 2
+
+            for item in results:
+                assert set(item.keys()) == {"id", "date", "amount"}
+                assert isinstance(item["amount"], float)
+                assert isinstance(item["date"], float)
+
+            amounts = sorted([item["amount"] for item in results])
+            assert amounts == [50.0, 100.0]

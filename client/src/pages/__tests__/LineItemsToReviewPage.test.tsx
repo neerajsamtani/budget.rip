@@ -149,7 +149,7 @@ const mockLineItemsWithSelection = [
 describe('LineItemsToReviewPage', () => {
     beforeEach(() => {
         jest.clearAllMocks();
-        mockUseLineItems.mockReturnValue({ lineItems: mockLineItems, isLoading: false });
+        mockUseLineItems.mockReturnValue({ lineItems: mockLineItems, isPending: false });
     });
 
     describe('Rendering', () => {
@@ -210,7 +210,7 @@ describe('LineItemsToReviewPage', () => {
         });
 
         it('handles empty line items gracefully', () => {
-            mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: false });
+            mockUseLineItems.mockReturnValue({ lineItems: [], isPending: false });
             render(<LineItemsToReviewPage />);
 
             expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
@@ -219,7 +219,7 @@ describe('LineItemsToReviewPage', () => {
         });
 
         it('handles null line items gracefully', () => {
-            mockUseLineItems.mockReturnValue({ lineItems: null as any, isLoading: false });
+            mockUseLineItems.mockReturnValue({ lineItems: null as any, isPending: false });
             render(<LineItemsToReviewPage />);
 
             expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
@@ -239,7 +239,7 @@ describe('LineItemsToReviewPage', () => {
         });
 
         it('opens event modal when button is clicked', async () => {
-            mockUseLineItems.mockReturnValue({ lineItems: mockLineItemsWithSelection, isLoading: false });
+            mockUseLineItems.mockReturnValue({ lineItems: mockLineItemsWithSelection, isPending: false });
             render(<LineItemsToReviewPage />);
 
             const eventButton = screen.getByRole('button', { name: /create event/i });
@@ -264,7 +264,7 @@ describe('LineItemsToReviewPage', () => {
         });
 
         it('closes event modal when onHide is called', async () => {
-            mockUseLineItems.mockReturnValue({ lineItems: mockLineItemsWithSelection, isLoading: false });
+            mockUseLineItems.mockReturnValue({ lineItems: mockLineItemsWithSelection, isPending: false });
             render(<LineItemsToReviewPage />);
 
             // Open modal
@@ -280,7 +280,7 @@ describe('LineItemsToReviewPage', () => {
         });
 
         it('only one modal can be open at a time', async () => {
-            mockUseLineItems.mockReturnValue({ lineItems: mockLineItemsWithSelection, isLoading: false });
+            mockUseLineItems.mockReturnValue({ lineItems: mockLineItemsWithSelection, isPending: false });
             render(<LineItemsToReviewPage />);
 
             const manualButton = screen.getByRole('button', { name: /create manual transaction/i });
@@ -314,7 +314,7 @@ describe('LineItemsToReviewPage', () => {
 
     describe('Keyboard Interactions', () => {
         it('opens event modal when Enter key is pressed', async () => {
-            mockUseLineItems.mockReturnValue({ lineItems: mockLineItemsWithSelection, isLoading: false });
+            mockUseLineItems.mockReturnValue({ lineItems: mockLineItemsWithSelection, isPending: false });
             render(<LineItemsToReviewPage />);
 
             // Simulate Enter key press
@@ -337,7 +337,7 @@ describe('LineItemsToReviewPage', () => {
         });
 
         it('can open event modal multiple times with Enter key', async () => {
-            mockUseLineItems.mockReturnValue({ lineItems: mockLineItemsWithSelection, isLoading: false });
+            mockUseLineItems.mockReturnValue({ lineItems: mockLineItemsWithSelection, isPending: false });
             render(<LineItemsToReviewPage />);
 
             // First Enter press
@@ -368,7 +368,7 @@ describe('LineItemsToReviewPage', () => {
         });
 
         it('does not open event modal when Enter key is pressed while manual transaction modal is open', async () => {
-            mockUseLineItems.mockReturnValue({ lineItems: mockLineItemsWithSelection, isLoading: false });
+            mockUseLineItems.mockReturnValue({ lineItems: mockLineItemsWithSelection, isPending: false });
             render(<LineItemsToReviewPage />);
 
             // Open manual transaction modal first
@@ -483,7 +483,7 @@ describe('LineItemsToReviewPage', () => {
         });
 
         it('passes correct props to CreateEventModal', async () => {
-            mockUseLineItems.mockReturnValue({ lineItems: mockLineItemsWithSelection, isLoading: false });
+            mockUseLineItems.mockReturnValue({ lineItems: mockLineItemsWithSelection, isPending: false });
             render(<LineItemsToReviewPage />);
 
             const eventButton = screen.getByRole('button', { name: /create event/i });
@@ -539,7 +539,7 @@ describe('LineItemsToReviewPage', () => {
                     // Missing other properties
                 } as any
             ];
-            mockUseLineItems.mockReturnValue({ lineItems: incompleteLineItems, isLoading: false });
+            mockUseLineItems.mockReturnValue({ lineItems: incompleteLineItems, isPending: false });
 
             render(<LineItemsToReviewPage />);
 
@@ -553,7 +553,7 @@ describe('LineItemsToReviewPage', () => {
                     amount: 999999.99,
                 }
             ];
-            mockUseLineItems.mockReturnValue({ lineItems: largeAmountLineItems, isLoading: false });
+            mockUseLineItems.mockReturnValue({ lineItems: largeAmountLineItems, isPending: false });
 
             render(<LineItemsToReviewPage />);
 
@@ -569,7 +569,7 @@ describe('LineItemsToReviewPage', () => {
                     amount: 0,
                 }
             ];
-            mockUseLineItems.mockReturnValue({ lineItems: zeroAmountLineItems, isLoading: false });
+            mockUseLineItems.mockReturnValue({ lineItems: zeroAmountLineItems, isPending: false });
 
             render(<LineItemsToReviewPage />);
 
@@ -635,7 +635,7 @@ describe('LineItemsToReviewPage', () => {
 
     describe('Loading States', () => {
         it('shows loading spinner in mobile view during initial load', () => {
-            mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: true });
+            mockUseLineItems.mockReturnValue({ lineItems: [], isPending: true });
 
             const { container } = render(<LineItemsToReviewPage />);
 
@@ -645,7 +645,7 @@ describe('LineItemsToReviewPage', () => {
         });
 
         it('shows loading spinner in desktop table during initial load', () => {
-            mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: true });
+            mockUseLineItems.mockReturnValue({ lineItems: [], isPending: true });
 
             const { container } = render(<LineItemsToReviewPage />);
 
@@ -656,7 +656,7 @@ describe('LineItemsToReviewPage', () => {
 
         it('replaces loading spinner with data after load completes', () => {
             // Start with loading state
-            mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: true });
+            mockUseLineItems.mockReturnValue({ lineItems: [], isPending: true });
             const { container, rerender } = render(<LineItemsToReviewPage />);
 
             // Verify spinner is present
@@ -664,7 +664,7 @@ describe('LineItemsToReviewPage', () => {
             expect(spinner).toBeInTheDocument();
 
             // Update to loaded state with data
-            mockUseLineItems.mockReturnValue({ lineItems: mockLineItems, isLoading: false });
+            mockUseLineItems.mockReturnValue({ lineItems: mockLineItems, isPending: false });
             rerender(<LineItemsToReviewPage />);
 
             // Verify data is displayed
@@ -673,7 +673,7 @@ describe('LineItemsToReviewPage', () => {
         });
 
         it('shows "No line items to review" message when loaded with no data', () => {
-            mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: false });
+            mockUseLineItems.mockReturnValue({ lineItems: [], isPending: false });
 
             render(<LineItemsToReviewPage />);
 
