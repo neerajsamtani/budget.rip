@@ -1,14 +1,15 @@
 import { fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
-import { useLineItems } from '../../contexts/LineItemsContext';
+import { useLineItems, useLineItemsDispatch } from '../../contexts/LineItemsContext';
 import { render, screen, waitFor } from '../../utils/test-utils';
 import LineItemsToReviewPage from '../LineItemsToReviewPage';
 
 // Mock the context
+const mockDispatch = jest.fn();
 jest.mock('../../contexts/LineItemsContext', () => ({
     useLineItems: jest.fn(),
-    useLineItemsDispatch: jest.fn(() => jest.fn()),
+    useLineItemsDispatch: jest.fn(() => mockDispatch),
 }));
 
 // Mock the components
@@ -44,14 +45,15 @@ jest.mock('../../components/LineItem', () => {
         };
         showCheckBox?: boolean;
         isChecked?: boolean;
+        onToggle?: (lineItemId: string) => void;
         handleToggle?: () => void;
         amountStatus?: string;
     }
 
-    const MockLineItem = function ({ lineItem, showCheckBox }: MockLineItemProps) {
+    const MockLineItem = function ({ lineItem, showCheckBox, onToggle }: MockLineItemProps) {
         return (
             <tr data-testid={`line-item-${lineItem.id}`}>
-                <td>{showCheckBox ? 'Checkbox' : 'No Checkbox'}</td>
+                <td>{showCheckBox ? <button data-testid={`toggle-${lineItem.id}`} onClick={() => onToggle?.(lineItem.id)}>Checkbox</button> : 'No Checkbox'}</td>
                 <td>{new Date(lineItem.date * 1000).toLocaleDateString()}</td>
                 <td>{lineItem.payment_method || ''}</td>
                 <td>{lineItem.description || ''}</td>
@@ -457,6 +459,18 @@ describe('LineItemsToReviewPage', () => {
                 screen.getByTestId('line-item-card-3'),
             ];
             expect(cards).toHaveLength(3);
+        });
+
+        it('dispatch is called with toggle action when a line item is clicked', async () => {
+            render(<LineItemsToReviewPage />);
+
+            const toggleButton = screen.getByTestId('toggle-1');
+            await userEvent.click(toggleButton);
+
+            expect(mockDispatch).toHaveBeenCalledWith({
+                type: 'toggle_line_item_select',
+                lineItemId: '1',
+            });
         });
 
         it('passes correct props to CreateManualTransactionModal', async () => {

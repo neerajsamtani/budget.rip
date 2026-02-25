@@ -11,7 +11,7 @@ interface LineItemProps {
     lineItem: LineItemInterface;
     showCheckBox?: boolean;
     isChecked?: boolean;
-    onToggle?: () => void;
+    onToggle?: (lineItemId: string) => void;
 }
 
 interface LineItemDisplayProps extends LineItemProps {
@@ -123,11 +123,14 @@ function LineItemRow({ lineItem, showCheckBox, isChecked, handleToggle, amountSt
     );
 }
 
-export default function LineItem({ lineItem, showCheckBox, isChecked = false, onToggle }: LineItemProps) {
+const LineItem = React.memo(function LineItem({ lineItem, showCheckBox, isChecked = false, onToggle }: LineItemProps) {
     const amountStatus: 'success' | 'warning' = lineItem.amount < 0 ? 'success' : 'warning';
-    const props = { lineItem, showCheckBox, isChecked, handleToggle: onToggle ?? (() => {}), amountStatus };
+    const handleToggle = onToggle ? () => onToggle(lineItem.id) : () => {};
+    const props = { lineItem, showCheckBox, isChecked, handleToggle, amountStatus };
     return <LineItemRow {...props} />;
-}
+});
+
+export default LineItem;
 
 // Export the card component for use in mobile card lists
 export { LineItemCard };

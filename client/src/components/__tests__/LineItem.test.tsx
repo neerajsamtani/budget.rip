@@ -115,7 +115,7 @@ describe('LineItem', () => {
     });
 
     describe('User Interactions', () => {
-        it('onToggle is called when checkbox is clicked', async () => {
+        it('onToggle is called with line item id when checkbox is clicked', async () => {
             const mockToggle = jest.fn();
             render(
                 <table><tbody><LineItem lineItem={mockLineItem} showCheckBox={true} onToggle={mockToggle} /></tbody></table>
@@ -125,6 +125,7 @@ describe('LineItem', () => {
             await userEvent.click(checkbox);
 
             expect(mockToggle).toHaveBeenCalledTimes(1);
+            expect(mockToggle).toHaveBeenCalledWith(mockLineItem.id);
         });
 
         it('multiple checkbox clicks call onToggle multiple times', async () => {
