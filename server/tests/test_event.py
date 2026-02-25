@@ -822,16 +822,10 @@ class TestEventAPI:
             assert line_item_data3_after is not None
             assert "event_id" not in line_item_data3_after
 
-    def test_get_line_item_amounts_returns_only_id_date_amount(
-        self, flask_app, create_line_item_via_manual
-    ):
+    def test_get_line_item_amounts_returns_only_id_date_amount(self, flask_app, create_line_item_via_manual):
         """get_line_item_amounts returns only id, date, and amount keys"""
-        create_line_item_via_manual(
-            date="2009-02-13", person="John Doe", description="Transaction 1", amount=100
-        )
-        create_line_item_via_manual(
-            date="2009-02-14", person="Jane Smith", description="Transaction 2", amount=50
-        )
+        create_line_item_via_manual(date="2009-02-13", person="John Doe", description="Transaction 1", amount=100)
+        create_line_item_via_manual(date="2009-02-14", person="Jane Smith", description="Transaction 2", amount=50)
 
         with flask_app.app_context():
             from dao import get_all_line_items

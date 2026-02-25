@@ -186,10 +186,7 @@ def get_line_item_amounts(line_item_ids: list[str]) -> List[Dict[str, Any]]:
             .filter(LineItem.id.in_([str(id) for id in line_item_ids]))
             .all()
         )
-        return [
-            {"id": row.id, "date": serialize_datetime(row.date), "amount": float(row.amount or 0.0)}
-            for row in rows
-        ]
+        return [{"id": row.id, "date": serialize_datetime(row.date), "amount": float(row.amount or 0.0)} for row in rows]
 
 
 def get_all_line_items(filters: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
