@@ -9,7 +9,6 @@ from dao import (
     get_all_events,
     get_all_line_items,
     get_event_by_id,
-    get_line_item_by_id,
 )
 from helpers import html_date_to_posix
 
@@ -197,11 +196,8 @@ def get_line_items_for_event_api(
         if event is None:
             logger.warning(f"Line items request for non-existent event: {event_id}")
             return jsonify({"error": "Event not found"}), 404
-        line_items: List[Dict[str, Any]] = []
-        for line_item_id in event["line_items"]:
-            line_item: Optional[Dict[str, Any]] = get_line_item_by_id(line_item_id)
-            if line_item is not None:
-                line_items.append(line_item)
+        filters = {"id": {"$in": event["line_items"]}}
+        line_items: List[Dict[str, Any]] = get_all_line_items(filters)
         logger.info(f"Retrieved {len(line_items)} line items for event: {event_id}")
         return jsonify({"data": line_items}), 200
     except Exception as e:

@@ -47,28 +47,67 @@ def get_user_by_email(email: str) -> Optional[Dict[str, Any]]:
 
 
 def get_categorized_data() -> List[Dict[str, Any]]:
-    """Group totalExpense by month, year, and category"""
+    """Group totalExpense by month, year, and category.
+
+    Uses SQL subqueries to compute per-event amounts instead of loading all
+    LineItem ORM objects, reducing the work from O(events * line_items) to
+    O(events). Duplicate events (is_duplicate=True) count only the minimum
+    line item amount rather than the sum.
+    """
     from collections import defaultdict
     from datetime import timezone as tz
 
-    from sqlalchemy.orm import joinedload, subqueryload
+    from sqlalchemy import case, func
 
     from models.database import SessionLocal
-    from models.sql_models import Event
+    from models.sql_models import Category, Event, EventLineItem, LineItem
 
     with SessionLocal.begin() as db:
-        events = db.query(Event).options(joinedload(Event.category), subqueryload(Event.line_items)).all()
+        # Subquery: total amount per event (sum of all line items)
+        total_subq = (
+            db.query(
+                EventLineItem.event_id,
+                func.sum(LineItem.amount).label("total"),
+            )
+            .join(LineItem, EventLineItem.line_item_id == LineItem.id)
+            .group_by(EventLineItem.event_id)
+            .subquery()
+        )
 
-        # Group by (year, month, category) using total_amount, which correctly
-        # handles is_duplicate events (only counts the first line item's amount).
-        # Use UTC for date extraction to match client-side behavior.
+        # Subquery: first line item amount per event (for duplicates)
+        first_li_subq = (
+            db.query(
+                EventLineItem.event_id,
+                func.min(LineItem.amount).label("first_amount"),
+            )
+            .join(LineItem, EventLineItem.line_item_id == LineItem.id)
+            .group_by(EventLineItem.event_id)
+            .subquery()
+        )
+
+        # Main query: events with category and computed amount — no ORM line item loading
+        rows = (
+            db.query(
+                Event.date,
+                Category.name.label("category"),
+                case(
+                    (Event.is_duplicate == True, first_li_subq.c.first_amount),  # noqa: E712
+                    else_=total_subq.c.total,
+                ).label("amount"),
+            )
+            .join(Category, Event.category_id == Category.id)
+            .outerjoin(total_subq, total_subq.c.event_id == Event.id)
+            .outerjoin(first_li_subq, first_li_subq.c.event_id == Event.id)
+            .all()
+        )
+
         breakdown: Dict[tuple, float] = defaultdict(float)
-        for event in events:
-            if not event.category:
+        for row in rows:
+            if not row.category:
                 continue
-            utc_date = event.date.astimezone(tz.utc)
-            key = (utc_date.year, utc_date.month, event.category.name)
-            breakdown[key] += float(event.total_amount)
+            utc_date = row.date.astimezone(tz.utc) if row.date.tzinfo else row.date.replace(tzinfo=tz.utc)
+            key = (utc_date.year, utc_date.month, row.category)
+            breakdown[key] += float(row.amount or 0)
 
         return [
             {"year": year, "month": month, "category": category, "totalExpense": amount}
@@ -236,8 +275,8 @@ def get_event_by_id(id: str) -> Optional[Dict[str, Any]]:
     with SessionLocal.begin() as db:
         query = db.query(Event).options(
             joinedload(Event.category),
-            joinedload(Event.line_items).joinedload(LineItem.payment_method),
-            joinedload(Event.tags),
+            subqueryload(Event.line_items).joinedload(LineItem.payment_method),
+            subqueryload(Event.tags),
         )
 
         event = query.filter(Event.id == id).first()
