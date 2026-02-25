@@ -73,41 +73,48 @@ def upsert_event_to_postgresql(event_dict: Dict[str, Any], db_session) -> str:
         db_session.flush()  # Get the event ID
         pg_event_id = event.id
 
-    # Create EventLineItem junctions
-    for line_item_id in event_dict.get("line_items", []):
-        pg_line_item = db_session.query(LineItem).filter(LineItem.id == str(line_item_id)).first()
-
-        if pg_line_item:
+    # Create EventLineItem junctions (batch-fetch to avoid N+1)
+    line_item_ids = [str(id) for id in event_dict.get("line_items", [])]
+    if line_item_ids:
+        pg_line_items = db_session.query(LineItem).filter(LineItem.id.in_(line_item_ids)).all()
+        found_ids = {li.id for li in pg_line_items}
+        for li_id in line_item_ids:
+            if li_id not in found_ids:
+                logger.warning(f"Line item {li_id} not in PostgreSQL yet - skipping junction")
+                continue
             event_line_item = EventLineItem(
                 id=generate_id("eli"),
                 event_id=pg_event_id,
-                line_item_id=pg_line_item.id,
+                line_item_id=li_id,
                 created_at=datetime.now(UTC),
             )
             db_session.add(event_line_item)
-        else:
-            logger.warning(f"Line item {line_item_id} not in PostgreSQL yet - skipping junction")
 
-    # Create EventTag junctions
-    for tag_name in event_dict.get("tags", []):
-        tag = db_session.query(Tag).filter(Tag.name == tag_name).first()
-        if not tag:
-            tag = Tag(
-                id=generate_id("tag"),
-                name=tag_name,
+    # Create EventTag junctions (batch-fetch existing tags to avoid N+1)
+    tag_names = event_dict.get("tags", [])
+    if tag_names:
+        existing_tags = db_session.query(Tag).filter(Tag.name.in_(tag_names)).all()
+        tag_map = {t.name: t for t in existing_tags}
+        for tag_name in tag_names:
+            tag = tag_map.get(tag_name)
+            if not tag:
+                tag = Tag(
+                    id=generate_id("tag"),
+                    name=tag_name,
+                    created_at=datetime.now(UTC),
+                    updated_at=datetime.now(UTC),
+                )
+                db_session.add(tag)
+                db_session.flush()
+                tag_map[tag_name] = tag
+
+            event_tag = EventTag(
+                id=generate_id("etag"),
+                event_id=pg_event_id,
+                tag_id=tag.id,
                 created_at=datetime.now(UTC),
-                updated_at=datetime.now(UTC),
             )
-            db_session.add(tag)
-            db_session.flush()
-
-        event_tag = EventTag(
-            id=generate_id("etag"),
-            event_id=pg_event_id,
-            tag_id=tag.id,
-            created_at=datetime.now(UTC),
-        )
-        db_session.add(event_tag)
+            db_session.add(event_tag)
 
     return pg_event_id
 

@@ -140,7 +140,7 @@ class LineItem(Base):
     __table_args__ = (UniqueConstraint("transaction_id", name="uq_line_item_transaction"),)
 
     id = Column(String(255), primary_key=True)  # li_xxx
-    transaction_id = Column(String(255), ForeignKey("transactions.id", ondelete="CASCADE"), nullable=False)
+    transaction_id = Column(String(255), ForeignKey("transactions.id", ondelete="CASCADE"), nullable=False, index=True)
     date = Column(TIMESTAMP(timezone=True), nullable=False)
     amount = Column(DECIMAL(12, 2), nullable=False)
     description = Column(Text, nullable=False)
@@ -148,6 +148,7 @@ class LineItem(Base):
         String(255),
         ForeignKey("payment_methods.id", ondelete="RESTRICT"),
         nullable=False,
+        index=True,
     )
     responsible_party = Column(String(255), nullable=True)
     notes = Column(Text, nullable=True)
@@ -170,7 +171,7 @@ class Event(Base):
     id = Column(String(255), primary_key=True)  # evt_xxx
     date = Column(TIMESTAMP(timezone=True), nullable=False)
     description = Column(Text, nullable=False)
-    category_id = Column(String(255), ForeignKey("categories.id", ondelete="RESTRICT"), nullable=False)
+    category_id = Column(String(255), ForeignKey("categories.id", ondelete="RESTRICT"), nullable=False, index=True)
     is_duplicate = Column(Boolean, default=False)
     created_at = Column(TIMESTAMP(timezone=True), default=lambda: datetime.now(UTC))
     updated_at = Column(
@@ -199,8 +200,8 @@ class EventLineItem(Base):
     __table_args__ = (UniqueConstraint("event_id", "line_item_id", name="uq_event_line_item"),)
 
     id = Column(String(255), primary_key=True)  # eli_xxx
-    event_id = Column(String(255), ForeignKey("events.id", ondelete="CASCADE"), nullable=False)
-    line_item_id = Column(String(255), ForeignKey("line_items.id", ondelete="CASCADE"), nullable=False)
+    event_id = Column(String(255), ForeignKey("events.id", ondelete="CASCADE"), nullable=False, index=True)
+    line_item_id = Column(String(255), ForeignKey("line_items.id", ondelete="CASCADE"), nullable=False, index=True)
     created_at = Column(TIMESTAMP(timezone=True), default=lambda: datetime.now(UTC))
 
 
