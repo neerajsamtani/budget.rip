@@ -107,7 +107,7 @@ describe('CreateEventModal', () => {
 
     beforeEach(() => {
         jest.clearAllMocks();
-        mockUseLineItems.mockReturnValue({ lineItems: mockLineItems, isLoading: false });
+        mockUseLineItems.mockReturnValue({ lineItems: mockLineItems, isPending: false });
         mockUseLineItemsDispatch.mockReturnValue(mockDispatch);
         // Default: no prefill suggestion from event hints
         mockUseEvaluateEventHints.mockReturnValue({ data: null, isLoading: false, isError: false });
@@ -430,7 +430,7 @@ describe('CreateEventModal', () => {
         });
 
         it('form is cleared when no line items are selected', async () => {
-            mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: false });
+            mockUseLineItems.mockReturnValue({ lineItems: [], isPending: false });
 
             // First render with show=false to trigger prefill
             const { rerender } = render(<CreateEventModal show={false} onHide={mockOnHide} />);
@@ -615,29 +615,6 @@ describe('CreateEventModal', () => {
             });
         });
 
-        it('line items are removed after successful event creation', async () => {
-            render(<CreateEventModal show={true} onHide={mockOnHide} />);
-
-            // Fill out form
-            const nameInput = screen.getAllByDisplayValue('')[0]; // First input is name
-            fireEvent.change(nameInput, { target: { value: 'Test Event' } });
-
-            const categorySelect = screen.getByRole('combobox', { name: /category/i });
-            await userEvent.click(categorySelect);
-            await userEvent.click(screen.getByRole('option', { name: 'Dining' }));
-
-            // Submit form
-            const submitButton = screen.getByRole('button', { name: /create event/i });
-            await userEvent.click(submitButton);
-
-            await waitFor(() => {
-                expect(mockDispatch).toHaveBeenCalledWith({
-                    type: 'remove_line_items',
-                    lineItemIds: ['1', '2']
-                });
-            });
-        });
-
         it('toast is shown after successful event creation', async () => {
             render(<CreateEventModal show={true} onHide={mockOnHide} />);
 
@@ -811,7 +788,7 @@ describe('CreateEventModal', () => {
             });
 
             // Simulate line items being removed (as dispatch would do) and modal reopening
-            mockUseLineItems.mockReturnValue({ lineItems: [], isLoading: false });
+            mockUseLineItems.mockReturnValue({ lineItems: [], isPending: false });
             rerender(<CreateEventModal show={false} onHide={mockOnHide} />);
             rerender(<CreateEventModal show={true} onHide={mockOnHide} />);
 

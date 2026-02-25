@@ -313,7 +313,7 @@ export function useRefreshAccount(): UseMutationResult<void, Error, RefreshAccou
       queryClient.invalidateQueries({ queryKey: ['connectedAccounts'] });
       queryClient.invalidateQueries({ queryKey: ['accountsAndBalances'] });
       queryClient.invalidateQueries({ queryKey: ['events'], refetchType: 'none' });
-      queryClient.invalidateQueries({ queryKey: ['lineItems'], refetchType: 'none' });
+      queryClient.invalidateQueries({ queryKey: ['lineItems'] });
       queryClient.invalidateQueries({ queryKey: ['monthlyBreakdown'], refetchType: 'none' });
     },
   });

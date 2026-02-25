@@ -22,10 +22,10 @@ type Action =
 
 interface LineItemsContextValue {
     lineItems: LineItemInterface[];
-    isLoading: boolean;
+    isPending: boolean;
 }
 
-export const LineItemsContext = createContext<LineItemsContextValue>({ lineItems: [], isLoading: false });
+export const LineItemsContext = createContext<LineItemsContextValue>({ lineItems: [], isPending: true });
 export const LineItemsDispatchContext = createContext<React.Dispatch<Action>>(() => { });
 
 export function useLineItems() {
@@ -69,7 +69,7 @@ export function LineItemsProvider({ children }: { children: ReactNode }) {
     const [lineItems, lineItemsDispatch] = useReducer(lineItemsReducer, initialLineItems);
     const { isAuthenticated } = useAuth();
 
-    const { data: fetchedLineItems, isLoading, error } = useLineItemsQuery({ onlyLineItemsToReview: true, enabled: isAuthenticated });
+    const { data: fetchedLineItems, isPending, error } = useLineItemsQuery({ onlyLineItemsToReview: true, enabled: isAuthenticated });
 
     useEffect(() => {
         if (fetchedLineItems) {
@@ -86,7 +86,7 @@ export function LineItemsProvider({ children }: { children: ReactNode }) {
         }
     }, [error])
 
-    const contextValue = useMemo(() => ({ lineItems, isLoading }), [lineItems, isLoading]);
+    const contextValue = useMemo(() => ({ lineItems, isPending }), [lineItems, isPending]);
 
     return (
         <LineItemsContext.Provider value={contextValue}>
