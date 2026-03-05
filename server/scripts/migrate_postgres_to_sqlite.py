@@ -68,27 +68,28 @@ def migrate(pg_host, pg_port, pg_user, pg_password, pg_dbname, sqlite_path):
     pg_session = PgSession()
     sqlite_session = SqliteSession()
 
+    batch_size = 1000
+
     try:
         for table_name in TABLE_ORDER:
-            # Read all rows from PostgreSQL
             result = pg_session.execute(text(f"SELECT * FROM {table_name}"))
             columns = list(result.keys())
-            rows = result.fetchall()
 
-            if not rows:
-                print(f"  {table_name}: 0 rows (empty)")
-                continue
-
-            # Insert into SQLite
             placeholders = ", ".join([f":{col}" for col in columns])
             col_names = ", ".join(columns)
             insert_sql = text(f"INSERT INTO {table_name} ({col_names}) VALUES ({placeholders})")
 
-            batch = [dict(zip(columns, row)) for row in rows]
-            sqlite_session.execute(insert_sql, batch)
-            sqlite_session.commit()
+            total = 0
+            while True:
+                rows = result.fetchmany(batch_size)
+                if not rows:
+                    break
+                batch = [dict(zip(columns, row)) for row in rows]
+                sqlite_session.execute(insert_sql, batch)
+                sqlite_session.commit()
+                total += len(rows)
 
-            print(f"  {table_name}: {len(rows)} rows migrated")
+            print(f"  {table_name}: {total} rows migrated")
 
         print(f"\nMigration complete! SQLite database: {sqlite_path}")
 

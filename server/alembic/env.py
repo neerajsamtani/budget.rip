@@ -23,13 +23,13 @@ if config.config_file_name is not None:
 
 target_metadata = Base.metadata
 
+db_url = f"sqlite:///{DATABASE_NAME or 'budgit.db'}"
+
 
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode."""
-    db_path = DATABASE_NAME or "budgit.db"
-    url = f"sqlite:///{db_path}"
     context.configure(
-        url=url,
+        url=db_url,
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
@@ -42,9 +42,8 @@ def run_migrations_offline() -> None:
 
 def run_migrations_online() -> None:
     """Run migrations in 'online' mode."""
-    db_path = DATABASE_NAME or "budgit.db"
     connectable = create_engine(
-        f"sqlite:///{db_path}",
+        db_url,
         poolclass=pool.NullPool,
     )
 

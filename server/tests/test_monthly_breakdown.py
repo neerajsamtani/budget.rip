@@ -7,8 +7,8 @@ from tests.test_helpers import setup_test_event, setup_test_line_item
 
 def create_event_with_line_item(db_session, event_data: Dict[str, Any]) -> None:
     """
-    Create a PostgreSQL event with a line item matching the amount.
-    Converts simple event data to PostgreSQL structure with proper relationships.
+    Create an event with a line item matching the amount.
+    Converts simple event data to database structure with proper relationships.
     """
     # Create line item with the event's amount
     line_item_data = {
@@ -21,10 +21,10 @@ def create_event_with_line_item(db_session, event_data: Dict[str, Any]) -> None:
         "notes": None,
     }
 
-    pg_line_item = setup_test_line_item(db_session, line_item_data)
+    line_item = setup_test_line_item(db_session, line_item_data)
 
     # Create event and associate the line item
-    setup_test_event(db_session, event_data, line_items=[pg_line_item])
+    setup_test_event(db_session, event_data, line_items=[line_item])
 
     db_session.flush()
 

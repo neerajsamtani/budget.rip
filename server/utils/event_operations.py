@@ -76,8 +76,8 @@ def upsert_event_to_db(event_dict: Dict[str, Any], db_session) -> str:
     # Create EventLineItem junctions (batch-fetch to avoid N+1)
     line_item_ids = [str(id) for id in event_dict.get("line_items", [])]
     if line_item_ids:
-        pg_line_items = db_session.query(LineItem).filter(LineItem.id.in_(line_item_ids)).all()
-        found_ids = {li.id for li in pg_line_items}
+        matched_items = db_session.query(LineItem).filter(LineItem.id.in_(line_item_ids)).all()
+        found_ids = {li.id for li in matched_items}
         for li_id in line_item_ids:
             if li_id not in found_ids:
                 logger.warning(f"Line item {li_id} not in database yet - skipping junction")
@@ -136,10 +136,10 @@ def delete_event(event_id: str) -> bool:
         True if an event was deleted, False if not found.
     """
     with SessionLocal.begin() as db_session:
-        pg_event = db_session.query(Event).filter(Event.id == event_id).first()
+        event = db_session.query(Event).filter(Event.id == event_id).first()
 
-        if not pg_event:
+        if not event:
             return False
 
-        db_session.delete(pg_event)
+        db_session.delete(event)
         return True
