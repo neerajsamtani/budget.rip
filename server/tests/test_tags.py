@@ -2,7 +2,7 @@ import pytest
 
 
 @pytest.fixture
-def sample_tags(pg_session):
+def sample_tags(db_session):
     """Create sample tags for testing"""
     from models.sql_models import Tag
 
@@ -13,8 +13,8 @@ def sample_tags(pg_session):
     ]
 
     tags = [Tag(**tag_data) for tag_data in tags_data]
-    pg_session.add_all(tags)
-    pg_session.commit()
+    db_session.add_all(tags)
+    db_session.commit()
 
     return tags_data
 

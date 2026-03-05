@@ -166,7 +166,7 @@ class TestCategoryAPI:
         response = test_client.delete("/api/categories/cat_nonexistent", headers={"Authorization": f"Bearer {jwt_token}"})
         assert response.status_code == 404
 
-    def test_category_with_events_cannot_be_deleted(self, test_client, jwt_token, pg_session):
+    def test_category_with_events_cannot_be_deleted(self, test_client, jwt_token, db_session):
         """Category used by events cannot be deleted"""
         # Create a new category via API
         create_response = test_client.post(
@@ -176,7 +176,7 @@ class TestCategoryAPI:
         category_id = create_response.get_json()["data"]["id"]
 
         # Get the actual category from the database
-        category = pg_session.query(Category).filter(Category.id == category_id).first()
+        category = db_session.query(Category).filter(Category.id == category_id).first()
 
         # Create supporting data for an event
         payment_method = PaymentMethod(
@@ -191,8 +191,8 @@ class TestCategoryAPI:
             source_data={},
             transaction_date=datetime.now(UTC),
         )
-        pg_session.add_all([payment_method, transaction])
-        pg_session.commit()
+        db_session.add_all([payment_method, transaction])
+        db_session.commit()
 
         # Create a line item
         line_item = LineItem(
@@ -203,8 +203,8 @@ class TestCategoryAPI:
             description="Test Line Item",
             payment_method_id=payment_method.id,
         )
-        pg_session.add(line_item)
-        pg_session.commit()
+        db_session.add(line_item)
+        db_session.commit()
 
         # Create an event using this category
         event = Event(
@@ -213,8 +213,8 @@ class TestCategoryAPI:
             description="Test Event",
             category_id=category.id,
         )
-        pg_session.add(event)
-        pg_session.commit()
+        db_session.add(event)
+        db_session.commit()
 
         # Link line item to event
         event_line_item = EventLineItem(
@@ -222,8 +222,8 @@ class TestCategoryAPI:
             event_id=event.id,
             line_item_id=line_item.id,
         )
-        pg_session.add(event_line_item)
-        pg_session.commit()
+        db_session.add(event_line_item)
+        db_session.commit()
 
         # Try to delete the category - should fail
         response = test_client.delete(f"/api/categories/{category_id}", headers={"Authorization": f"Bearer {jwt_token}"})

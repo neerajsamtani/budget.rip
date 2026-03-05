@@ -22,20 +22,7 @@ USER_FIRST_NAME = "Neeraj"
 PARTIES_TO_IGNORE = ["Pink Palace Babes", "Nyusha", "John Jonah"]
 STRIPE_API_KEY = os.getenv("STRIPE_LIVE_API_SECRET_KEY")
 STRIPE_CUSTOMER_ID = os.getenv("STRIPE_CUSTOMER_ID")
-DATABASE_HOST = os.getenv("DATABASE_HOST")
-DATABASE_PORT = os.getenv("DATABASE_PORT", "5432")
-DATABASE_USERNAME = os.getenv("DATABASE_USERNAME")
-DATABASE_PASSWORD = os.getenv("DATABASE_PASSWORD")
 DATABASE_NAME = os.getenv("DATABASE_NAME")
-DATABASE_SSL_MODE = os.getenv("DATABASE_SSL_MODE", "prefer")
-
-
-def get_database_display_url():
-    """Returns a safe-to-log database URL with masked password."""
-    user = DATABASE_USERNAME or "(unset)"
-    host = DATABASE_HOST or "(unset)"
-    name = DATABASE_NAME or "(unset)"
-    return f"postgresql://{user}:***@{host}:{DATABASE_PORT}/{name}"
 
 
 VENMO_ACCESS_TOKEN = os.getenv("VENMO_ACCESS_TOKEN")

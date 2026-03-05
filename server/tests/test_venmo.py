@@ -284,7 +284,7 @@ class TestVenmoFunctions:
         with flask_app.app_context():
             from models.database import SessionLocal
             from models.sql_models import LineItem
-            from utils.pg_bulk_ops import bulk_upsert_transactions
+            from utils.bulk_ops import bulk_upsert_transactions
 
             # Insert test transaction data
             test_transaction = mock_venmo_transaction
@@ -310,7 +310,7 @@ class TestVenmoFunctions:
         with flask_app.app_context():
             from models.database import SessionLocal
             from models.sql_models import LineItem
-            from utils.pg_bulk_ops import bulk_upsert_transactions
+            from utils.bulk_ops import bulk_upsert_transactions
 
             # Insert test transaction data
             test_transaction = mock_venmo_transaction_charge
@@ -336,7 +336,7 @@ class TestVenmoFunctions:
         with flask_app.app_context():
             from models.database import SessionLocal
             from models.sql_models import LineItem
-            from utils.pg_bulk_ops import bulk_upsert_transactions
+            from utils.bulk_ops import bulk_upsert_transactions
 
             # Insert test transaction data
             test_transaction = mock_venmo_transaction_received
@@ -370,7 +370,7 @@ class TestVenmoFunctions:
         with flask_app.app_context():
             from models.database import SessionLocal
             from models.sql_models import LineItem
-            from utils.pg_bulk_ops import bulk_upsert_transactions
+            from utils.bulk_ops import bulk_upsert_transactions
 
             # Insert multiple test transactions
             transactions = [
@@ -469,7 +469,7 @@ class TestVenmoIntegration:
                 "note": "Integration test payment",
                 "amount": 25.0,
             }
-            from utils.pg_bulk_ops import bulk_upsert_transactions
+            from utils.bulk_ops import bulk_upsert_transactions
 
             with SessionLocal.begin() as db:
                 bulk_upsert_transactions(db, [transaction_dict], source="venmo_api")

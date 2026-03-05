@@ -190,7 +190,7 @@ def get_line_item_amounts(line_item_ids: list[str]) -> List[Dict[str, Any]]:
 
 
 def get_all_line_items(filters: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """Get line items from PostgreSQL"""
+    """Get line items from database"""
     from models.database import SessionLocal
     from models.sql_models import Event, LineItem, PaymentMethod
 
@@ -226,7 +226,7 @@ def get_all_line_items(filters: Optional[Dict[str, Any]]) -> List[Dict[str, Any]
 
 
 def get_line_item_by_id(id: str) -> Optional[Dict[str, Any]]:
-    """Get line item from PostgreSQL by ID"""
+    """Get line item from database by ID"""
     from models.database import SessionLocal
     from models.sql_models import LineItem
 
@@ -241,7 +241,7 @@ def get_line_item_by_id(id: str) -> Optional[Dict[str, Any]]:
 
 
 def get_user_by_id(id: str) -> Optional[Dict[str, Any]]:
-    """Get user from PostgreSQL by ID"""
+    """Get user from database by ID"""
     from models.database import SessionLocal
     from models.sql_models import User
 
@@ -252,7 +252,7 @@ def get_user_by_id(id: str) -> Optional[Dict[str, Any]]:
 
 
 def get_all_events(filters: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """Get events from PostgreSQL"""
+    """Get events from database"""
     from datetime import datetime
 
     from models.database import SessionLocal
@@ -282,7 +282,7 @@ def get_all_events(filters: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
 
 
 def get_event_by_id(id: str) -> Optional[Dict[str, Any]]:
-    """Get event from PostgreSQL by ID"""
+    """Get event from database by ID"""
     from models.database import SessionLocal
     from models.sql_models import Event, LineItem
 
@@ -298,7 +298,7 @@ def get_event_by_id(id: str) -> Optional[Dict[str, Any]]:
 
 
 def get_transactions(source: str, filters: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """Get raw transactions from PostgreSQL by source (venmo_api, splitwise_api, stripe_api, manual)"""
+    """Get raw transactions from database by source (venmo_api, splitwise_api, stripe_api, manual)"""
     from models.database import SessionLocal
     from models.sql_models import Transaction
 
@@ -325,7 +325,7 @@ def get_transactions(source: str, filters: Optional[Dict[str, Any]]) -> List[Dic
 def get_all_bank_accounts(
     filters: Optional[Dict[str, Any]],
 ) -> List[Dict[str, Any]]:
-    """Get bank accounts from PostgreSQL"""
+    """Get bank accounts from database"""
     from models.database import SessionLocal
     from models.sql_models import BankAccount
 

@@ -14,10 +14,6 @@ from werkzeug.exceptions import HTTPException
 from clients import get_venmo_client, splitwise_client
 from constants import (
     CORS_ALLOWED_ORIGINS,
-    DATABASE_HOST,
-    DATABASE_NAME,
-    DATABASE_PASSWORD,
-    DATABASE_USERNAME,
     JWT_COOKIE_DOMAIN,
     JWT_SECRET_KEY,
     LOG_LEVEL,
@@ -74,16 +70,6 @@ required_vars = {
     "STRIPE_LIVE_API_SECRET_KEY": STRIPE_API_KEY,
     "STRIPE_CUSTOMER_ID": STRIPE_CUSTOMER_ID,
 }
-# Database credentials required in production (tests use SQLite with defaults)
-if not TESTING:
-    required_vars.update(
-        {
-            "DATABASE_HOST": DATABASE_HOST,
-            "DATABASE_USERNAME": DATABASE_USERNAME,
-            "DATABASE_PASSWORD": DATABASE_PASSWORD,
-            "DATABASE_NAME": DATABASE_NAME,
-        }
-    )
 missing = [name for name, value in required_vars.items() if not value]
 if missing:
     raise RuntimeError(f"Required environment variables not set: {', '.join(missing)}")
@@ -275,6 +261,14 @@ def create_consistent_line_items() -> None:
     stripe_to_line_items()
     # Note: Manual transactions don't need refresh - they're created directly when user submits
     logger.info("Created consistent line items")
+
+
+# Ensure SQLite database tables exist on startup
+if not TESTING:
+    from models.database import engine
+    from models.sql_models import Base
+
+    Base.metadata.create_all(engine)
 
 
 if __name__ == "__main__":

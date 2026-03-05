@@ -224,7 +224,7 @@ class TestApplicationRoutes:
         """Connected accounts endpoint returns Venmo, Splitwise, and Stripe accounts"""
         with flask_app.app_context():
             from models.database import SessionLocal
-            from utils.pg_bulk_ops import bulk_upsert_bank_accounts
+            from utils.bulk_ops import bulk_upsert_bank_accounts
 
             # Insert test bank account
             with SessionLocal.begin() as db:
@@ -284,7 +284,7 @@ class TestApplicationRoutes:
         """Payment methods endpoint includes bank account display names"""
         with flask_app.app_context():
             from models.database import SessionLocal
-            from utils.pg_bulk_ops import bulk_upsert_bank_accounts
+            from utils.bulk_ops import bulk_upsert_bank_accounts
 
             # Insert test bank account
             with SessionLocal.begin() as db:
@@ -372,7 +372,7 @@ class TestApplicationIntegration:
         """Complete refresh workflow syncs data and creates line items"""
         with flask_app.app_context():
             from models.database import SessionLocal
-            from utils.pg_bulk_ops import bulk_upsert_line_items
+            from utils.bulk_ops import bulk_upsert_line_items
 
             # Insert test line item
             with SessionLocal.begin() as db:
@@ -410,7 +410,7 @@ class TestApplicationIntegration:
         """Connected accounts lists all bank accounts under Stripe"""
         with flask_app.app_context():
             from models.database import SessionLocal
-            from utils.pg_bulk_ops import bulk_upsert_bank_accounts
+            from utils.bulk_ops import bulk_upsert_bank_accounts
 
             # Insert multiple bank accounts
             bank_accounts = [
@@ -455,7 +455,7 @@ class TestApplicationIntegration:
         """Payment methods lists display names for all bank accounts"""
         with flask_app.app_context():
             from models.database import SessionLocal
-            from utils.pg_bulk_ops import bulk_upsert_bank_accounts
+            from utils.bulk_ops import bulk_upsert_bank_accounts
 
             # Insert multiple bank accounts
             bank_accounts = [

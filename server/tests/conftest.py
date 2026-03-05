@@ -18,10 +18,8 @@ for key, value in test_env_vars.items():
         os.environ[key] = value
 
 # CRITICAL: Set test environment BEFORE any imports
-# This prevents test data from polluting the production PostgreSQL database
+# This prevents test data from polluting the production database
 os.environ["TESTING"] = "true"
-os.environ["DATABASE_HOST"] = "sqlite"
-# Use a unique name for the shared in-memory database to avoid file creation
 os.environ["DATABASE_NAME"] = ":memory:"
 
 from flask import Flask
@@ -133,7 +131,7 @@ def flask_app():
         def user_lookup_callback(jwt_header, jwt_payload):
             user_id = jwt_payload.get("sub")
             if user_id:
-                # Query PostgreSQL using the dao layer
+                # Query database using the dao layer
                 from dao import get_user_by_id
 
                 user = get_user_by_id(user_id)
@@ -200,8 +198,8 @@ def jwt_token(flask_app):
 
 
 @pytest.fixture
-def pg_session():
-    """Provide a SQLite session using the shared test database"""
+def db_session():
+    """Provide a database session using the shared test database"""
     if TestSession is None:
         init_test_db()
 
@@ -211,8 +209,8 @@ def pg_session():
     session.close()
 
 
-def seed_postgresql_base_data():
-    """Seed PostgreSQL with required base data (categories, payment methods) for test user"""
+def seed_base_data():
+    """Seed database with required base data (categories, payment methods) for test user"""
     from models.sql_models import Category, PaymentMethod, User
 
     session = TestSession()
@@ -293,17 +291,17 @@ def seed_postgresql_base_data():
 def setup_teardown(flask_app, request):
     # This fixture will be used for setup and teardown
     with flask_app.app_context():
-        # Clean up PostgreSQL tables before each test
+        # Clean up database tables before each test
         cleanup_test_db()
 
-        # Seed PostgreSQL with base data
+        # Seed database with base data
         # Skip for phase5 tests as they have their own fixtures
         if "test_phase5" not in request.node.fspath.basename:
-            seed_postgresql_base_data()
+            seed_base_data()
 
     def teardown():
         with flask_app.app_context():
-            # Clean up PostgreSQL tables after each test
+            # Clean up database tables after each test
             cleanup_test_db()
 
     request.addfinalizer(teardown)

@@ -87,10 +87,10 @@ def post_event_api() -> tuple[Response, int]:
     # Ensure tags is always a list
     new_event["tags"] = new_event.get("tags", [])
 
-    from utils.pg_event_operations import upsert_event
+    from utils.event_operations import upsert_event
 
-    pg_event_id = upsert_event(new_event)
-    new_event["id"] = pg_event_id
+    event_id = upsert_event(new_event)
+    new_event["id"] = event_id
 
     logger.info(f"Created event: {new_event['id']} with {len(line_items)} line items (amount: ${new_event['amount']:.2f})")
     return jsonify(new_event), 201
@@ -132,7 +132,7 @@ def update_event_api(event_id: str) -> tuple[Response, int]:
     else:
         event_dict["date"] = earliest_line_item["date"]
 
-    from utils.pg_event_operations import upsert_event
+    from utils.event_operations import upsert_event
 
     upsert_event(event_dict)
 
@@ -171,9 +171,9 @@ def delete_event_api(event_id: str) -> tuple[Response, int]:
 
     line_item_ids: List[str] = event["line_items"]
 
-    from utils.pg_event_operations import delete_event_from_postgresql
+    from utils.event_operations import delete_event
 
-    deleted = delete_event_from_postgresql(event_id)
+    deleted = delete_event(event_id)
     if not deleted:
         logger.warning(f"Event {event_id} not found in database")
         return jsonify({"error": "Event not found"}), 404

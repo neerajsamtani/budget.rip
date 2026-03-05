@@ -5,7 +5,7 @@ import pytest
 from tests.test_helpers import setup_test_event, setup_test_line_item
 
 
-def create_event_with_line_item(pg_session, event_data: Dict[str, Any]) -> None:
+def create_event_with_line_item(db_session, event_data: Dict[str, Any]) -> None:
     """
     Create a PostgreSQL event with a line item matching the amount.
     Converts simple event data to PostgreSQL structure with proper relationships.
@@ -21,12 +21,12 @@ def create_event_with_line_item(pg_session, event_data: Dict[str, Any]) -> None:
         "notes": None,
     }
 
-    pg_line_item = setup_test_line_item(pg_session, line_item_data)
+    pg_line_item = setup_test_line_item(db_session, line_item_data)
 
     # Create event and associate the line item
-    setup_test_event(pg_session, event_data, line_items=[pg_line_item])
+    setup_test_event(db_session, event_data, line_items=[pg_line_item])
 
-    pg_session.flush()
+    db_session.flush()
 
 
 @pytest.fixture
@@ -100,13 +100,13 @@ def mock_event_data_with_gaps():
 
 
 class TestMonthlyBreakdownAPI:
-    def test_breakdown_returns_totals_by_category(self, test_client, jwt_token, flask_app, mock_event_data, pg_session):
+    def test_breakdown_returns_totals_by_category(self, test_client, jwt_token, flask_app, mock_event_data, db_session):
         """Monthly breakdown returns spending totals grouped by category"""
         # Insert test data
         with flask_app.app_context():
             for event in mock_event_data:
-                create_event_with_line_item(pg_session, event)
-            pg_session.commit()
+                create_event_with_line_item(db_session, event)
+            db_session.commit()
 
         # Test API call
         response = test_client.get(
@@ -189,14 +189,14 @@ class TestMonthlyBreakdownAPI:
         assert data == {}  # Empty response when no data
 
     def test_missing_months_are_filled_with_zeros(
-        self, test_client, jwt_token, flask_app, mock_event_data_with_gaps, pg_session
+        self, test_client, jwt_token, flask_app, mock_event_data_with_gaps, db_session
     ):
         """Missing months between first and last are filled with zero amounts"""
         # Insert test data with gaps
         with flask_app.app_context():
             for event in mock_event_data_with_gaps:
-                create_event_with_line_item(pg_session, event)
-            pg_session.commit()
+                create_event_with_line_item(db_session, event)
+            db_session.commit()
 
         # Test API call
         response = test_client.get(
@@ -223,7 +223,7 @@ class TestMonthlyBreakdownAPI:
         apr_dining = next(item for item in dining_data if item["date"] == "4-2023")
         assert apr_dining["amount"] == 60.0
 
-    def test_categories_with_different_date_ranges_all_get_filled(self, test_client, jwt_token, flask_app, pg_session):
+    def test_categories_with_different_date_ranges_all_get_filled(self, test_client, jwt_token, flask_app, db_session):
         """All categories are filled to span the full date range"""
         # Insert test data where different categories have data in different months
         with flask_app.app_context():
@@ -259,8 +259,8 @@ class TestMonthlyBreakdownAPI:
             ]
 
             for event in test_events:
-                create_event_with_line_item(pg_session, event)
-            pg_session.commit()
+                create_event_with_line_item(db_session, event)
+            db_session.commit()
 
         # Test API call
         response = test_client.get(
@@ -303,7 +303,7 @@ class TestMonthlyBreakdownAPI:
         apr_transit = next(item for item in transit_data if item["date"] == "4-2023")
         assert apr_transit["amount"] == 30.0
 
-    def test_data_is_sorted_chronologically(self, test_client, jwt_token, flask_app, pg_session):
+    def test_data_is_sorted_chronologically(self, test_client, jwt_token, flask_app, db_session):
         """Monthly data is sorted by date ascending"""
         # Insert test data in random order
         with flask_app.app_context():
@@ -332,8 +332,8 @@ class TestMonthlyBreakdownAPI:
             ]
 
             for event in test_events:
-                create_event_with_line_item(pg_session, event)
-            pg_session.commit()
+                create_event_with_line_item(db_session, event)
+            db_session.commit()
 
         # Test API call
         response = test_client.get(
@@ -356,7 +356,7 @@ class TestMonthlyBreakdownAPI:
         assert dining_data[2]["date"] == "3-2023"
         assert dining_data[2]["amount"] == 60.0
 
-    def test_same_month_events_are_aggregated(self, test_client, jwt_token, flask_app, pg_session):
+    def test_same_month_events_are_aggregated(self, test_client, jwt_token, flask_app, db_session):
         """Events in same month are summed together"""
         # Insert test data with multiple categories in same month
         with flask_app.app_context():
@@ -385,8 +385,8 @@ class TestMonthlyBreakdownAPI:
             ]
 
             for event in test_events:
-                create_event_with_line_item(pg_session, event)
-            pg_session.commit()
+                create_event_with_line_item(db_session, event)
+            db_session.commit()
 
         # Test API call
         response = test_client.get(
@@ -409,7 +409,7 @@ class TestMonthlyBreakdownAPI:
         assert transit_data[0]["date"] == "1-2023"
         assert transit_data[0]["amount"] == 25.0
 
-    def test_large_amounts_are_summed_correctly(self, test_client, jwt_token, flask_app, pg_session):
+    def test_large_amounts_are_summed_correctly(self, test_client, jwt_token, flask_app, db_session):
         """Large amounts are aggregated correctly"""
         # Insert test data with large amounts
         with flask_app.app_context():
@@ -431,8 +431,8 @@ class TestMonthlyBreakdownAPI:
             ]
 
             for event in test_events:
-                create_event_with_line_item(pg_session, event)
-            pg_session.commit()
+                create_event_with_line_item(db_session, event)
+            db_session.commit()
 
         # Test API call
         response = test_client.get(
@@ -449,7 +449,7 @@ class TestMonthlyBreakdownAPI:
         assert rent_data[0]["date"] == "1-2023"
         assert rent_data[0]["amount"] == 3000.0  # 2500 + 500
 
-    def test_decimal_amounts_are_preserved(self, test_client, jwt_token, flask_app, pg_session):
+    def test_decimal_amounts_are_preserved(self, test_client, jwt_token, flask_app, db_session):
         """Decimal amounts are preserved when summing"""
         # Insert test data with decimal amounts
         with flask_app.app_context():
@@ -471,8 +471,8 @@ class TestMonthlyBreakdownAPI:
             ]
 
             for event in test_events:
-                create_event_with_line_item(pg_session, event)
-            pg_session.commit()
+                create_event_with_line_item(db_session, event)
+            db_session.commit()
 
         # Test API call
         response = test_client.get(
@@ -489,7 +489,7 @@ class TestMonthlyBreakdownAPI:
         assert dining_data[0]["date"] == "1-2023"
         assert dining_data[0]["amount"] == 21.25  # 12.50 + 8.75
 
-    def test_single_category_returns_only_that_category(self, test_client, jwt_token, flask_app, pg_session):
+    def test_single_category_returns_only_that_category(self, test_client, jwt_token, flask_app, db_session):
         """Single category data returns only that category"""
         # Insert test data with only one category
         with flask_app.app_context():
@@ -511,8 +511,8 @@ class TestMonthlyBreakdownAPI:
             ]
 
             for event in test_events:
-                create_event_with_line_item(pg_session, event)
-            pg_session.commit()
+                create_event_with_line_item(db_session, event)
+            db_session.commit()
 
         # Test API call
         response = test_client.get(
@@ -535,12 +535,12 @@ class TestMonthlyBreakdownAPI:
         feb_dining = next(item for item in data["Dining"] if item["date"] == "2-2023")
         assert feb_dining["amount"] == 75.0
 
-    def test_duplicate_events_are_counted_once(self, test_client, jwt_token, flask_app, pg_session):
+    def test_duplicate_events_are_counted_once(self, test_client, jwt_token, flask_app, db_session):
         """Duplicate events (is_duplicate=True) count only one line item's amount, not all line items"""
         with flask_app.app_context():
             # Two line items at $765 each represent the same charge from two sources
             li1 = setup_test_line_item(
-                pg_session,
+                db_session,
                 {
                     "id": "li_dup_1",
                     "date": 1672531200,  # 2023-01-01
@@ -551,7 +551,7 @@ class TestMonthlyBreakdownAPI:
                 },
             )
             li2 = setup_test_line_item(
-                pg_session,
+                db_session,
                 {
                     "id": "li_dup_2",
                     "date": 1672531200,  # 2023-01-01
@@ -562,7 +562,7 @@ class TestMonthlyBreakdownAPI:
                 },
             )
             setup_test_event(
-                pg_session,
+                db_session,
                 {
                     "id": "event_dup",
                     "date": 1672531200,  # 2023-01-01
@@ -572,7 +572,7 @@ class TestMonthlyBreakdownAPI:
                 },
                 line_items=[li1, li2],
             )
-            pg_session.commit()
+            db_session.commit()
 
         response = test_client.get(
             "/api/monthly_breakdown",
@@ -588,13 +588,13 @@ class TestMonthlyBreakdownAPI:
             f"Expected 765.0 but got {jan_shopping['amount']} — is_duplicate events must not double-count line items"
         )
 
-    def test_response_has_correct_structure(self, test_client, jwt_token, flask_app, mock_event_data, pg_session):
+    def test_response_has_correct_structure(self, test_client, jwt_token, flask_app, mock_event_data, db_session):
         """Response has category names as keys with date and amount arrays"""
         # Insert test data
         with flask_app.app_context():
             for event in mock_event_data:
-                create_event_with_line_item(pg_session, event)
-            pg_session.commit()
+                create_event_with_line_item(db_session, event)
+            db_session.commit()
 
         # Test API call
         response = test_client.get(

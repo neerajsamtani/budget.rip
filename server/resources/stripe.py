@@ -14,7 +14,7 @@ from dao import (
 from helpers import cents_to_dollars, flip_amount
 from models.database import SessionLocal
 from resources.line_item import LineItem
-from utils.pg_bulk_ops import (
+from utils.bulk_ops import (
     bulk_upsert_bank_accounts,
     bulk_upsert_line_items,
     bulk_upsert_transactions,

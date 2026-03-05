@@ -299,7 +299,7 @@ class TestAuthAPI:
 
 
 class TestAuthFunctions:
-    def test_user_can_be_found_by_email(self, flask_app, pg_session):
+    def test_user_can_be_found_by_email(self, flask_app, db_session):
         """User can be retrieved by their email address"""
         from tests.test_helpers import setup_test_user
 
@@ -313,8 +313,8 @@ class TestAuthFunctions:
                 "email": "test@example.com",
                 "password_hash": "test_hash",
             }
-            setup_test_user(pg_session, test_user)
-            pg_session.commit()
+            setup_test_user(db_session, test_user)
+            db_session.commit()
 
             # Test function call
             found_user = get_user_by_email("test@example.com")

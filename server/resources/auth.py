@@ -14,8 +14,8 @@ from flask_jwt_extended import (
 from constants import GATED_USERS
 from dao import get_user_by_email
 from helpers import check_password, hash_password
+from utils.bulk_ops import upsert_user
 from utils.id_generator import generate_id
-from utils.pg_bulk_ops import upsert_user
 
 logger = logging.getLogger(__name__)
 

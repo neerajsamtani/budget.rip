@@ -1,5 +1,5 @@
 """
-Test helper utilities for creating test data in PostgreSQL.
+Test helper utilities for creating test data in the database.
 
 These factories reduce boilerplate in tests by handling foreign key relationships.
 """
@@ -19,12 +19,12 @@ from models.sql_models import (
 from utils.id_generator import generate_id
 
 
-def setup_test_line_item(pg_session, item_data: Dict[str, Any]) -> LineItem:
+def setup_test_line_item(db_session, item_data: Dict[str, Any]) -> LineItem:
     """
-    Create a line item in PostgreSQL.
+    Create a line item in the database.
 
     Args:
-        pg_session: PostgreSQL session
+        db_session: PostgreSQL session
         item_data: Dict with keys: id, date, payment_method, description,
                    responsible_party, amount, and optionally event_id, notes
 
@@ -32,7 +32,7 @@ def setup_test_line_item(pg_session, item_data: Dict[str, Any]) -> LineItem:
         PostgreSQL LineItem object
     """
     # Write to PostgreSQL
-    payment_method = pg_session.query(PaymentMethod).filter(PaymentMethod.name == item_data["payment_method"]).first()
+    payment_method = db_session.query(PaymentMethod).filter(PaymentMethod.name == item_data["payment_method"]).first()
 
     if not payment_method:
         raise ValueError(
@@ -48,8 +48,8 @@ def setup_test_line_item(pg_session, item_data: Dict[str, Any]) -> LineItem:
         source_data={},
         created_at=datetime.now(UTC),
     )
-    pg_session.add(pg_transaction)
-    pg_session.flush()
+    db_session.add(pg_transaction)
+    db_session.flush()
 
     # Create line item
     pg_line_item = LineItem(
@@ -64,22 +64,22 @@ def setup_test_line_item(pg_session, item_data: Dict[str, Any]) -> LineItem:
         created_at=datetime.now(UTC),
         updated_at=datetime.now(UTC),
     )
-    pg_session.add(pg_line_item)
-    pg_session.flush()
+    db_session.add(pg_line_item)
+    db_session.flush()
 
     return pg_line_item
 
 
 def setup_test_event(
-    pg_session,
+    db_session,
     event_data: Dict[str, Any],
     line_items: Optional[List[LineItem]] = None,
 ) -> Event:
     """
-    Create an event in PostgreSQL.
+    Create an event in the database.
 
     Args:
-        pg_session: PostgreSQL session
+        db_session: PostgreSQL session
         event_data: Dict with keys: id, date, description, category,
                     and optionally is_duplicate, tags
         line_items: List of PostgreSQL LineItem objects to associate with event
@@ -88,7 +88,7 @@ def setup_test_event(
         PostgreSQL Event object
     """
     # Write to PostgreSQL
-    category = pg_session.query(Category).filter(Category.name == event_data["category"]).first()
+    category = db_session.query(Category).filter(Category.name == event_data["category"]).first()
 
     if not category:
         raise ValueError(f"Category '{event_data['category']}' not found. Ensure seed_postgresql_base_data fixture is used.")
@@ -102,8 +102,8 @@ def setup_test_event(
         created_at=datetime.now(UTC),
         updated_at=datetime.now(UTC),
     )
-    pg_session.add(pg_event)
-    pg_session.flush()
+    db_session.add(pg_event)
+    db_session.flush()
 
     # Link line items if provided
     if line_items:
@@ -113,14 +113,14 @@ def setup_test_event(
                 event_id=pg_event.id,
                 line_item_id=pg_line_item.id,
             )
-            pg_session.add(event_line_item)
+            db_session.add(event_line_item)
 
     # Handle tags if present
     if "tags" in event_data and event_data["tags"]:
         from models.sql_models import EventTag, Tag
 
         for tag_name in event_data["tags"]:
-            tag = pg_session.query(Tag).filter(Tag.name == tag_name).first()
+            tag = db_session.query(Tag).filter(Tag.name == tag_name).first()
             if not tag:
                 tag = Tag(
                     id=generate_id("tag"),
@@ -128,22 +128,22 @@ def setup_test_event(
                     created_at=datetime.now(UTC),
                     updated_at=datetime.now(UTC),
                 )
-                pg_session.add(tag)
-                pg_session.flush()
+                db_session.add(tag)
+                db_session.flush()
 
             event_tag = EventTag(id=generate_id("et"), event_id=pg_event.id, tag_id=tag.id)
-            pg_session.add(event_tag)
+            db_session.add(event_tag)
 
-    pg_session.flush()
+    db_session.flush()
     return pg_event
 
 
-def setup_test_user(pg_session, user_data: Dict[str, Any]) -> User:
+def setup_test_user(db_session, user_data: Dict[str, Any]) -> User:
     """
-    Create a user in PostgreSQL.
+    Create a user in the database.
 
     Args:
-        pg_session: PostgreSQL session
+        db_session: PostgreSQL session
         user_data: Dict with keys: id, email, first_name, last_name, password_hash
 
     Returns:
@@ -159,18 +159,18 @@ def setup_test_user(pg_session, user_data: Dict[str, Any]) -> User:
         created_at=datetime.now(UTC),
         updated_at=datetime.now(UTC),
     )
-    pg_session.add(pg_user)
-    pg_session.flush()
+    db_session.add(pg_user)
+    db_session.flush()
 
     return pg_user
 
 
-def setup_test_line_item_with_event(pg_session, item_data: Dict[str, Any], event_id: str) -> LineItem:
+def setup_test_line_item_with_event(db_session, item_data: Dict[str, Any], event_id: str) -> LineItem:
     """
     Convenience helper to create a line item and link it to an existing event.
 
     Args:
-        pg_session: PostgreSQL session
+        db_session: PostgreSQL session
         item_data: Line item data (must include 'id', 'date', etc.)
         event_id: ID of existing event
 
@@ -178,10 +178,10 @@ def setup_test_line_item_with_event(pg_session, item_data: Dict[str, Any], event
         PostgreSQL LineItem object
     """
     # Create line item
-    pg_line_item = setup_test_line_item(pg_session, item_data)
+    pg_line_item = setup_test_line_item(db_session, item_data)
 
     # Find event
-    pg_event = pg_session.query(Event).filter(Event.id == event_id).first()
+    pg_event = db_session.query(Event).filter(Event.id == event_id).first()
 
     if not pg_event:
         raise ValueError(f"Event {event_id} not found")
@@ -192,7 +192,7 @@ def setup_test_line_item_with_event(pg_session, item_data: Dict[str, Any], event
         event_id=pg_event.id,
         line_item_id=pg_line_item.id,
     )
-    pg_session.add(event_line_item)
-    pg_session.flush()
+    db_session.add(event_line_item)
+    db_session.flush()
 
     return pg_line_item

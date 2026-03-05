@@ -7,10 +7,10 @@ from utils.cel_evaluator import CELEvaluator, evaluate_hints
 
 
 @pytest.fixture
-def test_user(pg_session):
+def test_user(db_session):
     """Get or create a test user with id matching jwt_token"""
     # Try to get existing user first (may have been created by seed function)
-    user = pg_session.query(User).filter_by(id="user_id").first()
+    user = db_session.query(User).filter_by(id="user_id").first()
     if not user:
         user = User(
             id="user_id",  # Must match the identity in jwt_token fixture
@@ -19,17 +19,17 @@ def test_user(pg_session):
             email="test_user_fixture@example.com",
             password_hash="hashed_password",
         )
-        pg_session.add(user)
-        pg_session.commit()
+        db_session.add(user)
+        db_session.commit()
     return user
 
 
 @pytest.fixture
-def sample_hints(pg_session, test_user):
+def sample_hints(db_session, test_user):
     """Create sample event hints for testing"""
     # Get the subscription category
-    subscription_cat = pg_session.query(Category).filter_by(name="Subscription").first()
-    transfer_cat = pg_session.query(Category).filter_by(name="Transfer").first()
+    subscription_cat = db_session.query(Category).filter_by(name="Subscription").first()
+    transfer_cat = db_session.query(Category).filter_by(name="Transfer").first()
 
     hints = [
         EventHint(
@@ -63,15 +63,15 @@ def sample_hints(pg_session, test_user):
             is_active=False,
         ),
     ]
-    pg_session.add_all(hints)
-    pg_session.commit()
+    db_session.add_all(hints)
+    db_session.commit()
     return hints
 
 
 @pytest.fixture
-def sample_line_items(pg_session):
+def sample_line_items(db_session):
     """Create sample line items for testing"""
-    pm = pg_session.query(PaymentMethod).first()
+    pm = db_session.query(PaymentMethod).first()
 
     # Create transactions first (line items require a transaction)
     transactions = [
@@ -97,8 +97,8 @@ def sample_line_items(pg_session):
             transaction_date=datetime.now(UTC),
         ),
     ]
-    pg_session.add_all(transactions)
-    pg_session.commit()
+    db_session.add_all(transactions)
+    db_session.commit()
 
     line_items = [
         LineItem(
@@ -126,8 +126,8 @@ def sample_line_items(pg_session):
             payment_method_id=pm.id if pm else None,
         ),
     ]
-    pg_session.add_all(line_items)
-    pg_session.commit()
+    db_session.add_all(line_items)
+    db_session.commit()
     return line_items
 
 
@@ -414,9 +414,9 @@ class TestEventHintsAPI:
         data = response.get_json()
         assert len(data["data"]) == 3
 
-    def test_new_hint_is_created_with_prefill_data(self, test_client, jwt_token, test_user, pg_session):
+    def test_new_hint_is_created_with_prefill_data(self, test_client, jwt_token, test_user, db_session):
         """Creating hint stores name and prefill data"""
-        subscription_cat = pg_session.query(Category).filter_by(name="Subscription").first()
+        subscription_cat = db_session.query(Category).filter_by(name="Subscription").first()
 
         hint_data = {
             "name": "New Hint",

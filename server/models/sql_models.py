@@ -15,7 +15,6 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
 )
-from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import declarative_base, relationship
 
 Base = declarative_base()
@@ -129,7 +128,7 @@ class Transaction(Base):
         nullable=False,
     )
     source_id = Column(String(255), nullable=False)
-    source_data = Column(JSON().with_variant(JSONB, "postgresql"), nullable=False)  # JSONB for PostgreSQL, JSON for others
+    source_data = Column(JSON, nullable=False)
     transaction_date = Column(TIMESTAMP(timezone=True), nullable=False)
     imported_at = Column(TIMESTAMP(timezone=True), default=lambda: datetime.now(UTC))
     created_at = Column(TIMESTAMP(timezone=True), default=lambda: datetime.now(UTC))

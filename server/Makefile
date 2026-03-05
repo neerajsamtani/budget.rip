@@ -1,4 +1,4 @@
-.PHONY: help test test-phase3 test-watch test-coverage test-quick install lint lint-fix clean dev-setup pg-dump
+.PHONY: help test test-phase3 test-watch test-coverage test-quick install lint lint-fix clean dev-setup db-backup
 
 help: ## Show this help message
 	@echo "Available commands:"
@@ -63,15 +63,12 @@ dev-setup: install ## Set up development environment
 	@echo "To run the server:"
 	@echo "  uv run python application.py"
 
-pg-dump: ## Create PostgreSQL database dump (requires PGPASSWORD env var)
-	@if [ -z "$$PGPASSWORD" ]; then \
-		echo "Error: PGPASSWORD environment variable is not set"; \
-		echo "Usage: PGPASSWORD=your_password make pg-dump"; \
+db-backup: ## Create SQLite database backup
+	@if [ -z "$(DATABASE_NAME)" ]; then \
+		echo "Error: DATABASE_NAME environment variable is not set"; \
+		echo "Usage: DATABASE_NAME=budgit.db make db-backup"; \
 		exit 1; \
 	fi
-	@echo "Creating PostgreSQL dump..."
-	@pg_dump -h us-west-3.pg.psdb.cloud -p 5432 \
-		-U pscale_api_jlyfrqc8m3a2.msciuxoprsk4 \
-		-d postgres --clean --if-exists \
-		> budgit_postgres_dump_$$(date +%Y_%m_%d).sql
-	@echo "✓ Dump created: budgit_postgres_dump_$$(date +%Y_%m_%d).sql"
+	@echo "Creating SQLite backup..."
+	@sqlite3 $(DATABASE_NAME) ".backup budgit_backup_$$(date +%Y_%m_%d).db"
+	@echo "✓ Backup created: budgit_backup_$$(date +%Y_%m_%d).db"

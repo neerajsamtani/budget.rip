@@ -1,8 +1,7 @@
 """
-PostgreSQL Bulk Operations for Dual-Write
+Bulk Operations
 
-Shared bulk write functions for efficiently upserting transactions and line items
-to PostgreSQL during the dual-write period.
+Shared bulk write functions for efficiently upserting transactions and line items.
 """
 
 import logging
@@ -37,7 +36,7 @@ def get_transaction_date(transaction: Dict[str, Any], source: str) -> datetime:
 
 def bulk_upsert_transactions(db_session, transactions_source_data: List[Any], source: str) -> int:
     """
-    Bulk upsert transactions to PostgreSQL.
+    Bulk upsert transactions to database.
 
     Args:
         db_session: SQLAlchemy session
@@ -101,7 +100,7 @@ def bulk_upsert_transactions(db_session, transactions_source_data: List[Any], so
 
     if bulk_inserts:
         db_session.bulk_insert_mappings(Transaction, bulk_inserts)
-        logger.info(f"Bulk inserted {len(bulk_inserts)} {source} transactions to PostgreSQL")
+        logger.info(f"Bulk inserted {len(bulk_inserts)} {source} transactions to database")
         return len(bulk_inserts)
 
     return 0
@@ -165,7 +164,7 @@ def _build_line_item_insert_mapping(
 
 def bulk_upsert_line_items(db_session, line_items_data: List[Any], source: str) -> int:
     """
-    Bulk upsert line items to PostgreSQL.
+    Bulk upsert line items to database.
 
     Process:
     1. Extracts source_id (external API ID) from incoming line items
@@ -275,7 +274,7 @@ def bulk_upsert_line_items(db_session, line_items_data: List[Any], source: str) 
 
     if bulk_inserts:
         db_session.bulk_insert_mappings(LineItem, bulk_inserts)
-        logger.info(f"Bulk inserted {len(bulk_inserts)} {source} line items to PostgreSQL")
+        logger.info(f"Bulk inserted {len(bulk_inserts)} {source} line items to database")
         return len(bulk_inserts)
 
     return 0
@@ -283,7 +282,7 @@ def bulk_upsert_line_items(db_session, line_items_data: List[Any], source: str) 
 
 def bulk_upsert_bank_accounts(db_session, accounts_data: List[Any]) -> int:
     """
-    Bulk upsert bank accounts to PostgreSQL.
+    Bulk upsert bank accounts to database.
 
     Args:
         db_session: SQLAlchemy session
@@ -338,12 +337,12 @@ def bulk_upsert_bank_accounts(db_session, accounts_data: List[Any]) -> int:
     count = 0
     if bulk_inserts:
         db_session.bulk_insert_mappings(BankAccount, bulk_inserts)
-        logger.info(f"Bulk inserted {len(bulk_inserts)} bank accounts to PostgreSQL")
+        logger.info(f"Bulk inserted {len(bulk_inserts)} bank accounts to database")
         count += len(bulk_inserts)
 
     if bulk_updates:
         db_session.bulk_update_mappings(BankAccount, bulk_updates)
-        logger.info(f"Bulk updated {len(bulk_updates)} bank accounts to PostgreSQL")
+        logger.info(f"Bulk updated {len(bulk_updates)} bank accounts to database")
         count += len(bulk_updates)
 
     return count
@@ -387,7 +386,7 @@ def _seed_default_categories(db_session: Any, user_id: str) -> None:
 
 def upsert_user(user_data: Dict[str, Any]) -> bool:
     """
-    Upsert a single user to PostgreSQL.
+    Upsert a single user to database.
     Seeds default categories for new users.
 
     Args:

@@ -689,10 +689,10 @@ class TestEventAPI:
                 "tags": ["test"],
             }
             from models.database import SessionLocal
-            from utils.pg_event_operations import upsert_event_to_postgresql
+            from utils.event_operations import upsert_event_to_db
 
             with SessionLocal.begin() as db:
-                upsert_event_to_postgresql(test_event, db)
+                upsert_event_to_db(test_event, db)
 
             # Get the actual PostgreSQL event ID that was created
             all_events = get_all_events(None)
@@ -711,7 +711,7 @@ class TestEventAPI:
         assert len(data["data"]) == 1  # Only the existing line item
         assert data["data"][0]["id"] == line_item_ids[0]
 
-    def test_event_removal_clears_event_id_from_line_items(self, flask_app, pg_session):
+    def test_event_removal_clears_event_id_from_line_items(self, flask_app, db_session):
         """Removing event from line items clears event_id regardless of ID type"""
         from tests.test_helpers import setup_test_event, setup_test_line_item_with_event
 
@@ -720,7 +720,7 @@ class TestEventAPI:
 
             # Create events
             event1 = setup_test_event(
-                pg_session,
+                db_session,
                 {
                     "id": "event_1",
                     "date": 1234567890,
@@ -729,7 +729,7 @@ class TestEventAPI:
                 },
             )
             event2 = setup_test_event(
-                pg_session,
+                db_session,
                 {
                     "id": "event_2",
                     "date": 1234567891,
@@ -738,7 +738,7 @@ class TestEventAPI:
                 },
             )
             event3 = setup_test_event(
-                pg_session,
+                db_session,
                 {
                     "id": "event_3",
                     "date": 1234567892,
@@ -749,7 +749,7 @@ class TestEventAPI:
 
             # Create line items with events - capture the actual PostgreSQL objects
             line_item1 = setup_test_line_item_with_event(
-                pg_session,
+                db_session,
                 {
                     "id": "line_item_str",
                     "date": 1234567890,
@@ -763,7 +763,7 @@ class TestEventAPI:
             )
 
             line_item2 = setup_test_line_item_with_event(
-                pg_session,
+                db_session,
                 {
                     "id": 12345,
                     "date": 1234567891,
@@ -777,7 +777,7 @@ class TestEventAPI:
             )
 
             line_item3 = setup_test_line_item_with_event(
-                pg_session,
+                db_session,
                 {
                     "id": "line_item_str2_uuid",
                     "date": 1234567892,
@@ -790,7 +790,7 @@ class TestEventAPI:
                 event3.id,
             )
 
-            pg_session.commit()
+            db_session.commit()
 
             # Verify all line items have event_id using actual PostgreSQL IDs
             line_item_data1 = get_line_item_by_id(line_item1.id)

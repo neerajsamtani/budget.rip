@@ -201,7 +201,7 @@ class TestStripeAPI:
                 "status": "active",
             }
             from models.database import SessionLocal
-            from utils.pg_bulk_ops import bulk_upsert_bank_accounts
+            from utils.bulk_ops import bulk_upsert_bank_accounts
 
             with SessionLocal.begin() as db:
                 bulk_upsert_bank_accounts(db, [test_account])
@@ -233,7 +233,7 @@ class TestStripeAPI:
                 "balance_as_of": datetime(2023, 1, 15, 10, 30, 0, tzinfo=timezone.utc),
             }
             from models.database import SessionLocal
-            from utils.pg_bulk_ops import bulk_upsert_bank_accounts
+            from utils.bulk_ops import bulk_upsert_bank_accounts
 
             with SessionLocal.begin() as db:
                 bulk_upsert_bank_accounts(db, [test_account])
@@ -402,7 +402,7 @@ class TestStripeFunctions:
                 "last4": "1234",
             }
             from models.database import SessionLocal
-            from utils.pg_bulk_ops import bulk_upsert_bank_accounts
+            from utils.bulk_ops import bulk_upsert_bank_accounts
 
             with SessionLocal.begin() as db:
                 bulk_upsert_bank_accounts(db, [test_account])
@@ -441,14 +441,14 @@ class TestStripeFunctions:
                 "last4": "1234",
             }
             from models.database import SessionLocal
-            from utils.pg_bulk_ops import bulk_upsert_bank_accounts
+            from utils.bulk_ops import bulk_upsert_bank_accounts
 
             with SessionLocal.begin() as db:
                 bulk_upsert_bank_accounts(db, [test_account])
 
             test_transaction = mock_stripe_transaction
             from models.database import SessionLocal
-            from utils.pg_bulk_ops import bulk_upsert_transactions
+            from utils.bulk_ops import bulk_upsert_transactions
 
             with SessionLocal.begin() as db:
                 bulk_upsert_transactions(db, [test_transaction], source="stripe_api")
@@ -484,7 +484,7 @@ class TestStripeFunctions:
             # Insert transaction without corresponding account
             test_transaction = mock_stripe_transaction
             from models.database import SessionLocal
-            from utils.pg_bulk_ops import bulk_upsert_transactions
+            from utils.bulk_ops import bulk_upsert_transactions
 
             with SessionLocal.begin() as db:
                 bulk_upsert_transactions(db, [test_transaction], source="stripe_api")
@@ -505,7 +505,7 @@ class TestStripeFunctions:
                 "last4": "1234",
             }
             from models.database import SessionLocal
-            from utils.pg_bulk_ops import bulk_upsert_bank_accounts
+            from utils.bulk_ops import bulk_upsert_bank_accounts
 
             with SessionLocal.begin() as db:
                 bulk_upsert_bank_accounts(db, [test_account])
@@ -524,7 +524,7 @@ class TestStripeFunctions:
                 transactions.append(transaction)
 
             from models.database import SessionLocal
-            from utils.pg_bulk_ops import bulk_upsert_transactions
+            from utils.bulk_ops import bulk_upsert_transactions
 
             with SessionLocal.begin() as db:
                 bulk_upsert_transactions(db, transactions, source="stripe_api")
@@ -651,7 +651,7 @@ class TestStripeIntegration:
                 "last4": "1234",
             }
             from models.database import SessionLocal
-            from utils.pg_bulk_ops import bulk_upsert_bank_accounts
+            from utils.bulk_ops import bulk_upsert_bank_accounts
 
             with SessionLocal.begin() as db:
                 bulk_upsert_bank_accounts(db, [test_account])
@@ -665,7 +665,7 @@ class TestStripeIntegration:
                 "status": "posted",
                 "transacted_at": 1673778600,
             }
-            from utils.pg_bulk_ops import bulk_upsert_transactions
+            from utils.bulk_ops import bulk_upsert_transactions
 
             with SessionLocal.begin() as db:
                 bulk_upsert_transactions(db, [test_transaction], source="stripe_api")
@@ -708,7 +708,7 @@ class TestAccountBalances:
                 "status": "active",
             }
             from models.database import SessionLocal
-            from utils.pg_bulk_ops import bulk_upsert_bank_accounts
+            from utils.bulk_ops import bulk_upsert_bank_accounts
 
             with SessionLocal.begin() as db:
                 bulk_upsert_bank_accounts(db, [test_account])
@@ -745,7 +745,7 @@ class TestAccountBalances:
                 "balance_as_of": datetime.fromtimestamp(1700000000, UTC),
             }
             from models.database import SessionLocal
-            from utils.pg_bulk_ops import bulk_upsert_bank_accounts
+            from utils.bulk_ops import bulk_upsert_bank_accounts
 
             with SessionLocal.begin() as db:
                 bulk_upsert_bank_accounts(db, [test_account])

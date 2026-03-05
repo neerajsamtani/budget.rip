@@ -11,7 +11,7 @@ from dao import get_transactions
 from helpers import flip_amount
 from models.database import SessionLocal
 from resources.line_item import LineItem
-from utils.pg_bulk_ops import bulk_upsert_line_items, bulk_upsert_transactions
+from utils.bulk_ops import bulk_upsert_line_items, bulk_upsert_transactions
 
 logger = logging.getLogger(__name__)
 

@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - **Prefer editing over adding**: Modify existing functions to be more extensible rather than creating new ones
 - **Minimize code**: Write only what's necessary to accomplish the task - no more, no less
-- **Prioritize readability**: Code should be easily understood by developers jumping into the codebase. 
+- **Prioritize readability**: Code should be easily understood by developers jumping into the codebase.
 - **Prudent comments**: Only add comments for things that are not obvious when reading the code, or when summarizing large chunks of code when a comment would greatly improve readability. Comments should generally talk about _why_ the code is doing what it's doing and not just _what_ the code is doing.
 - **Favor maintainability**: Simple, clear solutions over clever ones
 - **Keep it accessible**: New developers should be able to quickly understand and make changes
@@ -43,10 +43,10 @@ Budgit is a personal finance tracking application with a client-server architect
 - Jest + React Testing Library for tests
 - Dev server runs on `dev.localhost`
 
-### Server (Flask + PostgreSQL)
+### Server (Flask + SQLite)
 - Flask 3 with Python 3.12+
-- SQLAlchemy 2 with PostgreSQL
-- Alembic for PostgreSQL schema migrations
+- SQLAlchemy 2 with SQLite
+- Alembic for schema migrations (with `render_as_batch=True` for SQLite compatibility)
 - Flask-JWT-Extended for auth (JWT in cookies)
 - Flask-Bcrypt for password hashing
 - Blueprint-based route organization (`resources/` directory)
@@ -55,7 +55,9 @@ Budgit is a personal finance tracking application with a client-server architect
 
 ### Database
 
-PostgreSQL
+SQLite (file-based for production, in-memory for tests)
+
+SQLite is configured with WAL mode, busy timeout, and foreign key enforcement for production use. Tables are auto-created on startup via `Base.metadata.create_all()`.
 
 Tables defined in `models/sql_models.py`:
 - `transactions` - raw transaction data from external APIs
@@ -98,7 +100,7 @@ make test-coverage                  # Run tests with coverage report
 make lint                           # Check code with ruff (linting + formatting)
 make lint-fix                       # Auto-fix code issues with ruff
 make install                        # Install/update dependencies
-make pg-dump                        # Create PostgreSQL database dump (requires PGPASSWORD env var)
+make db-backup                      # Create SQLite database backup
 ```
 
 **Dependencies are managed by uv**. Use `uv sync` to install/update dependencies, and `uv run <command>` to run commands in the managed environment.
@@ -131,15 +133,14 @@ uv run alembic history                                  # Show migration history
 ### Server (Python/Flask)
 - Routes organized as Flask Blueprints in `resources/` directory
 - Database operations:
-  - PostgreSQL models in `models/sql_models.py`
-  - PostgreSQL bulk operations in `utils/pg_bulk_ops.py`
-  - PostgreSQL event operations in `utils/pg_event_operations.py`
+  - SQLAlchemy models in `models/sql_models.py`
+  - Bulk operations in `utils/bulk_ops.py`
+  - Event operations in `utils/event_operations.py`
   - Data access layer in `dao.py` (abstraction over SQL models)
 - Helper functions in `helpers.py`
 - API clients in `clients.py`
 - Constants in `constants.py` (includes categories, date filters, API keys)
 - Type hints encouraged
-- Legacy collection names defined as string constants in `dao.py` for backwards compatibility
 
 ### API Patterns
 - All API routes prefixed with `/api/`
@@ -151,7 +152,7 @@ uv run alembic history                                  # Show migration history
 - Error handling: Use `showErrorToast()` on client, server returns appropriate status codes
 
 ### Categories
-Categories are stored in the `categories` PostgreSQL table and fetched dynamically. The frontend retrieves categories via API rather than using hardcoded constants.
+Categories are stored in the `categories` table and fetched dynamically. The frontend retrieves categories via API rather than using hardcoded constants.
 
 ### Data Normalization Pattern
 External API data follows this flow:
@@ -175,11 +176,11 @@ External API data follows this flow:
 - `vite.config.ts` - Vite configuration with path aliases and chunk splitting
 
 ### Server
-- `application.py` - Flask app setup, blueprint registration, JWT config
-- `dao.py` - Data access layer (abstraction over PostgreSQL models)
-- `models/sql_models.py` - SQLAlchemy models for PostgreSQL
-- `utils/pg_bulk_ops.py` - PostgreSQL bulk upsert operations for transactions and line items
-- `utils/pg_event_operations.py` - Event-specific database operations
+- `application.py` - Flask app setup, blueprint registration, JWT config, schema initialization
+- `dao.py` - Data access layer (abstraction over SQLAlchemy models)
+- `models/sql_models.py` - SQLAlchemy models
+- `utils/bulk_ops.py` - Bulk upsert operations for transactions and line items
+- `utils/event_operations.py` - Event-specific database operations
 - `constants.py` - Environment variables, categories, date filters
 - `resources/*.py` - Blueprint modules for different API endpoints:
   - `auth.py` - Authentication endpoints
@@ -188,7 +189,7 @@ External API data follows this flow:
   - `venmo.py`, `splitwise.py`, `stripe.py`, `cash.py` - External data source integrations
   - `monthly_breakdown.py` - Analytics endpoints
 - `alembic/` - Database migration files
-- `migrations/` - Legacy migration scripts (MongoDB → PostgreSQL migration completed)
+- `scripts/migrate_postgres_to_sqlite.py` - One-time data migration script (PostgreSQL → SQLite)
 
 ## Environment Variables
 
@@ -197,14 +198,7 @@ External API data follows this flow:
 - API calls default to relative URLs (proxied in dev)
 
 ### Server (.env)
-- PostgreSQL connection (individual components to avoid URL encoding issues):
-  - `DATABASE_HOST` - PostgreSQL host (required for production, defaults to `localhost`)
-  - `DATABASE_PORT` - PostgreSQL port (defaults to `5432`)
-  - `DATABASE_USERNAME` - Database user (required for production)
-  - `DATABASE_PASSWORD` - Database password (required for production)
-  - `DATABASE_NAME` - Database name (required for production)
-  - `DATABASE_SSL_MODE` - SSL mode (defaults to `prefer`)
-  - Tests: `DATABASE_HOST=sqlite` triggers SQLite in-memory mode
+- `DATABASE_NAME` - SQLite database file path (defaults to `budgit.db`)
 - `STRIPE_LIVE_API_SECRET_KEY` - Stripe secret key
 - `STRIPE_CUSTOMER_ID` - Stripe customer ID
 - `VENMO_ACCESS_TOKEN` - Venmo API token
@@ -232,7 +226,7 @@ Test names should read as statements of fact about system behavior, not as descr
 - Test files in `server/tests/` directory
 - **Test Database Isolation** (configured in `tests/conftest.py`):
   - Uses SQLite in-memory database for all tests
-  - Environment variables `DATABASE_HOST=sqlite` and `DATABASE_NAME=:memory:` set before imports
+  - Environment variable `DATABASE_NAME=:memory:` set before imports
   - Tables created/destroyed for each test to ensure isolation
   - **CRITICAL**: Tests never touch production databases
 - All tests use the same SQLAlchemy models as production, ensuring consistency
@@ -240,9 +234,7 @@ Test names should read as statements of fact about system behavior, not as descr
 ## Development Workflow
 
 ### Local Development Setup
-1. **Database**:
-   - PostgreSQL required (set `DATABASE_HOST`, `DATABASE_USERNAME`, `DATABASE_PASSWORD`, `DATABASE_NAME`)
-   - Run Alembic migrations: `cd server && uv run alembic upgrade head`
+1. **Database**: SQLite is used automatically. Set `DATABASE_NAME` to a file path (e.g., `budgit.db`) or leave unset for the default. Tables are created automatically on startup.
 2. **Server**: Navigate to `server/`, run `uv sync` to install dependencies, then `uv run python application.py`
 3. **Client**: Navigate to `client/`, run `nvm use 22` to switch to Node.js v22, then `npm start` (dev server runs on `dev.localhost`)
 
@@ -254,5 +246,6 @@ Completed migrations (for historical context):
 - React 17 → React 18
 - pip/virtualenv → uv (see pyproject.toml, uv.lock)
 - MongoDB → PostgreSQL (see `server/MONGODB_TO_POSTGRES_MIGRATION.md`)
+- PostgreSQL → SQLite (see `server/POSTGRES_TO_SQLITE_MIGRATION.md`)
 
 Planned: Flask → FastAPI (see `server/FLASK_TO_FASTAPI_MIGRATION_PLAN.md`)

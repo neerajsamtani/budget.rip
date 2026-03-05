@@ -1,4 +1,4 @@
-"""PostgreSQL operations for events - extracted from resources/event.py for reuse in tests"""
+"""Event operations - extracted from resources/event.py for reuse in tests"""
 
 import logging
 from datetime import UTC, datetime
@@ -11,9 +11,9 @@ from utils.id_generator import generate_id
 logger = logging.getLogger(__name__)
 
 
-def upsert_event_to_postgresql(event_dict: Dict[str, Any], db_session) -> str:
+def upsert_event_to_db(event_dict: Dict[str, Any], db_session) -> str:
     """
-    Write event to PostgreSQL with all relationships.
+    Write event to database with all relationships.
 
     Args:
         event_dict: Event dictionary with fields: id, name/description,
@@ -21,23 +21,23 @@ def upsert_event_to_postgresql(event_dict: Dict[str, Any], db_session) -> str:
         db_session: SQLAlchemy session
 
     Returns:
-        PostgreSQL event ID
+        database event ID
 
     Raises:
         ValueError: If category is missing or not found
         Exception: Any database errors (caller must handle rollback)
     """
-    # Generate PostgreSQL ID
-    pg_event_id = generate_id("event")
+    # Generate database ID
+    event_id = generate_id("event")
 
     # Look up category by name - REQUIRED, raise if missing
     category_name = event_dict.get("category")
     if not category_name:
-        raise ValueError(f"Event {event_dict.get('id')} has no category - cannot write to PostgreSQL")
+        raise ValueError(f"Event {event_dict.get('id')} has no category - cannot write to database")
 
     category = db_session.query(Category).filter(Category.name == category_name).first()
     if not category:
-        raise ValueError(f"Category '{category_name}' not found in PostgreSQL - cannot write event")
+        raise ValueError(f"Category '{category_name}' not found in database - cannot write event")
 
     # Convert date to datetime
     event_date = datetime.fromtimestamp(event_dict["date"], UTC)
@@ -53,15 +53,15 @@ def upsert_event_to_postgresql(event_dict: Dict[str, Any], db_session) -> str:
         existing_event.is_duplicate = event_dict.get("is_duplicate_transaction", False)
         existing_event.updated_at = datetime.now(UTC)
         event = existing_event
-        pg_event_id = existing_event.id
+        event_id = existing_event.id
 
         # Remove existing junctions (will be recreated below)
-        db_session.query(EventLineItem).filter(EventLineItem.event_id == pg_event_id).delete()
-        db_session.query(EventTag).filter(EventTag.event_id == pg_event_id).delete()
+        db_session.query(EventLineItem).filter(EventLineItem.event_id == event_id).delete()
+        db_session.query(EventTag).filter(EventTag.event_id == event_id).delete()
     else:
         # Create new Event record
         event = Event(
-            id=pg_event_id,
+            id=event_id,
             date=event_date,
             description=event_dict.get("name", event_dict.get("description", "")),  # Handle both fields
             category_id=category.id,
@@ -71,7 +71,7 @@ def upsert_event_to_postgresql(event_dict: Dict[str, Any], db_session) -> str:
         )
         db_session.add(event)
         db_session.flush()  # Get the event ID
-        pg_event_id = event.id
+        event_id = event.id
 
     # Create EventLineItem junctions (batch-fetch to avoid N+1)
     line_item_ids = [str(id) for id in event_dict.get("line_items", [])]
@@ -80,11 +80,11 @@ def upsert_event_to_postgresql(event_dict: Dict[str, Any], db_session) -> str:
         found_ids = {li.id for li in pg_line_items}
         for li_id in line_item_ids:
             if li_id not in found_ids:
-                logger.warning(f"Line item {li_id} not in PostgreSQL yet - skipping junction")
+                logger.warning(f"Line item {li_id} not in database yet - skipping junction")
                 continue
             event_line_item = EventLineItem(
                 id=generate_id("eli"),
-                event_id=pg_event_id,
+                event_id=event_id,
                 line_item_id=li_id,
                 created_at=datetime.now(UTC),
             )
@@ -110,13 +110,13 @@ def upsert_event_to_postgresql(event_dict: Dict[str, Any], db_session) -> str:
 
             event_tag = EventTag(
                 id=generate_id("etag"),
-                event_id=pg_event_id,
+                event_id=event_id,
                 tag_id=tag.id,
                 created_at=datetime.now(UTC),
             )
             db_session.add(event_tag)
 
-    return pg_event_id
+    return event_id
 
 
 def upsert_event(event_dict: Dict[str, Any]) -> str:
@@ -124,11 +124,11 @@ def upsert_event(event_dict: Dict[str, Any]) -> str:
     Upsert an event while managing the session lifecycle.
     """
     with SessionLocal.begin() as db_session:
-        pg_event_id = upsert_event_to_postgresql(event_dict, db_session)
-        return pg_event_id
+        event_id = upsert_event_to_db(event_dict, db_session)
+        return event_id
 
 
-def delete_event_from_postgresql(event_id: str) -> bool:
+def delete_event(event_id: str) -> bool:
     """
     Delete an event while managing the session lifecycle.
 

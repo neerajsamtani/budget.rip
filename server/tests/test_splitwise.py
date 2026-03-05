@@ -141,7 +141,7 @@ class TestSplitwiseFunctions:
         with flask_app.app_context():
             from models.database import SessionLocal
             from models.sql_models import LineItem
-            from utils.pg_bulk_ops import bulk_upsert_transactions
+            from utils.bulk_ops import bulk_upsert_transactions
 
             # Insert raw transaction data into database first
             with SessionLocal.begin() as db:
@@ -190,7 +190,7 @@ class TestSplitwiseFunctions:
         with flask_app.app_context():
             from models.database import SessionLocal
             from models.sql_models import LineItem
-            from utils.pg_bulk_ops import bulk_upsert_transactions
+            from utils.bulk_ops import bulk_upsert_transactions
 
             # Insert raw expense with non-ignored party
             expense_with_non_ignored = {
@@ -221,7 +221,7 @@ class TestSplitwiseFunctions:
         with flask_app.app_context():
             from models.database import SessionLocal
             from models.sql_models import LineItem
-            from utils.pg_bulk_ops import bulk_upsert_transactions
+            from utils.bulk_ops import bulk_upsert_transactions
 
             # Insert raw expense with multiple users
             expense_multiple_users = {
@@ -288,7 +288,7 @@ class TestSplitwiseFunctions:
         with flask_app.app_context():
             from models.database import SessionLocal
             from models.sql_models import LineItem
-            from utils.pg_bulk_ops import bulk_upsert_transactions
+            from utils.bulk_ops import bulk_upsert_transactions
 
             # Insert raw expense with specific date
             expense_with_date = {
@@ -322,7 +322,7 @@ class TestSplitwiseFunctions:
         with flask_app.app_context():
             from models.database import SessionLocal
             from models.sql_models import LineItem
-            from utils.pg_bulk_ops import bulk_upsert_transactions
+            from utils.bulk_ops import bulk_upsert_transactions
 
             # Insert raw expense with positive and negative balances
             expense_mixed_balances = {

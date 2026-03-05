@@ -244,7 +244,7 @@ class TestLineItemAPI:
 
 
 class TestLineItemFunctions:
-    def test_all_line_items_returns_items_sorted_by_date(self, flask_app, pg_session):
+    def test_all_line_items_returns_items_sorted_by_date(self, flask_app, db_session):
         """All line items returns items sorted by date descending"""
         from tests.test_helpers import setup_test_line_item
 
@@ -270,8 +270,8 @@ class TestLineItemFunctions:
 
             created_items = []
             for item in test_line_items:
-                created_items.append(setup_test_line_item(pg_session, item))
-            pg_session.commit()
+                created_items.append(setup_test_line_item(db_session, item))
+            db_session.commit()
 
             # Test function call
             result = all_line_items()
@@ -282,7 +282,7 @@ class TestLineItemFunctions:
             assert result[0]["id"] == created_items[1].id
             assert result[1]["id"] == created_items[0].id
 
-    def test_payment_method_filter_returns_matching_items(self, flask_app, pg_session):
+    def test_payment_method_filter_returns_matching_items(self, flask_app, db_session):
         """Payment method filter returns only matching line items"""
         from tests.test_helpers import setup_test_line_item
 
@@ -308,8 +308,8 @@ class TestLineItemFunctions:
 
             created_items = []
             for item in test_line_items:
-                created_items.append(setup_test_line_item(pg_session, item))
-            pg_session.commit()
+                created_items.append(setup_test_line_item(db_session, item))
+            db_session.commit()
 
             # Test function call with payment_method filter
             result = all_line_items(payment_method="Cash")
@@ -319,7 +319,7 @@ class TestLineItemFunctions:
             assert result[0]["description"] == "Test transaction 1"
             assert result[0]["id"] == created_items[0].id
 
-    def test_review_filter_excludes_items_with_event_id(self, flask_app, pg_session):
+    def test_review_filter_excludes_items_with_event_id(self, flask_app, db_session):
         """Review filter excludes line items that have an event_id"""
         from tests.test_helpers import (
             setup_test_event,
@@ -330,7 +330,7 @@ class TestLineItemFunctions:
         with flask_app.app_context():
             # Line item without event - should be included in review
             line_item_without_event = setup_test_line_item(
-                pg_session,
+                db_session,
                 {
                     "id": "line_item_1",
                     "date": 1234567890,
@@ -343,7 +343,7 @@ class TestLineItemFunctions:
 
             # Create event first, then line item with event - should be excluded
             event = setup_test_event(
-                pg_session,
+                db_session,
                 {
                     "id": "event_1",
                     "date": 1234567891,
@@ -353,7 +353,7 @@ class TestLineItemFunctions:
             )
 
             setup_test_line_item_with_event(
-                pg_session,
+                db_session,
                 {
                     "id": "line_item_2",
                     "date": 1234567891,
@@ -366,7 +366,7 @@ class TestLineItemFunctions:
                 event.id,
             )
 
-            pg_session.commit()
+            db_session.commit()
 
             # Test function call with review filter
             result = all_line_items(only_line_items_to_review=True)
@@ -375,7 +375,7 @@ class TestLineItemFunctions:
             assert result[0]["description"] == "Test transaction 1"
             assert result[0]["id"] == line_item_without_event.id
 
-    def test_payment_method_and_review_filters_combine(self, flask_app, pg_session):
+    def test_payment_method_and_review_filters_combine(self, flask_app, db_session):
         """Payment method and review filters can be combined"""
         from tests.test_helpers import (
             setup_test_event,
@@ -386,7 +386,7 @@ class TestLineItemFunctions:
         with flask_app.app_context():
             # Cash without event - should be included
             cash_without_event = setup_test_line_item(
-                pg_session,
+                db_session,
                 {
                     "id": "line_item_1",
                     "date": 1234567890,
@@ -399,7 +399,7 @@ class TestLineItemFunctions:
 
             # Venmo without event - should be excluded (payment_method filter)
             setup_test_line_item(
-                pg_session,
+                db_session,
                 {
                     "id": "line_item_2",
                     "date": 1234567891,
@@ -412,7 +412,7 @@ class TestLineItemFunctions:
 
             # Cash with event - should be excluded (review filter)
             event = setup_test_event(
-                pg_session,
+                db_session,
                 {
                     "id": "event_1",
                     "date": 1234567892,
@@ -422,7 +422,7 @@ class TestLineItemFunctions:
             )
 
             setup_test_line_item_with_event(
-                pg_session,
+                db_session,
                 {
                     "id": "line_item_3",
                     "date": 1234567892,
@@ -435,7 +435,7 @@ class TestLineItemFunctions:
                 event.id,
             )
 
-            pg_session.commit()
+            db_session.commit()
 
             # Test function call with both filters
             result = all_line_items(payment_method="Cash", only_line_items_to_review=True)
@@ -452,7 +452,7 @@ class TestLineItemFunctions:
 
             assert len(result) == 0
 
-    def test_payment_method_all_returns_all_items(self, flask_app, pg_session):
+    def test_payment_method_all_returns_all_items(self, flask_app, db_session):
         """Payment method 'All' returns all line items"""
         from tests.test_helpers import setup_test_line_item
 
@@ -477,8 +477,8 @@ class TestLineItemFunctions:
             ]
 
             for item in test_line_items:
-                setup_test_line_item(pg_session, item)
-            pg_session.commit()
+                setup_test_line_item(db_session, item)
+            db_session.commit()
 
             # Test function call with payment_method='All'
             result = all_line_items(payment_method="All")
