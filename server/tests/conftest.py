@@ -38,6 +38,7 @@ from resources.event_hint import event_hints_blueprint
 from resources.line_item import line_items_blueprint
 from resources.manual_transaction import manual_transaction_blueprint
 from resources.monthly_breakdown import monthly_breakdown_blueprint
+from resources.notification import notification_blueprint
 from resources.splitwise import splitwise_blueprint
 from resources.stripe import stripe_blueprint
 from resources.tags import tags_blueprint
@@ -119,6 +120,7 @@ def flask_app():
     app.register_blueprint(stripe_blueprint)
     app.register_blueprint(tags_blueprint)
     app.register_blueprint(venmo_blueprint)
+    app.register_blueprint(notification_blueprint)
 
     with app.app_context():
         jwt = JWTManager(app)

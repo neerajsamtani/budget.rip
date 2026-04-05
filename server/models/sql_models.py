@@ -244,3 +244,21 @@ class EventHint(Base):
     # Relationships
     user = relationship("User")
     prefill_category = relationship("Category")
+
+
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id = Column(String(255), primary_key=True)  # notif_xxx
+    user_id = Column(String(255), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    message = Column(Text, nullable=False)
+    type = Column(
+        Enum("warning", "info", name="notification_type"),
+        nullable=False,
+        default="warning",
+    )
+    read = Column(Boolean, nullable=False, default=False)
+    created_at = Column(TIMESTAMP(timezone=True), default=lambda: datetime.now(UTC))
+
+    # Relationships
+    user = relationship("User")

@@ -2,11 +2,11 @@ import logging
 from typing import Any, Dict, List
 
 from flask import Blueprint, Response, jsonify
-from flask_jwt_extended import jwt_required
+from flask_jwt_extended import get_jwt_identity, jwt_required
 
 from clients import splitwise_client
 from constants import LIMIT, MOVING_DATE, PARTIES_TO_IGNORE, USER_FIRST_NAME
-from dao import get_transactions
+from dao import delete_transaction_by_source, get_transactions
 from helpers import flip_amount, iso_8601_to_posix
 from models.database import SessionLocal
 from resources.line_item import LineItem
@@ -37,24 +37,40 @@ def refresh_splitwise() -> None:
     logger.info("Refreshing Splitwise Data")
     expenses: List[Any] = splitwise_client.getExpenses(limit=LIMIT, dated_after=MOVING_DATE)
 
-    # Collect all non-deleted expenses for bulk upsert
+    # Separate non-deleted expenses from deleted ones
     all_expenses: List[Any] = []
-    deleted_count = 0
+    deleted_expenses: List[Any] = []
     for expense in expenses:
-        # TODO: What if an expense is deleted? What if it's part of an event?
-        # Should I send a notification?
         if expense.deleted_at is not None:
-            deleted_count += 1
-            continue
-        all_expenses.append(expense)
+            deleted_expenses.append(expense)
+        else:
+            all_expenses.append(expense)
 
-    # Bulk upsert all collected expenses at once
+    # Bulk upsert all non-deleted expenses
     if all_expenses:
         with SessionLocal.begin() as db:
             bulk_upsert_transactions(db, all_expenses, source="splitwise_api")
-        logger.info(f"Refreshed {len(all_expenses)} Splitwise expenses (skipped {deleted_count} deleted)")
-    else:
-        logger.info("No new Splitwise expenses to refresh")
+        logger.info(f"Refreshed {len(all_expenses)} Splitwise expenses")
+
+    # Clean up locally-stored transactions for expenses deleted upstream
+    if deleted_expenses:
+        # Only attempt deletion when we have a user context (JWT-protected endpoints).
+        # Scheduled refreshes (no JWT) skip deletion — stale data is cleaned up on next user-triggered refresh.
+        try:
+            user_id = get_jwt_identity()
+        except RuntimeError:
+            user_id = None
+
+        if user_id:
+            cleaned = 0
+            for expense in deleted_expenses:
+                result = delete_transaction_by_source("splitwise_api", str(expense.id), user_id)
+                if result["deleted"]:
+                    cleaned += 1
+            if cleaned:
+                logger.info(f"Deleted {cleaned} stale Splitwise transactions")
+        else:
+            logger.info(f"Skipping cleanup of {len(deleted_expenses)} deleted Splitwise expenses (no user context)")
 
 
 def splitwise_to_line_items() -> None:

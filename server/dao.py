@@ -453,6 +453,115 @@ def delete_manual_transaction(transaction_id: str) -> bool:
         raise
 
 
+def delete_transaction_by_source(source: str, source_id: str, user_id: str) -> Dict[str, Any]:
+    """
+    Delete a transaction identified by (source, source_id). If the line item
+    was assigned to an event, a notification is created before deletion.
+
+    Returns:
+        {"deleted": bool, "notified": bool}
+    """
+    from models.database import SessionLocal
+    from models.sql_models import Event, EventLineItem, LineItem, Notification, Transaction
+    from utils.id_generator import generate_id
+
+    result = {"deleted": False, "notified": False}
+
+    try:
+        with SessionLocal.begin() as db:
+            transaction = (
+                db.query(Transaction).filter(Transaction.source == source, Transaction.source_id == source_id).first()
+            )
+            if not transaction:
+                return result
+
+            line_item = db.query(LineItem).filter(LineItem.transaction_id == transaction.id).first()
+
+            if line_item:
+                # Check if the line item is part of any event
+                event_link = db.query(EventLineItem).filter(EventLineItem.line_item_id == line_item.id).first()
+                if event_link:
+                    event = db.query(Event).filter(Event.id == event_link.event_id).first()
+                    event_desc = event.description if event else "Unknown"
+                    notification = Notification(
+                        id=generate_id("notif"),
+                        user_id=user_id,
+                        message=(
+                            f"Line item '{line_item.description}' was removed because "
+                            f"the upstream {source.replace('_api', '').title()} transaction was deleted. "
+                            f"It was part of event '{event_desc}'."
+                        ),
+                        type="warning",
+                    )
+                    db.add(notification)
+                    result["notified"] = True
+
+            db.delete(transaction)
+            result["deleted"] = True
+            return result
+    except Exception as e:
+        logger.error(f"Failed to delete transaction {source}/{source_id}: {e}")
+        raise
+
+
+def create_notification(user_id: str, message: str, notification_type: str = "warning") -> Dict[str, Any]:
+    """Create a notification for the given user."""
+    from models.database import SessionLocal
+    from models.sql_models import Notification
+    from utils.id_generator import generate_id
+
+    try:
+        with SessionLocal.begin() as db:
+            notification = Notification(
+                id=generate_id("notif"),
+                user_id=user_id,
+                message=message,
+                type=notification_type,
+            )
+            db.add(notification)
+            return {"id": notification.id, "message": notification.message, "type": notification.type}
+    except Exception as e:
+        logger.error(f"Failed to create notification for user {user_id}: {e}")
+        raise
+
+
+def get_unread_notifications(user_id: str) -> List[Dict[str, Any]]:
+    """Get unread notifications for a user, newest first."""
+    from models.database import SessionLocal
+    from models.sql_models import Notification
+
+    with SessionLocal.begin() as db:
+        notifications = (
+            db.query(Notification)
+            .filter(Notification.user_id == user_id, Notification.read == False)  # noqa: E712
+            .order_by(Notification.created_at.desc())
+            .all()
+        )
+        return [
+            {
+                "id": n.id,
+                "message": n.message,
+                "type": n.type,
+                "created_at": n.created_at.isoformat() if n.created_at else None,
+            }
+            for n in notifications
+        ]
+
+
+def mark_notifications_read(notification_ids: List[str]) -> int:
+    """Mark notifications as read. Returns count of updated rows."""
+    from models.database import SessionLocal
+    from models.sql_models import Notification
+
+    with SessionLocal.begin() as db:
+        count = (
+            db.query(Notification)
+            .filter(Notification.id.in_(notification_ids))
+            .update({Notification.read: True}, synchronize_session="fetch")
+        )
+        return count
+
+
 def get_payment_method_by_id(payment_method_id: str) -> Optional[Dict[str, Any]]:
     """Get payment method by ID"""
     from models.database import SessionLocal

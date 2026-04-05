@@ -17,6 +17,7 @@ export const queryKeys = {
   eventHints: () => ['eventHints'] as const,
   eventHintSuggestion: (lineItemIds: string[]) => ['eventHintSuggestion', lineItemIds] as const,
   categories: () => ['categories'] as const,
+  notifications: () => ['notifications'] as const,
 };
 
 // Query Hooks
@@ -293,6 +294,7 @@ export function useRefreshAllData(): UseMutationResult<LineItemInterface[], Erro
       queryClient.invalidateQueries({ queryKey: ['events'] });
       queryClient.invalidateQueries({ queryKey: ['lineItems'] });
       queryClient.invalidateQueries({ queryKey: ['monthlyBreakdown'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.notifications() });
     },
   });
 }
@@ -546,6 +548,38 @@ export function useValidateCelExpression(): UseMutationResult<ValidateCelResult,
     mutationFn: async (celExpression: string) => {
       const response = await axiosInstance.post('api/event-hints/validate', { cel_expression: celExpression });
       return response.data.data as ValidateCelResult;
+    },
+  });
+}
+
+// Notifications
+export interface NotificationItem {
+  id: string;
+  message: string;
+  type: 'warning' | 'info';
+  created_at: string;
+}
+
+export function useNotifications(enabled: boolean = true): UseQueryResult<NotificationItem[]> {
+  return useQuery({
+    queryKey: queryKeys.notifications(),
+    queryFn: async () => {
+      const response = await axiosInstance.get('api/notifications');
+      return response.data.data as NotificationItem[];
+    },
+    enabled,
+  });
+}
+
+export function useMarkNotificationsRead(): UseMutationResult<void, Error, string[]> {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (notificationIds: string[]) => {
+      await axiosInstance.post('api/notifications/mark-read', { notification_ids: notificationIds });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.notifications() });
     },
   });
 }
