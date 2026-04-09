@@ -14,10 +14,11 @@ import {
 import { ProtectedRoute, PublicOnlyRoute } from "./components/ProtectedRoute";
 import { useAuth } from "./contexts/AuthContext";
 import { useLineItemsDispatch } from "./contexts/LineItemsContext";
-import { useMarkNotificationsRead, useNotifications, useRefreshAllData } from "./hooks/useApi";
+import { NotificationItem, useMarkNotificationsRead, useNotifications, useRefreshAllData } from "./hooks/useApi";
 import LineItemsToReviewPage from "./pages/LineItemsToReviewPage";
 
 const ConnectedAccountsPage = React.lazy(() => import("./pages/ConnectedAccountsPage"));
+const EventDetailsPage = React.lazy(() => import("./pages/EventDetailsPage"));
 const EventsPage = React.lazy(() => import("./pages/EventsPage"));
 const GraphsPage = React.lazy(() => import("./pages/GraphsPage"));
 const LineItemsPage = React.lazy(() => import("./pages/LineItemsPage"));
@@ -32,6 +33,19 @@ import { showErrorToast, showSuccessToast } from "./utils/toast-helpers";
 // This is a public sample test API key.
 // Don't submit any personally identifiable information in requests made with this key.
 // Sign in to see your own test API key embedded in code samples.
+function NotificationEntry({ n, onNavigate }: { n: NotificationItem; onNavigate?: () => void }) {
+  const content = (
+    <div className="text-sm p-2 rounded bg-muted/50 border-l-2 border-amber-500">
+      {n.message}
+    </div>
+  );
+  return n.event_id ? (
+    <Link to={`/events/${n.event_id}`} onClick={onNavigate} className="block no-underline hover:opacity-80">
+      {content}
+    </Link>
+  ) : content;
+}
+
 const STRIPE_PUBLIC_KEY = String(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
 const stripePromise = loadStripe(STRIPE_PUBLIC_KEY);
 
@@ -135,7 +149,7 @@ export default function App() {
               {isAuthenticated && (
                 <Popover open={notificationsOpen} onOpenChange={setNotificationsOpen}>
                   <PopoverTrigger asChild>
-                    <Button variant="ghost" size="sm" className="relative">
+                    <Button variant="ghost" size="sm" className="relative" aria-label="Notifications">
                       <BellIcon className="h-4 w-4" />
                       {notifications && notifications.length > 0 && (
                         <Badge variant="destructive" className="absolute -top-1 -right-1 h-4 min-w-4 px-1 text-[10px] flex items-center justify-center">
@@ -144,8 +158,8 @@ export default function App() {
                       )}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-80" align="end">
-                    <div className="space-y-2">
+                  <PopoverContent className="w-80" align="center" sideOffset={12}>
+                    <div className="space-y-3 p-1">
                       <div className="flex items-center justify-between">
                         <h4 className="font-medium text-sm">Notifications</h4>
                         {notifications && notifications.length > 0 && (
@@ -159,9 +173,7 @@ export default function App() {
                       ) : (
                         <div className="space-y-2 max-h-64 overflow-y-auto">
                           {notifications.map(n => (
-                            <div key={n.id} className="text-sm p-2 rounded bg-muted/50 border-l-2 border-amber-500">
-                              {n.message}
-                            </div>
+                            <NotificationEntry key={n.id} n={n} onNavigate={() => setNotificationsOpen(false)} />
                           ))}
                         </div>
                       )}
@@ -179,31 +191,37 @@ export default function App() {
 
             {/* Mobile Navigation */}
             <div className="lg:hidden flex items-center gap-2">
-              {isAuthenticated && notifications && notifications.length > 0 && (
+              {isAuthenticated && (
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="ghost" size="sm" className="relative">
+                    <Button variant="ghost" size="sm" className="relative" aria-label="Notifications">
                       <BellIcon className="h-4 w-4" />
-                      <Badge variant="destructive" className="absolute -top-1 -right-1 h-4 min-w-4 px-1 text-[10px] flex items-center justify-center">
-                        {notifications.length}
-                      </Badge>
+                      {notifications && notifications.length > 0 && (
+                        <Badge variant="destructive" className="absolute -top-1 -right-1 h-4 min-w-4 px-1 text-[10px] flex items-center justify-center">
+                          {notifications.length}
+                        </Badge>
+                      )}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-72" align="end">
-                    <div className="space-y-2">
+                  <PopoverContent className="w-72" align="center" sideOffset={12}>
+                    <div className="space-y-3 p-1">
                       <div className="flex items-center justify-between">
                         <h4 className="font-medium text-sm">Notifications</h4>
-                        <Button variant="ghost" size="sm" className="text-xs h-6" onClick={handleDismissAll} disabled={markReadMutation.isPending}>
-                          Dismiss all
-                        </Button>
+                        {notifications && notifications.length > 0 && (
+                          <Button variant="ghost" size="sm" className="text-xs h-6" onClick={handleDismissAll} disabled={markReadMutation.isPending}>
+                            Dismiss all
+                          </Button>
+                        )}
                       </div>
-                      <div className="space-y-2 max-h-64 overflow-y-auto">
-                        {notifications.map(n => (
-                          <div key={n.id} className="text-sm p-2 rounded bg-muted/50 border-l-2 border-amber-500">
-                            {n.message}
-                          </div>
-                        ))}
-                      </div>
+                      {!notifications?.length ? (
+                        <p className="text-sm text-muted-foreground">No new notifications</p>
+                      ) : (
+                        <div className="space-y-2 max-h-64 overflow-y-auto">
+                          {notifications.map(n => (
+                            <NotificationEntry key={n.id} n={n} onNavigate={() => setNotificationsOpen(false)} />
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </PopoverContent>
                 </Popover>
@@ -295,6 +313,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<ProtectedRoute><LineItemsToReviewPage /></ProtectedRoute>} />
             <Route path="/events" element={<ProtectedRoute><EventsPage /></ProtectedRoute>} />
+            <Route path="/events/:eventId" element={<ProtectedRoute><EventDetailsPage /></ProtectedRoute>} />
             <Route path="/line_items" element={<ProtectedRoute><LineItemsPage /></ProtectedRoute>} />
             <Route path="/connected_accounts" element={<ProtectedRoute><ConnectedAccountsPage stripePromise={stripePromise} /></ProtectedRoute>} />
             <Route path="/graphs" element={<ProtectedRoute><GraphsPage /></ProtectedRoute>} />

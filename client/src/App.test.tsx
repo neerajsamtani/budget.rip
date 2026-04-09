@@ -22,6 +22,7 @@ jest.mock('./utils/axiosInstance', () => {
 });
 
 import { render } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import App from './App';
 import { fireEvent, screen, waitFor, createTestQueryClient } from './utils/test-utils';
@@ -481,6 +482,89 @@ describe('App', () => {
                     description: 'Refreshed data',
                     duration: 3500,
                 });
+            });
+        });
+    });
+
+    describe('Notification Bell', () => {
+        it('popover opens with empty state when bell is clicked and there are no notifications', async () => {
+            renderApp();
+
+            // Both desktop and mobile navs render in jsdom — take the first (desktop)
+            const bellButtons = await screen.findAllByRole('button', { name: /notifications/i });
+            await userEvent.click(bellButtons[0]);
+
+            await waitFor(() => {
+                expect(screen.getByText('No new notifications')).toBeInTheDocument();
+            });
+        });
+
+        it('notification with event_id renders as a link to the event', async () => {
+            const mockAxiosInstance = require('./utils/axiosInstance').default;
+            mockAxiosInstance.get.mockImplementation((url: string) => {
+                if (url.includes('api/auth/me')) {
+                    return Promise.resolve({ data: { id: 'user_123', email: 'test@example.com', first_name: 'Test', last_name: 'User' } });
+                }
+                if (url.includes('api/notifications')) {
+                    return Promise.resolve({ data: { data: [{ id: 'notif_1', message: 'Dinner was removed from Mexico trip', type: 'warning', created_at: '2024-01-01T00:00:00Z', event_id: 'evt_123' }] } });
+                }
+                return Promise.resolve({ data: { data: [] } });
+            });
+
+            renderApp();
+            const bellButtons = await screen.findAllByRole('button', { name: /notifications/i });
+            await userEvent.click(bellButtons[0]);
+
+            await waitFor(() => {
+                const link = screen.getByRole('link', { name: /dinner was removed from mexico trip/i });
+                expect(link).toBeInTheDocument();
+                expect(link.getAttribute('href')).toBe('/events/evt_123');
+            });
+        });
+
+        it('notification without event_id renders as plain text', async () => {
+            const mockAxiosInstance = require('./utils/axiosInstance').default;
+            mockAxiosInstance.get.mockImplementation((url: string) => {
+                if (url.includes('api/auth/me')) {
+                    return Promise.resolve({ data: { id: 'user_123', email: 'test@example.com', first_name: 'Test', last_name: 'User' } });
+                }
+                if (url.includes('api/notifications')) {
+                    return Promise.resolve({ data: { data: [{ id: 'notif_2', message: 'Generic notification', type: 'info', created_at: '2024-01-01T00:00:00Z', event_id: null }] } });
+                }
+                return Promise.resolve({ data: { data: [] } });
+            });
+
+            renderApp();
+            const bellButtons = await screen.findAllByRole('button', { name: /notifications/i });
+            await userEvent.click(bellButtons[0]);
+
+            await waitFor(() => {
+                expect(screen.getByText('Generic notification')).toBeInTheDocument();
+            });
+            const links = screen.queryAllByRole('link', { name: /generic notification/i });
+            expect(links).toHaveLength(0);
+        });
+
+        it('popover shows notification messages when notifications exist', async () => {
+            const mockAxiosInstance = require('./utils/axiosInstance').default;
+            mockAxiosInstance.get.mockImplementation((url: string) => {
+                if (url.includes('api/auth/me')) {
+                    return Promise.resolve({ data: { id: 'user_123', email: 'test@example.com', first_name: 'Test', last_name: 'User' } });
+                }
+                if (url.includes('api/notifications')) {
+                    return Promise.resolve({ data: { data: [{ id: 'notif_1', message: 'Dinner was removed from Mexico trip', type: 'warning', created_at: '2024-01-01T00:00:00Z' }] } });
+                }
+                return Promise.resolve({ data: { data: [] } });
+            });
+
+            renderApp();
+
+            // Both desktop and mobile navs render in jsdom — take the first (desktop)
+            const bellButtons = await screen.findAllByRole('button', { name: /notifications/i });
+            await userEvent.click(bellButtons[0]);
+
+            await waitFor(() => {
+                expect(screen.getByText('Dinner was removed from Mexico trip')).toBeInTheDocument();
             });
         });
     });

@@ -6,6 +6,7 @@ import { CurrencyFormatter } from "@/utils/formatters";
 import { ChevronDown, ChevronUp, Filter } from "lucide-react";
 import { DateTime } from "luxon";
 import React, { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { NON_SPENDING_CATEGORIES } from "../components/charts/chart-utils";
 import CategoryFilter from "../components/CategoryFilter";
 import Event, { EventCard, EventInterface } from "../components/Event";
@@ -20,14 +21,33 @@ import { useEvents } from "../hooks/useApi";
 export default function EventsPage() {
     const now = DateTime.utc()
 
-    const [category, setCategory] = useState("All")
-    const [month, setMonth] = useState(now.monthLong)
-    const [year, setYear] = useState(String(now.year))
+    const [searchParams, setSearchParams] = useSearchParams();
+
+    const category = searchParams.get('category') || 'All';
+    const month = searchParams.get('month') || now.monthLong;
+    const year = searchParams.get('year') || String(now.year);
+    const tagFilter = searchParams.get('tags') || '';
+
     const years = Array.from({ length: now.year - 2021 }, (_, i) => String(2022 + i))
-    const [tagFilter, setTagFilter] = useState<string>('');
+
+    const updateFilter = (key: string, value: string, defaultValue: string) => {
+        setSearchParams(prev => {
+            const next = new URLSearchParams(prev);
+            if (value === defaultValue) {
+                next.delete(key);
+            } else {
+                next.set(key, value);
+            }
+            return next;
+        }, { replace: true });
+    };
+
+    const setCategory = (v: string) => updateFilter('category', v, 'All');
+    const setMonth = (v: string) => updateFilter('month', v, now.monthLong);
+    const setYear = (v: string) => updateFilter('year', v, String(now.year));
+    const setTagFilter = (v: string) => updateFilter('tags', v, '');
     const [filtersOpen, setFiltersOpen] = useState(false);
 
-    // Calculate time range for API query
     let startTime, endTime;
     if (month !== "All") {
         const start = DateTime.fromFormat(`${month} ${year}`, "LLLL yyyy", { zone: 'utc' })

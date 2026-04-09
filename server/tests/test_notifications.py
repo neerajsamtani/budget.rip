@@ -108,6 +108,7 @@ class TestDeleteTransactionBySource:
                 assert "Weekly groceries" in notification.message
                 assert notification.type == "warning"
                 assert notification.user_id == "user_id"
+                assert notification.event_id == "evt_test"
 
     def test_nonexistent_transaction_is_noop(self, flask_app):
         """Attempting to delete a nonexistent transaction returns deleted=False"""
@@ -129,6 +130,8 @@ class TestNotificationCRUD:
             messages = [n["message"] for n in notifications]
             assert "Test message" in messages
             assert "Info message" in messages
+            # event_id should be None for generic notifications
+            assert all(n["event_id"] is None for n in notifications)
 
     def test_mark_notifications_read(self, flask_app):
         """Marking notifications as read removes them from unread list"""
@@ -142,6 +145,25 @@ class TestNotificationCRUD:
 
             unread_after = get_unread_notifications("user_id")
             assert len(unread_after) == 0
+
+    def test_create_notification_with_event_id(self, flask_app):
+        """Notification can be created with an event_id link"""
+        with flask_app.app_context():
+            with SessionLocal.begin() as db:
+                db.add(
+                    Event(
+                        id="evt_linked",
+                        date=datetime(2024, 1, 15, tzinfo=UTC),
+                        description="Trip dinner",
+                        category_id="cat_groceries",
+                    )
+                )
+
+            create_notification("user_id", "Linked notification", "warning", event_id="evt_linked")
+
+            notifications = get_unread_notifications("user_id")
+            assert len(notifications) == 1
+            assert notifications[0]["event_id"] == "evt_linked"
 
     def test_unread_notifications_are_user_scoped(self, flask_app):
         """Notifications for different users are isolated"""
@@ -332,3 +354,4 @@ class TestSplitwiseDeletedExpenseHandling:
                 assert notification is not None
                 assert "Trip dinner" in notification.message
                 assert "Mexico trip" in notification.message
+                assert notification.event_id == "evt_trip"

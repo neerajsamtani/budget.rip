@@ -259,6 +259,7 @@ class Notification(Base):
     )
     read = Column(Boolean, nullable=False, default=False)
     created_at = Column(TIMESTAMP(timezone=True), default=lambda: datetime.now(UTC))
+    event_id = Column(String(255), ForeignKey("events.id", ondelete="SET NULL"), nullable=True)
 
     # Relationships
     user = relationship("User")
