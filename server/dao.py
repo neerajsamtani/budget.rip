@@ -492,6 +492,7 @@ def delete_transaction_by_source(source: str, source_id: str, user_id: str) -> D
                             f"It was part of event '{event_desc}'."
                         ),
                         type="warning",
+                        event_id=event.id if event else None,
                     )
                     db.add(notification)
                     result["notified"] = True
@@ -504,7 +505,9 @@ def delete_transaction_by_source(source: str, source_id: str, user_id: str) -> D
         raise
 
 
-def create_notification(user_id: str, message: str, notification_type: str = "warning") -> Dict[str, Any]:
+def create_notification(
+    user_id: str, message: str, notification_type: str = "warning", event_id: str | None = None
+) -> Dict[str, Any]:
     """Create a notification for the given user."""
     from models.database import SessionLocal
     from models.sql_models import Notification
@@ -517,6 +520,7 @@ def create_notification(user_id: str, message: str, notification_type: str = "wa
                 user_id=user_id,
                 message=message,
                 type=notification_type,
+                event_id=event_id,
             )
             db.add(notification)
             return {"id": notification.id, "message": notification.message, "type": notification.type}
@@ -543,6 +547,7 @@ def get_unread_notifications(user_id: str) -> List[Dict[str, Any]]:
                 "message": n.message,
                 "type": n.type,
                 "created_at": n.created_at.isoformat() if n.created_at else None,
+                "event_id": n.event_id,
             }
             for n in notifications
         ]
