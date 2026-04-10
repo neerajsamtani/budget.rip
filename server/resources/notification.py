@@ -28,5 +28,6 @@ def mark_read() -> tuple[Response, int]:
     if not notification_ids:
         return jsonify({"error": "notification_ids is required"}), 400
 
-    count = mark_notifications_read(notification_ids)
+    user = get_current_user()
+    count = mark_notifications_read(notification_ids, user["id"])
     return jsonify({"message": f"Marked {count} notifications as read"}), 200

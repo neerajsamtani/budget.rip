@@ -553,7 +553,7 @@ def get_unread_notifications(user_id: str) -> List[Dict[str, Any]]:
         ]
 
 
-def mark_notifications_read(notification_ids: List[str]) -> int:
+def mark_notifications_read(notification_ids: List[str], user_id: str) -> int:
     """Mark notifications as read. Returns count of updated rows."""
     from models.database import SessionLocal
     from models.sql_models import Notification
@@ -561,7 +561,7 @@ def mark_notifications_read(notification_ids: List[str]) -> int:
     with SessionLocal.begin() as db:
         count = (
             db.query(Notification)
-            .filter(Notification.id.in_(notification_ids))
+            .filter(Notification.id.in_(notification_ids), Notification.user_id == user_id)
             .update({Notification.read: True}, synchronize_session="fetch")
         )
         return count

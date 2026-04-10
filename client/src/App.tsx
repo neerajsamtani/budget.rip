@@ -33,6 +33,9 @@ import { showErrorToast, showSuccessToast } from "./utils/toast-helpers";
 // This is a public sample test API key.
 // Don't submit any personally identifiable information in requests made with this key.
 // Sign in to see your own test API key embedded in code samples.
+const STRIPE_PUBLIC_KEY = String(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
+const stripePromise = loadStripe(STRIPE_PUBLIC_KEY);
+
 function NotificationEntry({ n, onNavigate }: { n: NotificationItem; onNavigate?: () => void }) {
   const content = (
     <div className="text-sm p-2 rounded bg-muted/50 border-l-2 border-amber-500">
@@ -45,9 +48,6 @@ function NotificationEntry({ n, onNavigate }: { n: NotificationItem; onNavigate?
     </Link>
   ) : content;
 }
-
-const STRIPE_PUBLIC_KEY = String(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
-const stripePromise = loadStripe(STRIPE_PUBLIC_KEY);
 
 export default function App() {
 

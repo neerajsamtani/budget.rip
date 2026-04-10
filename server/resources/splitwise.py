@@ -1,7 +1,7 @@
 import logging
 from typing import Any, Dict, List
 
-from flask import Blueprint, Response, jsonify
+from flask import Blueprint, Response, has_request_context, jsonify
 from flask_jwt_extended import get_jwt_identity, jwt_required
 
 from clients import splitwise_client
@@ -56,9 +56,12 @@ def refresh_splitwise() -> None:
     if deleted_expenses:
         # Only attempt deletion when we have a user context (JWT-protected endpoints).
         # Scheduled refreshes (no JWT) skip deletion — stale data is cleaned up on next user-triggered refresh.
-        try:
-            user_id = get_jwt_identity()
-        except RuntimeError:
+        if has_request_context():
+            try:
+                user_id = get_jwt_identity()
+            except Exception:
+                user_id = None
+        else:
             user_id = None
 
         if user_id:

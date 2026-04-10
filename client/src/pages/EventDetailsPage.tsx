@@ -6,11 +6,12 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useIsMobile } from "@/components/ui/responsive-dialog";
 import { ChevronLeft } from "lucide-react";
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { AutoComplete, Option } from '../components/Autocomplete';
-import LineItem from '../components/LineItem';
+import LineItem, { LineItemCard } from '../components/LineItem';
 import { Body } from '../components/ui/typography';
 import { PageContainer } from '../components/ui/layout';
 import { Tag, TagsField } from '../components/TagsField';
@@ -27,6 +28,7 @@ export default function EventDetailsPage() {
     const { data: event, isLoading: isLoadingEvent, error: eventError } = useEvent(eventId!);
     const { data: lineItemsForEvent = [], isLoading: isLoadingLineItems } = useEventLineItems(eventId!);
 
+    const isMobile = useIsMobile();
     const [isEditing, setIsEditing] = useState(false);
     const [name, setName] = useState('');
     const [category, setCategory] = useState('');
@@ -339,32 +341,51 @@ export default function EventDetailsPage() {
                         </p>
                     </div>
 
-                    <div className="overflow-x-auto">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Date</TableHead>
-                                    <TableHead>Payment Method</TableHead>
-                                    <TableHead>Description</TableHead>
-                                    <TableHead>Name</TableHead>
-                                    <TableHead>Amount</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {isLoadingLineItems ? (
+                    {isMobile ? (
+                        <div className="rounded-xl bg-muted/50 border overflow-hidden">
+                            {isLoadingLineItems ? (
+                                <div className="flex justify-center items-center p-4">
+                                    <Spinner size="sm" />
+                                </div>
+                            ) : lineItemsForEvent.map((lineItem: LineItemInterface) => (
+                                <LineItemCard
+                                    key={lineItem.id}
+                                    lineItem={lineItem}
+                                    showCheckBox={false}
+                                    isChecked={false}
+                                    handleToggle={() => {}}
+                                    amountStatus={lineItem.amount < 0 ? 'success' : 'warning'}
+                                />
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <Table>
+                                <TableHeader>
                                     <TableRow>
-                                        <TableCell colSpan={5} className="p-8 text-center">
-                                            <div className="flex justify-center items-center w-full">
-                                                <Spinner size="sm" />
-                                            </div>
-                                        </TableCell>
+                                        <TableHead>Date</TableHead>
+                                        <TableHead>Payment Method</TableHead>
+                                        <TableHead>Description</TableHead>
+                                        <TableHead>Name</TableHead>
+                                        <TableHead>Amount</TableHead>
                                     </TableRow>
-                                ) : lineItemsForEvent.map((lineItem: LineItemInterface) => (
-                                    <LineItem key={lineItem.id} lineItem={lineItem} />
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </div>
+                                </TableHeader>
+                                <TableBody>
+                                    {isLoadingLineItems ? (
+                                        <TableRow>
+                                            <TableCell colSpan={5} className="p-8 text-center">
+                                                <div className="flex justify-center items-center w-full">
+                                                    <Spinner size="sm" />
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : lineItemsForEvent.map((lineItem: LineItemInterface) => (
+                                        <LineItem key={lineItem.id} lineItem={lineItem} />
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    )}
 
                     {event.tags && event.tags.length > 0 && (
                         <div className="flex items-center gap-3">

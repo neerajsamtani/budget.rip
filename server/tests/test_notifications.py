@@ -141,10 +141,37 @@ class TestNotificationCRUD:
             unread = get_unread_notifications("user_id")
             assert len(unread) == 1
 
-            mark_notifications_read([unread[0]["id"]])
+            mark_notifications_read([unread[0]["id"]], "user_id")
 
             unread_after = get_unread_notifications("user_id")
             assert len(unread_after) == 0
+
+    def test_mark_notifications_read_does_not_affect_other_users(self, flask_app):
+        """Marking notifications as read is scoped to the requesting user"""
+        with flask_app.app_context():
+            from models.sql_models import User
+
+            with SessionLocal.begin() as db:
+                db.add(
+                    User(
+                        id="user_other",
+                        first_name="Other",
+                        last_name="User",
+                        email="other@example.com",
+                        password_hash="hash",
+                    )
+                )
+
+            create_notification("user_other", "Other user's notification", "warning")
+            notifs = get_unread_notifications("user_other")
+            notif_id = notifs[0]["id"]
+
+            # user_id tries to mark user_other's notification as read
+            count = mark_notifications_read([notif_id], "user_id")
+
+            assert count == 0
+            # Notification should still be unread for user_other
+            assert len(get_unread_notifications("user_other")) == 1
 
     def test_create_notification_with_event_id(self, flask_app):
         """Notification can be created with an event_id link"""
@@ -280,7 +307,7 @@ class TestSplitwiseDeletedExpenseHandling:
             mock_splitwise_client = mocker.patch("resources.splitwise.splitwise_client")
             mock_splitwise_client.getExpenses.return_value = [mock_active_expense, mock_deleted_expense]
             mocker.patch("resources.splitwise.bulk_upsert_transactions")
-            # Mock get_jwt_identity to return user_id
+            mocker.patch("resources.splitwise.has_request_context", return_value=True)
             mocker.patch("resources.splitwise.get_jwt_identity", return_value="user_id")
 
             from resources.splitwise import refresh_splitwise
@@ -339,6 +366,7 @@ class TestSplitwiseDeletedExpenseHandling:
             mock_splitwise_client = mocker.patch("resources.splitwise.splitwise_client")
             mock_splitwise_client.getExpenses.return_value = [mock_deleted_expense]
             mocker.patch("resources.splitwise.bulk_upsert_transactions")
+            mocker.patch("resources.splitwise.has_request_context", return_value=True)
             mocker.patch("resources.splitwise.get_jwt_identity", return_value="user_id")
 
             from resources.splitwise import refresh_splitwise
