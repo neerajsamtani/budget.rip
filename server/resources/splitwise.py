@@ -56,6 +56,17 @@ def refresh_splitwise() -> None:
     if deleted_expenses:
         # Only attempt deletion when we have a user context (JWT-protected endpoints).
         # Scheduled refreshes (no JWT) skip deletion — stale data is cleaned up on next user-triggered refresh.
+        # TODO: make the scheduled path delete too. Requires:
+        #   1) adding user_id to transactions/line_items/events/bank_accounts/payment_methods/tags
+        #      (categories/event_hints/notifications already have it), with a backfill migration and
+        #      scoped unique constraints (e.g. UNIQUE(user_id, source, source_id)).
+        #   2) per-user storage of external credentials (Splitwise/Venmo/Stripe keys are currently
+        #      single env vars) in a user_integrations table, encrypted at rest (AES-GCM with a
+        #      master key from env/KMS, per-row nonce, key_version for rotation).
+        #   3) scheduled refresh iterates users, loads their credentials, and runs refresh per-user
+        #      so get_jwt_identity() isn't needed — the user_id is known from the loop.
+        # Short-term workaround if needed sooner: SCHEDULED_REFRESH_USER_ID env var used as the
+        # acting user for the scheduled job.
         if has_request_context():
             try:
                 user_id = get_jwt_identity()
