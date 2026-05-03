@@ -535,6 +535,37 @@ class TestStripeFunctions:
             stripe_to_line_items()
 
 
+class TestBulkUpsertBankAccounts:
+    """Unit tests for bulk_upsert_bank_accounts"""
+
+    def test_account_with_none_last4_is_inserted(self, flask_app):
+        """Stripe accounts can return last4=None (e.g. brokerage/stock plans);
+        the upsert must coerce None to empty string to satisfy the NOT NULL constraint."""
+        with flask_app.app_context():
+            from models.database import SessionLocal
+            from models.sql_models import BankAccount
+            from utils.pg_bulk_ops import bulk_upsert_bank_accounts
+
+            account = {
+                "id": "fca_no_last4",
+                "institution_name": "Solium - Shareworks",
+                "display_name": "Common",
+                "last4": None,
+                "status": "active",
+                "can_relink": False,
+            }
+
+            with SessionLocal.begin() as db:
+                count = bulk_upsert_bank_accounts(db, [account])
+
+            assert count == 1
+            with SessionLocal() as db:
+                row = db.query(BankAccount).filter_by(id="fca_no_last4").one()
+                assert row.last4 == ""
+                assert row.institution_name == "Solium - Shareworks"
+                assert row.status == "active"
+
+
 class TestCheckCanRelink:
     """Direct unit tests for check_can_relink function"""
 
