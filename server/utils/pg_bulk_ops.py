@@ -315,7 +315,7 @@ def bulk_upsert_bank_accounts(db_session, accounts_data: List[Any]) -> int:
             "id": account_id,
             "institution_name": acc_dict.get("institution_name", ""),
             "display_name": acc_dict.get("display_name", ""),
-            "last4": acc_dict.get("last4", ""),
+            "last4": acc_dict.get("last4") or "",
             "status": acc_dict.get("status", "active"),
             "can_relink": acc_dict.get("can_relink", True),
         }
