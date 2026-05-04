@@ -1,12 +1,10 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { TableCell } from "@/components/ui/table";
-import React, { useEffect, useState } from "react";
+import React from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { StatusBadge } from "../components/ui/status-badge";
-import { useEventLineItems } from "../hooks/useApi";
 import { CurrencyFormatter, DateFormatter } from "../utils/formatters";
-import { showErrorToast } from "../utils/toast-helpers";
-import EventDetailsModal from "./EventDetailsModal";
 
 export interface EventInterface {
     id: string;
@@ -19,60 +17,39 @@ export interface EventInterface {
     is_duplicate_transaction?: boolean;
 }
 
-function useEventDetails(eventId: string) {
-    const [modalShow, setModalShow] = useState(false);
-    const [shouldFetch, setShouldFetch] = useState(false);
-    const { data: lineItems = [], error, isLoading: isLoadingLineItemsForEvent } = useEventLineItems(shouldFetch ? eventId : '');
-
-    useEffect(() => {
-        if (error) showErrorToast(error);
-    }, [error]);
-
-    const show = () => {
-        setShouldFetch(true);
-        setModalShow(true);
-    };
-
-    return { modalShow, lineItems, isLoadingLineItemsForEvent, show, hide: () => setModalShow(false) };
-}
-
 export function EventCard({ event }: { event: EventInterface }) {
+    const navigate = useNavigate();
     const readableDate = DateFormatter.format(event.date * 1000);
-    const { modalShow, lineItems, isLoadingLineItemsForEvent, show, hide } = useEventDetails(event.id);
     const amountStatus = event.amount > 0 ? 'warning' : 'success';
 
     return (
-        <>
-            <div className="p-4 border-b last:border-b-0" onClick={show}>
-                <div className="flex justify-between items-start gap-2 mb-2">
-                    <span className="text-sm text-muted-foreground">{readableDate}</span>
-                    <StatusBadge status={amountStatus}>
-                        {CurrencyFormatter.format(Math.abs(event.amount))}
-                    </StatusBadge>
-                </div>
-                <p className="font-medium text-foreground mb-2">{event.name}</p>
-                <div className="flex flex-wrap items-center gap-2">
-                    <Badge className="bg-muted text-foreground border hover:bg-muted">
-                        {event.category}
-                    </Badge>
-                    {event.tags && event.tags.slice(0, 2).map((tag, index) => (
-                        <Badge key={index} className="bg-primary text-white px-2 py-1">
-                            {tag}
-                        </Badge>
-                    ))}
-                    {event.tags && event.tags.length > 2 && (
-                        <span className="text-xs text-muted-foreground">+{event.tags.length - 2} more</span>
-                    )}
-                </div>
+        <div className="p-4 border-b last:border-b-0" onClick={() => navigate(`/events/${event.id}`)}>
+            <div className="flex justify-between items-start gap-2 mb-2">
+                <span className="text-sm text-muted-foreground">{readableDate}</span>
+                <StatusBadge status={amountStatus}>
+                    {CurrencyFormatter.format(Math.abs(event.amount))}
+                </StatusBadge>
             </div>
-            <EventDetailsModal show={modalShow} event={event} lineItemsForEvent={lineItems} isLoadingLineItemsForEvent={isLoadingLineItemsForEvent} onHide={hide} />
-        </>
+            <p className="font-medium text-foreground mb-2">{event.name}</p>
+            <div className="flex flex-wrap items-center gap-2">
+                <Badge className="bg-muted text-foreground border hover:bg-muted">
+                    {event.category}
+                </Badge>
+                {event.tags && event.tags.slice(0, 2).map((tag, index) => (
+                    <Badge key={index} className="bg-primary text-white px-2 py-1">
+                        {tag}
+                    </Badge>
+                ))}
+                {event.tags && event.tags.length > 2 && (
+                    <span className="text-xs text-muted-foreground">+{event.tags.length - 2} more</span>
+                )}
+            </div>
+        </div>
     );
 }
 
 export default function Event({ event }: { event: EventInterface }) {
     const readableDate = DateFormatter.format(event.date * 1000);
-    const { modalShow, lineItems, isLoadingLineItemsForEvent, show, hide } = useEventDetails(event.id);
     const amountStatus = event.amount > 0 ? 'warning' : 'success';
 
     return (
@@ -103,10 +80,9 @@ export default function Event({ event }: { event: EventInterface }) {
                 )}
             </TableCell>
             <TableCell>
-                <Button onClick={show} variant="secondary" size="sm">
-                    View Details
+                <Button asChild variant="secondary" size="sm">
+                    <Link to={`/events/${event.id}`}>View Details</Link>
                 </Button>
-                <EventDetailsModal show={modalShow} event={event} lineItemsForEvent={lineItems} isLoadingLineItemsForEvent={isLoadingLineItemsForEvent} onHide={hide} />
             </TableCell>
         </>
     )

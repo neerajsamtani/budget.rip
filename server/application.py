@@ -38,6 +38,7 @@ from resources.event_hint import event_hints_blueprint
 from resources.line_item import all_line_items, line_items_blueprint
 from resources.manual_transaction import manual_transaction_blueprint
 from resources.monthly_breakdown import monthly_breakdown_blueprint
+from resources.notification import notification_blueprint
 from resources.splitwise import (
     refresh_splitwise,
     splitwise_blueprint,
@@ -128,6 +129,7 @@ application.register_blueprint(stripe_blueprint)
 application.register_blueprint(tags_blueprint)
 application.register_blueprint(event_hints_blueprint)
 application.register_blueprint(categories_blueprint)
+application.register_blueprint(notification_blueprint)
 
 # If an environment variable is not found in the .env file,
 # load_dotenv will then search for a variable by the given name in the host environment.

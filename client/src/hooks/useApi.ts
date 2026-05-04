@@ -7,6 +7,7 @@ import axiosInstance from '../utils/axiosInstance';
 // Query Keys
 export const queryKeys = {
   events: (startTime?: number, endTime?: number) => ['events', startTime, endTime] as const,
+  event: (eventId: string) => ['event', eventId] as const,
   lineItems: (params?: { onlyLineItemsToReview?: boolean; paymentMethod?: string }) =>
     ['lineItems', params] as const,
   eventLineItems: (eventId: string) => ['eventLineItems', eventId] as const,
@@ -18,6 +19,7 @@ export const queryKeys = {
   eventHints: () => ['eventHints'] as const,
   eventHintSuggestion: (lineItemIds: string[]) => ['eventHintSuggestion', lineItemIds] as const,
   categories: () => ['categories'] as const,
+  notifications: () => ['notifications'] as const,
 };
 
 // Query Hooks
@@ -54,6 +56,17 @@ export function useLineItems(params?: { onlyLineItemsToReview?: boolean; payment
       return response.data.data as LineItemInterface[];
     },
     enabled: params?.enabled ?? true,
+  });
+}
+
+export function useEvent(eventId: string): UseQueryResult<EventInterface> {
+  return useQuery({
+    queryKey: queryKeys.event(eventId),
+    queryFn: async () => {
+      const response = await axiosInstance.get(`api/events/${eventId}`);
+      return response.data as EventInterface;
+    },
+    enabled: !!eventId,
   });
 }
 
@@ -139,13 +152,14 @@ export interface Tag {
   name: string;
 }
 
-export function useTags(): UseQueryResult<Tag[]> {
+export function useTags({ enabled = true }: { enabled?: boolean } = {}): UseQueryResult<Tag[]> {
   return useQuery({
     queryKey: queryKeys.tags(),
     queryFn: async () => {
       const response = await axiosInstance.get('api/tags');
       return response.data.data as Tag[];
     },
+    enabled,
   });
 }
 
@@ -196,6 +210,7 @@ export function useUpdateEvent(): UseMutationResult<unknown, Error, UpdateEventD
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['events'] });
+      queryClient.invalidateQueries({ queryKey: ['event'] });
       queryClient.invalidateQueries({ queryKey: ['eventLineItems'] });
       queryClient.invalidateQueries({ queryKey: ['lineItems'], refetchType: 'none' });
       queryClient.invalidateQueries({ queryKey: ['monthlyBreakdown'], refetchType: 'none' });
@@ -294,6 +309,7 @@ export function useRefreshAllData(): UseMutationResult<LineItemInterface[], Erro
       queryClient.invalidateQueries({ queryKey: ['events'] });
       queryClient.invalidateQueries({ queryKey: ['lineItems'] });
       queryClient.invalidateQueries({ queryKey: ['monthlyBreakdown'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.notifications() });
     },
   });
 }
@@ -383,13 +399,14 @@ export function useEventHints(): UseQueryResult<EventHint[]> {
   });
 }
 
-export function useCategories(): UseQueryResult<CategoryOption[]> {
+export function useCategories({ enabled = true }: { enabled?: boolean } = {}): UseQueryResult<CategoryOption[]> {
   return useQuery({
     queryKey: queryKeys.categories(),
     queryFn: async () => {
       const response = await axiosInstance.get('api/categories');
       return response.data.data as CategoryOption[];
     },
+    enabled,
   });
 }
 
@@ -539,6 +556,39 @@ export function useValidateCelExpression(): UseMutationResult<ValidateCelResult,
     mutationFn: async (celExpression: string) => {
       const response = await axiosInstance.post('api/event-hints/validate', { cel_expression: celExpression });
       return response.data.data as ValidateCelResult;
+    },
+  });
+}
+
+// Notifications
+export interface NotificationItem {
+  id: string;
+  message: string;
+  type: 'warning' | 'info';
+  created_at: string;
+  event_id: string | null;
+}
+
+export function useNotifications(enabled: boolean = true): UseQueryResult<NotificationItem[]> {
+  return useQuery({
+    queryKey: queryKeys.notifications(),
+    queryFn: async () => {
+      const response = await axiosInstance.get('api/notifications');
+      return response.data.data as NotificationItem[];
+    },
+    enabled,
+  });
+}
+
+export function useMarkNotificationsRead(): UseMutationResult<void, Error, string[]> {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (notificationIds: string[]) => {
+      await axiosInstance.post('api/notifications/mark-read', { notification_ids: notificationIds });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.notifications() });
     },
   });
 }

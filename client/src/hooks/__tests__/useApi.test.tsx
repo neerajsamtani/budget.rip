@@ -23,6 +23,7 @@ import {
     useCreateEvent,
     useCreateManualTransaction,
     useDeleteEvent,
+    useEvent,
     useEventLineItems,
     useEvents,
     useLineItems,
@@ -61,6 +62,10 @@ describe('useApi hooks', () => {
             expect(queryKeys.lineItems({ onlyLineItemsToReview: true })).toEqual(['lineItems', { onlyLineItemsToReview: true }]);
             expect(queryKeys.lineItems({ paymentMethod: 'cash' })).toEqual(['lineItems', { paymentMethod: 'cash' }]);
             expect(queryKeys.lineItems()).toEqual(['lineItems', undefined]);
+        });
+
+        it('event query key includes event ID', () => {
+            expect(queryKeys.event('event-123')).toEqual(['event', 'event-123']);
         });
 
         it('eventLineItems query key includes event ID', () => {
@@ -197,6 +202,28 @@ describe('useApi hooks', () => {
 
         it('does not fetch when eventId is empty', () => {
             renderHook(() => useEventLineItems(''), { wrapper: createWrapper() });
+
+            expect(mockGet).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('useEvent', () => {
+        it('fetches a single event by ID', async () => {
+            const mockEvent = { id: 'event-123', name: 'Test Event', amount: 100, date: 1640995200 };
+            mockGet.mockResolvedValue({ data: mockEvent });
+
+            const { result } = renderHook(() => useEvent('event-123'), {
+                wrapper: createWrapper(),
+            });
+
+            await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+            expect(mockGet).toHaveBeenCalledWith('api/events/event-123');
+            expect(result.current.data).toEqual(mockEvent);
+        });
+
+        it('does not fetch when eventId is empty', () => {
+            renderHook(() => useEvent(''), { wrapper: createWrapper() });
 
             expect(mockGet).not.toHaveBeenCalled();
         });

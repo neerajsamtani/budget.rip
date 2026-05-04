@@ -188,6 +188,7 @@ describe('EventsPage', () => {
 
     beforeEach(() => {
         jest.clearAllMocks();
+        window.history.pushState({}, '', '/events');
         // Set up default environment variable
         process.env.VITE_API_ENDPOINT = 'http://localhost:5000/';
         // Default successful API response
@@ -652,6 +653,41 @@ describe('EventsPage', () => {
                 expect(screen.getByTestId('event-name-1')).toBeInTheDocument();
                 expect(screen.getByTestId('event-name-100')).toBeInTheDocument();
             });
+        });
+    });
+
+    describe('URL Search Params', () => {
+        it('filters are initialized from URL search params', () => {
+            window.history.pushState({}, '', '/events?category=Dining&month=February');
+            render(<EventsPage />);
+
+            expect(screen.getByTestId('category-filter')).toHaveValue('Dining');
+            expect(screen.getByTestId('month-filter')).toHaveValue('February');
+        });
+
+        it('URL is updated when category filter changes', () => {
+            render(<EventsPage />);
+
+            const categoryFilter = screen.getByTestId('category-filter');
+            fireEvent.change(categoryFilter, { target: { value: 'Dining' } });
+
+            expect(new URLSearchParams(window.location.search).get('category')).toBe('Dining');
+        });
+
+        it('default filter values are not included in URL', () => {
+            render(<EventsPage />);
+
+            expect(window.location.search).toBe('');
+        });
+
+        it('resetting a filter to default removes it from URL', () => {
+            window.history.pushState({}, '', '/events?category=Dining');
+            render(<EventsPage />);
+
+            const categoryFilter = screen.getByTestId('category-filter');
+            fireEvent.change(categoryFilter, { target: { value: 'All' } });
+
+            expect(new URLSearchParams(window.location.search).has('category')).toBe(false);
         });
     });
 

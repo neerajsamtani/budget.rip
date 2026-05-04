@@ -4,7 +4,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Toaster } from "@/components/ui/sonner";
 import { Spinner } from "@/components/ui/spinner";
 import { loadStripe } from "@stripe/stripe-js";
-import { MenuIcon } from "lucide-react";
+import { BellIcon, MenuIcon } from "lucide-react";
 import React, { Suspense, useState } from "react";
 import {
   Link, Route,
@@ -14,15 +14,18 @@ import {
 import { ProtectedRoute, PublicOnlyRoute } from "./components/ProtectedRoute";
 import { useAuth } from "./contexts/AuthContext";
 import { useLineItemsDispatch } from "./contexts/LineItemsContext";
-import { useRefreshAllData } from "./hooks/useApi";
+import { NotificationItem, useMarkNotificationsRead, useNotifications, useRefreshAllData } from "./hooks/useApi";
 import LineItemsToReviewPage from "./pages/LineItemsToReviewPage";
 
 const ConnectedAccountsPage = React.lazy(() => import("./pages/ConnectedAccountsPage"));
+const EventDetailsPage = React.lazy(() => import("./pages/EventDetailsPage"));
 const EventsPage = React.lazy(() => import("./pages/EventsPage"));
 const GraphsPage = React.lazy(() => import("./pages/GraphsPage"));
 const LineItemsPage = React.lazy(() => import("./pages/LineItemsPage"));
 const LoginPage = React.lazy(() => import("./pages/LoginPage"));
 const SettingsPage = React.lazy(() => import("./pages/SettingsPage"));
+import { Badge } from "./components/ui/badge";
+import { Popover, PopoverContent, PopoverTrigger } from "./components/ui/popover";
 import { showErrorToast, showSuccessToast } from "./utils/toast-helpers";
 
 // Make sure to call loadStripe outside of a component's render to avoid
@@ -33,12 +36,36 @@ import { showErrorToast, showSuccessToast } from "./utils/toast-helpers";
 const STRIPE_PUBLIC_KEY = String(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
 const stripePromise = loadStripe(STRIPE_PUBLIC_KEY);
 
+function NotificationEntry({ n, onNavigate }: { n: NotificationItem; onNavigate?: () => void }) {
+  const content = (
+    <div className="text-sm p-2 rounded bg-muted/50 border-l-2 border-amber-500">
+      {n.message}
+    </div>
+  );
+  return n.event_id ? (
+    <Link to={`/events/${n.event_id}`} onClick={onNavigate} className="block no-underline hover:opacity-80">
+      {content}
+    </Link>
+  ) : content;
+}
+
 export default function App() {
 
   const lineItemsDispatch = useLineItemsDispatch();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const refreshMutation = useRefreshAllData();
   const { isAuthenticated, logout } = useAuth();
+  const { data: notifications } = useNotifications(isAuthenticated);
+  const markReadMutation = useMarkNotificationsRead();
+
+  const handleDismissAll = () => {
+    if (notifications?.length) {
+      markReadMutation.mutate(notifications.map(n => n.id), {
+        onSuccess: () => setNotificationsOpen(false),
+      });
+    }
+  };
 
   const handleRefreshData = () => {
     refreshMutation.mutate(undefined, {
@@ -120,6 +147,42 @@ export default function App() {
               )}
 
               {isAuthenticated && (
+                <Popover open={notificationsOpen} onOpenChange={setNotificationsOpen}>
+                  <PopoverTrigger asChild>
+                    <Button variant="ghost" size="sm" className="relative" aria-label="Notifications">
+                      <BellIcon className="h-4 w-4" />
+                      {notifications && notifications.length > 0 && (
+                        <Badge variant="destructive" className="absolute -top-1 -right-1 h-4 min-w-4 px-1 text-[10px] flex items-center justify-center">
+                          {notifications.length}
+                        </Badge>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80" align="center" sideOffset={12}>
+                    <div className="space-y-3 p-1">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-medium text-sm">Notifications</h4>
+                        {notifications && notifications.length > 0 && (
+                          <Button variant="ghost" size="sm" className="text-xs h-6" onClick={handleDismissAll} disabled={markReadMutation.isPending}>
+                            Dismiss all
+                          </Button>
+                        )}
+                      </div>
+                      {!notifications?.length ? (
+                        <p className="text-sm text-muted-foreground">No new notifications</p>
+                      ) : (
+                        <div className="space-y-2 max-h-64 overflow-y-auto">
+                          {notifications.map(n => (
+                            <NotificationEntry key={n.id} n={n} onNavigate={() => setNotificationsOpen(false)} />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              )}
+
+              {isAuthenticated && (
                 <Button onClick={handleRefreshData} variant="default" size="sm" disabled={refreshMutation.isPending} className="whitespace-nowrap">
                   {refreshMutation.isPending ? <Spinner size="sm" /> : "Refresh Data"}
                 </Button>
@@ -128,6 +191,41 @@ export default function App() {
 
             {/* Mobile Navigation */}
             <div className="lg:hidden flex items-center gap-2">
+              {isAuthenticated && (
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="ghost" size="sm" className="relative" aria-label="Notifications">
+                      <BellIcon className="h-4 w-4" />
+                      {notifications && notifications.length > 0 && (
+                        <Badge variant="destructive" className="absolute -top-1 -right-1 h-4 min-w-4 px-1 text-[10px] flex items-center justify-center">
+                          {notifications.length}
+                        </Badge>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-72" align="center" sideOffset={12}>
+                    <div className="space-y-3 p-1">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-medium text-sm">Notifications</h4>
+                        {notifications && notifications.length > 0 && (
+                          <Button variant="ghost" size="sm" className="text-xs h-6" onClick={handleDismissAll} disabled={markReadMutation.isPending}>
+                            Dismiss all
+                          </Button>
+                        )}
+                      </div>
+                      {!notifications?.length ? (
+                        <p className="text-sm text-muted-foreground">No new notifications</p>
+                      ) : (
+                        <div className="space-y-2 max-h-64 overflow-y-auto">
+                          {notifications.map(n => (
+                            <NotificationEntry key={n.id} n={n} onNavigate={() => setNotificationsOpen(false)} />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              )}
               {isAuthenticated && (
                 <Button onClick={handleRefreshData} variant="default" size="sm" disabled={refreshMutation.isPending}>
                   {refreshMutation.isPending ? <Spinner size="sm" /> : "Refresh"}
@@ -215,6 +313,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<ProtectedRoute><LineItemsToReviewPage /></ProtectedRoute>} />
             <Route path="/events" element={<ProtectedRoute><EventsPage /></ProtectedRoute>} />
+            <Route path="/events/:eventId" element={<ProtectedRoute><EventDetailsPage /></ProtectedRoute>} />
             <Route path="/line_items" element={<ProtectedRoute><LineItemsPage /></ProtectedRoute>} />
             <Route path="/connected_accounts" element={<ProtectedRoute><ConnectedAccountsPage stripePromise={stripePromise} /></ProtectedRoute>} />
             <Route path="/graphs" element={<ProtectedRoute><GraphsPage /></ProtectedRoute>} />
