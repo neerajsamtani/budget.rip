@@ -688,6 +688,51 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/monthly_breakdown": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get monthly spending breakdown grouped by category for graphing. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successful response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MonthlyBreakdownResponse"];
+                    };
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/refresh/scheduled": {
         parameters: {
             query?: never;
@@ -718,6 +763,71 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/manual_transaction": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create a manual transaction against any payment method. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ManualTransactionCreateIn"];
+                };
+            };
+            responses: {
+                /** @description Successful response */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ManualTransactionCreateResponse"];
+                    };
+                };
+                /** @description Bad request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ValidationError"];
+                    };
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -1319,6 +1429,67 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/manual_transaction/{transaction_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete a manual transaction and its associated line items. */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    transaction_id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successful response */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/events/{event_id}/line_items_for_event": {
         parameters: {
             query?: never;
@@ -1675,6 +1846,37 @@ export interface components {
              * @default false
              */
             is_duplicate_transaction: boolean;
+        };
+        /** MonthlyBreakdownEntry */
+        "MonthlyBreakdownResponse.MonthlyBreakdownEntry": {
+            /** Date */
+            date: string;
+            /** Amount */
+            amount: number;
+        };
+        /** MonthlyBreakdownResponse */
+        MonthlyBreakdownResponse: {
+            [key: string]: components["schemas"]["MonthlyBreakdownResponse.MonthlyBreakdownEntry"][];
+        };
+        /** ManualTransactionCreateResponse */
+        ManualTransactionCreateResponse: {
+            /** Message */
+            message: string;
+            /** Transaction Id */
+            transaction_id: string;
+        };
+        /** ManualTransactionCreateIn */
+        ManualTransactionCreateIn: {
+            /** Date */
+            date: string;
+            /** Person */
+            person: string;
+            /** Description */
+            description: string;
+            /** Amount */
+            amount: number;
+            /** Payment Method Id */
+            payment_method_id: string;
         };
         /** MessageResponse */
         MessageResponse: {

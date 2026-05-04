@@ -3,17 +3,18 @@ from collections import defaultdict
 from datetime import datetime
 from typing import Any, Dict, List
 
-from flask import Blueprint, Response, jsonify
+from apiflask import APIBlueprint
 from flask_jwt_extended import jwt_required
 
 from dao import get_categorized_data
 from helpers import empty_list
+from resources.schemas.monthly_breakdown import MonthlyBreakdownResponse
 
 logger = logging.getLogger(__name__)
 
-monthly_breakdown_blueprint = Blueprint("monthly_breakdown", __name__)
+monthly_breakdown_blueprint = APIBlueprint("monthly_breakdown", __name__)
 
-# TODO: Exceptions
+_SECURITY = [{"jwtCookie": []}]
 
 
 def month_year_range(all_dates_dt: List[datetime]) -> List[str]:
@@ -26,7 +27,6 @@ def month_year_range(all_dates_dt: List[datetime]) -> List[str]:
     cur = min_date
     while cur <= max_date:
         months.append(f"{cur.month}-{cur.year}")
-        # Move to next month
         if cur.month == 12:
             cur = cur.replace(year=cur.year + 1, month=1)
         else:
@@ -34,29 +34,29 @@ def month_year_range(all_dates_dt: List[datetime]) -> List[str]:
     return months
 
 
-@monthly_breakdown_blueprint.route("/api/monthly_breakdown")
+@monthly_breakdown_blueprint.get("/api/monthly_breakdown")
+@monthly_breakdown_blueprint.output(MonthlyBreakdownResponse)
+@monthly_breakdown_blueprint.doc(security=_SECURITY)
 @jwt_required()
-def get_monthly_breakdown_api() -> tuple[Response, int]:
-    """
-    Get Monthly Breakdown For Plotly Graph
-    """
+def get_monthly_breakdown_api():
+    """Get monthly spending breakdown grouped by category for graphing."""
     categorized_data: List[Dict[str, Any]] = get_categorized_data()
     categories: Dict[str, List[Dict[str, Any]]] = defaultdict(empty_list)
-    seen_dates: set[str] = set()
     all_dates: List[str] = []
+
     for row in categorized_data:
         category: str = row["category"]
         formatted_date: str = f"{row['month']}-{row['year']}"
-        seen_dates.add(formatted_date)
         categories[category].append({"date": formatted_date, "amount": row["totalExpense"]})
         all_dates.append(formatted_date)
+
     if not all_dates:
         logger.info("No categorized data found for monthly breakdown")
-        return jsonify({}), 200
-    # Find min and max date
+        return MonthlyBreakdownResponse(root={})
+
     all_dates_dt = [datetime.strptime(d, "%m-%Y") for d in all_dates]
     full_range = month_year_range(all_dates_dt)
-    # Ensure no categories have missing dates in the full range
+
     for category, info in categories.items():
         info_dates = {x["date"] for x in info}
         unseen_dates = set(full_range).difference(info_dates)
@@ -66,4 +66,4 @@ def get_monthly_breakdown_api() -> tuple[Response, int]:
     total_categories = len(categories)
     total_amount = sum(sum(item["amount"] for item in category_data) for category_data in categories.values())
     logger.info(f"Generated monthly breakdown: {total_categories} categories, total amount: ${total_amount:.2f}")
-    return jsonify(categories), 200
+    return MonthlyBreakdownResponse(root=categories)

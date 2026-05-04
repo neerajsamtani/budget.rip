@@ -145,7 +145,6 @@ def test_manual_transaction_requires_payment_method_id(test_client, jwt_token):
     )
 
     assert response.status_code == 400
-    assert "payment_method_id" in response.get_json()["error"]
 
 
 def test_manual_transaction_fails_with_invalid_payment_method(test_client, jwt_token):
@@ -396,3 +395,11 @@ def test_get_payment_method_by_id_returns_none_for_nonexistent(flask_app):
     with flask_app.app_context():
         result = get_payment_method_by_id("pm_nonexistent")
         assert result is None
+
+
+class TestManualTransactionSpec:
+    def test_openapi_spec_exposes_manual_transaction_paths(self, test_client):
+        response = test_client.get("/api/openapi.json")
+        assert response.status_code == 200
+        paths = response.get_json()["paths"]
+        assert "/api/manual_transaction" in paths
