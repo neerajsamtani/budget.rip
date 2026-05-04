@@ -21,6 +21,13 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
     const [refreshingAccountId, setRefreshingAccountId] = useState<string | null>(null)
 
     const { data: connectedAccounts = [], isLoading: isLoadingAccounts } = useConnectedAccounts()
+    const stripeConnectedAccounts = connectedAccounts.find(account => account.stripe)?.stripe ?? []
+    const activeStripeAccounts = stripeConnectedAccounts.filter(account => account.status === "active")
+    const inactiveAccounts = stripeConnectedAccounts.filter(account => account.status === "inactive")
+    const activeAccounts = [
+        ...connectedAccounts.filter(account => account.venmo?.length || account.splitwise?.length),
+        ...(activeStripeAccounts.length > 0 ? [{ stripe: activeStripeAccounts }] : []),
+    ]
     const { data: accountsAndBalances = {}, isLoading: isLoadingBalances } = useAccountsAndBalances()
     const createSessionMutation = useCreateFinancialConnectionsSession()
     const subscribeToAccountMutation = useSubscribeToAccount()
@@ -432,15 +439,17 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
                 </div>
 
                 <div className="space-y-6">
+                    <H4>Active Accounts</H4>
+
                     {/* Mobile card layout */}
                     <div className="md:hidden">
                         {isLoading ? (
                             <div className="flex justify-center py-8">
                                 <Spinner size="md" className="text-muted-foreground" />
                             </div>
-                        ) : connectedAccounts.length > 0 ? (
+                        ) : activeAccounts.length > 0 ? (
                             <div className="rounded-xl bg-white shadow-sm border overflow-hidden">
-                                {connectedAccounts.flatMap(renderConnectedAccountCards)}
+                                {activeAccounts.flatMap(renderConnectedAccountCards)}
                             </div>
                         ) : (
                             <Body className="text-center text-muted-foreground py-4">
@@ -468,8 +477,8 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
                                             <Spinner size="md" className="text-muted-foreground mx-auto" />
                                         </TableCell>
                                     </TableRow>
-                                ) : connectedAccounts.length > 0 ? (
-                                    connectedAccounts.flatMap(renderConnectedAccount)
+                                ) : activeAccounts.length > 0 ? (
+                                    activeAccounts.flatMap(renderConnectedAccount)
                                 ) : (
                                     <TableRow>
                                         <TableCell colSpan={5} className="text-center text-muted-foreground">
@@ -494,9 +503,9 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
                                 <div className="flex justify-center py-8">
                                     <Spinner size="md" className="text-muted-foreground" />
                                 </div>
-                            ) : connectedAccounts.find(account => account.stripe)?.stripe.filter(account => account.status === "inactive").length > 0 ? (
+                            ) : inactiveAccounts.length > 0 ? (
                                 <div className="rounded-xl bg-white shadow-sm border overflow-hidden">
-                                    {connectedAccounts.find(account => account.stripe)?.stripe.filter(account => account.status === "inactive").map(renderInactiveAccountCard)}
+                                    {inactiveAccounts.map(renderInactiveAccountCard)}
                                 </div>
                             ) : (
                                 <Body className="text-center text-muted-foreground py-4">
@@ -522,8 +531,8 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
                                                 <Spinner size="md" className="text-muted-foreground mx-auto" />
                                             </TableCell>
                                         </TableRow>
-                                    ) : connectedAccounts.length > 0 ? (
-                                        connectedAccounts.find(account => account.stripe)?.stripe.filter(account => account.status === "inactive").flatMap(renderStripeAccount)
+                                    ) : inactiveAccounts.length > 0 ? (
+                                        inactiveAccounts.flatMap(renderStripeAccount)
                                     ) : (
                                         <TableRow>
                                             <TableCell colSpan={3} className="text-center text-muted-foreground">

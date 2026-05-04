@@ -3,8 +3,9 @@ import sys
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
+from apiflask import APIFlask
 from dotenv import load_dotenv
-from flask import Flask, Response, jsonify, request
+from flask import Response, jsonify, request
 from flask_bcrypt import Bcrypt
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager, jwt_required
@@ -88,7 +89,11 @@ missing = [name for name, value in required_vars.items() if not value]
 if missing:
     raise RuntimeError(f"Required environment variables not set: {', '.join(missing)}")
 
-application: Flask = Flask(__name__)
+application: APIFlask = APIFlask(
+    __name__, title="Budgit API", version="0.1.0", spec_path="/api/openapi.json", docs_path="/api/docs"
+)
+application.config["VALIDATION_ERROR_STATUS_CODE"] = 400
+application.security_schemes = {"jwtCookie": {"type": "apiKey", "in": "cookie", "name": "access_token_cookie"}}
 
 cors: CORS = CORS(
     application,
@@ -127,6 +132,12 @@ application.register_blueprint(categories_blueprint)
 # If an environment variable is not found in the .env file,
 # load_dotenv will then search for a variable by the given name in the host environment.
 load_dotenv()
+
+
+@application.error_processor
+def handle_apiflask_error(error):
+    """Map APIFlask's default {"message": "..."} error shape to {"error": "..."} for consistency."""
+    return {"error": error.message}, error.status_code, error.headers
 
 
 @application.errorhandler(Exception)

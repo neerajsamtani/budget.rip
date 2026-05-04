@@ -24,7 +24,7 @@ os.environ["DATABASE_HOST"] = "sqlite"
 # Use a unique name for the shared in-memory database to avoid file creation
 os.environ["DATABASE_NAME"] = ":memory:"
 
-from flask import Flask
+from apiflask import APIFlask
 from flask_jwt_extended import JWTManager, create_access_token
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
@@ -106,8 +106,9 @@ def setup_test_database():
 
 @pytest.fixture
 def flask_app():
-    app = Flask(__name__)
+    app = APIFlask(__name__, spec_path="/api/openapi.json")
     app.debug = True
+    app.config["VALIDATION_ERROR_STATUS_CODE"] = 400
     app.register_blueprint(auth_blueprint)
     app.register_blueprint(manual_transaction_blueprint)
     app.register_blueprint(categories_blueprint)
@@ -121,6 +122,11 @@ def flask_app():
     app.register_blueprint(venmo_blueprint)
 
     with app.app_context():
+
+        @app.error_processor
+        def handle_apiflask_error(error):
+            return {"error": error.message}, error.status_code, error.headers
+
         jwt = JWTManager(app)
         app.config["JWT_SECRET_KEY"] = JWT_SECRET_KEY
         app.config["JWT_TOKEN_LOCATION"] = ["cookies", "headers"]

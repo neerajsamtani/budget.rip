@@ -1,6 +1,7 @@
 import { useMutation, UseMutationResult, useQuery, useQueryClient, UseQueryResult } from '@tanstack/react-query';
 import { EventInterface } from '../components/Event';
 import { LineItemInterface } from '../contexts/LineItemsContext';
+import type { components } from '../types/api.generated';
 import axiosInstance from '../utils/axiosInstance';
 
 // Query Keys
@@ -370,10 +371,7 @@ export interface EventHintSuggestion {
   matched_hint_name: string;
 }
 
-export interface CategoryOption {
-  id: string;
-  name: string;
-}
+export type CategoryOption = components['schemas']['CategoryListResponse.CategoryOut'];
 
 export function useEventHints(): UseQueryResult<EventHint[]> {
   return useQuery({
@@ -395,9 +393,7 @@ export function useCategories(): UseQueryResult<CategoryOption[]> {
   });
 }
 
-interface CreateCategoryData {
-  name: string;
-}
+type CreateCategoryData = components['schemas']['CategoryCreateIn'];
 
 export function useCreateCategory(): UseMutationResult<CategoryOption, Error, CreateCategoryData> {
   const queryClient = useQueryClient();
@@ -413,10 +409,7 @@ export function useCreateCategory(): UseMutationResult<CategoryOption, Error, Cr
   });
 }
 
-interface UpdateCategoryData {
-  id: string;
-  name?: string;
-}
+type UpdateCategoryData = components['schemas']['CategoryUpdateIn'] & { id: string };
 
 export function useUpdateCategory(): UseMutationResult<CategoryOption, Error, UpdateCategoryData> {
   const queryClient = useQueryClient();
