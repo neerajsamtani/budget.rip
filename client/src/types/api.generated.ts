@@ -40,6 +40,51 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/tags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get All Tags Api */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successful response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TagListResponse"];
+                    };
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/categories": {
         parameters: {
             query?: never;
@@ -99,6 +144,100 @@ export interface paths {
                     };
                     content: {
                         "application/json": components["schemas"]["CategorySingleResponse"];
+                    };
+                };
+                /** @description Bad request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ValidationError"];
+                    };
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/event-hints": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get all event hints for the current user, ordered by display_order. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successful response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EventHintListResponse"];
+                    };
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Create a new event hint. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["EventHintCreateIn"];
+                };
+            };
+            responses: {
+                /** @description Successful response */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EventHintSingleResponse"];
                     };
                 };
                 /** @description Bad request */
@@ -321,6 +460,354 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/event-hints/reorder": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Reorder event hints.
+         * @description Updates display_order to match the provided order.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ReorderIn"];
+                };
+            };
+            responses: {
+                /** @description Successful response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessageResponse"];
+                    };
+                };
+                /** @description Bad request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ValidationError"];
+                    };
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/event-hints/evaluate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Evaluate hints against provided line items.
+         * @description Returns a suggestion dict or null.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["EvaluateIn"];
+                };
+            };
+            responses: {
+                /** @description Successful response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EvaluateResponse"];
+                    };
+                };
+                /** @description Validation error */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ValidationError"];
+                    };
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/event-hints/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Validate a CEL expression without saving. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ValidateCelIn"];
+                };
+            };
+            responses: {
+                /** @description Successful response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ValidateCelResponse"];
+                    };
+                };
+                /** @description Validation error */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ValidationError"];
+                    };
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/event-hints/{hint_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a single event hint by ID. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    hint_id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successful response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EventHintSingleResponse"];
+                    };
+                };
+                /** @description Bad request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+            };
+        };
+        /** Update an existing event hint. */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    hint_id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["EventHintUpdateIn"];
+                };
+            };
+            responses: {
+                /** @description Successful response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EventHintSingleResponse"];
+                    };
+                };
+                /** @description Bad request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ValidationError"];
+                    };
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Delete an event hint. */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    hint_id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successful response */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/categories/{category_id}": {
         parameters: {
             query?: never;
@@ -489,6 +976,22 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** TagOut */
+        "TagListResponse.TagOut": {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+        };
+        /** TagListResponse */
+        TagListResponse: {
+            /** Data */
+            data: components["schemas"]["TagListResponse.TagOut"][];
+        };
+        HTTPError: {
+            detail?: Record<string, never>;
+            message?: string;
+        };
         /** CategoryOut */
         "CategoryListResponse.CategoryOut": {
             /** Id */
@@ -500,10 +1003,6 @@ export interface components {
         CategoryListResponse: {
             /** Data */
             data: components["schemas"]["CategoryListResponse.CategoryOut"][];
-        };
-        HTTPError: {
-            detail?: Record<string, never>;
-            message?: string;
         };
         /** CategoryOut */
         "CategorySingleResponse.CategoryOut": {
@@ -528,6 +1027,169 @@ export interface components {
         CategoryCreateIn: {
             /** Name */
             name: string;
+        };
+        /** EventHintOut */
+        "EventHintListResponse.EventHintOut": {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Cel Expression */
+            cel_expression: string;
+            /** Prefill Name */
+            prefill_name: string;
+            /**
+             * Prefill Category
+             * @default null
+             */
+            prefill_category: string | null;
+            /**
+             * Prefill Category Id
+             * @default null
+             */
+            prefill_category_id: string | null;
+            /** Display Order */
+            display_order: number;
+            /** Is Active */
+            is_active: boolean;
+        };
+        /** EventHintListResponse */
+        EventHintListResponse: {
+            /** Data */
+            data: components["schemas"]["EventHintListResponse.EventHintOut"][];
+        };
+        /** EventHintOut */
+        "EventHintSingleResponse.EventHintOut": {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Cel Expression */
+            cel_expression: string;
+            /** Prefill Name */
+            prefill_name: string;
+            /**
+             * Prefill Category
+             * @default null
+             */
+            prefill_category: string | null;
+            /**
+             * Prefill Category Id
+             * @default null
+             */
+            prefill_category_id: string | null;
+            /** Display Order */
+            display_order: number;
+            /** Is Active */
+            is_active: boolean;
+        };
+        /** EventHintSingleResponse */
+        EventHintSingleResponse: {
+            data: components["schemas"]["EventHintSingleResponse.EventHintOut"];
+        };
+        /** EventHintCreateIn */
+        EventHintCreateIn: {
+            /** Name */
+            name: string;
+            /** Cel Expression */
+            cel_expression: string;
+            /** Prefill Name */
+            prefill_name: string;
+            /**
+             * Prefill Category Id
+             * @default null
+             */
+            prefill_category_id: string | null;
+            /**
+             * Is Active
+             * @default true
+             */
+            is_active: boolean | null;
+        };
+        /** MessageResponse */
+        MessageResponse: {
+            /** Message */
+            message: string;
+        };
+        /** ReorderIn */
+        ReorderIn: {
+            /** Hint Ids */
+            hint_ids: string[];
+        };
+        /** EvaluateData */
+        "EvaluateResponse.EvaluateData": {
+            /** @default null */
+            suggestion: components["schemas"]["EvaluateResponse.EventHintSuggestionOut"] | null;
+        };
+        /** EventHintSuggestionOut */
+        "EvaluateResponse.EventHintSuggestionOut": {
+            /** Name */
+            name: string;
+            /**
+             * Category
+             * @default null
+             */
+            category: string | null;
+            /** Matched Hint Id */
+            matched_hint_id: string;
+            /** Matched Hint Name */
+            matched_hint_name: string;
+        };
+        /** EvaluateResponse */
+        EvaluateResponse: {
+            data: components["schemas"]["EvaluateResponse.EvaluateData"];
+        };
+        /** EvaluateIn */
+        EvaluateIn: {
+            /** Line Item Ids */
+            line_item_ids: string[];
+        };
+        /** ValidateCelData */
+        "ValidateCelResponse.ValidateCelData": {
+            /** Is Valid */
+            is_valid: boolean;
+            /**
+             * Error
+             * @default null
+             */
+            error: string | null;
+        };
+        /** ValidateCelResponse */
+        ValidateCelResponse: {
+            data: components["schemas"]["ValidateCelResponse.ValidateCelData"];
+        };
+        /** ValidateCelIn */
+        ValidateCelIn: {
+            /** Cel Expression */
+            cel_expression: string;
+        };
+        /** EventHintUpdateIn */
+        EventHintUpdateIn: {
+            /**
+             * Name
+             * @default null
+             */
+            name: string | null;
+            /**
+             * Cel Expression
+             * @default null
+             */
+            cel_expression: string | null;
+            /**
+             * Prefill Name
+             * @default null
+             */
+            prefill_name: string | null;
+            /**
+             * Prefill Category Id
+             * @default null
+             */
+            prefill_category_id: string | null;
+            /**
+             * Is Active
+             * @default null
+             */
+            is_active: boolean | null;
         };
         /** CategoryUpdateIn */
         CategoryUpdateIn: {

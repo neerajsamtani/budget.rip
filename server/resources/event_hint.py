@@ -8,19 +8,39 @@ plus an evaluate endpoint that returns suggestions based on line items.
 import logging
 from typing import Any
 
-from flask import Blueprint, Response, jsonify, request
+from apiflask import APIBlueprint, abort
 from flask_jwt_extended import get_current_user, jwt_required
 from sqlalchemy import func
 from sqlalchemy.orm import joinedload
 
+from helpers import get_or_404
 from models.database import SessionLocal
 from models.sql_models import Category, EventHint, LineItem
+from resources.schemas.event_hint import (
+    ErrorResponse,
+    EvaluateIn,
+    EvaluateResponse,
+    EventHintCreateIn,
+    EventHintListResponse,
+    EventHintSingleResponse,
+    EventHintUpdateIn,
+    MessageResponse,
+    ReorderIn,
+    ValidateCelIn,
+    ValidateCelResponse,
+)
 from utils.cel_evaluator import CELEvaluator, evaluate_hints
 from utils.id_generator import generate_id
 
 logger = logging.getLogger(__name__)
 
-event_hints_blueprint = Blueprint("event_hints", __name__)
+event_hints_blueprint = APIBlueprint("event_hints", __name__)
+
+_SECURITY = [{"jwtCookie": []}]
+_ERROR_RESPONSES = {
+    400: {"description": "Bad request", "schema": ErrorResponse},
+    404: {"description": "Not found", "schema": ErrorResponse},
+}
 
 
 def serialize_event_hint(hint: EventHint) -> dict[str, Any]:
@@ -47,12 +67,13 @@ def serialize_line_item_for_cel(line_item: LineItem) -> dict[str, Any]:
     }
 
 
-@event_hints_blueprint.route("/api/event-hints", methods=["GET"])
+@event_hints_blueprint.get("/api/event-hints")
+@event_hints_blueprint.output(EventHintListResponse)
+@event_hints_blueprint.doc(security=_SECURITY)
 @jwt_required()
-def get_all_event_hints() -> tuple[Response, int]:
+def get_all_event_hints():
     """Get all event hints for the current user, ordered by display_order."""
-    user = get_current_user()
-    user_id = user["id"]
+    user_id = get_current_user()["id"]
 
     with SessionLocal.begin() as db:
         hints = (
@@ -62,201 +83,124 @@ def get_all_event_hints() -> tuple[Response, int]:
             .order_by(EventHint.display_order)
             .all()
         )
-        hints_list = [serialize_event_hint(h) for h in hints]
-        return jsonify({"data": hints_list}), 200
+        return EventHintListResponse(data=[serialize_event_hint(h) for h in hints])
 
 
-@event_hints_blueprint.route("/api/event-hints/<hint_id>", methods=["GET"])
+@event_hints_blueprint.get("/api/event-hints/<hint_id>")
+@event_hints_blueprint.output(EventHintSingleResponse)
+@event_hints_blueprint.doc(security=_SECURITY, responses=_ERROR_RESPONSES)
 @jwt_required()
-def get_event_hint(hint_id: str) -> tuple[Response, int]:
+def get_event_hint(hint_id: str):
     """Get a single event hint by ID."""
-    user = get_current_user()
-    user_id = user["id"]
+    user_id = get_current_user()["id"]
 
     with SessionLocal.begin() as db:
-        hint = (
+        hint = get_or_404(
             db.query(EventHint)
             .options(joinedload(EventHint.prefill_category))
             .filter(EventHint.id == hint_id, EventHint.user_id == user_id)
-            .first()
+            .first(),
+            "Event hint not found",
         )
-        if not hint:
-            return jsonify({"error": "Event hint not found"}), 404
-        hint_dict = serialize_event_hint(hint)
-        return jsonify({"data": hint_dict}), 200
+        return EventHintSingleResponse(data=serialize_event_hint(hint))
 
 
-@event_hints_blueprint.route("/api/event-hints", methods=["POST"])
+@event_hints_blueprint.post("/api/event-hints")
+@event_hints_blueprint.input(EventHintCreateIn, arg_name="body")
+@event_hints_blueprint.output(EventHintSingleResponse, status_code=201)
+@event_hints_blueprint.doc(security=_SECURITY, responses=_ERROR_RESPONSES)
 @jwt_required()
-def create_event_hint() -> tuple[Response, int]:
+def create_event_hint(body: EventHintCreateIn):
     """Create a new event hint."""
-    user = get_current_user()
-    user_id = user["id"]
-    data = request.get_json()
+    user_id = get_current_user()["id"]
 
-    # Validate required fields
-    required_fields = ["name", "cel_expression", "prefill_name"]
-    missing = [f for f in required_fields if not data.get(f)]
+    missing = [f for f in ["name", "cel_expression", "prefill_name"] if not getattr(body, f, None)]
     if missing:
-        return jsonify({"error": f"Missing required fields: {', '.join(missing)}"}), 400
+        abort(400, message=f"Missing required fields: {', '.join(missing)}")
 
-    # Validate CEL expression
-    is_valid, error_msg = CELEvaluator.validate(data["cel_expression"])
+    is_valid, error_msg = CELEvaluator.validate(body.cel_expression)
     if not is_valid:
-        return jsonify({"error": f"Invalid CEL expression: {error_msg}"}), 400
+        abort(400, message=f"Invalid CEL expression: {error_msg}")
 
     with SessionLocal.begin() as db:
-        # Get the next display_order for this user
         max_order = db.query(func.max(EventHint.display_order)).filter(EventHint.user_id == user_id).scalar()
         next_order = (max_order or 0) + 1
 
-        # Validate category if provided
-        prefill_category_id = data.get("prefill_category_id")
-        if prefill_category_id:
-            category = db.query(Category).filter(Category.id == prefill_category_id).first()
-            if not category:
-                return jsonify({"error": f"Category not found: {prefill_category_id}"}), 400
+        if body.prefill_category_id:
+            if not db.query(Category).filter(Category.id == body.prefill_category_id).first():
+                abort(400, message=f"Category not found: {body.prefill_category_id}")
 
         hint = EventHint(
             id=generate_id("eh"),
             user_id=user_id,
-            name=data["name"],
-            cel_expression=data["cel_expression"],
-            prefill_name=data["prefill_name"],
-            prefill_category_id=prefill_category_id,
+            name=body.name,
+            cel_expression=body.cel_expression,
+            prefill_name=body.prefill_name,
+            prefill_category_id=body.prefill_category_id,
             display_order=next_order,
-            is_active=data.get("is_active", True),
+            is_active=body.is_active if body.is_active is not None else True,
         )
         db.add(hint)
 
-        # Flush to ensure hint is persisted, then reload with category relationship
         db.flush()
         hint = db.query(EventHint).options(joinedload(EventHint.prefill_category)).filter(EventHint.id == hint.id).first()
 
-        hint_dict = serialize_event_hint(hint)
-        return jsonify({"data": hint_dict}), 201
+        return EventHintSingleResponse(data=serialize_event_hint(hint)), 201
 
 
-@event_hints_blueprint.route("/api/event-hints/<hint_id>", methods=["PUT"])
+@event_hints_blueprint.put("/api/event-hints/reorder")
+@event_hints_blueprint.input(ReorderIn, arg_name="body")
+@event_hints_blueprint.output(MessageResponse)
+@event_hints_blueprint.doc(security=_SECURITY, responses=_ERROR_RESPONSES)
 @jwt_required()
-def update_event_hint(hint_id: str) -> tuple[Response, int]:
-    """Update an existing event hint."""
-    user = get_current_user()
-    user_id = user["id"]
-    data = request.get_json()
-
-    with SessionLocal.begin() as db:
-        hint = db.query(EventHint).filter(EventHint.id == hint_id, EventHint.user_id == user_id).first()
-        if not hint:
-            return jsonify({"error": "Event hint not found"}), 404
-
-        # Validate CEL expression if being updated
-        if "cel_expression" in data:
-            is_valid, error_msg = CELEvaluator.validate(data["cel_expression"])
-            if not is_valid:
-                return jsonify({"error": f"Invalid CEL expression: {error_msg}"}), 400
-            hint.cel_expression = data["cel_expression"]
-
-        # Validate category if being updated
-        if "prefill_category_id" in data:
-            prefill_category_id = data["prefill_category_id"]
-            if prefill_category_id:
-                category = db.query(Category).filter(Category.id == prefill_category_id).first()
-                if not category:
-                    return jsonify({"error": f"Category not found: {prefill_category_id}"}), 400
-            hint.prefill_category_id = prefill_category_id
-
-        # Update other fields if provided
-        if "name" in data:
-            hint.name = data["name"]
-        if "prefill_name" in data:
-            hint.prefill_name = data["prefill_name"]
-        if "is_active" in data:
-            hint.is_active = data["is_active"]
-
-        # Flush changes, then reload with category relationship
-        db.flush()
-        hint = db.query(EventHint).options(joinedload(EventHint.prefill_category)).filter(EventHint.id == hint_id).first()
-
-        hint_dict = serialize_event_hint(hint)
-        return jsonify({"data": hint_dict}), 200
-
-
-@event_hints_blueprint.route("/api/event-hints/<hint_id>", methods=["DELETE"])
-@jwt_required()
-def delete_event_hint(hint_id: str) -> tuple[Response, int]:
-    """Delete an event hint."""
-    user = get_current_user()
-    user_id = user["id"]
-
-    with SessionLocal.begin() as db:
-        hint = db.query(EventHint).filter(EventHint.id == hint_id, EventHint.user_id == user_id).first()
-        if not hint:
-            return jsonify({"error": "Event hint not found"}), 404
-        db.delete(hint)
-
-    return jsonify({"message": "Event hint deleted"}), 204
-
-
-@event_hints_blueprint.route("/api/event-hints/reorder", methods=["PUT"])
-@jwt_required()
-def reorder_event_hints() -> tuple[Response, int]:
+def reorder_event_hints(body: ReorderIn):
     """
     Reorder event hints.
 
-    Expects: {"hint_ids": ["eh_xxx", "eh_yyy", "eh_zzz"]}
     Updates display_order to match the provided order.
     """
-    user = get_current_user()
-    user_id = user["id"]
-    data = request.get_json()
+    user_id = get_current_user()["id"]
 
-    hint_ids = data.get("hint_ids", [])
-    if not hint_ids:
-        return jsonify({"error": "hint_ids array is required"}), 400
+    if not body.hint_ids:
+        abort(400, message="hint_ids array is required")
 
     with SessionLocal.begin() as db:
-        # Verify all hints belong to this user
-        hints = db.query(EventHint).filter(EventHint.id.in_(hint_ids), EventHint.user_id == user_id).all()
-        if len(hints) != len(hint_ids):
-            return jsonify({"error": "One or more hints not found"}), 404
+        hints = db.query(EventHint).filter(EventHint.id.in_(body.hint_ids), EventHint.user_id == user_id).all()
+        if len(hints) != len(body.hint_ids):
+            abort(404, message="One or more hints not found")
 
-        # Update display_order based on position in the array
         hint_map = {h.id: h for h in hints}
-        for order, hint_id in enumerate(hint_ids):
+        for order, hint_id in enumerate(body.hint_ids):
             if hint_id in hint_map:
                 hint_map[hint_id].display_order = order
 
-        return jsonify({"message": "Hints reordered"}), 200
+        return MessageResponse(message="Hints reordered")
 
 
-@event_hints_blueprint.route("/api/event-hints/evaluate", methods=["POST"])
+@event_hints_blueprint.post("/api/event-hints/evaluate")
+@event_hints_blueprint.input(EvaluateIn, arg_name="body")
+@event_hints_blueprint.output(EvaluateResponse)
+@event_hints_blueprint.doc(security=_SECURITY)
 @jwt_required()
-def evaluate_event_hints() -> tuple[Response, int]:
+def evaluate_event_hints(body: EvaluateIn):
     """
     Evaluate hints against provided line items.
 
-    Expects: {"line_item_ids": ["li_xxx", "li_yyy"]}
-    Returns: {"data": {"suggestion": {...}}} or {"data": {"suggestion": null}}
+    Returns a suggestion dict or null.
     """
-    user = get_current_user()
-    user_id = user["id"]
-    data = request.get_json()
+    user_id = get_current_user()["id"]
 
-    line_item_ids = data.get("line_item_ids", [])
-    if not line_item_ids:
-        return jsonify({"data": {"suggestion": None}}), 200
+    if not body.line_item_ids:
+        return EvaluateResponse(data={"suggestion": None})
 
     with SessionLocal.begin() as db:
-        # Get line items
         line_items = (
-            db.query(LineItem).options(joinedload(LineItem.payment_method)).filter(LineItem.id.in_(line_item_ids)).all()
+            db.query(LineItem).options(joinedload(LineItem.payment_method)).filter(LineItem.id.in_(body.line_item_ids)).all()
         )
 
         if not line_items:
-            return jsonify({"data": {"suggestion": None}}), 200
+            return EvaluateResponse(data={"suggestion": None})
 
-        # Get user's active hints in order
         hints = (
             db.query(EventHint)
             .options(joinedload(EventHint.prefill_category))
@@ -266,33 +210,83 @@ def evaluate_event_hints() -> tuple[Response, int]:
         )
 
         if not hints:
-            return jsonify({"data": {"suggestion": None}}), 200
+            return EvaluateResponse(data={"suggestion": None})
 
-        # Convert to dicts for CEL evaluation
         line_item_dicts = [serialize_line_item_for_cel(li) for li in line_items]
         hint_dicts = [serialize_event_hint(h) for h in hints]
 
-        # Evaluate hints
         suggestion = evaluate_hints(hint_dicts, line_item_dicts)
 
-        return jsonify({"data": {"suggestion": suggestion}}), 200
+        return EvaluateResponse(data={"suggestion": suggestion})
 
 
-@event_hints_blueprint.route("/api/event-hints/validate", methods=["POST"])
+@event_hints_blueprint.post("/api/event-hints/validate")
+@event_hints_blueprint.input(ValidateCelIn, arg_name="body")
+@event_hints_blueprint.output(ValidateCelResponse)
+@event_hints_blueprint.doc(security=_SECURITY)
 @jwt_required()
-def validate_cel_expression() -> tuple[Response, int]:
-    """
-    Validate a CEL expression without saving.
-
-    Expects: {"cel_expression": "description contains \"Spotify\""}
-    Returns: {"data": {"is_valid": true}} or {"data": {"is_valid": false, "error": "..."}}
-    """
-    data = request.get_json()
-    cel_expression = data.get("cel_expression", "")
-
-    is_valid, error_msg = CELEvaluator.validate(cel_expression)
+def validate_cel_expression(body: ValidateCelIn):
+    """Validate a CEL expression without saving."""
+    is_valid, error_msg = CELEvaluator.validate(body.cel_expression)
 
     if is_valid:
-        return jsonify({"data": {"is_valid": True}}), 200
-    else:
-        return jsonify({"data": {"is_valid": False, "error": error_msg}}), 200
+        return ValidateCelResponse(data={"is_valid": True})
+    return ValidateCelResponse(data={"is_valid": False, "error": error_msg})
+
+
+@event_hints_blueprint.put("/api/event-hints/<hint_id>")
+@event_hints_blueprint.input(EventHintUpdateIn, arg_name="body")
+@event_hints_blueprint.output(EventHintSingleResponse)
+@event_hints_blueprint.doc(security=_SECURITY, responses=_ERROR_RESPONSES)
+@jwt_required()
+def update_event_hint(hint_id: str, body: EventHintUpdateIn):
+    """Update an existing event hint."""
+    user_id = get_current_user()["id"]
+
+    with SessionLocal.begin() as db:
+        hint = get_or_404(
+            db.query(EventHint).filter(EventHint.id == hint_id, EventHint.user_id == user_id).first(),
+            "Event hint not found",
+        )
+
+        if body.cel_expression is not None:
+            is_valid, error_msg = CELEvaluator.validate(body.cel_expression)
+            if not is_valid:
+                abort(400, message=f"Invalid CEL expression: {error_msg}")
+            hint.cel_expression = body.cel_expression
+
+        if body.prefill_category_id is not None:
+            if body.prefill_category_id:
+                if not db.query(Category).filter(Category.id == body.prefill_category_id).first():
+                    abort(400, message=f"Category not found: {body.prefill_category_id}")
+            hint.prefill_category_id = body.prefill_category_id
+
+        if body.name is not None:
+            hint.name = body.name
+        if body.prefill_name is not None:
+            hint.prefill_name = body.prefill_name
+        if body.is_active is not None:
+            hint.is_active = body.is_active
+
+        db.flush()
+        hint = db.query(EventHint).options(joinedload(EventHint.prefill_category)).filter(EventHint.id == hint_id).first()
+
+        return EventHintSingleResponse(data=serialize_event_hint(hint))
+
+
+@event_hints_blueprint.delete("/api/event-hints/<hint_id>")
+@event_hints_blueprint.output(MessageResponse, status_code=204)
+@event_hints_blueprint.doc(security=_SECURITY, responses=_ERROR_RESPONSES)
+@jwt_required()
+def delete_event_hint(hint_id: str):
+    """Delete an event hint."""
+    user_id = get_current_user()["id"]
+
+    with SessionLocal.begin() as db:
+        hint = get_or_404(
+            db.query(EventHint).filter(EventHint.id == hint_id, EventHint.user_id == user_id).first(),
+            "Event hint not found",
+        )
+        db.delete(hint)
+
+    return MessageResponse(message="Event hint deleted"), 204

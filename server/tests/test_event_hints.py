@@ -541,6 +541,14 @@ class TestEventHintsAPI:
         assert response.status_code == 401
 
 
+class TestEventHintsSpec:
+    def test_openapi_spec_exposes_event_hints_paths(self, test_client):
+        response = test_client.get("/api/openapi.json")
+        assert response.status_code == 200
+        paths = response.get_json()["paths"]
+        assert "/api/event-hints" in paths
+
+
 class TestCategoriesAPI:
     """Tests for the Categories API endpoint"""
 
