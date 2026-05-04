@@ -85,6 +85,145 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get all events, optionally filtered by date range. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successful response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EventListResponse"];
+                    };
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Create a new event from one or more line items. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["EventCreateIn"];
+                };
+            };
+            responses: {
+                /** @description Successful response */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EventOut"];
+                    };
+                };
+                /** @description Bad request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ValidationError"];
+                    };
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/line_items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get all line items, optionally filtered by payment method or review status. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successful response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LineItemListResponse"];
+                    };
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/categories": {
         parameters: {
             query?: never;
@@ -383,6 +522,167 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/events/{event_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a single event by ID. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    event_id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successful response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EventOut"];
+                    };
+                };
+                /** @description Bad request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+            };
+        };
+        /** Update an existing event. */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    event_id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["EventUpdateIn"];
+                };
+            };
+            responses: {
+                /** @description Successful response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EventOut"];
+                    };
+                };
+                /** @description Bad request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ValidationError"];
+                    };
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Delete an event and unlink its line items. */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    event_id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successful response */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+            };
+        };
         options?: never;
         head?: never;
         patch?: never;
@@ -972,6 +1272,116 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/line_items/{line_item_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a single line item by ID. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    line_item_id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successful response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LineItemOut"];
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/events/{event_id}/line_items_for_event": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get all line items belonging to an event. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    event_id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successful response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EventLineItemsResponse"];
+                    };
+                };
+                /** @description Bad request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -991,6 +1401,144 @@ export interface components {
         HTTPError: {
             detail?: Record<string, never>;
             message?: string;
+        };
+        /** EventOut */
+        "EventListResponse.EventOut": {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /**
+             * Category
+             * @default null
+             */
+            category: string | null;
+            /** Amount */
+            amount: number;
+            /** Date */
+            date: number;
+            /** Line Items */
+            line_items: string[];
+            /**
+             * Tags
+             * @default []
+             */
+            tags: string[];
+            /**
+             * Is Duplicate Transaction
+             * @default false
+             */
+            is_duplicate_transaction: boolean;
+        };
+        /** EventListResponse */
+        EventListResponse: {
+            /** Total */
+            total: number;
+            /** Data */
+            data: components["schemas"]["EventListResponse.EventOut"][];
+        };
+        /** EventOut */
+        EventOut: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /**
+             * Category
+             * @default null
+             */
+            category: string | null;
+            /** Amount */
+            amount: number;
+            /** Date */
+            date: number;
+            /** Line Items */
+            line_items: string[];
+            /**
+             * Tags
+             * @default []
+             */
+            tags: string[];
+            /**
+             * Is Duplicate Transaction
+             * @default false
+             */
+            is_duplicate_transaction: boolean;
+        };
+        ValidationError: {
+            detail?: {
+                "<location>"?: {
+                    "<field_name>"?: string[];
+                };
+            };
+            message?: string;
+        };
+        /** EventCreateIn */
+        EventCreateIn: {
+            /** Name */
+            name: string;
+            /**
+             * Category
+             * @default null
+             */
+            category: string | null;
+            /**
+             * Date
+             * @default null
+             */
+            date: string | null;
+            /** Line Items */
+            line_items: string[];
+            /**
+             * Tags
+             * @default []
+             */
+            tags: string[];
+            /**
+             * Is Duplicate Transaction
+             * @default false
+             */
+            is_duplicate_transaction: boolean;
+        };
+        /** LineItemOut */
+        "LineItemListResponse.LineItemOut": {
+            /** Id */
+            id: string;
+            /** Date */
+            date: number;
+            /** Payment Method */
+            payment_method: string;
+            /** Description */
+            description: string;
+            /** Amount */
+            amount: number;
+            /**
+             * Responsible Party
+             * @default null
+             */
+            responsible_party: string | null;
+            /**
+             * Notes
+             * @default null
+             */
+            notes: string | null;
+            /**
+             * Is Manual
+             * @default false
+             */
+            is_manual: boolean;
+            /**
+             * Event Id
+             * @default null
+             */
+            event_id: string | null;
+        };
+        /** LineItemListResponse */
+        LineItemListResponse: {
+            /** Total */
+            total: number;
+            /** Data */
+            data: components["schemas"]["LineItemListResponse.LineItemOut"][];
         };
         /** CategoryOut */
         "CategoryListResponse.CategoryOut": {
@@ -1014,14 +1562,6 @@ export interface components {
         /** CategorySingleResponse */
         CategorySingleResponse: {
             data: components["schemas"]["CategorySingleResponse.CategoryOut"];
-        };
-        ValidationError: {
-            detail?: {
-                "<location>"?: {
-                    "<field_name>"?: string[];
-                };
-            };
-            message?: string;
         };
         /** CategoryCreateIn */
         CategoryCreateIn: {
@@ -1105,6 +1645,36 @@ export interface components {
              * @default true
              */
             is_active: boolean | null;
+        };
+        /** EventUpdateIn */
+        EventUpdateIn: {
+            /**
+             * Name
+             * @default null
+             */
+            name: string | null;
+            /**
+             * Category
+             * @default null
+             */
+            category: string | null;
+            /**
+             * Date
+             * @default null
+             */
+            date: string | null;
+            /** Line Items */
+            line_items: string[];
+            /**
+             * Tags
+             * @default []
+             */
+            tags: string[];
+            /**
+             * Is Duplicate Transaction
+             * @default false
+             */
+            is_duplicate_transaction: boolean;
         };
         /** MessageResponse */
         MessageResponse: {
@@ -1198,6 +1768,77 @@ export interface components {
              * @default null
              */
             name: string | null;
+        };
+        /** LineItemOut */
+        LineItemOut: {
+            /** Id */
+            id: string;
+            /** Date */
+            date: number;
+            /** Payment Method */
+            payment_method: string;
+            /** Description */
+            description: string;
+            /** Amount */
+            amount: number;
+            /**
+             * Responsible Party
+             * @default null
+             */
+            responsible_party: string | null;
+            /**
+             * Notes
+             * @default null
+             */
+            notes: string | null;
+            /**
+             * Is Manual
+             * @default false
+             */
+            is_manual: boolean;
+            /**
+             * Event Id
+             * @default null
+             */
+            event_id: string | null;
+        };
+        /** LineItemOut */
+        "EventLineItemsResponse.LineItemOut": {
+            /** Id */
+            id: string;
+            /** Date */
+            date: number;
+            /** Payment Method */
+            payment_method: string;
+            /** Description */
+            description: string;
+            /** Amount */
+            amount: number;
+            /**
+             * Responsible Party
+             * @default null
+             */
+            responsible_party: string | null;
+            /**
+             * Notes
+             * @default null
+             */
+            notes: string | null;
+            /**
+             * Is Manual
+             * @default false
+             */
+            is_manual: boolean;
+            /**
+             * Event Id
+             * @default null
+             */
+            event_id: string | null;
+        };
+        /** EventLineItemsResponse */
+        EventLineItemsResponse: {
+            /** Data */
+            data: components["schemas"]["EventLineItemsResponse.LineItemOut"][];
         };
     };
     responses: never;

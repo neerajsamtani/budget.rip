@@ -149,9 +149,9 @@ export function useTags(): UseQueryResult<Tag[]> {
 // Mutation Hooks
 interface CreateEventData {
   name: string;
-  category: string;
+  category?: string | null;
   line_items: string[];
-  date?: string;
+  date?: string | null;
   is_duplicate_transaction?: boolean;
   tags?: string[];
 }
@@ -175,10 +175,10 @@ export function useCreateEvent(): UseMutationResult<unknown, Error, CreateEventD
 
 interface UpdateEventData {
   eventId: string;
-  name: string;
-  category: string;
+  name?: string | null;
+  category?: string | null;
   line_items: string[];
-  date?: string;
+  date?: string | null;
   is_duplicate_transaction?: boolean;
   tags?: string[];
 }

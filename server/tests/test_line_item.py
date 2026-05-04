@@ -484,3 +484,11 @@ class TestLineItemFunctions:
             result = all_line_items(payment_method="All")
 
             assert len(result) == 2  # Should return all items, same as no filter
+
+
+class TestLineItemSpec:
+    def test_openapi_spec_exposes_line_item_paths(self, test_client):
+        response = test_client.get("/api/openapi.json")
+        assert response.status_code == 200
+        paths = response.get_json()["paths"]
+        assert "/api/line_items" in paths

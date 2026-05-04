@@ -1,7 +1,7 @@
 import logging
-from typing import Any, Dict, List, Optional
 
-from flask import Blueprint, Response, jsonify, request
+from apiflask import APIBlueprint, abort
+from flask import request
 from flask_jwt_extended import get_current_user, jwt_required
 
 from constants import LARGEST_EPOCH_TIME, SMALLEST_EPOCH_TIME
@@ -11,194 +11,171 @@ from dao import (
     get_event_by_id,
     get_line_item_amounts,
 )
-from helpers import html_date_to_posix
+from helpers import get_or_404, html_date_to_posix
+from resources.schemas.event import (
+    ErrorResponse,
+    EventCreateIn,
+    EventLineItemsResponse,
+    EventListResponse,
+    EventOut,
+    EventUpdateIn,
+    MessageResponse,
+)
 
 logger = logging.getLogger(__name__)
 
-events_blueprint = Blueprint("events", __name__)
+events_blueprint = APIBlueprint("events", __name__)
 
-# TODO: Exceptions
+_SECURITY = [{"jwtCookie": []}]
+_ERROR_RESPONSES = {
+    400: {"description": "Bad request", "schema": ErrorResponse},
+    404: {"description": "Not found", "schema": ErrorResponse},
+}
 
 
-@events_blueprint.route("/api/events", methods=["GET"])
+@events_blueprint.get("/api/events")
+@events_blueprint.output(EventListResponse)
+@events_blueprint.doc(security=_SECURITY)
 @jwt_required()
-def all_events_api() -> tuple[Response, int]:
-    """
-    Get All Events
-    Filters:
-        - Start Time
-        - End Time
-    """
-    filters: Dict[str, Any] = {}
+def all_events_api():
+    """Get all events, optionally filtered by date range."""
     logger.info(f"Current User: {get_current_user()['email']}")
     start_time: float = float(request.args.get("start_time", SMALLEST_EPOCH_TIME))
     end_time: float = float(request.args.get("end_time", LARGEST_EPOCH_TIME))
-    filters["date"] = {"$gte": start_time, "$lte": end_time}
-    events: List[Dict[str, Any]] = get_all_events(filters)
+    filters = {"date": {"$gte": start_time, "$lte": end_time}}
+    events = get_all_events(filters)
     events_total: float = sum(event["amount"] for event in events)
     logger.info(f"Retrieved {len(events)} events (total: ${events_total:.2f})")
-    return jsonify({"total": events_total, "data": events}), 200
+    return EventListResponse(total=events_total, data=events)
 
 
-@events_blueprint.route("/api/events/<event_id>", methods=["GET"])
+@events_blueprint.get("/api/events/<event_id>")
+@events_blueprint.output(EventOut)
+@events_blueprint.doc(security=_SECURITY, responses=_ERROR_RESPONSES)
 @jwt_required()
-def get_event_api(event_id: str) -> tuple[Response, int]:
-    """
-    Get An Event
-    """
-    event: Optional[Dict[str, Any]] = get_event_by_id(event_id)
-    if event is None:
-        logger.warning(f"Event not found: {event_id}")
-        return jsonify({"error": "Event not found"}), 404
+def get_event_api(event_id: str):
+    """Get a single event by ID."""
+    event = get_or_404(get_event_by_id(event_id), "Event not found")
     logger.info(f"Retrieved event: {event_id}")
-    return jsonify(event), 200
+    return EventOut(**event)
 
 
-@events_blueprint.route("/api/events", methods=["POST"])
+@events_blueprint.post("/api/events")
+@events_blueprint.input(EventCreateIn, arg_name="body")
+@events_blueprint.output(EventOut, status_code=201)
+@events_blueprint.doc(security=_SECURITY, responses=_ERROR_RESPONSES)
 @jwt_required()
-def post_event_api() -> tuple[Response, int]:
-    """
-    Create An Event
-    """
-    new_event: Dict[str, Any] = request.get_json()
-
-    # Validate required fields
-    if "line_items" not in new_event:
-        logger.warning("Event creation attempt without line_items field")
-        return jsonify({"error": "Missing required field: line_items"}), 400
-
-    if len(new_event["line_items"]) == 0:
+def post_event_api(body: EventCreateIn):
+    """Create a new event from one or more line items."""
+    if len(body.line_items) == 0:
         logger.warning("Event creation attempt with no line items")
-        return jsonify("Failed to Create Event: No Line Items Submitted"), 400
+        abort(400, message="Failed to Create Event: No Line Items Submitted")
 
-    line_items: List[Dict[str, Any]] = get_line_item_amounts(new_event["line_items"])
-    earliest_line_item: Dict[str, Any] = min(line_items, key=lambda line_item: line_item["date"])
+    line_items = get_line_item_amounts(body.line_items)
+    earliest_line_item = min(line_items, key=lambda li: li["date"])
 
-    if new_event.get("date"):
-        new_event["date"] = html_date_to_posix(new_event["date"])
-    else:
-        new_event["date"] = earliest_line_item["date"]
+    date = html_date_to_posix(body.date) if body.date else earliest_line_item["date"]
+    amount = line_items[0]["amount"] if body.is_duplicate_transaction else sum(li["amount"] for li in line_items)
 
-    if new_event.get("is_duplicate_transaction"):
-        new_event["amount"] = line_items[0]["amount"]
-    else:
-        new_event["amount"] = sum(line_item["amount"] for line_item in line_items)
-
-    # Ensure tags is always a list
-    new_event["tags"] = new_event.get("tags", [])
+    event_dict = {
+        "name": body.name,
+        "category": body.category,
+        "date": date,
+        "line_items": body.line_items,
+        "tags": body.tags,
+        "is_duplicate_transaction": body.is_duplicate_transaction,
+        "amount": amount,
+    }
 
     from utils.pg_event_operations import upsert_event
 
-    pg_event_id = upsert_event(new_event)
-    new_event["id"] = pg_event_id
+    pg_event_id = upsert_event(event_dict)
+    logger.info(f"Created event: {pg_event_id} with {len(line_items)} line items (amount: ${amount:.2f})")
+    return EventOut(
+        id=pg_event_id,
+        name=body.name,
+        category=body.category,
+        date=date,
+        amount=amount,
+        line_items=body.line_items,
+        tags=body.tags,
+        is_duplicate_transaction=body.is_duplicate_transaction,
+    ), 201
 
-    logger.info(f"Created event: {new_event['id']} with {len(line_items)} line items (amount: ${new_event['amount']:.2f})")
-    return jsonify(new_event), 201
 
-
-@events_blueprint.route("/api/events/<event_id>", methods=["PUT"])
+@events_blueprint.put("/api/events/<event_id>")
+@events_blueprint.input(EventUpdateIn, arg_name="body")
+@events_blueprint.output(EventOut)
+@events_blueprint.doc(security=_SECURITY, responses=_ERROR_RESPONSES)
 @jwt_required()
-def update_event_api(event_id: str) -> tuple[Response, int]:
-    """
-    Update An Event
-    """
-    event: Optional[Dict[str, Any]] = get_event_by_id(event_id)
-    if event is None:
-        logger.warning(f"Event update attempt for non-existent event: {event_id}")
-        return jsonify({"error": "Event not found"}), 404
+def update_event_api(event_id: str, body: EventUpdateIn):
+    """Update an existing event."""
+    event = get_or_404(get_event_by_id(event_id), "Event not found")
 
-    update_data: Dict[str, Any] = request.get_json()
-
-    if "line_items" not in update_data or len(update_data["line_items"]) == 0:
+    if len(body.line_items) == 0:
         logger.warning("Event update attempt with no line items")
-        return jsonify({"error": "Event must have at least one line item"}), 400
+        abort(400, message="Event must have at least one line item")
 
-    filters: Dict[str, Any] = {"id": {"$in": update_data["line_items"]}}
-    line_items: List[Dict[str, Any]] = get_all_line_items(filters)
-    earliest_line_item: Dict[str, Any] = min(line_items, key=lambda li: li["date"])
+    filters = {"id": {"$in": body.line_items}}
+    line_items = get_all_line_items(filters)
+    earliest_line_item = min(line_items, key=lambda li: li["date"])
 
-    # Build the event dict for upsert
-    event_dict: Dict[str, Any] = {
+    date = html_date_to_posix(body.date) if body.date else earliest_line_item["date"]
+    amount = line_items[0]["amount"] if body.is_duplicate_transaction else sum(li["amount"] for li in line_items)
+
+    event_dict = {
         "id": event_id,
-        "name": update_data.get("name", event.get("name", "")),
-        "category": update_data.get("category", event.get("category")),
-        "line_items": update_data["line_items"],
-        "is_duplicate_transaction": update_data.get("is_duplicate_transaction", False),
-        "tags": update_data.get("tags", []),
+        "name": body.name if body.name is not None else event.get("name", ""),
+        "category": body.category if body.category is not None else event.get("category"),
+        "line_items": body.line_items,
+        "is_duplicate_transaction": body.is_duplicate_transaction,
+        "tags": body.tags,
+        "date": date,
     }
-
-    if update_data.get("date"):
-        event_dict["date"] = html_date_to_posix(update_data["date"])
-    else:
-        event_dict["date"] = earliest_line_item["date"]
 
     from utils.pg_event_operations import upsert_event
 
     upsert_event(event_dict)
-
-    # Calculate updated amount for response
-    if event_dict.get("is_duplicate_transaction"):
-        updated_amount = line_items[0]["amount"]
-    else:
-        updated_amount = sum(li["amount"] for li in line_items)
-
     logger.info(f"Updated event: {event_id} with {len(line_items)} line items")
-    return jsonify(
-        {
-            "id": event_id,
-            "name": event_dict["name"],
-            "category": event_dict["category"],
-            "date": event_dict["date"],
-            "amount": updated_amount,
-            "line_items": event_dict["line_items"],
-            "tags": event_dict["tags"],
-            "is_duplicate_transaction": event_dict["is_duplicate_transaction"],
-        }
-    ), 200
+    return EventOut(
+        id=event_id,
+        name=event_dict["name"],
+        category=event_dict["category"],
+        date=date,
+        amount=amount,
+        line_items=body.line_items,
+        tags=body.tags,
+        is_duplicate_transaction=body.is_duplicate_transaction,
+    )
 
 
-@events_blueprint.route("/api/events/<event_id>", methods=["DELETE"])
+@events_blueprint.delete("/api/events/<event_id>")
+@events_blueprint.output(MessageResponse, status_code=204)
+@events_blueprint.doc(security=_SECURITY, responses=_ERROR_RESPONSES)
 @jwt_required()
-def delete_event_api(event_id: str) -> tuple[Response, int]:
-    """
-    Delete An Event
-    """
-    # Check if event exists
-    event: Optional[Dict[str, Any]] = get_event_by_id(event_id)
-    if event is None:
-        logger.warning(f"Event deletion attempt for non-existent event: {event_id}")
-        return jsonify({"error": "Event not found"}), 404
-
-    line_item_ids: List[str] = event["line_items"]
+def delete_event_api(event_id: str):
+    """Delete an event and unlink its line items."""
+    get_or_404(get_event_by_id(event_id), "Event not found")
 
     from utils.pg_event_operations import delete_event_from_postgresql
 
     deleted = delete_event_from_postgresql(event_id)
     if not deleted:
         logger.warning(f"Event {event_id} not found in database")
-        return jsonify({"error": "Event not found"}), 404
+        abort(404, message="Event not found")
 
-    logger.info(f"Deleted event: {event_id} with {len(line_item_ids)} line items")
-    return jsonify("Deleted Event"), 200
+    logger.info(f"Deleted event: {event_id}")
+    return MessageResponse(message="Event deleted"), 204
 
 
-@events_blueprint.route("/api/events/<event_id>/line_items_for_event", methods=["GET"])
+@events_blueprint.get("/api/events/<event_id>/line_items_for_event")
+@events_blueprint.output(EventLineItemsResponse)
+@events_blueprint.doc(security=_SECURITY, responses=_ERROR_RESPONSES)
 @jwt_required()
-def get_line_items_for_event_api(
-    event_id: str,
-) -> tuple[Response, int]:
-    """
-    Get All Line Items Belonging To An Event
-    """
-    try:
-        event: Optional[Dict[str, Any]] = get_event_by_id(event_id)
-        if event is None:
-            logger.warning(f"Line items request for non-existent event: {event_id}")
-            return jsonify({"error": "Event not found"}), 404
-        filters = {"id": {"$in": event["line_items"]}}
-        line_items: List[Dict[str, Any]] = get_all_line_items(filters)
-        logger.info(f"Retrieved {len(line_items)} line items for event: {event_id}")
-        return jsonify({"data": line_items}), 200
-    except Exception as e:
-        logger.error(f"Error retrieving line items for event {event_id}: {e}")
-        return jsonify(error=str(e)), 500
+def get_line_items_for_event_api(event_id: str):
+    """Get all line items belonging to an event."""
+    event = get_or_404(get_event_by_id(event_id), "Event not found")
+    filters = {"id": {"$in": event["line_items"]}}
+    line_items = get_all_line_items(filters)
+    logger.info(f"Retrieved {len(line_items)} line items for event: {event_id}")
+    return EventLineItemsResponse(data=line_items)
