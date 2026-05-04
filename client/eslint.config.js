@@ -7,7 +7,7 @@ import globals from 'globals'
 
 export default [
   {
-    ignores: ['dist', 'build', 'coverage', 'node_modules', 'jest-transformer.js']
+    ignores: ['dist', 'build', 'coverage', 'node_modules', 'jest-transformer.js', 'src/types/api.generated.ts']
   },
   {
     files: ['**/*.{ts,tsx}'],

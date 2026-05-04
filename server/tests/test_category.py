@@ -13,6 +13,17 @@ from models.sql_models import (
 from utils.id_generator import generate_id
 
 
+class TestCategorySpec:
+    """Tests that the OpenAPI spec is correctly generated for categories."""
+
+    def test_openapi_spec_exposes_category_paths(self, test_client):
+        response = test_client.get("/api/openapi.json")
+        assert response.status_code == 200
+        paths = response.get_json()["paths"]
+        assert "/api/categories" in paths
+        assert "/api/categories/{category_id}" in paths
+
+
 class TestCategoryAPI:
     """Tests for category CRUD operations."""
 

@@ -300,7 +300,7 @@ describe('ConnectedAccountsPage', () => {
             });
         });
 
-        it('disables refresh button for inactive stripe accounts', async () => {
+        it('inactive stripe accounts have no refresh button', async () => {
             render(<ConnectedAccountsPage stripePromise={mockStripePromise} />);
 
             await waitFor(() => {
@@ -308,14 +308,14 @@ describe('ConnectedAccountsPage', () => {
                 expect(accounts.length).toBeGreaterThan(0);
             });
 
+            // Inactive accounts are in a separate table with no refresh column
             const refreshButtons = screen.getAllByRole('button');
             const inactiveAccountRefreshBtn = refreshButtons.find(btn =>
                 btn.querySelector('svg') &&
                 btn.closest('tr')?.textContent?.includes('Bank Savings 5678')
             );
 
-            expect(inactiveAccountRefreshBtn).toBeDefined();
-            expect(inactiveAccountRefreshBtn).toBeDisabled();
+            expect(inactiveAccountRefreshBtn).toBeUndefined();
         });
     });
 

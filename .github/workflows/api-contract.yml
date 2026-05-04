@@ -1,0 +1,73 @@
+name: API contract check
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.13
+
+      - name: Install server dependencies
+        run: |
+          cd server
+          uv sync
+
+      - name: Dump OpenAPI spec
+        run: |
+          cd server
+          uv run python scripts/dump_openapi.py > openapi.json
+        env:
+          JWT_SECRET_KEY: testSecretKey123
+          JWT_COOKIE_DOMAIN: localhost
+          VENMO_ACCESS_TOKEN: fake_token
+          STRIPE_LIVE_API_SECRET_KEY: fake_stripe_key
+          STRIPE_CUSTOMER_ID: fake_customer_id
+          SPLITWISE_CONSUMER_KEY: fake_splitwise_key
+          SPLITWISE_CONSUMER_SECRET: fake_splitwise_secret
+          SPLITWISE_API_KEY: fake_splitwise_api_key
+          TESTING: "true"
+          DATABASE_HOST: sqlite
+          DATABASE_NAME: ":memory:"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install client dependencies
+        run: |
+          cd client
+          npm ci --legacy-peer-deps
+
+      - name: Regenerate TypeScript types from spec
+        run: |
+          cd client
+          npm run generate:api:from-file
+
+      - name: Type check client
+        run: |
+          cd client
+          npm run typecheck
+
+      - name: Fail if committed types are stale
+        run: |
+          git diff --exit-code client/src/types/api.generated.ts || \
+            (echo "❌ api.generated.ts is out of date. Run 'npm run generate:api:from-file' and commit the result." && exit 1)

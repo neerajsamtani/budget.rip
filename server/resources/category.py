@@ -5,45 +5,53 @@ Provides CRUD operations for expense categories.
 """
 
 import logging
-from typing import Any
 
-from flask import Blueprint, Response, jsonify, request
+from apiflask import APIBlueprint, abort
 from flask_jwt_extended import get_current_user, jwt_required
 from sqlalchemy.exc import IntegrityError
 
 from models.database import SessionLocal
 from models.sql_models import Category
+from resources.schemas.category import (
+    CategoryCreateIn,
+    CategoryListResponse,
+    CategorySingleResponse,
+    CategoryUpdateIn,
+    ErrorResponse,
+    MessageResponse,
+)
 from utils.id_generator import generate_id
 
 logger = logging.getLogger(__name__)
 
-categories_blueprint = Blueprint("categories", __name__)
+categories_blueprint = APIBlueprint("categories", __name__)
+
+_SECURITY = [{"jwtCookie": []}]
+_ERROR_RESPONSES = {
+    400: {"description": "Bad request", "schema": ErrorResponse},
+    404: {"description": "Not found", "schema": ErrorResponse},
+}
 
 
-def _serialize_category(category: Category) -> dict[str, Any]:
-    """Convert Category ORM object to dict."""
-    return {
-        "id": category.id,
-        "name": category.name,
-    }
-
-
-@categories_blueprint.route("/api/categories", methods=["GET"])
+@categories_blueprint.get("/api/categories")
+@categories_blueprint.output(CategoryListResponse)
+@categories_blueprint.doc(security=_SECURITY)
 @jwt_required()
-def get_all_categories() -> tuple[Response, int]:
+def get_all_categories():
     """Get all categories for the current user, ordered by name."""
     user = get_current_user()
     user_id = user["id"]
 
     with SessionLocal.begin() as db:
         categories = db.query(Category).filter(Category.user_id == user_id).order_by(Category.name).all()
-        categories_list = [_serialize_category(c) for c in categories]
-        return jsonify({"data": categories_list}), 200
+        return CategoryListResponse(data=[{"id": c.id, "name": c.name} for c in categories])
 
 
-@categories_blueprint.route("/api/categories/<category_id>", methods=["GET"])
+@categories_blueprint.get("/api/categories/<category_id>")
+@categories_blueprint.output(CategorySingleResponse)
+@categories_blueprint.doc(security=_SECURITY, responses=_ERROR_RESPONSES)
 @jwt_required()
-def get_category(category_id: str) -> tuple[Response, int]:
+def get_category(category_id: str):
     """Get a single category by ID for the current user."""
     user = get_current_user()
     user_id = user["id"]
@@ -51,81 +59,74 @@ def get_category(category_id: str) -> tuple[Response, int]:
     with SessionLocal.begin() as db:
         category = db.query(Category).filter(Category.id == category_id, Category.user_id == user_id).first()
         if not category:
-            return jsonify({"error": "Category not found"}), 404
-        category_dict = _serialize_category(category)
-        return jsonify({"data": category_dict}), 200
+            abort(404, message="Category not found")
+        return CategorySingleResponse(data={"id": category.id, "name": category.name})
 
 
-@categories_blueprint.route("/api/categories", methods=["POST"])
+@categories_blueprint.post("/api/categories")
+@categories_blueprint.input(CategoryCreateIn, arg_name="body")
+@categories_blueprint.output(CategorySingleResponse, status_code=201)
+@categories_blueprint.doc(security=_SECURITY, responses=_ERROR_RESPONSES)
 @jwt_required()
-def create_category() -> tuple[Response, int]:
+def create_category(body: CategoryCreateIn):
     """Create a new category for the current user."""
     user = get_current_user()
     user_id = user["id"]
 
-    data = request.get_json()
-
-    # Validate required fields
-    name = data.get("name", "").strip()
+    name = body.name.strip()
     if not name:
-        return jsonify({"error": "Category name is required"}), 400
+        abort(400, message="Category name is required")
+
+    body = CategoryCreateIn(name=name)
 
     with SessionLocal.begin() as db:
-        # Check for duplicate name for this user (case-insensitive)
-        existing = db.query(Category).filter(Category.user_id == user_id, Category.name.ilike(name)).first()
+        existing = db.query(Category).filter(Category.user_id == user_id, Category.name.ilike(body.name)).first()
         if existing:
-            return jsonify({"error": f"Category '{name}' already exists"}), 400
+            abort(400, message=f"Category '{body.name}' already exists")
 
-        category = Category(
-            id=generate_id("cat"),
-            user_id=user_id,
-            name=name,
-        )
+        category = Category(id=generate_id("cat"), user_id=user_id, name=body.name)
         db.add(category)
 
         logger.info(f"Created category: {category.id} for user {user_id}")
-        category_dict = _serialize_category(category)
-        return jsonify({"data": category_dict}), 201
+        return CategorySingleResponse(data={"id": category.id, "name": category.name}), 201
 
 
-@categories_blueprint.route("/api/categories/<category_id>", methods=["PUT"])
+@categories_blueprint.put("/api/categories/<category_id>")
+@categories_blueprint.input(CategoryUpdateIn, arg_name="body")
+@categories_blueprint.output(CategorySingleResponse)
+@categories_blueprint.doc(security=_SECURITY, responses=_ERROR_RESPONSES)
 @jwt_required()
-def update_category(category_id: str) -> tuple[Response, int]:
+def update_category(category_id: str, body: CategoryUpdateIn):
     """Update an existing category for the current user."""
     user = get_current_user()
     user_id = user["id"]
 
-    data = request.get_json()
-
     with SessionLocal.begin() as db:
         category = db.query(Category).filter(Category.id == category_id, Category.user_id == user_id).first()
         if not category:
-            return jsonify({"error": "Category not found"}), 404
+            abort(404, message="Category not found")
 
-        # Update name if provided
-        if "name" in data:
-            name = data["name"].strip()
+        if body.name is not None:
+            name = body.name.strip()
             if not name:
-                return jsonify({"error": "Category name cannot be empty"}), 400
-
-            # Check for duplicate name for this user (excluding current category)
+                abort(400, message="Category name cannot be empty")
             existing = (
                 db.query(Category)
                 .filter(Category.user_id == user_id, Category.name.ilike(name), Category.id != category_id)
                 .first()
             )
             if existing:
-                return jsonify({"error": f"Category '{name}' already exists"}), 400
-
+                abort(400, message=f"Category '{name}' already exists")
             category.name = name
 
-        category_dict = _serialize_category(category)
-        return jsonify({"data": category_dict}), 200
+        return CategorySingleResponse(data={"id": category.id, "name": category.name})
 
 
-@categories_blueprint.route("/api/categories/<category_id>", methods=["DELETE"])
+@categories_blueprint.delete("/api/categories/<category_id>")
+@categories_blueprint.output(MessageResponse, status_code=204)
+@categories_blueprint.doc(security=_SECURITY, responses=_ERROR_RESPONSES)
 @jwt_required()
-def delete_category(category_id: str) -> tuple[Response, int]:
+def delete_category(category_id: str):
     """
     Delete a category for the current user.
 
@@ -138,12 +139,11 @@ def delete_category(category_id: str) -> tuple[Response, int]:
         with SessionLocal.begin() as db:
             category = db.query(Category).filter(Category.id == category_id, Category.user_id == user_id).first()
             if not category:
-                return jsonify({"error": "Category not found"}), 404
+                abort(404, message="Category not found")
 
             db.delete(category)
-
             logger.info(f"Deleted category: {category_id} for user {user_id}")
-            return jsonify({"message": "Category deleted"}), 204
+            return MessageResponse(message="Category deleted"), 204
     except IntegrityError:
         logger.warning(f"Cannot delete category {category_id}: in use by events")
-        return jsonify({"error": "Cannot delete category: it is in use by one or more events"}), 400
+        abort(400, message="Cannot delete category: it is in use by one or more events")
