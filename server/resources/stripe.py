@@ -3,7 +3,7 @@ from typing import Any, Dict, List, Optional
 
 import requests  # Still needed for Authorization endpoint (not yet in SDK)
 import stripe
-from flask import Blueprint, Response, jsonify, request
+from apiflask import APIBlueprint, abort
 from flask_jwt_extended import jwt_required
 
 from constants import BATCH_SIZE, STRIPE_API_KEY, STRIPE_CUSTOMER_EMAIL, STRIPE_CUSTOMER_ID, STRIPE_CUSTOMER_NAME
@@ -14,6 +14,19 @@ from dao import (
 from helpers import cents_to_dollars, flip_amount
 from models.database import SessionLocal
 from resources.line_item import LineItem
+from resources.schemas.stripe import (
+    AccountsAndBalancesResponse,
+    CreateAccountsIn,
+    CreateAccountsResponse,
+    ErrorResponse,
+    FcSessionResponse,
+    GetAccountsResponse,
+    RefreshAccountResponse,
+    RefreshResponse,
+    RelinkResponse,
+    SubscribeStatusResponse,
+    SubscribeToAccountIn,
+)
 from utils.pg_bulk_ops import (
     bulk_upsert_bank_accounts,
     bulk_upsert_line_items,
@@ -22,7 +35,13 @@ from utils.pg_bulk_ops import (
 
 logger = logging.getLogger(__name__)
 
-stripe_blueprint = Blueprint("stripe", __name__)
+stripe_blueprint = APIBlueprint("stripe", __name__)
+
+_SECURITY = [{"jwtCookie": []}]
+_ERROR_RESPONSES = {
+    400: {"description": "Bad request", "schema": ErrorResponse},
+    404: {"description": "Not found", "schema": ErrorResponse},
+}
 
 if STRIPE_API_KEY is None:
     raise Exception("Stripe API Key is not set")
@@ -131,18 +150,8 @@ def refresh_account_balances(account_ids: Optional[List[str]] = None) -> int:
     return updated_count
 
 
-@stripe_blueprint.route("/api/refresh/stripe")
-@jwt_required()
-def refresh_stripe_api() -> tuple[Response, int]:
-    refresh_stripe()
-    return jsonify("Refreshed Stripe Connection"), 200
-
-
-@stripe_blueprint.route("/api/create-fc-session", methods=["POST"])
-@jwt_required()
-def create_fc_session_api(
-    relink_auth: Optional[str] = None,
-) -> tuple[Response, int]:
+def _build_fc_session(relink_auth: Optional[str] = None) -> FcSessionResponse:
+    """Core session creation logic shared by create_fc_session_api and relink_account_api."""
     try:
         try:
             customer: stripe.Customer = stripe.Customer.retrieve(STRIPE_CUSTOMER_ID)
@@ -159,28 +168,49 @@ def create_fc_session_api(
             session_params["relink_options"] = {"authorization": relink_auth}
 
         session = stripe.financial_connections.Session.create(**session_params)
-
-        return jsonify({"clientSecret": session["client_secret"]}), 200
+        return FcSessionResponse(clientSecret=session["client_secret"])
     except Exception as e:
-        return jsonify(error=str(e)), 500
+        abort(500, message=str(e))
 
 
-@stripe_blueprint.route("/api/create_accounts", methods=["POST"])
+@stripe_blueprint.get("/api/refresh/stripe")
+@stripe_blueprint.output(RefreshResponse)
+@stripe_blueprint.doc(security=_SECURITY)
 @jwt_required()
-def create_accounts_api() -> tuple[Response, int]:
-    new_accounts: List[Dict[str, Any]] = request.get_json()
+def refresh_stripe_api():
+    refresh_stripe()
+    return RefreshResponse(message="Refreshed Stripe Connection")
+
+
+@stripe_blueprint.post("/api/create-fc-session")
+@stripe_blueprint.output(FcSessionResponse)
+@stripe_blueprint.doc(security=_SECURITY, responses=_ERROR_RESPONSES)
+@jwt_required()
+def create_fc_session_api():
+    return _build_fc_session()
+
+
+@stripe_blueprint.post("/api/create_accounts")
+@stripe_blueprint.input(CreateAccountsIn, arg_name="body")
+@stripe_blueprint.output(CreateAccountsResponse, status_code=201)
+@stripe_blueprint.doc(security=_SECURITY, responses=_ERROR_RESPONSES)
+@jwt_required()
+def create_accounts_api(body: CreateAccountsIn):
+    new_accounts = body.root
     if len(new_accounts) == 0:
-        return jsonify("Failed to Create Accounts: No Accounts Submitted"), 400
+        abort(400, message="Failed to Create Accounts: No Accounts Submitted")
 
     with SessionLocal.begin() as db:
         bulk_upsert_bank_accounts(db, new_accounts)
 
-    return jsonify({"data": new_accounts}), 201
+    return CreateAccountsResponse(data=new_accounts), 201
 
 
-@stripe_blueprint.route("/api/get_accounts/<session_id>")
+@stripe_blueprint.get("/api/get_accounts/<session_id>")
+@stripe_blueprint.output(GetAccountsResponse)
+@stripe_blueprint.doc(security=_SECURITY, responses=_ERROR_RESPONSES)
 @jwt_required()
-def get_accounts_api(session_id: str) -> tuple[Response, int]:
+def get_accounts_api(session_id: str):
     try:
         session: stripe.financial_connections.Session = stripe.financial_connections.Session.retrieve(session_id)
         accounts: List[Dict[str, Any]] = session["accounts"]
@@ -188,14 +218,16 @@ def get_accounts_api(session_id: str) -> tuple[Response, int]:
         with SessionLocal.begin() as db:
             bulk_upsert_bank_accounts(db, accounts)
 
-        return jsonify({"accounts": accounts}), 200
+        return GetAccountsResponse(accounts=accounts)
     except Exception as e:
-        return jsonify(error=str(e)), 500
+        abort(500, message=str(e))
 
 
-@stripe_blueprint.route("/api/accounts_and_balances")
+@stripe_blueprint.get("/api/accounts_and_balances")
+@stripe_blueprint.output(AccountsAndBalancesResponse)
+@stripe_blueprint.doc(security=_SECURITY)
 @jwt_required()
-def get_accounts_and_balances_api() -> tuple[Response, int]:
+def get_accounts_and_balances_api():
     """
     Get bank accounts with their latest balances.
 
@@ -227,26 +259,29 @@ def get_accounts_and_balances_api() -> tuple[Response, int]:
             "can_relink": account["can_relink"],
         }
 
-    return jsonify(accounts_and_balances), 200
+    return AccountsAndBalancesResponse(accounts_and_balances)
 
 
-@stripe_blueprint.route("/api/subscribe_to_account", methods=["POST"])
+@stripe_blueprint.post("/api/subscribe_to_account")
+@stripe_blueprint.input(SubscribeToAccountIn, arg_name="body")
+@stripe_blueprint.output(SubscribeStatusResponse)
+@stripe_blueprint.doc(security=_SECURITY, responses=_ERROR_RESPONSES)
 @jwt_required()
-def subscribe_to_account_api() -> tuple[Response, int]:
+def subscribe_to_account_api(body: SubscribeToAccountIn):
     try:
-        account_id: str = request.json.get("account_id")
-        if not account_id:
-            return jsonify({"error": "account_id is required"}), 400
-
-        response = stripe.financial_connections.Account.subscribe(account_id, features=["transactions", "inferred_balances"])
+        response = stripe.financial_connections.Account.subscribe(
+            body.account_id, features=["transactions", "inferred_balances"]
+        )
         refresh_status: str = response.get("transaction_refresh", {}).get("status", "unknown")
-        return jsonify(str(refresh_status)), 200
+        return SubscribeStatusResponse(status=str(refresh_status))
     except Exception as e:
-        return jsonify(error=str(e)), 500
+        abort(500, message=str(e))
 
 
-@stripe_blueprint.route("/api/refresh_account/<account_id>")
-def refresh_account_api(account_id: str) -> tuple[Response, int]:
+@stripe_blueprint.get("/api/refresh_account/<account_id>")
+@stripe_blueprint.output(RefreshAccountResponse)
+@stripe_blueprint.doc()
+def refresh_account_api(account_id: str):
     try:
         logger.info(f"Refreshing {account_id}")
         account: stripe.financial_connections.Account = stripe.financial_connections.Account.retrieve(account_id)
@@ -255,29 +290,33 @@ def refresh_account_api(account_id: str) -> tuple[Response, int]:
         with SessionLocal.begin() as db:
             bulk_upsert_bank_accounts(db, [account])
 
-        return jsonify({"data": "success"}), 200
+        return RefreshAccountResponse(data="success")
     except Exception as e:
-        return jsonify(error=str(e)), 500
+        abort(500, message=str(e))
 
 
-@stripe_blueprint.route("/api/relink_account/<account_id>", methods=["POST"])
+@stripe_blueprint.post("/api/relink_account/<account_id>")
+@stripe_blueprint.output(RelinkResponse)
+@stripe_blueprint.doc(security=_SECURITY, responses=_ERROR_RESPONSES)
 @jwt_required()
-def relink_account_api(account_id: str) -> tuple[Response, int]:
+def relink_account_api(account_id: str):
     try:
         logger.info(f"Relinking {account_id}")
         account: stripe.financial_connections.Account = stripe.financial_connections.Account.retrieve(account_id)
 
         if not check_can_relink(account):
-            return jsonify({"relink_required": False}), 200
+            return RelinkResponse(relink_required=False)
 
-        create_fc_session_response = create_fc_session_api(account["authorization"])
-        return jsonify(create_fc_session_response[0].json), 200
+        session = _build_fc_session(account["authorization"])
+        return RelinkResponse(clientSecret=session.clientSecret)
     except Exception as e:
-        return jsonify(error=str(e)), 500
+        abort(500, message=str(e))
 
 
-@stripe_blueprint.route("/api/refresh_transactions/<account_id>")
-def refresh_transactions_api(account_id: str) -> tuple[Response, int]:
+@stripe_blueprint.get("/api/refresh_transactions/<account_id>")
+@stripe_blueprint.output(RefreshResponse)
+@stripe_blueprint.doc()
+def refresh_transactions_api(account_id: str):
     logger.info(f"Getting Transactions for {account_id}")
     # TODO: This gets all transactions ever. We should only get those that we don't have
     try:
@@ -318,10 +357,10 @@ def refresh_transactions_api(account_id: str) -> tuple[Response, int]:
         # Best-effort: fetch latest balance for this account (won't fail transaction refresh)
         refresh_account_balances(account_ids=[account_id])
 
-        return jsonify("Refreshed Stripe Connection for Given Account"), 200
+        return RefreshResponse(message="Refreshed Stripe Connection for Given Account")
 
     except Exception as e:
-        return jsonify(error=str(e)), 500
+        abort(500, message=str(e))
 
 
 def refresh_stripe() -> None:

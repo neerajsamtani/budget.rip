@@ -63,7 +63,7 @@ class TestApplicationRoutes:
         """API root endpoint returns welcome message"""
         response = test_client.get("/api/")
         assert response.status_code == 200
-        assert response.get_json() == "Welcome to Budgit API"
+        assert response.get_json()["message"] == "Welcome to Budgit API"
 
     def test_unhandled_exception_returns_500_with_generic_error(self, test_client, jwt_token, mocker):
         """Unhandled exceptions return 500 with generic error message"""
@@ -493,3 +493,14 @@ class TestApplicationIntegration:
             assert "Cash" in payment_method_names
             assert "Venmo" in payment_method_names
             assert "Splitwise" in payment_method_names
+
+
+class TestApplicationSpec:
+    def test_openapi_spec_exposes_application_paths(self, test_client):
+        response = test_client.get("/api/openapi.json")
+        assert response.status_code == 200
+        paths = response.get_json()["paths"]
+        assert "/api/refresh/all" in paths
+        assert "/api/refresh/account" in paths
+        assert "/api/connected_accounts" in paths
+        assert "/api/payment_methods" in paths

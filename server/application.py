@@ -3,9 +3,9 @@ import sys
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from apiflask import APIFlask
+from apiflask import APIFlask, abort
 from dotenv import load_dotenv
-from flask import Response, jsonify, request
+from flask import jsonify
 from flask_bcrypt import Bcrypt
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager, jwt_required
@@ -38,6 +38,16 @@ from resources.event_hint import event_hints_blueprint
 from resources.line_item import all_line_items, line_items_blueprint
 from resources.manual_transaction import manual_transaction_blueprint
 from resources.monthly_breakdown import monthly_breakdown_blueprint
+from resources.schemas.application import (
+    ConnectedAccountsResponse,
+    ErrorResponse,
+    MessageResponse,
+    PaymentMethodOut,
+    PaymentMethodsResponse,
+    RefreshAccountIn,
+    RefreshAllResponse,
+    WelcomeResponse,
+)
 from resources.splitwise import (
     refresh_splitwise,
     splitwise_blueprint,
@@ -129,6 +139,12 @@ application.register_blueprint(tags_blueprint)
 application.register_blueprint(event_hints_blueprint)
 application.register_blueprint(categories_blueprint)
 
+_SECURITY = [{"jwtCookie": []}]
+_ERROR_RESPONSES = {
+    400: {"description": "Bad request", "schema": ErrorResponse},
+    404: {"description": "Not found", "schema": ErrorResponse},
+}
+
 # If an environment variable is not found in the .env file,
 # load_dotenv will then search for a variable by the given name in the host environment.
 load_dotenv()
@@ -159,49 +175,58 @@ def user_lookup_callback(_jwt_header: Dict[str, Any], jwt_data: Dict[str, Any]) 
     return get_user_by_id(user_id)
 
 
-@application.route("/api/")
-def index_api() -> tuple[Response, int]:
-    return jsonify("Welcome to Budgit API"), 200
+@application.get("/api/")
+@application.output(WelcomeResponse)
+def index_api():
+    return WelcomeResponse(message="Welcome to Budgit API")
 
 
-@application.route("/api/refresh/scheduled")
-def schedule_refresh_api() -> tuple[Response, int]:
+@application.get("/api/refresh/scheduled")
+@application.output(MessageResponse)
+def schedule_refresh_api():
     logger.info("Initiating scheduled refresh at " + str(datetime.now()))
     try:
         refresh_all()
         create_consistent_line_items()
     except Exception as e:
         logger.error("Error refreshing all: " + str(e))
-        return jsonify({"error": str(e)}), 500
-    return jsonify({"message": "success"}), 200
+        abort(500, message=str(e))
+    return MessageResponse(message="success")
 
 
-@application.route("/api/refresh/all", methods=["POST"])
+@application.post("/api/refresh/all")
+@application.output(RefreshAllResponse)
+@application.doc(security=_SECURITY, responses=_ERROR_RESPONSES)
 @jwt_required()
-def refresh_all_api() -> tuple[Response, int]:
+def refresh_all_api():
     refresh_all()
     create_consistent_line_items()
     line_items: List[Dict[str, Any]] = all_line_items(only_line_items_to_review=True)
-    return jsonify({"data": line_items}), 200
+    return RefreshAllResponse(data=line_items)
 
 
-@application.route("/api/refresh/account", methods=["POST"])
+@application.post("/api/refresh/account")
+@application.input(RefreshAccountIn, arg_name="body")
+@application.output(MessageResponse)
+@application.doc(security=_SECURITY, responses=_ERROR_RESPONSES)
 @jwt_required()
-def refresh_single_account_api() -> tuple[Response, int]:
+def refresh_single_account_api(body: RefreshAccountIn):
     """
     Refresh data for a single connected account.
 
     For Stripe accounts: refreshes transactions for the specific account.
     For Venmo/Splitwise: refreshes all data (user-level integrations).
     """
+    account_id = body.accountId
+    source = body.source
+
+    if not account_id or not source:
+        abort(400, message="accountId and source are required")
+
+    if source not in ("stripe", "venmo", "splitwise"):
+        abort(400, message=f"Invalid source: {source}")
+
     try:
-        data = request.get_json()
-        account_id = data.get("accountId")
-        source = data.get("source")
-
-        if not account_id or not source:
-            return jsonify({"error": "accountId and source are required"}), 400
-
         if source == "stripe":
             refresh_transactions_api(account_id)
             stripe_to_line_items()
@@ -211,21 +236,20 @@ def refresh_single_account_api() -> tuple[Response, int]:
         elif source == "splitwise":
             refresh_splitwise()
             splitwise_to_line_items()
-        else:
-            return jsonify({"error": f"Invalid source: {source}"}), 400
-
-        return jsonify({"message": "success"}), 200
-
     except Exception as e:
         logger.error(f"Error refreshing account {account_id}: {str(e)}")
-        return jsonify({"error": str(e)}), 500
+        abort(500, message=str(e))
+
+    return MessageResponse(message="success")
 
 
-@application.route("/api/connected_accounts", methods=["GET"])
+@application.get("/api/connected_accounts")
+@application.output(ConnectedAccountsResponse)
+@application.doc(security=_SECURITY, responses=_ERROR_RESPONSES)
 @jwt_required()
-def get_connected_accounts_api() -> tuple[Response, int]:
+def get_connected_accounts_api():
     connected_accounts: List[Dict[str, Any]] = []
-    # # venmo
+    # venmo
     profile: User | None = get_venmo_client().my_profile()
     if profile is None:
         raise Exception("Failed to get Venmo profile")
@@ -241,12 +265,14 @@ def get_connected_accounts_api() -> tuple[Response, int]:
     # stripe
     bank_accounts: List[Dict[str, Any]] = get_all_bank_accounts(None)
     connected_accounts.append({"stripe": bank_accounts})
-    return jsonify(connected_accounts), 200
+    return ConnectedAccountsResponse(root=connected_accounts)
 
 
-@application.route("/api/payment_methods", methods=["GET"])
+@application.get("/api/payment_methods")
+@application.output(PaymentMethodsResponse)
+@application.doc(security=_SECURITY, responses=_ERROR_RESPONSES)
 @jwt_required()
-def get_payment_methods_api() -> tuple[Response, int]:
+def get_payment_methods_api():
     """
     Get all payment methods.
 
@@ -257,16 +283,8 @@ def get_payment_methods_api() -> tuple[Response, int]:
 
     with SessionLocal.begin() as db:
         payment_methods = db.query(PaymentMethod).all()
-        result = [
-            {
-                "id": pm.id,
-                "name": pm.name,
-                "type": pm.type,
-                "is_active": pm.is_active,
-            }
-            for pm in payment_methods
-        ]
-        return jsonify({"data": result}), 200
+        result = [PaymentMethodOut(id=pm.id, name=pm.name, type=pm.type, is_active=pm.is_active) for pm in payment_methods]
+        return PaymentMethodsResponse(data=result)
 
 
 # TODO: Need to add webhooks for updates after the server has started

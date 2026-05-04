@@ -78,7 +78,7 @@ class TestSplitwiseAPI:
         )
 
         assert response.status_code == 200
-        assert response.get_data(as_text=True).strip() == '"Refreshed Splitwise Connection"'
+        assert response.get_json()["message"] == "Refreshed Splitwise Connection"
 
         # Verify both functions were called
         mock_refresh.assert_called_once()
@@ -282,6 +282,14 @@ class TestSplitwiseFunctions:
 
             # Call the function
             splitwise_to_line_items()
+
+
+class TestSplitwiseSpec:
+    def test_openapi_spec_exposes_splitwise_paths(self, test_client):
+        response = test_client.get("/api/openapi.json")
+        assert response.status_code == 200
+        paths = response.get_json()["paths"]
+        assert "/api/refresh/splitwise" in paths
 
     def test_iso_date_converts_to_datetime(self, flask_app, mocker):
         """ISO date strings convert to datetime objects correctly"""

@@ -117,12 +117,7 @@ export function useAccountsAndBalances(): UseQueryResult<unknown> {
   });
 }
 
-export interface PaymentMethod {
-  id: string;
-  name: string;
-  type: string;
-  is_active: boolean;
-}
+export type PaymentMethod = components['schemas']['PaymentMethodsResponse.PaymentMethodOut'];
 
 export function usePaymentMethods(): UseQueryResult<PaymentMethod[]> {
   return useQuery({

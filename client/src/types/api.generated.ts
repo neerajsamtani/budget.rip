@@ -27,7 +27,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": unknown;
+                        "application/json": components["schemas"]["WelcomeResponse"];
                     };
                 };
             };
@@ -437,8 +437,186 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": unknown;
+                        "application/json": components["schemas"]["RefreshAllResponse"];
                     };
+                };
+                /** @description Bad request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/refresh/venmo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Refresh Venmo Api */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successful response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RefreshResponse"];
+                    };
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/refresh/stripe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Refresh Stripe Api */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successful response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RefreshResponse1"];
+                    };
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/create_accounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Accounts Api */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["CreateAccountsIn"];
+                };
+            };
+            responses: {
+                /** @description Successful response */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CreateAccountsResponse"];
+                    };
+                };
+                /** @description Bad request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ValidationError"];
+                    };
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
                 };
             };
         };
@@ -457,11 +635,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /**
-         * Refresh data for a single connected account.
-         * @description For Stripe accounts: refreshes transactions for the specific account.
-         *     For Venmo/Splitwise: refreshes all data (user-level integrations).
-         */
+        /** Refresh Single Account Api */
         post: {
             parameters: {
                 query?: never;
@@ -469,7 +643,11 @@ export interface paths {
                 path?: never;
                 cookie?: never;
             };
-            requestBody?: never;
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["RefreshAccountIn"];
+                };
+            };
             responses: {
                 /** @description Successful response */
                 200: {
@@ -477,8 +655,33 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": unknown;
+                        "application/json": components["schemas"]["MessageResponse"];
                     };
+                };
+                /** @description Bad request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ValidationError"];
+                    };
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
                 };
             };
         };
@@ -495,10 +698,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /**
-         * Get all payment methods.
-         * @description Returns full payment method objects including id, name, type, and is_active.
-         */
+        /** Get Payment Methods Api */
         get: {
             parameters: {
                 query?: never;
@@ -514,8 +714,31 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": unknown;
+                        "application/json": components["schemas"]["PaymentMethodsResponse"];
                     };
+                };
+                /** @description Bad request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
                 };
             };
         };
@@ -733,6 +956,110 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/refresh/splitwise": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Refresh Splitwise Api */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successful response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RefreshResponse2"];
+                    };
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/create-fc-session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Fc Session Api */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successful response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FcSessionResponse"];
+                    };
+                };
+                /** @description Bad request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/refresh/scheduled": {
         parameters: {
             query?: never;
@@ -756,7 +1083,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": unknown;
+                        "application/json": components["schemas"]["MessageResponse"];
                     };
                 };
             };
@@ -857,8 +1184,31 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": unknown;
+                        "application/json": components["schemas"]["ConnectedAccountsResponse"];
                     };
+                };
+                /** @description Bad request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
                 };
             };
         };
@@ -901,7 +1251,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["MessageResponse"];
+                        "application/json": components["schemas"]["MessageResponse1"];
                     };
                 };
                 /** @description Bad request */
@@ -932,6 +1282,71 @@ export interface paths {
             };
         };
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/subscribe_to_account": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Subscribe To Account Api */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["SubscribeToAccountIn"];
+                };
+            };
+            responses: {
+                /** @description Successful response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SubscribeStatusResponse"];
+                    };
+                };
+                /** @description Bad request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ValidationError"];
+                    };
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -1051,6 +1466,55 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/accounts_and_balances": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get bank accounts with their latest balances.
+         * @description Balances are pre-fetched and stored on account records via refresh_account_balances()
+         *     to avoid N+1 query problem (previously made one Stripe API call per account).
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successful response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AccountsAndBalancesResponse"];
+                    };
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1429,6 +1893,226 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/get_accounts/{session_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Accounts Api */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    session_id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successful response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GetAccountsResponse"];
+                    };
+                };
+                /** @description Bad request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/relink_account/{account_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Relink Account Api */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    account_id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successful response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RelinkResponse"];
+                    };
+                };
+                /** @description Bad request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/refresh_account/{account_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Refresh Account Api */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    account_id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successful response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RefreshAccountResponse"];
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/refresh_transactions/{account_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Refresh Transactions Api */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    account_id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successful response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RefreshResponse1"];
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/manual_transaction/{transaction_id}": {
         parameters: {
             query?: never;
@@ -1557,6 +2241,11 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** WelcomeResponse */
+        WelcomeResponse: {
+            /** Message */
+            message: string;
+        };
         /** TagOut */
         "TagListResponse.TagOut": {
             /** Id */
@@ -1817,6 +2506,99 @@ export interface components {
              */
             is_active: boolean | null;
         };
+        /** LineItemOut */
+        "RefreshAllResponse.LineItemOut": {
+            /** Id */
+            id: string;
+            /** Date */
+            date: number;
+            /** Payment Method */
+            payment_method: string;
+            /** Description */
+            description: string;
+            /** Amount */
+            amount: number;
+            /**
+             * Responsible Party
+             * @default null
+             */
+            responsible_party: string | null;
+            /**
+             * Notes
+             * @default null
+             */
+            notes: string | null;
+            /**
+             * Is Manual
+             * @default false
+             */
+            is_manual: boolean;
+            /**
+             * Event Id
+             * @default null
+             */
+            event_id: string | null;
+        };
+        /** RefreshAllResponse */
+        RefreshAllResponse: {
+            /** Data */
+            data: components["schemas"]["RefreshAllResponse.LineItemOut"][];
+        };
+        /** RefreshResponse */
+        RefreshResponse: {
+            /** Message */
+            message: string;
+        };
+        /** RefreshResponse */
+        RefreshResponse1: {
+            /** Message */
+            message: string;
+        };
+        /** CreateAccountsResponse */
+        CreateAccountsResponse: {
+            /** Data */
+            data: {
+                [key: string]: unknown;
+            }[];
+        };
+        /** CreateAccountsIn */
+        CreateAccountsIn: {
+            [key: string]: unknown;
+        }[];
+        /** MessageResponse */
+        MessageResponse: {
+            /** Message */
+            message: string;
+        };
+        /** RefreshAccountIn */
+        RefreshAccountIn: {
+            /**
+             * Accountid
+             * @default null
+             */
+            accountId: string | null;
+            /**
+             * Source
+             * @default null
+             */
+            source: string | null;
+        };
+        /** PaymentMethodOut */
+        "PaymentMethodsResponse.PaymentMethodOut": {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Type */
+            type: string;
+            /** Is Active */
+            is_active: boolean;
+        };
+        /** PaymentMethodsResponse */
+        PaymentMethodsResponse: {
+            /** Data */
+            data: components["schemas"]["PaymentMethodsResponse.PaymentMethodOut"][];
+        };
         /** EventUpdateIn */
         EventUpdateIn: {
             /**
@@ -1858,6 +2640,16 @@ export interface components {
         MonthlyBreakdownResponse: {
             [key: string]: components["schemas"]["MonthlyBreakdownResponse.MonthlyBreakdownEntry"][];
         };
+        /** RefreshResponse */
+        RefreshResponse2: {
+            /** Message */
+            message: string;
+        };
+        /** FcSessionResponse */
+        FcSessionResponse: {
+            /** Clientsecret */
+            clientSecret: string;
+        };
         /** ManualTransactionCreateResponse */
         ManualTransactionCreateResponse: {
             /** Message */
@@ -1878,8 +2670,12 @@ export interface components {
             /** Payment Method Id */
             payment_method_id: string;
         };
+        /** ConnectedAccountsResponse */
+        ConnectedAccountsResponse: {
+            [key: string]: unknown;
+        }[];
         /** MessageResponse */
-        MessageResponse: {
+        MessageResponse1: {
             /** Message */
             message: string;
         };
@@ -1887,6 +2683,16 @@ export interface components {
         ReorderIn: {
             /** Hint Ids */
             hint_ids: string[];
+        };
+        /** SubscribeStatusResponse */
+        SubscribeStatusResponse: {
+            /** Status */
+            status: string;
+        };
+        /** SubscribeToAccountIn */
+        SubscribeToAccountIn: {
+            /** Account Id */
+            account_id: string;
         };
         /** EvaluateData */
         "EvaluateResponse.EvaluateData": {
@@ -1934,6 +2740,27 @@ export interface components {
         ValidateCelIn: {
             /** Cel Expression */
             cel_expression: string;
+        };
+        /** AccountBalanceOut */
+        "AccountsAndBalancesResponse.AccountBalanceOut": {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Balance */
+            balance: number;
+            /** Currency */
+            currency: string;
+            /** As Of */
+            as_of: number | null;
+            /** Status */
+            status: string;
+            /** Can Relink */
+            can_relink: boolean;
+        };
+        /** AccountsAndBalancesResponse */
+        AccountsAndBalancesResponse: {
+            [key: string]: components["schemas"]["AccountsAndBalancesResponse.AccountBalanceOut"];
         };
         /** EventHintUpdateIn */
         EventHintUpdateIn: {
@@ -2003,6 +2830,31 @@ export interface components {
              * @default null
              */
             event_id: string | null;
+        };
+        /** GetAccountsResponse */
+        GetAccountsResponse: {
+            /** Accounts */
+            accounts: {
+                [key: string]: unknown;
+            }[];
+        };
+        /** RelinkResponse */
+        RelinkResponse: {
+            /**
+             * Relink Required
+             * @default null
+             */
+            relink_required: boolean | null;
+            /**
+             * Clientsecret
+             * @default null
+             */
+            clientSecret: string | null;
+        };
+        /** RefreshAccountResponse */
+        RefreshAccountResponse: {
+            /** Data */
+            data: string;
         };
         /** LineItemOut */
         "EventLineItemsResponse.LineItemOut": {
