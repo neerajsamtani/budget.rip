@@ -1,4 +1,5 @@
 """Dump the APIFlask OpenAPI spec to stdout without starting a server."""
+
 import json
 import sys
 from pathlib import Path

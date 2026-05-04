@@ -10,6 +10,7 @@ from apiflask import APIBlueprint, abort
 from flask_jwt_extended import get_current_user, jwt_required
 from sqlalchemy.exc import IntegrityError
 
+from helpers import get_or_404
 from models.database import SessionLocal
 from models.sql_models import Category
 from resources.schemas.category import (
@@ -39,8 +40,7 @@ _ERROR_RESPONSES = {
 @jwt_required()
 def get_all_categories():
     """Get all categories for the current user, ordered by name."""
-    user = get_current_user()
-    user_id = user["id"]
+    user_id = get_current_user()["id"]
 
     with SessionLocal.begin() as db:
         categories = db.query(Category).filter(Category.user_id == user_id).order_by(Category.name).all()
@@ -53,13 +53,13 @@ def get_all_categories():
 @jwt_required()
 def get_category(category_id: str):
     """Get a single category by ID for the current user."""
-    user = get_current_user()
-    user_id = user["id"]
+    user_id = get_current_user()["id"]
 
     with SessionLocal.begin() as db:
-        category = db.query(Category).filter(Category.id == category_id, Category.user_id == user_id).first()
-        if not category:
-            abort(404, message="Category not found")
+        category = get_or_404(
+            db.query(Category).filter(Category.id == category_id, Category.user_id == user_id).first(),
+            "Category not found",
+        )
         return CategorySingleResponse(data={"id": category.id, "name": category.name})
 
 
@@ -70,8 +70,7 @@ def get_category(category_id: str):
 @jwt_required()
 def create_category(body: CategoryCreateIn):
     """Create a new category for the current user."""
-    user = get_current_user()
-    user_id = user["id"]
+    user_id = get_current_user()["id"]
 
     name = body.name.strip()
     if not name:
@@ -98,13 +97,13 @@ def create_category(body: CategoryCreateIn):
 @jwt_required()
 def update_category(category_id: str, body: CategoryUpdateIn):
     """Update an existing category for the current user."""
-    user = get_current_user()
-    user_id = user["id"]
+    user_id = get_current_user()["id"]
 
     with SessionLocal.begin() as db:
-        category = db.query(Category).filter(Category.id == category_id, Category.user_id == user_id).first()
-        if not category:
-            abort(404, message="Category not found")
+        category = get_or_404(
+            db.query(Category).filter(Category.id == category_id, Category.user_id == user_id).first(),
+            "Category not found",
+        )
 
         if body.name is not None:
             name = body.name.strip()
@@ -132,15 +131,14 @@ def delete_category(category_id: str):
 
     Will fail if the category is in use by any events (database RESTRICT constraint).
     """
-    user = get_current_user()
-    user_id = user["id"]
+    user_id = get_current_user()["id"]
 
     try:
         with SessionLocal.begin() as db:
-            category = db.query(Category).filter(Category.id == category_id, Category.user_id == user_id).first()
-            if not category:
-                abort(404, message="Category not found")
-
+            category = get_or_404(
+                db.query(Category).filter(Category.id == category_id, Category.user_id == user_id).first(),
+                "Category not found",
+            )
             db.delete(category)
             logger.info(f"Deleted category: {category_id} for user {user_id}")
             return MessageResponse(message="Category deleted"), 204

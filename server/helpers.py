@@ -1,10 +1,20 @@
 import json
 import re
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, TypeVar, Union
 
+from apiflask import abort
 from flask_bcrypt import check_password_hash, generate_password_hash
 from venmo_api import Client
+
+T = TypeVar("T")
+
+
+def get_or_404(result: T | None, message: str = "Not found") -> T:
+    if result is None:
+        abort(404, message=message)
+    return result  # type: ignore[return-value]
+
 
 VenmoClient = Client
 
