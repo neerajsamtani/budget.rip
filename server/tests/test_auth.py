@@ -50,7 +50,7 @@ class TestAuthAPI:
         response = test_client.post("/api/auth/signup", json=signup_data)
 
         assert response.status_code == 201
-        assert response.get_data(as_text=True).strip() == '"Created User"'
+        assert response.get_json()["message"] == "Created User"
 
         # Verify user was created in database
         with flask_app.app_context():
@@ -86,7 +86,7 @@ class TestAuthAPI:
         response = test_client.post("/api/auth/signup", json=signup_data)
 
         assert response.status_code == 400
-        assert response.get_data(as_text=True).strip() == '"User Already Exists"'
+        assert response.get_json()["error"] == "User Already Exists"
 
     def test_signup_rejects_email_not_in_gated_list(self, test_client):
         """Signup rejects users whose email is not in the private beta list"""
@@ -101,7 +101,7 @@ class TestAuthAPI:
         response = test_client.post("/api/auth/signup", json=signup_data)
 
         assert response.status_code == 403
-        assert response.get_data(as_text=True).strip() == '"User Not Signed Up For Private Beta"'
+        assert response.get_json()["error"] == "User Not Signed Up For Private Beta"
 
     def test_signup_requires_email_and_password(self, test_client):
         """Signup fails when required fields are missing"""
@@ -364,3 +364,14 @@ class TestAuthFunctions:
             # Decode the token
             decoded = decode_token(token)
             assert decoded["sub"] == user_id
+
+
+class TestAuthSpec:
+    def test_openapi_spec_exposes_auth_paths(self, test_client):
+        response = test_client.get("/api/openapi.json")
+        assert response.status_code == 200
+        paths = response.get_json()["paths"]
+        assert "/api/auth/signup" in paths
+        assert "/api/auth/login" in paths
+        assert "/api/auth/logout" in paths
+        assert "/api/auth/me" in paths
