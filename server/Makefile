@@ -1,4 +1,12 @@
-.PHONY: help test test-phase3 test-watch test-coverage test-quick install lint lint-fix clean dev-setup pg-dump
+.PHONY: help test test-phase3 test-watch test-coverage test-quick install lint lint-fix clean dev-setup pg-dump openapi types api api-check
+
+# Dummy env vars so application.py imports cleanly when generating the OpenAPI spec
+# (mirrors the test env: SQLite in-memory, placeholder secrets)
+OPENAPI_ENV := DATABASE_HOST=sqlite DATABASE_NAME=:memory: \
+	JWT_SECRET_KEY=x JWT_COOKIE_DOMAIN=x \
+	VENMO_ACCESS_TOKEN=x \
+	SPLITWISE_CONSUMER_KEY=x SPLITWISE_CONSUMER_SECRET=x SPLITWISE_API_KEY=x \
+	STRIPE_LIVE_API_SECRET_KEY=x STRIPE_CUSTOMER_ID=x
 
 help: ## Show this help message
 	@echo "Available commands:"
@@ -62,6 +70,25 @@ dev-setup: install ## Set up development environment
 	@echo ""
 	@echo "To run the server:"
 	@echo "  uv run python application.py"
+
+openapi: ## Regenerate server/openapi.json from application.spec
+	@echo "Regenerating openapi.json..."
+	@$(OPENAPI_ENV) uv run python -c "import json, sys; from application import application; \
+		application.app_context().push(); json.dump(application.spec, sys.stdout)" > openapi.json
+	@echo "✓ openapi.json updated"
+
+types: openapi ## Regenerate client TypeScript types from openapi.json
+	@echo "Regenerating client TypeScript types..."
+	@cd ../client && npm run generate:api:from-file
+	@echo "✓ api.generated.ts updated"
+
+api: types ## Regenerate both openapi.json and client TypeScript types (alias for types)
+
+api-check: ## Fail if openapi.json or api.generated.ts is stale (for CI)
+	@$(MAKE) --no-print-directory types
+	@git diff --exit-code openapi.json ../client/src/types/api.generated.ts \
+		|| (echo "✗ openapi.json or api.generated.ts is out of date. Run 'make api' and commit."; exit 1)
+	@echo "✓ openapi.json and api.generated.ts are up to date"
 
 pg-dump: ## Create PostgreSQL database dump (requires PGPASSWORD env var)
 	@if [ -z "$$PGPASSWORD" ]; then \
