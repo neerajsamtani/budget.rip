@@ -294,7 +294,8 @@ class TestEventAPI:
         )
 
         assert response.status_code == 400
-        assert response.get_data(as_text=True).strip() == '"Failed to Create Event: No Line Items Submitted"'
+        data = response.get_json()
+        assert data["error"] == "Failed to Create Event: No Line Items Submitted"
 
     def test_duplicate_flag_uses_first_line_item_amount(self, test_client, jwt_token, flask_app, create_line_item_via_manual):
         """Duplicate transaction events use only the first line item amount"""
@@ -431,8 +432,7 @@ class TestEventAPI:
             headers={"Authorization": "Bearer " + jwt_token},
         )
 
-        assert response.status_code == 200
-        assert response.get_data(as_text=True).strip() == '"Deleted Event"'
+        assert response.status_code == 204
 
         # Verify event was deleted
         with flask_app.app_context():
@@ -844,3 +844,11 @@ class TestEventAPI:
 
             amounts = sorted([item["amount"] for item in results])
             assert amounts == [50.0, 100.0]
+
+
+class TestEventSpec:
+    def test_openapi_spec_exposes_event_paths(self, test_client):
+        response = test_client.get("/api/openapi.json")
+        assert response.status_code == 200
+        paths = response.get_json()["paths"]
+        assert "/api/events" in paths

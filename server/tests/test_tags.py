@@ -54,3 +54,11 @@ class TestTagsAPI:
         response = test_client.get("/api/tags")
 
         assert response.status_code == 401
+
+
+class TestTagsSpec:
+    def test_openapi_spec_exposes_tags_paths(self, test_client):
+        response = test_client.get("/api/openapi.json")
+        assert response.status_code == 200
+        paths = response.get_json()["paths"]
+        assert "/api/tags" in paths

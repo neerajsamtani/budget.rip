@@ -1,7 +1,7 @@
 import logging
 from typing import Any, Dict, List
 
-from flask import Blueprint, Response, jsonify
+from apiflask import APIBlueprint
 from flask_jwt_extended import jwt_required
 
 from clients import splitwise_client
@@ -9,28 +9,28 @@ from constants import LIMIT, MOVING_DATE, PARTIES_TO_IGNORE, USER_FIRST_NAME
 from dao import get_transactions
 from helpers import flip_amount, iso_8601_to_posix
 from models.database import SessionLocal
+from resources._common import JWT_SECURITY
 from resources.line_item import LineItem
+from resources.schemas.splitwise import RefreshResponse
 from utils.pg_bulk_ops import bulk_upsert_line_items, bulk_upsert_transactions
 
 logger = logging.getLogger(__name__)
 
-splitwise_blueprint = Blueprint("splitwise", __name__)
+splitwise_blueprint = APIBlueprint("splitwise", __name__)
 
-
-# TODO: Exceptions
-# TODO: Can I remove MOVING_DATE_POSIX
-# TODO: Can I remove PARTIES_TO_IGNORE
 
 # TODO: Integrate with Splitwise OAuth to enable other people to use this without submitting API Keys
 # https://blog.splitwise.com/2013/07/15/setting-up-oauth-for-the-splitwise-api/
 
 
-@splitwise_blueprint.route("/api/refresh/splitwise")
+@splitwise_blueprint.get("/api/refresh/splitwise")
+@splitwise_blueprint.output(RefreshResponse)
+@splitwise_blueprint.doc(security=JWT_SECURITY)
 @jwt_required()
-def refresh_splitwise_api() -> tuple[Response, int]:
+def refresh_splitwise_api():
     refresh_splitwise()
     splitwise_to_line_items()
-    return jsonify("Refreshed Splitwise Connection"), 200
+    return RefreshResponse(message="Refreshed Splitwise Connection")
 
 
 def refresh_splitwise() -> None:

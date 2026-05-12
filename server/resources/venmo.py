@@ -1,7 +1,7 @@
 import logging
 from typing import Any, Dict, List
 
-from flask import Blueprint, Response, jsonify
+from apiflask import APIBlueprint
 from flask_jwt_extended import jwt_required
 from venmo_api.models.user import User
 
@@ -10,25 +10,28 @@ from constants import MOVING_DATE_POSIX, PARTIES_TO_IGNORE, USER_FIRST_NAME
 from dao import get_transactions
 from helpers import flip_amount
 from models.database import SessionLocal
+from resources._common import JWT_SECURITY
 from resources.line_item import LineItem
+from resources.schemas.venmo import RefreshResponse
 from utils.pg_bulk_ops import bulk_upsert_line_items, bulk_upsert_transactions
 
 logger = logging.getLogger(__name__)
 
-venmo_blueprint = Blueprint("venmo", __name__)
+venmo_blueprint = APIBlueprint("venmo", __name__)
 
 
-# TODO: Exceptions
 # TODO: Can I remove MOVING_DATE_POSIX
 # TODO: Can I remove PARTIES_TO_IGNORE
 
 
-@venmo_blueprint.route("/api/refresh/venmo")
+@venmo_blueprint.get("/api/refresh/venmo")
+@venmo_blueprint.output(RefreshResponse)
+@venmo_blueprint.doc(security=JWT_SECURITY)
 @jwt_required()
-def refresh_venmo_api() -> tuple[Response, int]:
+def refresh_venmo_api():
     refresh_venmo()
     venmo_to_line_items()
-    return jsonify("Refreshed Venmo Connection"), 200
+    return RefreshResponse(message="Refreshed Venmo Connection")
 
 
 def refresh_venmo() -> None:

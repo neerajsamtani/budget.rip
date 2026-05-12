@@ -1,12 +1,8 @@
 import { useQuery, UseQueryResult } from '@tanstack/react-query';
 import axiosInstance from '../utils/axiosInstance';
+import type { components } from '../types/api.generated';
 
-export interface User {
-  id: string;
-  email: string;
-  first_name: string;
-  last_name: string;
-}
+export type User = components['schemas']['UserOut'];
 
 export const authQueryKeys = {
   currentUser: ['currentUser'] as const,

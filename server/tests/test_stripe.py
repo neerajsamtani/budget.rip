@@ -84,7 +84,7 @@ class TestStripeAPI:
         )
 
         assert response.status_code == 200
-        assert response.get_data(as_text=True).strip() == '"Refreshed Stripe Connection"'
+        assert response.get_json()["message"] == "Refreshed Stripe Connection"
         mock_refresh.assert_called_once()
 
     def test_refresh_stripe_requires_authentication(self, test_client):
@@ -271,7 +271,7 @@ class TestStripeAPI:
             )
 
             assert response.status_code == 200
-            assert response.get_data(as_text=True).strip() == '"succeeded"'
+            assert response.get_json()["status"] == "succeeded"
 
     def test_refresh_account_updates_account_data(self, flask_app, mocker):
         """Refreshing account updates stored account data"""
@@ -301,9 +301,11 @@ class TestStripeAPI:
         mocker.patch("resources.stripe.STRIPE_CUSTOMER_ID", "test_customer_id")
 
         with flask_app.app_context():
+            from resources.schemas.stripe import FcSessionResponse
+
             mock_retrieve = mocker.patch("resources.stripe.stripe.financial_connections.Account.retrieve")
             mock_check_can_relink = mocker.patch("resources.stripe.check_can_relink")
-            mock_create_session = mocker.patch("resources.stripe.create_fc_session_api")
+            mock_build_session = mocker.patch("resources.stripe._build_fc_session")
 
             # Mock account
             mock_account = mocker.MagicMock()
@@ -316,9 +318,7 @@ class TestStripeAPI:
             mock_check_can_relink.return_value = True
 
             # Mock session creation
-            mock_session_response = mocker.Mock()
-            mock_session_response.json = {"client_secret": "fcsess_test123_secret"}
-            mock_create_session.return_value = (mock_session_response, 200)
+            mock_build_session.return_value = FcSessionResponse(clientSecret="fcsess_test123_secret")
 
             response = test_client.post(
                 "/api/relink_account/fca_test123",
@@ -327,7 +327,8 @@ class TestStripeAPI:
 
             assert response.status_code == 200
             data = response.get_json()
-            assert "client_secret" in data
+            assert "clientSecret" in data
+            assert data["clientSecret"] == "fcsess_test123_secret"
 
     def test_active_account_does_not_need_relink(self, test_client, jwt_token, flask_app, mocker):
         """Active account returns relink_required=false"""
@@ -797,3 +798,11 @@ class TestAccountBalances:
             assert isinstance(data["fca_test789"]["as_of"], int)
             assert data["fca_test789"]["name"] == "Test Bank Savings 5678"
             assert data["fca_test789"]["status"] == "active"
+
+
+class TestStripeSpec:
+    def test_openapi_spec_exposes_stripe_paths(self, test_client):
+        response = test_client.get("/api/openapi.json")
+        assert response.status_code == 200
+        paths = response.get_json()["paths"]
+        assert "/api/refresh/stripe" in paths

@@ -27,7 +27,327 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": unknown;
+                        "application/json": components["schemas"]["WelcomeResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get All Tags Api */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successful response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TagListResponse"];
+                    };
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get all events, optionally filtered by date range. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successful response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EventListResponse"];
+                    };
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Create a new event from one or more line items. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["EventCreateIn"];
+                };
+            };
+            responses: {
+                /** @description Successful response */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EventOut"];
+                    };
+                };
+                /** @description Bad request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ValidationError"];
+                    };
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Returns the current authenticated user's information. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successful response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["UserOut"];
+                    };
+                };
+                /** @description Bad request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Login User Api */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["LoginIn"];
+                };
+            };
+            responses: {
+                /** @description Successful response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LoginResponse"];
+                    };
+                };
+                /** @description Bad request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ValidationError"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/line_items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get all line items, optionally filtered by payment method or review status. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successful response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LineItemListResponse"];
+                    };
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
                     };
                 };
             };
@@ -134,6 +454,206 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/signup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Signup User Api */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["SignupIn"];
+                };
+            };
+            responses: {
+                /** @description Successful response */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SignupResponse"];
+                    };
+                };
+                /** @description Bad request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ValidationError"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Logout Api */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successful response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LogoutResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/event-hints": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get all event hints for the current user, ordered by display_order. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successful response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EventHintListResponse"];
+                    };
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Create a new event hint. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["EventHintCreateIn"];
+                };
+            };
+            responses: {
+                /** @description Successful response */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EventHintSingleResponse"];
+                    };
+                };
+                /** @description Bad request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ValidationError"];
+                    };
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/refresh/all": {
         parameters: {
             query?: never;
@@ -159,8 +679,186 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": unknown;
+                        "application/json": components["schemas"]["RefreshAllResponse"];
                     };
+                };
+                /** @description Bad request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/refresh/venmo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Refresh Venmo Api */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successful response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessageResponse"];
+                    };
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/refresh/stripe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Refresh Stripe Api */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successful response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessageResponse"];
+                    };
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/create_accounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Accounts Api */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["CreateAccountsIn"];
+                };
+            };
+            responses: {
+                /** @description Successful response */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CreateAccountsResponse"];
+                    };
+                };
+                /** @description Bad request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ValidationError"];
+                    };
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
                 };
             };
         };
@@ -191,7 +889,11 @@ export interface paths {
                 path?: never;
                 cookie?: never;
             };
-            requestBody?: never;
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["RefreshAccountIn"];
+                };
+            };
             responses: {
                 /** @description Successful response */
                 200: {
@@ -199,8 +901,33 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": unknown;
+                        "application/json": components["schemas"]["MessageResponse"];
                     };
+                };
+                /** @description Bad request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ValidationError"];
+                    };
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
                 };
             };
         };
@@ -236,13 +963,346 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": unknown;
+                        "application/json": components["schemas"]["PaymentMethodsResponse"];
+                    };
+                };
+                /** @description Bad request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/events/{event_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a single event by ID. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    event_id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successful response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EventOut"];
+                    };
+                };
+                /** @description Bad request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+            };
+        };
+        /** Update an existing event. */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    event_id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["EventUpdateIn"];
+                };
+            };
+            responses: {
+                /** @description Successful response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EventOut"];
+                    };
+                };
+                /** @description Bad request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ValidationError"];
+                    };
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Delete an event and unlink its line items. */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    event_id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successful response */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/monthly_breakdown": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get monthly spending breakdown grouped by category for graphing. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successful response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MonthlyBreakdownResponse"];
+                    };
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
                     };
                 };
             };
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/refresh/splitwise": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Refresh Splitwise Api */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successful response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessageResponse"];
+                    };
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/create-fc-session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Fc Session Api */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successful response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FcSessionResponse"];
+                    };
+                };
+                /** @description Bad request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -272,13 +1332,78 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": unknown;
+                        "application/json": components["schemas"]["MessageResponse"];
                     };
                 };
             };
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/manual_transaction": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create a manual transaction against any payment method. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ManualTransactionCreateIn"];
+                };
+            };
+            responses: {
+                /** @description Successful response */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ManualTransactionCreateResponse"];
+                    };
+                };
+                /** @description Bad request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ValidationError"];
+                    };
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -308,7 +1433,331 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": unknown;
+                        "application/json": components["schemas"]["ConnectedAccountsResponse"];
+                    };
+                };
+                /** @description Bad request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/event-hints/reorder": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Reorder event hints.
+         * @description Updates display_order to match the provided order.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ReorderIn"];
+                };
+            };
+            responses: {
+                /** @description Successful response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessageResponse"];
+                    };
+                };
+                /** @description Bad request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ValidationError"];
+                    };
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/subscribe_to_account": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Subscribe To Account Api */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["SubscribeToAccountIn"];
+                };
+            };
+            responses: {
+                /** @description Successful response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SubscribeStatusResponse"];
+                    };
+                };
+                /** @description Bad request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ValidationError"];
+                    };
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/event-hints/evaluate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Evaluate hints against provided line items.
+         * @description Returns a suggestion dict or null.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["EvaluateIn"];
+                };
+            };
+            responses: {
+                /** @description Successful response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EvaluateResponse"];
+                    };
+                };
+                /** @description Validation error */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ValidationError"];
+                    };
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/event-hints/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Validate a CEL expression without saving. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ValidateCelIn"];
+                };
+            };
+            responses: {
+                /** @description Successful response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ValidateCelResponse"];
+                    };
+                };
+                /** @description Validation error */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ValidationError"];
+                    };
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/accounts_and_balances": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get bank accounts with their latest balances.
+         * @description Balances are pre-fetched and stored on account records via refresh_account_balances()
+         *     to avoid N+1 query problem (previously made one Stripe API call per account).
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successful response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AccountsAndBalancesResponse"];
+                    };
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
                     };
                 };
             };
@@ -316,6 +1765,167 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/event-hints/{hint_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a single event hint by ID. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    hint_id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successful response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EventHintSingleResponse"];
+                    };
+                };
+                /** @description Bad request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+            };
+        };
+        /** Update an existing event hint. */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    hint_id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["EventHintUpdateIn"];
+                };
+            };
+            responses: {
+                /** @description Successful response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EventHintSingleResponse"];
+                    };
+                };
+                /** @description Bad request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ValidationError"];
+                    };
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Delete an event hint. */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    hint_id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successful response */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+            };
+        };
         options?: never;
         head?: never;
         patch?: never;
@@ -485,10 +2095,589 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/line_items/{line_item_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a single line item by ID. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    line_item_id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successful response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LineItemOut"];
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/get_accounts/{session_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Accounts Api */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    session_id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successful response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GetAccountsResponse"];
+                    };
+                };
+                /** @description Bad request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/relink_account/{account_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Relink Account Api */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    account_id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successful response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RelinkResponse"];
+                    };
+                };
+                /** @description Bad request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/refresh_account/{account_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Refresh Account Api */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    account_id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successful response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RefreshAccountResponse"];
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/refresh_transactions/{account_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Refresh Transactions Api */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    account_id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successful response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MessageResponse"];
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/manual_transaction/{transaction_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete a manual transaction and its associated line items. */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    transaction_id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successful response */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Bad request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/events/{event_id}/line_items_for_event": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get all line items belonging to an event. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    event_id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successful response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EventLineItemsResponse"];
+                    };
+                };
+                /** @description Bad request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+                /** @description Not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** WelcomeResponse */
+        WelcomeResponse: {
+            /** Message */
+            message: string;
+        };
+        /** TagOut */
+        "TagListResponse.TagOut": {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+        };
+        /** TagListResponse */
+        TagListResponse: {
+            /** Data */
+            data: components["schemas"]["TagListResponse.TagOut"][];
+        };
+        HTTPError: {
+            detail?: Record<string, never>;
+            message?: string;
+        };
+        /** EventOut */
+        "EventListResponse.EventOut": {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /**
+             * Category
+             * @default null
+             */
+            category: string | null;
+            /** Amount */
+            amount: number;
+            /** Date */
+            date: number;
+            /** Line Items */
+            line_items: string[];
+            /**
+             * Tags
+             * @default []
+             */
+            tags: string[];
+            /**
+             * Is Duplicate Transaction
+             * @default false
+             */
+            is_duplicate_transaction: boolean;
+        };
+        /** EventListResponse */
+        EventListResponse: {
+            /** Total */
+            total: number;
+            /** Data */
+            data: components["schemas"]["EventListResponse.EventOut"][];
+        };
+        /** EventOut */
+        EventOut: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /**
+             * Category
+             * @default null
+             */
+            category: string | null;
+            /** Amount */
+            amount: number;
+            /** Date */
+            date: number;
+            /** Line Items */
+            line_items: string[];
+            /**
+             * Tags
+             * @default []
+             */
+            tags: string[];
+            /**
+             * Is Duplicate Transaction
+             * @default false
+             */
+            is_duplicate_transaction: boolean;
+        };
+        ValidationError: {
+            detail?: {
+                "<location>"?: {
+                    "<field_name>"?: string[];
+                };
+            };
+            message?: string;
+        };
+        /** EventCreateIn */
+        EventCreateIn: {
+            /** Name */
+            name: string;
+            /**
+             * Category
+             * @default null
+             */
+            category: string | null;
+            /**
+             * Date
+             * @default null
+             */
+            date: string | null;
+            /** Line Items */
+            line_items: string[];
+            /**
+             * Tags
+             * @default []
+             */
+            tags: string[];
+            /**
+             * Is Duplicate Transaction
+             * @default false
+             */
+            is_duplicate_transaction: boolean;
+        };
+        /** UserOut */
+        UserOut: {
+            /** Id */
+            id: string;
+            /** Email */
+            email: string;
+            /** First Name */
+            first_name: string;
+            /** Last Name */
+            last_name: string;
+        };
+        /** LoginResponse */
+        LoginResponse: {
+            /** Login */
+            login: boolean;
+        };
+        /** LoginIn */
+        LoginIn: {
+            /**
+             * Email
+             * @default null
+             */
+            email: string | null;
+            /**
+             * Password
+             * @default null
+             */
+            password: string | null;
+        };
+        /** LineItemOut */
+        "LineItemListResponse.LineItemOut": {
+            /** Id */
+            id: string;
+            /** Date */
+            date: number;
+            /** Payment Method */
+            payment_method: string;
+            /** Description */
+            description: string;
+            /** Amount */
+            amount: number;
+            /**
+             * Responsible Party
+             * @default null
+             */
+            responsible_party: string | null;
+            /**
+             * Notes
+             * @default null
+             */
+            notes: string | null;
+            /**
+             * Is Manual
+             * @default false
+             */
+            is_manual: boolean;
+            /**
+             * Event Id
+             * @default null
+             */
+            event_id: string | null;
+        };
+        /** LineItemListResponse */
+        LineItemListResponse: {
+            /** Total */
+            total: number;
+            /** Data */
+            data: components["schemas"]["LineItemListResponse.LineItemOut"][];
+        };
         /** CategoryOut */
         "CategoryListResponse.CategoryOut": {
             /** Id */
@@ -501,10 +2690,6 @@ export interface components {
             /** Data */
             data: components["schemas"]["CategoryListResponse.CategoryOut"][];
         };
-        HTTPError: {
-            detail?: Record<string, never>;
-            message?: string;
-        };
         /** CategoryOut */
         "CategorySingleResponse.CategoryOut": {
             /** Id */
@@ -516,18 +2701,385 @@ export interface components {
         CategorySingleResponse: {
             data: components["schemas"]["CategorySingleResponse.CategoryOut"];
         };
-        ValidationError: {
-            detail?: {
-                "<location>"?: {
-                    "<field_name>"?: string[];
-                };
-            };
-            message?: string;
-        };
         /** CategoryCreateIn */
         CategoryCreateIn: {
             /** Name */
             name: string;
+        };
+        /** SignupResponse */
+        SignupResponse: {
+            /** Message */
+            message: string;
+        };
+        /** SignupIn */
+        SignupIn: {
+            /**
+             * First Name
+             * @default null
+             */
+            first_name: string | null;
+            /**
+             * Last Name
+             * @default null
+             */
+            last_name: string | null;
+            /**
+             * Email
+             * @default null
+             */
+            email: string | null;
+            /**
+             * Password
+             * @default null
+             */
+            password: string | null;
+        };
+        /** LogoutResponse */
+        LogoutResponse: {
+            /** Logout */
+            logout: boolean;
+        };
+        /** EventHintOut */
+        "EventHintListResponse.EventHintOut": {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Cel Expression */
+            cel_expression: string;
+            /** Prefill Name */
+            prefill_name: string;
+            /**
+             * Prefill Category
+             * @default null
+             */
+            prefill_category: string | null;
+            /**
+             * Prefill Category Id
+             * @default null
+             */
+            prefill_category_id: string | null;
+            /** Display Order */
+            display_order: number;
+            /** Is Active */
+            is_active: boolean;
+        };
+        /** EventHintListResponse */
+        EventHintListResponse: {
+            /** Data */
+            data: components["schemas"]["EventHintListResponse.EventHintOut"][];
+        };
+        /** EventHintOut */
+        "EventHintSingleResponse.EventHintOut": {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Cel Expression */
+            cel_expression: string;
+            /** Prefill Name */
+            prefill_name: string;
+            /**
+             * Prefill Category
+             * @default null
+             */
+            prefill_category: string | null;
+            /**
+             * Prefill Category Id
+             * @default null
+             */
+            prefill_category_id: string | null;
+            /** Display Order */
+            display_order: number;
+            /** Is Active */
+            is_active: boolean;
+        };
+        /** EventHintSingleResponse */
+        EventHintSingleResponse: {
+            data: components["schemas"]["EventHintSingleResponse.EventHintOut"];
+        };
+        /** EventHintCreateIn */
+        EventHintCreateIn: {
+            /** Name */
+            name: string;
+            /** Cel Expression */
+            cel_expression: string;
+            /** Prefill Name */
+            prefill_name: string;
+            /**
+             * Prefill Category Id
+             * @default null
+             */
+            prefill_category_id: string | null;
+            /**
+             * Is Active
+             * @default true
+             */
+            is_active: boolean | null;
+        };
+        /** LineItemOut */
+        "RefreshAllResponse.LineItemOut": {
+            /** Id */
+            id: string;
+            /** Date */
+            date: number;
+            /** Payment Method */
+            payment_method: string;
+            /** Description */
+            description: string;
+            /** Amount */
+            amount: number;
+            /**
+             * Responsible Party
+             * @default null
+             */
+            responsible_party: string | null;
+            /**
+             * Notes
+             * @default null
+             */
+            notes: string | null;
+            /**
+             * Is Manual
+             * @default false
+             */
+            is_manual: boolean;
+            /**
+             * Event Id
+             * @default null
+             */
+            event_id: string | null;
+        };
+        /** RefreshAllResponse */
+        RefreshAllResponse: {
+            /** Data */
+            data: components["schemas"]["RefreshAllResponse.LineItemOut"][];
+        };
+        /** MessageResponse */
+        MessageResponse: {
+            /** Message */
+            message: string;
+        };
+        /** CreateAccountsResponse */
+        CreateAccountsResponse: {
+            /** Data */
+            data: {
+                [key: string]: unknown;
+            }[];
+        };
+        /** CreateAccountsIn */
+        CreateAccountsIn: {
+            [key: string]: unknown;
+        }[];
+        /** RefreshAccountIn */
+        RefreshAccountIn: {
+            /**
+             * Accountid
+             * @default null
+             */
+            accountId: string | null;
+            /**
+             * Source
+             * @default null
+             */
+            source: string | null;
+        };
+        /** PaymentMethodOut */
+        "PaymentMethodsResponse.PaymentMethodOut": {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Type */
+            type: string;
+            /** Is Active */
+            is_active: boolean;
+        };
+        /** PaymentMethodsResponse */
+        PaymentMethodsResponse: {
+            /** Data */
+            data: components["schemas"]["PaymentMethodsResponse.PaymentMethodOut"][];
+        };
+        /** EventUpdateIn */
+        EventUpdateIn: {
+            /**
+             * Name
+             * @default null
+             */
+            name: string | null;
+            /**
+             * Category
+             * @default null
+             */
+            category: string | null;
+            /**
+             * Date
+             * @default null
+             */
+            date: string | null;
+            /** Line Items */
+            line_items: string[];
+            /**
+             * Tags
+             * @default []
+             */
+            tags: string[];
+            /**
+             * Is Duplicate Transaction
+             * @default false
+             */
+            is_duplicate_transaction: boolean;
+        };
+        /** MonthlyBreakdownEntry */
+        "MonthlyBreakdownResponse.MonthlyBreakdownEntry": {
+            /** Date */
+            date: string;
+            /** Amount */
+            amount: number;
+        };
+        /** MonthlyBreakdownResponse */
+        MonthlyBreakdownResponse: {
+            [key: string]: components["schemas"]["MonthlyBreakdownResponse.MonthlyBreakdownEntry"][];
+        };
+        /** FcSessionResponse */
+        FcSessionResponse: {
+            /** Clientsecret */
+            clientSecret: string;
+        };
+        /** ManualTransactionCreateResponse */
+        ManualTransactionCreateResponse: {
+            /** Message */
+            message: string;
+            /** Transaction Id */
+            transaction_id: string;
+        };
+        /** ManualTransactionCreateIn */
+        ManualTransactionCreateIn: {
+            /** Date */
+            date: string;
+            /** Person */
+            person: string;
+            /** Description */
+            description: string;
+            /** Amount */
+            amount: number;
+            /** Payment Method Id */
+            payment_method_id: string;
+        };
+        /** ConnectedAccountsResponse */
+        ConnectedAccountsResponse: {
+            [key: string]: unknown;
+        }[];
+        /** ReorderIn */
+        ReorderIn: {
+            /** Hint Ids */
+            hint_ids: string[];
+        };
+        /** SubscribeStatusResponse */
+        SubscribeStatusResponse: {
+            /** Status */
+            status: string;
+        };
+        /** SubscribeToAccountIn */
+        SubscribeToAccountIn: {
+            /** Account Id */
+            account_id: string;
+        };
+        /** EvaluateData */
+        "EvaluateResponse.EvaluateData": {
+            /** @default null */
+            suggestion: components["schemas"]["EvaluateResponse.EventHintSuggestionOut"] | null;
+        };
+        /** EventHintSuggestionOut */
+        "EvaluateResponse.EventHintSuggestionOut": {
+            /** Name */
+            name: string;
+            /**
+             * Category
+             * @default null
+             */
+            category: string | null;
+            /** Matched Hint Id */
+            matched_hint_id: string;
+            /** Matched Hint Name */
+            matched_hint_name: string;
+        };
+        /** EvaluateResponse */
+        EvaluateResponse: {
+            data: components["schemas"]["EvaluateResponse.EvaluateData"];
+        };
+        /** EvaluateIn */
+        EvaluateIn: {
+            /** Line Item Ids */
+            line_item_ids: string[];
+        };
+        /** ValidateCelData */
+        "ValidateCelResponse.ValidateCelData": {
+            /** Is Valid */
+            is_valid: boolean;
+            /**
+             * Error
+             * @default null
+             */
+            error: string | null;
+        };
+        /** ValidateCelResponse */
+        ValidateCelResponse: {
+            data: components["schemas"]["ValidateCelResponse.ValidateCelData"];
+        };
+        /** ValidateCelIn */
+        ValidateCelIn: {
+            /** Cel Expression */
+            cel_expression: string;
+        };
+        /** AccountBalanceOut */
+        "AccountsAndBalancesResponse.AccountBalanceOut": {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Balance */
+            balance: number;
+            /** Currency */
+            currency: string;
+            /** As Of */
+            as_of: number | null;
+            /** Status */
+            status: string;
+            /** Can Relink */
+            can_relink: boolean;
+        };
+        /** AccountsAndBalancesResponse */
+        AccountsAndBalancesResponse: {
+            [key: string]: components["schemas"]["AccountsAndBalancesResponse.AccountBalanceOut"];
+        };
+        /** EventHintUpdateIn */
+        EventHintUpdateIn: {
+            /**
+             * Name
+             * @default null
+             */
+            name: string | null;
+            /**
+             * Cel Expression
+             * @default null
+             */
+            cel_expression: string | null;
+            /**
+             * Prefill Name
+             * @default null
+             */
+            prefill_name: string | null;
+            /**
+             * Prefill Category Id
+             * @default null
+             */
+            prefill_category_id: string | null;
+            /**
+             * Is Active
+             * @default null
+             */
+            is_active: boolean | null;
         };
         /** CategoryUpdateIn */
         CategoryUpdateIn: {
@@ -536,6 +3088,102 @@ export interface components {
              * @default null
              */
             name: string | null;
+        };
+        /** LineItemOut */
+        LineItemOut: {
+            /** Id */
+            id: string;
+            /** Date */
+            date: number;
+            /** Payment Method */
+            payment_method: string;
+            /** Description */
+            description: string;
+            /** Amount */
+            amount: number;
+            /**
+             * Responsible Party
+             * @default null
+             */
+            responsible_party: string | null;
+            /**
+             * Notes
+             * @default null
+             */
+            notes: string | null;
+            /**
+             * Is Manual
+             * @default false
+             */
+            is_manual: boolean;
+            /**
+             * Event Id
+             * @default null
+             */
+            event_id: string | null;
+        };
+        /** GetAccountsResponse */
+        GetAccountsResponse: {
+            /** Accounts */
+            accounts: {
+                [key: string]: unknown;
+            }[];
+        };
+        /** RelinkResponse */
+        RelinkResponse: {
+            /**
+             * Relink Required
+             * @default null
+             */
+            relink_required: boolean | null;
+            /**
+             * Clientsecret
+             * @default null
+             */
+            clientSecret: string | null;
+        };
+        /** RefreshAccountResponse */
+        RefreshAccountResponse: {
+            /** Data */
+            data: string;
+        };
+        /** LineItemOut */
+        "EventLineItemsResponse.LineItemOut": {
+            /** Id */
+            id: string;
+            /** Date */
+            date: number;
+            /** Payment Method */
+            payment_method: string;
+            /** Description */
+            description: string;
+            /** Amount */
+            amount: number;
+            /**
+             * Responsible Party
+             * @default null
+             */
+            responsible_party: string | null;
+            /**
+             * Notes
+             * @default null
+             */
+            notes: string | null;
+            /**
+             * Is Manual
+             * @default false
+             */
+            is_manual: boolean;
+            /**
+             * Event Id
+             * @default null
+             */
+            event_id: string | null;
+        };
+        /** EventLineItemsResponse */
+        EventLineItemsResponse: {
+            /** Data */
+            data: components["schemas"]["EventLineItemsResponse.LineItemOut"][];
         };
     };
     responses: never;

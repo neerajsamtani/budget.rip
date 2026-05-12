@@ -117,12 +117,7 @@ export function useAccountsAndBalances(): UseQueryResult<unknown> {
   });
 }
 
-export interface PaymentMethod {
-  id: string;
-  name: string;
-  type: string;
-  is_active: boolean;
-}
+export type PaymentMethod = components['schemas']['PaymentMethodsResponse.PaymentMethodOut'];
 
 export function usePaymentMethods(): UseQueryResult<PaymentMethod[]> {
   return useQuery({
@@ -134,10 +129,7 @@ export function usePaymentMethods(): UseQueryResult<PaymentMethod[]> {
   });
 }
 
-export interface Tag {
-  id: string;
-  name: string;
-}
+export type Tag = components['schemas']['TagListResponse.TagOut'];
 
 export function useTags(): UseQueryResult<Tag[]> {
   return useQuery({
@@ -152,9 +144,9 @@ export function useTags(): UseQueryResult<Tag[]> {
 // Mutation Hooks
 interface CreateEventData {
   name: string;
-  category: string;
+  category?: string | null;
   line_items: string[];
-  date?: string;
+  date?: string | null;
   is_duplicate_transaction?: boolean;
   tags?: string[];
 }
@@ -178,10 +170,10 @@ export function useCreateEvent(): UseMutationResult<unknown, Error, CreateEventD
 
 interface UpdateEventData {
   eventId: string;
-  name: string;
-  category: string;
+  name?: string | null;
+  category?: string | null;
   line_items: string[];
-  date?: string;
+  date?: string | null;
   is_duplicate_transaction?: boolean;
   tags?: string[];
 }
@@ -353,23 +345,8 @@ export function useCreateFinancialConnectionsSession(): UseMutationResult<string
 }
 
 // Event Hints
-export interface EventHint {
-  id: string;
-  name: string;
-  cel_expression: string;
-  prefill_name: string;
-  prefill_category: string | null;
-  prefill_category_id: string | null;
-  display_order: number;
-  is_active: boolean;
-}
-
-export interface EventHintSuggestion {
-  name: string;
-  category: string | null;
-  matched_hint_id: string;
-  matched_hint_name: string;
-}
+export type EventHint = components['schemas']['EventHintListResponse.EventHintOut'];
+export type EventHintSuggestion = components['schemas']['EvaluateResponse.EventHintSuggestionOut'];
 
 export type CategoryOption = components['schemas']['CategoryListResponse.CategoryOut'];
 
@@ -450,13 +427,7 @@ export function useEvaluateEventHints(lineItemIds: string[], enabled: boolean = 
   });
 }
 
-interface CreateEventHintData {
-  name: string;
-  cel_expression: string;
-  prefill_name: string;
-  prefill_category_id?: string | null;
-  is_active?: boolean;
-}
+type CreateEventHintData = components['schemas']['EventHintCreateIn'];
 
 export function useCreateEventHint(): UseMutationResult<EventHint, Error, CreateEventHintData> {
   const queryClient = useQueryClient();
@@ -474,14 +445,7 @@ export function useCreateEventHint(): UseMutationResult<EventHint, Error, Create
   });
 }
 
-interface UpdateEventHintData {
-  id: string;
-  name?: string;
-  cel_expression?: string;
-  prefill_name?: string;
-  prefill_category_id?: string | null;
-  is_active?: boolean;
-}
+type UpdateEventHintData = Partial<components['schemas']['EventHintUpdateIn']> & { id: string };
 
 export function useUpdateEventHint(): UseMutationResult<EventHint, Error, UpdateEventHintData> {
   const queryClient = useQueryClient();
@@ -529,10 +493,7 @@ export function useReorderEventHints(): UseMutationResult<void, Error, string[]>
   });
 }
 
-interface ValidateCelResult {
-  is_valid: boolean;
-  error?: string;
-}
+type ValidateCelResult = components['schemas']['ValidateCelResponse.ValidateCelData'];
 
 export function useValidateCelExpression(): UseMutationResult<ValidateCelResult, Error, string> {
   return useMutation({

@@ -81,7 +81,7 @@ class TestVenmoAPI:
             )
 
             assert response.status_code == 200
-            assert response.get_json() == "Refreshed Venmo Connection"
+            assert response.get_json()["message"] == "Refreshed Venmo Connection"
             mock_refresh.assert_called_once()
 
     def test_refresh_venmo_requires_authentication(self, test_client):
@@ -419,6 +419,14 @@ class TestVenmoFunctions:
                 assert 25.0 in amounts  # Payment
                 assert 15.0 in amounts  # Charge
                 assert -10.0 in amounts  # Received (flipped)
+
+
+class TestVenmoSpec:
+    def test_openapi_spec_exposes_venmo_paths(self, test_client):
+        response = test_client.get("/api/openapi.json")
+        assert response.status_code == 200
+        paths = response.get_json()["paths"]
+        assert "/api/refresh/venmo" in paths
 
 
 class TestVenmoIntegration:

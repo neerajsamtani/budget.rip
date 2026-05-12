@@ -625,3 +625,11 @@ class TestMonthlyBreakdownAPI:
                 assert month.isdigit() and year.isdigit()
                 assert 1 <= int(month) <= 12
                 assert int(year) >= 2020  # Reasonable year range
+
+
+class TestMonthlyBreakdownSpec:
+    def test_openapi_spec_exposes_monthly_breakdown_paths(self, test_client):
+        response = test_client.get("/api/openapi.json")
+        assert response.status_code == 200
+        paths = response.get_json()["paths"]
+        assert "/api/monthly_breakdown" in paths
