@@ -2,6 +2,8 @@ from typing import Optional
 
 from pydantic import BaseModel
 
+from resources.schemas._common import ErrorResponse  # noqa: F401
+
 
 class LineItemOut(BaseModel):
     id: str
@@ -18,7 +20,3 @@ class LineItemOut(BaseModel):
 class LineItemListResponse(BaseModel):
     total: float
     data: list[LineItemOut]
-
-
-class ErrorResponse(BaseModel):
-    error: str

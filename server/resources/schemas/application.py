@@ -2,19 +2,12 @@ from typing import Optional
 
 from pydantic import BaseModel, RootModel
 
+from resources.schemas._common import ErrorResponse, MessageResponse  # noqa: F401
 from resources.schemas.line_item import LineItemOut
-
-
-class MessageResponse(BaseModel):
-    message: str
 
 
 class WelcomeResponse(BaseModel):
     message: str
-
-
-class ErrorResponse(BaseModel):
-    error: str
 
 
 class RefreshAccountIn(BaseModel):

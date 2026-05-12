@@ -736,7 +736,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["RefreshResponse"];
+                        "application/json": components["schemas"]["MessageResponse"];
                     };
                 };
                 /** @description Authentication error */
@@ -781,7 +781,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["RefreshResponse1"];
+                        "application/json": components["schemas"]["MessageResponse"];
                     };
                 };
                 /** @description Authentication error */
@@ -1228,7 +1228,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["RefreshResponse2"];
+                        "application/json": components["schemas"]["MessageResponse"];
                     };
                 };
                 /** @description Authentication error */
@@ -1500,7 +1500,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["MessageResponse1"];
+                        "application/json": components["schemas"]["MessageResponse"];
                     };
                 };
                 /** @description Bad request */
@@ -2340,7 +2340,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["RefreshResponse1"];
+                        "application/json": components["schemas"]["MessageResponse"];
                     };
                 };
                 /** @description Not found */
@@ -2855,13 +2855,8 @@ export interface components {
             /** Data */
             data: components["schemas"]["RefreshAllResponse.LineItemOut"][];
         };
-        /** RefreshResponse */
-        RefreshResponse: {
-            /** Message */
-            message: string;
-        };
-        /** RefreshResponse */
-        RefreshResponse1: {
+        /** MessageResponse */
+        MessageResponse: {
             /** Message */
             message: string;
         };
@@ -2876,11 +2871,6 @@ export interface components {
         CreateAccountsIn: {
             [key: string]: unknown;
         }[];
-        /** MessageResponse */
-        MessageResponse: {
-            /** Message */
-            message: string;
-        };
         /** RefreshAccountIn */
         RefreshAccountIn: {
             /**
@@ -2951,11 +2941,6 @@ export interface components {
         MonthlyBreakdownResponse: {
             [key: string]: components["schemas"]["MonthlyBreakdownResponse.MonthlyBreakdownEntry"][];
         };
-        /** RefreshResponse */
-        RefreshResponse2: {
-            /** Message */
-            message: string;
-        };
         /** FcSessionResponse */
         FcSessionResponse: {
             /** Clientsecret */
@@ -2985,11 +2970,6 @@ export interface components {
         ConnectedAccountsResponse: {
             [key: string]: unknown;
         }[];
-        /** MessageResponse */
-        MessageResponse1: {
-            /** Message */
-            message: string;
-        };
         /** ReorderIn */
         ReorderIn: {
             /** Hint Ids */

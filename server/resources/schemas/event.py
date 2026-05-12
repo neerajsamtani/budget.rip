@@ -2,6 +2,7 @@ from typing import Optional
 
 from pydantic import BaseModel
 
+from resources.schemas._common import ErrorResponse, MessageResponse  # noqa: F401
 from resources.schemas.line_item import LineItemOut  # noqa: F401
 
 
@@ -41,11 +42,3 @@ class EventUpdateIn(BaseModel):
     line_items: list[str]
     tags: list[str] = []
     is_duplicate_transaction: bool = False
-
-
-class MessageResponse(BaseModel):
-    message: str
-
-
-class ErrorResponse(BaseModel):
-    error: str

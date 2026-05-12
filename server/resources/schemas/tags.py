@@ -1,5 +1,7 @@
 from pydantic import BaseModel
 
+from resources.schemas._common import ErrorResponse  # noqa: F401
+
 
 class TagOut(BaseModel):
     id: str
@@ -8,7 +10,3 @@ class TagOut(BaseModel):
 
 class TagListResponse(BaseModel):
     data: list[TagOut]
-
-
-class ErrorResponse(BaseModel):
-    error: str

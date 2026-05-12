@@ -12,8 +12,8 @@ from dao import (
     get_line_item_amounts,
 )
 from helpers import get_or_404, html_date_to_posix
+from resources._common import JWT_SECURITY, STANDARD_ERROR_RESPONSES
 from resources.schemas.event import (
-    ErrorResponse,
     EventCreateIn,
     EventLineItemsResponse,
     EventListResponse,
@@ -21,21 +21,16 @@ from resources.schemas.event import (
     EventUpdateIn,
     MessageResponse,
 )
+from utils.pg_event_operations import delete_event_from_postgresql, upsert_event
 
 logger = logging.getLogger(__name__)
 
 events_blueprint = APIBlueprint("events", __name__)
 
-_SECURITY = [{"jwtCookie": []}]
-_ERROR_RESPONSES = {
-    400: {"description": "Bad request", "schema": ErrorResponse},
-    404: {"description": "Not found", "schema": ErrorResponse},
-}
-
 
 @events_blueprint.get("/api/events")
 @events_blueprint.output(EventListResponse)
-@events_blueprint.doc(security=_SECURITY)
+@events_blueprint.doc(security=JWT_SECURITY)
 @jwt_required()
 def all_events_api():
     """Get all events, optionally filtered by date range."""
@@ -51,7 +46,7 @@ def all_events_api():
 
 @events_blueprint.get("/api/events/<event_id>")
 @events_blueprint.output(EventOut)
-@events_blueprint.doc(security=_SECURITY, responses=_ERROR_RESPONSES)
+@events_blueprint.doc(security=JWT_SECURITY, responses=STANDARD_ERROR_RESPONSES)
 @jwt_required()
 def get_event_api(event_id: str):
     """Get a single event by ID."""
@@ -63,7 +58,7 @@ def get_event_api(event_id: str):
 @events_blueprint.post("/api/events")
 @events_blueprint.input(EventCreateIn, arg_name="body")
 @events_blueprint.output(EventOut, status_code=201)
-@events_blueprint.doc(security=_SECURITY, responses=_ERROR_RESPONSES)
+@events_blueprint.doc(security=JWT_SECURITY, responses=STANDARD_ERROR_RESPONSES)
 @jwt_required()
 def post_event_api(body: EventCreateIn):
     """Create a new event from one or more line items."""
@@ -87,8 +82,6 @@ def post_event_api(body: EventCreateIn):
         "amount": amount,
     }
 
-    from utils.pg_event_operations import upsert_event
-
     pg_event_id = upsert_event(event_dict)
     logger.info(f"Created event: {pg_event_id} with {len(line_items)} line items (amount: ${amount:.2f})")
     return EventOut(
@@ -106,7 +99,7 @@ def post_event_api(body: EventCreateIn):
 @events_blueprint.put("/api/events/<event_id>")
 @events_blueprint.input(EventUpdateIn, arg_name="body")
 @events_blueprint.output(EventOut)
-@events_blueprint.doc(security=_SECURITY, responses=_ERROR_RESPONSES)
+@events_blueprint.doc(security=JWT_SECURITY, responses=STANDARD_ERROR_RESPONSES)
 @jwt_required()
 def update_event_api(event_id: str, body: EventUpdateIn):
     """Update an existing event."""
@@ -133,8 +126,6 @@ def update_event_api(event_id: str, body: EventUpdateIn):
         "date": date,
     }
 
-    from utils.pg_event_operations import upsert_event
-
     upsert_event(event_dict)
     logger.info(f"Updated event: {event_id} with {len(line_items)} line items")
     return EventOut(
@@ -151,14 +142,10 @@ def update_event_api(event_id: str, body: EventUpdateIn):
 
 @events_blueprint.delete("/api/events/<event_id>")
 @events_blueprint.output(MessageResponse, status_code=204)
-@events_blueprint.doc(security=_SECURITY, responses=_ERROR_RESPONSES)
+@events_blueprint.doc(security=JWT_SECURITY, responses=STANDARD_ERROR_RESPONSES)
 @jwt_required()
 def delete_event_api(event_id: str):
     """Delete an event and unlink its line items."""
-    get_or_404(get_event_by_id(event_id), "Event not found")
-
-    from utils.pg_event_operations import delete_event_from_postgresql
-
     deleted = delete_event_from_postgresql(event_id)
     if not deleted:
         logger.warning(f"Event {event_id} not found in database")
@@ -170,7 +157,7 @@ def delete_event_api(event_id: str):
 
 @events_blueprint.get("/api/events/<event_id>/line_items_for_event")
 @events_blueprint.output(EventLineItemsResponse)
-@events_blueprint.doc(security=_SECURITY, responses=_ERROR_RESPONSES)
+@events_blueprint.doc(security=JWT_SECURITY, responses=STANDARD_ERROR_RESPONSES)
 @jwt_required()
 def get_line_items_for_event_api(event_id: str):
     """Get all line items belonging to an event."""

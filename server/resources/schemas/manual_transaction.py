@@ -1,5 +1,7 @@
 from pydantic import BaseModel
 
+from resources.schemas._common import ErrorResponse, MessageResponse  # noqa: F401
+
 
 class ManualTransactionCreateIn(BaseModel):
     date: str
@@ -12,11 +14,3 @@ class ManualTransactionCreateIn(BaseModel):
 class ManualTransactionCreateResponse(BaseModel):
     message: str
     transaction_id: str
-
-
-class MessageResponse(BaseModel):
-    message: str
-
-
-class ErrorResponse(BaseModel):
-    error: str

@@ -13,12 +13,12 @@ from dao import (
 )
 from helpers import cents_to_dollars, flip_amount
 from models.database import SessionLocal
+from resources._common import JWT_SECURITY, STANDARD_ERROR_RESPONSES
 from resources.line_item import LineItem
 from resources.schemas.stripe import (
     AccountsAndBalancesResponse,
     CreateAccountsIn,
     CreateAccountsResponse,
-    ErrorResponse,
     FcSessionResponse,
     GetAccountsResponse,
     RefreshAccountResponse,
@@ -37,11 +37,6 @@ logger = logging.getLogger(__name__)
 
 stripe_blueprint = APIBlueprint("stripe", __name__)
 
-_SECURITY = [{"jwtCookie": []}]
-_ERROR_RESPONSES = {
-    400: {"description": "Bad request", "schema": ErrorResponse},
-    404: {"description": "Not found", "schema": ErrorResponse},
-}
 
 if STRIPE_API_KEY is None:
     raise Exception("Stripe API Key is not set")
@@ -175,7 +170,7 @@ def _build_fc_session(relink_auth: Optional[str] = None) -> FcSessionResponse:
 
 @stripe_blueprint.get("/api/refresh/stripe")
 @stripe_blueprint.output(RefreshResponse)
-@stripe_blueprint.doc(security=_SECURITY)
+@stripe_blueprint.doc(security=JWT_SECURITY)
 @jwt_required()
 def refresh_stripe_api():
     refresh_stripe()
@@ -184,7 +179,7 @@ def refresh_stripe_api():
 
 @stripe_blueprint.post("/api/create-fc-session")
 @stripe_blueprint.output(FcSessionResponse)
-@stripe_blueprint.doc(security=_SECURITY, responses=_ERROR_RESPONSES)
+@stripe_blueprint.doc(security=JWT_SECURITY, responses=STANDARD_ERROR_RESPONSES)
 @jwt_required()
 def create_fc_session_api():
     return _build_fc_session()
@@ -193,7 +188,7 @@ def create_fc_session_api():
 @stripe_blueprint.post("/api/create_accounts")
 @stripe_blueprint.input(CreateAccountsIn, arg_name="body")
 @stripe_blueprint.output(CreateAccountsResponse, status_code=201)
-@stripe_blueprint.doc(security=_SECURITY, responses=_ERROR_RESPONSES)
+@stripe_blueprint.doc(security=JWT_SECURITY, responses=STANDARD_ERROR_RESPONSES)
 @jwt_required()
 def create_accounts_api(body: CreateAccountsIn):
     new_accounts = body.root
@@ -208,7 +203,7 @@ def create_accounts_api(body: CreateAccountsIn):
 
 @stripe_blueprint.get("/api/get_accounts/<session_id>")
 @stripe_blueprint.output(GetAccountsResponse)
-@stripe_blueprint.doc(security=_SECURITY, responses=_ERROR_RESPONSES)
+@stripe_blueprint.doc(security=JWT_SECURITY, responses=STANDARD_ERROR_RESPONSES)
 @jwt_required()
 def get_accounts_api(session_id: str):
     try:
@@ -225,7 +220,7 @@ def get_accounts_api(session_id: str):
 
 @stripe_blueprint.get("/api/accounts_and_balances")
 @stripe_blueprint.output(AccountsAndBalancesResponse)
-@stripe_blueprint.doc(security=_SECURITY)
+@stripe_blueprint.doc(security=JWT_SECURITY)
 @jwt_required()
 def get_accounts_and_balances_api():
     """
@@ -265,7 +260,7 @@ def get_accounts_and_balances_api():
 @stripe_blueprint.post("/api/subscribe_to_account")
 @stripe_blueprint.input(SubscribeToAccountIn, arg_name="body")
 @stripe_blueprint.output(SubscribeStatusResponse)
-@stripe_blueprint.doc(security=_SECURITY, responses=_ERROR_RESPONSES)
+@stripe_blueprint.doc(security=JWT_SECURITY, responses=STANDARD_ERROR_RESPONSES)
 @jwt_required()
 def subscribe_to_account_api(body: SubscribeToAccountIn):
     try:
@@ -297,7 +292,7 @@ def refresh_account_api(account_id: str):
 
 @stripe_blueprint.post("/api/relink_account/<account_id>")
 @stripe_blueprint.output(RelinkResponse)
-@stripe_blueprint.doc(security=_SECURITY, responses=_ERROR_RESPONSES)
+@stripe_blueprint.doc(security=JWT_SECURITY, responses=STANDARD_ERROR_RESPONSES)
 @jwt_required()
 def relink_account_api(account_id: str):
     try:

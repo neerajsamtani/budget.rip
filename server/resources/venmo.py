@@ -10,19 +10,14 @@ from constants import MOVING_DATE_POSIX, PARTIES_TO_IGNORE, USER_FIRST_NAME
 from dao import get_transactions
 from helpers import flip_amount
 from models.database import SessionLocal
+from resources._common import JWT_SECURITY
 from resources.line_item import LineItem
-from resources.schemas.venmo import ErrorResponse, RefreshResponse
+from resources.schemas.venmo import RefreshResponse
 from utils.pg_bulk_ops import bulk_upsert_line_items, bulk_upsert_transactions
 
 logger = logging.getLogger(__name__)
 
 venmo_blueprint = APIBlueprint("venmo", __name__)
-
-_SECURITY = [{"jwtCookie": []}]
-_ERROR_RESPONSES = {
-    400: {"description": "Bad request", "schema": ErrorResponse},
-    404: {"description": "Not found", "schema": ErrorResponse},
-}
 
 
 # TODO: Can I remove MOVING_DATE_POSIX
@@ -31,7 +26,7 @@ _ERROR_RESPONSES = {
 
 @venmo_blueprint.get("/api/refresh/venmo")
 @venmo_blueprint.output(RefreshResponse)
-@venmo_blueprint.doc(security=_SECURITY)
+@venmo_blueprint.doc(security=JWT_SECURITY)
 @jwt_required()
 def refresh_venmo_api():
     refresh_venmo()

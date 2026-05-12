@@ -14,8 +14,8 @@ from flask_jwt_extended import (
 from constants import GATED_USERS
 from dao import get_user_by_email
 from helpers import check_password, hash_password
+from resources._common import AUTH_ERROR_RESPONSES, JWT_SECURITY
 from resources.schemas.auth import (
-    ErrorResponse,
     LoginIn,
     LoginResponse,
     LogoutResponse,
@@ -30,18 +30,11 @@ logger = logging.getLogger(__name__)
 
 auth_blueprint = APIBlueprint("auth", __name__)
 
-_ERROR_RESPONSES = {
-    400: {"description": "Bad request", "schema": ErrorResponse},
-    401: {"description": "Unauthorized", "schema": ErrorResponse},
-    403: {"description": "Forbidden", "schema": ErrorResponse},
-    404: {"description": "Not found", "schema": ErrorResponse},
-}
-
 
 @auth_blueprint.post("/api/auth/signup")
 @auth_blueprint.input(SignupIn, arg_name="body")
 @auth_blueprint.output(SignupResponse, status_code=201)
-@auth_blueprint.doc(responses=_ERROR_RESPONSES)
+@auth_blueprint.doc(responses=AUTH_ERROR_RESPONSES)
 def signup_user_api(body: SignupIn):
     for field in ["first_name", "last_name", "email", "password"]:
         if not getattr(body, field):
@@ -74,7 +67,7 @@ def signup_user_api(body: SignupIn):
 @auth_blueprint.post("/api/auth/login")
 @auth_blueprint.input(LoginIn, arg_name="body")
 @auth_blueprint.output(LoginResponse)
-@auth_blueprint.doc(responses=_ERROR_RESPONSES)
+@auth_blueprint.doc(responses=AUTH_ERROR_RESPONSES)
 def login_user_api(body: LoginIn):
     for field in ["email", "password"]:
         if not getattr(body, field):
@@ -118,7 +111,7 @@ def logout_api():
 
 @auth_blueprint.get("/api/auth/me")
 @auth_blueprint.output(UserOut)
-@auth_blueprint.doc(security=[{"jwtCookie": []}], responses=_ERROR_RESPONSES)
+@auth_blueprint.doc(security=JWT_SECURITY, responses=AUTH_ERROR_RESPONSES)
 @jwt_required()
 def get_current_user_api():
     """Returns the current authenticated user's information."""

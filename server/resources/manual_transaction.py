@@ -7,8 +7,8 @@ from flask_jwt_extended import jwt_required
 
 from dao import create_manual_transaction, delete_manual_transaction, get_payment_method_by_id
 from helpers import html_date_to_posix
+from resources._common import JWT_SECURITY, STANDARD_ERROR_RESPONSES
 from resources.schemas.manual_transaction import (
-    ErrorResponse,
     ManualTransactionCreateIn,
     ManualTransactionCreateResponse,
     MessageResponse,
@@ -19,17 +19,11 @@ logger = logging.getLogger(__name__)
 
 manual_transaction_blueprint = APIBlueprint("manual_transaction", __name__)
 
-_SECURITY = [{"jwtCookie": []}]
-_ERROR_RESPONSES = {
-    400: {"description": "Bad request", "schema": ErrorResponse},
-    404: {"description": "Not found", "schema": ErrorResponse},
-}
-
 
 @manual_transaction_blueprint.post("/api/manual_transaction")
 @manual_transaction_blueprint.input(ManualTransactionCreateIn, arg_name="body")
 @manual_transaction_blueprint.output(ManualTransactionCreateResponse, status_code=201)
-@manual_transaction_blueprint.doc(security=_SECURITY, responses=_ERROR_RESPONSES)
+@manual_transaction_blueprint.doc(security=JWT_SECURITY, responses=STANDARD_ERROR_RESPONSES)
 @jwt_required()
 def create_manual_transaction_api(body: ManualTransactionCreateIn):
     """Create a manual transaction against any payment method."""
@@ -60,7 +54,7 @@ def create_manual_transaction_api(body: ManualTransactionCreateIn):
 
 @manual_transaction_blueprint.delete("/api/manual_transaction/<transaction_id>")
 @manual_transaction_blueprint.output(MessageResponse, status_code=204)
-@manual_transaction_blueprint.doc(security=_SECURITY, responses=_ERROR_RESPONSES)
+@manual_transaction_blueprint.doc(security=JWT_SECURITY, responses=STANDARD_ERROR_RESPONSES)
 @jwt_required()
 def delete_manual_transaction_api(transaction_id: str):
     """Delete a manual transaction and its associated line items."""

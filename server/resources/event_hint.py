@@ -16,8 +16,8 @@ from sqlalchemy.orm import joinedload
 from helpers import get_or_404
 from models.database import SessionLocal
 from models.sql_models import Category, EventHint, LineItem
+from resources._common import JWT_SECURITY, STANDARD_ERROR_RESPONSES
 from resources.schemas.event_hint import (
-    ErrorResponse,
     EvaluateIn,
     EvaluateResponse,
     EventHintCreateIn,
@@ -35,12 +35,6 @@ from utils.id_generator import generate_id
 logger = logging.getLogger(__name__)
 
 event_hints_blueprint = APIBlueprint("event_hints", __name__)
-
-_SECURITY = [{"jwtCookie": []}]
-_ERROR_RESPONSES = {
-    400: {"description": "Bad request", "schema": ErrorResponse},
-    404: {"description": "Not found", "schema": ErrorResponse},
-}
 
 
 def serialize_event_hint(hint: EventHint) -> dict[str, Any]:
@@ -69,7 +63,7 @@ def serialize_line_item_for_cel(line_item: LineItem) -> dict[str, Any]:
 
 @event_hints_blueprint.get("/api/event-hints")
 @event_hints_blueprint.output(EventHintListResponse)
-@event_hints_blueprint.doc(security=_SECURITY)
+@event_hints_blueprint.doc(security=JWT_SECURITY)
 @jwt_required()
 def get_all_event_hints():
     """Get all event hints for the current user, ordered by display_order."""
@@ -88,7 +82,7 @@ def get_all_event_hints():
 
 @event_hints_blueprint.get("/api/event-hints/<hint_id>")
 @event_hints_blueprint.output(EventHintSingleResponse)
-@event_hints_blueprint.doc(security=_SECURITY, responses=_ERROR_RESPONSES)
+@event_hints_blueprint.doc(security=JWT_SECURITY, responses=STANDARD_ERROR_RESPONSES)
 @jwt_required()
 def get_event_hint(hint_id: str):
     """Get a single event hint by ID."""
@@ -108,7 +102,7 @@ def get_event_hint(hint_id: str):
 @event_hints_blueprint.post("/api/event-hints")
 @event_hints_blueprint.input(EventHintCreateIn, arg_name="body")
 @event_hints_blueprint.output(EventHintSingleResponse, status_code=201)
-@event_hints_blueprint.doc(security=_SECURITY, responses=_ERROR_RESPONSES)
+@event_hints_blueprint.doc(security=JWT_SECURITY, responses=STANDARD_ERROR_RESPONSES)
 @jwt_required()
 def create_event_hint(body: EventHintCreateIn):
     """Create a new event hint."""
@@ -151,7 +145,7 @@ def create_event_hint(body: EventHintCreateIn):
 @event_hints_blueprint.put("/api/event-hints/reorder")
 @event_hints_blueprint.input(ReorderIn, arg_name="body")
 @event_hints_blueprint.output(MessageResponse)
-@event_hints_blueprint.doc(security=_SECURITY, responses=_ERROR_RESPONSES)
+@event_hints_blueprint.doc(security=JWT_SECURITY, responses=STANDARD_ERROR_RESPONSES)
 @jwt_required()
 def reorder_event_hints(body: ReorderIn):
     """
@@ -180,7 +174,7 @@ def reorder_event_hints(body: ReorderIn):
 @event_hints_blueprint.post("/api/event-hints/evaluate")
 @event_hints_blueprint.input(EvaluateIn, arg_name="body")
 @event_hints_blueprint.output(EvaluateResponse)
-@event_hints_blueprint.doc(security=_SECURITY)
+@event_hints_blueprint.doc(security=JWT_SECURITY)
 @jwt_required()
 def evaluate_event_hints(body: EvaluateIn):
     """
@@ -204,7 +198,7 @@ def evaluate_event_hints(body: EvaluateIn):
         hints = (
             db.query(EventHint)
             .options(joinedload(EventHint.prefill_category))
-            .filter(EventHint.user_id == user_id, EventHint.is_active == True)  # noqa: E712
+            .filter(EventHint.user_id == user_id, EventHint.is_active.is_(True))
             .order_by(EventHint.display_order)
             .all()
         )
@@ -223,7 +217,7 @@ def evaluate_event_hints(body: EvaluateIn):
 @event_hints_blueprint.post("/api/event-hints/validate")
 @event_hints_blueprint.input(ValidateCelIn, arg_name="body")
 @event_hints_blueprint.output(ValidateCelResponse)
-@event_hints_blueprint.doc(security=_SECURITY)
+@event_hints_blueprint.doc(security=JWT_SECURITY)
 @jwt_required()
 def validate_cel_expression(body: ValidateCelIn):
     """Validate a CEL expression without saving."""
@@ -237,7 +231,7 @@ def validate_cel_expression(body: ValidateCelIn):
 @event_hints_blueprint.put("/api/event-hints/<hint_id>")
 @event_hints_blueprint.input(EventHintUpdateIn, arg_name="body")
 @event_hints_blueprint.output(EventHintSingleResponse)
-@event_hints_blueprint.doc(security=_SECURITY, responses=_ERROR_RESPONSES)
+@event_hints_blueprint.doc(security=JWT_SECURITY, responses=STANDARD_ERROR_RESPONSES)
 @jwt_required()
 def update_event_hint(hint_id: str, body: EventHintUpdateIn):
     """Update an existing event hint."""
@@ -276,7 +270,7 @@ def update_event_hint(hint_id: str, body: EventHintUpdateIn):
 
 @event_hints_blueprint.delete("/api/event-hints/<hint_id>")
 @event_hints_blueprint.output(MessageResponse, status_code=204)
-@event_hints_blueprint.doc(security=_SECURITY, responses=_ERROR_RESPONSES)
+@event_hints_blueprint.doc(security=JWT_SECURITY, responses=STANDARD_ERROR_RESPONSES)
 @jwt_required()
 def delete_event_hint(hint_id: str):
     """Delete an event hint."""

@@ -8,13 +8,12 @@ from flask_jwt_extended import jwt_required
 
 from dao import get_categorized_data
 from helpers import empty_list
+from resources._common import JWT_SECURITY
 from resources.schemas.monthly_breakdown import MonthlyBreakdownResponse
 
 logger = logging.getLogger(__name__)
 
 monthly_breakdown_blueprint = APIBlueprint("monthly_breakdown", __name__)
-
-_SECURITY = [{"jwtCookie": []}]
 
 
 def month_year_range(all_dates_dt: List[datetime]) -> List[str]:
@@ -36,7 +35,7 @@ def month_year_range(all_dates_dt: List[datetime]) -> List[str]:
 
 @monthly_breakdown_blueprint.get("/api/monthly_breakdown")
 @monthly_breakdown_blueprint.output(MonthlyBreakdownResponse)
-@monthly_breakdown_blueprint.doc(security=_SECURITY)
+@monthly_breakdown_blueprint.doc(security=JWT_SECURITY)
 @jwt_required()
 def get_monthly_breakdown_api():
     """Get monthly spending breakdown grouped by category for graphing."""

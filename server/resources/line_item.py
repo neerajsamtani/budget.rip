@@ -7,17 +7,13 @@ from flask import request
 from flask_jwt_extended import jwt_required
 
 from dao import get_all_line_items, get_line_item_by_id
-from helpers import sort_by_date_amount_descending, str_to_bool
-from resources.schemas.line_item import ErrorResponse, LineItemListResponse, LineItemOut
+from helpers import get_or_404, sort_by_date_amount_descending, str_to_bool
+from resources._common import JWT_SECURITY, NOT_FOUND_RESPONSE
+from resources.schemas.line_item import LineItemListResponse, LineItemOut
 
 logger = logging.getLogger(__name__)
 
 line_items_blueprint = APIBlueprint("line_items", __name__)
-
-_SECURITY = [{"jwtCookie": []}]
-_ERROR_RESPONSES = {
-    404: {"description": "Not found", "schema": ErrorResponse},
-}
 
 
 class LineItem:
@@ -81,7 +77,7 @@ class LineItem:
 
 @line_items_blueprint.get("/api/line_items")
 @line_items_blueprint.output(LineItemListResponse)
-@line_items_blueprint.doc(security=_SECURITY)
+@line_items_blueprint.doc(security=JWT_SECURITY)
 @jwt_required()
 def all_line_items_api():
     """Get all line items, optionally filtered by payment method or review status."""
@@ -112,11 +108,9 @@ def all_line_items(
 
 @line_items_blueprint.get("/api/line_items/<line_item_id>")
 @line_items_blueprint.output(LineItemOut)
-@line_items_blueprint.doc(responses=_ERROR_RESPONSES)
+@line_items_blueprint.doc(responses=NOT_FOUND_RESPONSE)
 def get_line_item_api(line_item_id: str):
     """Get a single line item by ID."""
-    from helpers import get_or_404
-
     line_item = get_or_404(get_line_item_by_id(line_item_id), "Line item not found")
     logger.info(f"Retrieved line item: {line_item_id}")
     return LineItemOut(**line_item)

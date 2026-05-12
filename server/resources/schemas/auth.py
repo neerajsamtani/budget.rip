@@ -2,6 +2,8 @@ from typing import Optional
 
 from pydantic import BaseModel
 
+from resources.schemas._common import ErrorResponse  # noqa: F401
+
 
 class SignupIn(BaseModel):
     first_name: Optional[str] = None
@@ -32,7 +34,3 @@ class LoginResponse(BaseModel):
 
 class LogoutResponse(BaseModel):
     logout: bool
-
-
-class ErrorResponse(BaseModel):
-    error: str

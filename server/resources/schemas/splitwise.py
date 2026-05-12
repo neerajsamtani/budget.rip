@@ -1,9 +1,3 @@
-from pydantic import BaseModel
+from resources.schemas._common import ErrorResponse, MessageResponse  # noqa: F401
 
-
-class RefreshResponse(BaseModel):
-    message: str
-
-
-class ErrorResponse(BaseModel):
-    error: str
+RefreshResponse = MessageResponse

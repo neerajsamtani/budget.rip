@@ -1,5 +1,7 @@
 from pydantic import BaseModel, RootModel
 
+from resources.schemas._common import ErrorResponse  # noqa: F401
+
 
 class MonthlyBreakdownEntry(BaseModel):
     date: str
@@ -10,7 +12,3 @@ class MonthlyBreakdownEntry(BaseModel):
 # not a fixed-field object. model_dump() on a RootModel returns the root value directly.
 class MonthlyBreakdownResponse(RootModel[dict[str, list[MonthlyBreakdownEntry]]]):
     pass
-
-
-class ErrorResponse(BaseModel):
-    error: str

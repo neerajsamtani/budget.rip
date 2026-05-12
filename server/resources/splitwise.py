@@ -9,19 +9,14 @@ from constants import LIMIT, MOVING_DATE, PARTIES_TO_IGNORE, USER_FIRST_NAME
 from dao import get_transactions
 from helpers import flip_amount, iso_8601_to_posix
 from models.database import SessionLocal
+from resources._common import JWT_SECURITY
 from resources.line_item import LineItem
-from resources.schemas.splitwise import ErrorResponse, RefreshResponse
+from resources.schemas.splitwise import RefreshResponse
 from utils.pg_bulk_ops import bulk_upsert_line_items, bulk_upsert_transactions
 
 logger = logging.getLogger(__name__)
 
 splitwise_blueprint = APIBlueprint("splitwise", __name__)
-
-_SECURITY = [{"jwtCookie": []}]
-_ERROR_RESPONSES = {
-    400: {"description": "Bad request", "schema": ErrorResponse},
-    404: {"description": "Not found", "schema": ErrorResponse},
-}
 
 
 # TODO: Integrate with Splitwise OAuth to enable other people to use this without submitting API Keys
@@ -30,7 +25,7 @@ _ERROR_RESPONSES = {
 
 @splitwise_blueprint.get("/api/refresh/splitwise")
 @splitwise_blueprint.output(RefreshResponse)
-@splitwise_blueprint.doc(security=_SECURITY)
+@splitwise_blueprint.doc(security=JWT_SECURITY)
 @jwt_required()
 def refresh_splitwise_api():
     refresh_splitwise()

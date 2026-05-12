@@ -1,8 +1,8 @@
 from pydantic import BaseModel, RootModel
 
+from resources.schemas._common import ErrorResponse, MessageResponse  # noqa: F401
 
-class RefreshResponse(BaseModel):
-    message: str
+RefreshResponse = MessageResponse
 
 
 class FcSessionResponse(BaseModel):
@@ -52,7 +52,3 @@ class RefreshAccountResponse(BaseModel):
 class RelinkResponse(BaseModel):
     relink_required: bool | None = None
     clientSecret: str | None = None
-
-
-class ErrorResponse(BaseModel):
-    error: str

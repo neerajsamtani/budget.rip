@@ -2,6 +2,8 @@ from typing import Optional
 
 from pydantic import BaseModel
 
+from resources.schemas._common import ErrorResponse, MessageResponse  # noqa: F401
+
 
 class CategoryOut(BaseModel):
     id: str
@@ -22,11 +24,3 @@ class CategoryListResponse(BaseModel):
 
 class CategorySingleResponse(BaseModel):
     data: CategoryOut
-
-
-class MessageResponse(BaseModel):
-    message: str
-
-
-class ErrorResponse(BaseModel):
-    error: str

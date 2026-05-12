@@ -31,6 +31,9 @@ from constants import (
     VENMO_ACCESS_TOKEN,
 )
 from dao import get_all_bank_accounts, get_user_by_id
+from models.database import SessionLocal
+from models.sql_models import PaymentMethod
+from resources._common import JWT_SECURITY, STANDARD_ERROR_RESPONSES
 from resources.auth import auth_blueprint
 from resources.category import categories_blueprint
 from resources.event import events_blueprint
@@ -40,7 +43,6 @@ from resources.manual_transaction import manual_transaction_blueprint
 from resources.monthly_breakdown import monthly_breakdown_blueprint
 from resources.schemas.application import (
     ConnectedAccountsResponse,
-    ErrorResponse,
     MessageResponse,
     PaymentMethodOut,
     PaymentMethodsResponse,
@@ -139,11 +141,6 @@ application.register_blueprint(tags_blueprint)
 application.register_blueprint(event_hints_blueprint)
 application.register_blueprint(categories_blueprint)
 
-_SECURITY = [{"jwtCookie": []}]
-_ERROR_RESPONSES = {
-    400: {"description": "Bad request", "schema": ErrorResponse},
-    404: {"description": "Not found", "schema": ErrorResponse},
-}
 
 # If an environment variable is not found in the .env file,
 # load_dotenv will then search for a variable by the given name in the host environment.
@@ -196,7 +193,7 @@ def schedule_refresh_api():
 
 @application.post("/api/refresh/all")
 @application.output(RefreshAllResponse)
-@application.doc(security=_SECURITY, responses=_ERROR_RESPONSES)
+@application.doc(security=JWT_SECURITY, responses=STANDARD_ERROR_RESPONSES)
 @jwt_required()
 def refresh_all_api():
     refresh_all()
@@ -208,7 +205,7 @@ def refresh_all_api():
 @application.post("/api/refresh/account")
 @application.input(RefreshAccountIn, arg_name="body")
 @application.output(MessageResponse)
-@application.doc(security=_SECURITY, responses=_ERROR_RESPONSES)
+@application.doc(security=JWT_SECURITY, responses=STANDARD_ERROR_RESPONSES)
 @jwt_required()
 def refresh_single_account_api(body: RefreshAccountIn):
     """
@@ -245,7 +242,7 @@ def refresh_single_account_api(body: RefreshAccountIn):
 
 @application.get("/api/connected_accounts")
 @application.output(ConnectedAccountsResponse)
-@application.doc(security=_SECURITY, responses=_ERROR_RESPONSES)
+@application.doc(security=JWT_SECURITY, responses=STANDARD_ERROR_RESPONSES)
 @jwt_required()
 def get_connected_accounts_api():
     connected_accounts: List[Dict[str, Any]] = []
@@ -255,13 +252,8 @@ def get_connected_accounts_api():
         raise Exception("Failed to get Venmo profile")
     connected_accounts.append({"venmo": [profile.username]})
     # splitwise
-    connected_accounts.append(
-        {
-            "splitwise": [
-                f"{splitwise_client.getCurrentUser().getFirstName()} {splitwise_client.getCurrentUser().getLastName()}"
-            ]
-        }
-    )
+    splitwise_user = splitwise_client.getCurrentUser()
+    connected_accounts.append({"splitwise": [f"{splitwise_user.getFirstName()} {splitwise_user.getLastName()}"]})
     # stripe
     bank_accounts: List[Dict[str, Any]] = get_all_bank_accounts(None)
     connected_accounts.append({"stripe": bank_accounts})
@@ -270,7 +262,7 @@ def get_connected_accounts_api():
 
 @application.get("/api/payment_methods")
 @application.output(PaymentMethodsResponse)
-@application.doc(security=_SECURITY, responses=_ERROR_RESPONSES)
+@application.doc(security=JWT_SECURITY, responses=STANDARD_ERROR_RESPONSES)
 @jwt_required()
 def get_payment_methods_api():
     """
@@ -278,9 +270,6 @@ def get_payment_methods_api():
 
     Returns full payment method objects including id, name, type, and is_active.
     """
-    from models.database import SessionLocal
-    from models.sql_models import PaymentMethod
-
     with SessionLocal.begin() as db:
         payment_methods = db.query(PaymentMethod).all()
         result = [PaymentMethodOut(id=pm.id, name=pm.name, type=pm.type, is_active=pm.is_active) for pm in payment_methods]

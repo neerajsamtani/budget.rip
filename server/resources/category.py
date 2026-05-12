@@ -13,12 +13,12 @@ from sqlalchemy.exc import IntegrityError
 from helpers import get_or_404
 from models.database import SessionLocal
 from models.sql_models import Category
+from resources._common import JWT_SECURITY, STANDARD_ERROR_RESPONSES
 from resources.schemas.category import (
     CategoryCreateIn,
     CategoryListResponse,
     CategorySingleResponse,
     CategoryUpdateIn,
-    ErrorResponse,
     MessageResponse,
 )
 from utils.id_generator import generate_id
@@ -27,16 +27,10 @@ logger = logging.getLogger(__name__)
 
 categories_blueprint = APIBlueprint("categories", __name__)
 
-_SECURITY = [{"jwtCookie": []}]
-_ERROR_RESPONSES = {
-    400: {"description": "Bad request", "schema": ErrorResponse},
-    404: {"description": "Not found", "schema": ErrorResponse},
-}
-
 
 @categories_blueprint.get("/api/categories")
 @categories_blueprint.output(CategoryListResponse)
-@categories_blueprint.doc(security=_SECURITY)
+@categories_blueprint.doc(security=JWT_SECURITY)
 @jwt_required()
 def get_all_categories():
     """Get all categories for the current user, ordered by name."""
@@ -49,7 +43,7 @@ def get_all_categories():
 
 @categories_blueprint.get("/api/categories/<category_id>")
 @categories_blueprint.output(CategorySingleResponse)
-@categories_blueprint.doc(security=_SECURITY, responses=_ERROR_RESPONSES)
+@categories_blueprint.doc(security=JWT_SECURITY, responses=STANDARD_ERROR_RESPONSES)
 @jwt_required()
 def get_category(category_id: str):
     """Get a single category by ID for the current user."""
@@ -66,7 +60,7 @@ def get_category(category_id: str):
 @categories_blueprint.post("/api/categories")
 @categories_blueprint.input(CategoryCreateIn, arg_name="body")
 @categories_blueprint.output(CategorySingleResponse, status_code=201)
-@categories_blueprint.doc(security=_SECURITY, responses=_ERROR_RESPONSES)
+@categories_blueprint.doc(security=JWT_SECURITY, responses=STANDARD_ERROR_RESPONSES)
 @jwt_required()
 def create_category(body: CategoryCreateIn):
     """Create a new category for the current user."""
@@ -93,7 +87,7 @@ def create_category(body: CategoryCreateIn):
 @categories_blueprint.put("/api/categories/<category_id>")
 @categories_blueprint.input(CategoryUpdateIn, arg_name="body")
 @categories_blueprint.output(CategorySingleResponse)
-@categories_blueprint.doc(security=_SECURITY, responses=_ERROR_RESPONSES)
+@categories_blueprint.doc(security=JWT_SECURITY, responses=STANDARD_ERROR_RESPONSES)
 @jwt_required()
 def update_category(category_id: str, body: CategoryUpdateIn):
     """Update an existing category for the current user."""
@@ -123,7 +117,7 @@ def update_category(category_id: str, body: CategoryUpdateIn):
 
 @categories_blueprint.delete("/api/categories/<category_id>")
 @categories_blueprint.output(MessageResponse, status_code=204)
-@categories_blueprint.doc(security=_SECURITY, responses=_ERROR_RESPONSES)
+@categories_blueprint.doc(security=JWT_SECURITY, responses=STANDARD_ERROR_RESPONSES)
 @jwt_required()
 def delete_category(category_id: str):
     """
