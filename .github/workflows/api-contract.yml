@@ -30,7 +30,7 @@ jobs:
           cd server
           uv sync
 
-      - name: Dump OpenAPI spec
+      - name: Regenerate OpenAPI spec
         run: |
           cd server
           uv run python scripts/dump_openapi.py > openapi.json
@@ -46,6 +46,11 @@ jobs:
           TESTING: "true"
           DATABASE_HOST: sqlite
           DATABASE_NAME: ":memory:"
+
+      - name: Fail if committed openapi.json is stale
+        run: |
+          git diff --exit-code server/openapi.json || \
+            (echo "❌ server/openapi.json is out of date. Run 'make api' in server/ and commit the result." && exit 1)
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -70,4 +75,4 @@ jobs:
       - name: Fail if committed types are stale
         run: |
           git diff --exit-code client/src/types/api.generated.ts || \
-            (echo "❌ api.generated.ts is out of date. Run 'npm run generate:api:from-file' and commit the result." && exit 1)
+            (echo "❌ api.generated.ts is out of date. Run 'make api' in server/ and commit the result." && exit 1)

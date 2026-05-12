@@ -2,7 +2,7 @@
 
 # Dummy env vars so application.py imports cleanly when generating the OpenAPI spec
 # (mirrors the test env: SQLite in-memory, placeholder secrets)
-OPENAPI_ENV := DATABASE_HOST=sqlite DATABASE_NAME=:memory: \
+OPENAPI_ENV := TESTING=true DATABASE_HOST=sqlite DATABASE_NAME=:memory: \
 	JWT_SECRET_KEY=x JWT_COOKIE_DOMAIN=x \
 	VENMO_ACCESS_TOKEN=x \
 	SPLITWISE_CONSUMER_KEY=x SPLITWISE_CONSUMER_SECRET=x SPLITWISE_API_KEY=x \
@@ -73,8 +73,7 @@ dev-setup: install ## Set up development environment
 
 openapi: ## Regenerate server/openapi.json from application.spec
 	@echo "Regenerating openapi.json..."
-	@$(OPENAPI_ENV) uv run python -c "import json, sys; from application import application; \
-		application.app_context().push(); json.dump(application.spec, sys.stdout)" > openapi.json
+	@$(OPENAPI_ENV) uv run python scripts/dump_openapi.py > openapi.json
 	@echo "✓ openapi.json updated"
 
 types: openapi ## Regenerate client TypeScript types from openapi.json
