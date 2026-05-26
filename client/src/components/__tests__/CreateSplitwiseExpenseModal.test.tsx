@@ -83,6 +83,16 @@ describe('CreateSplitwiseExpenseModal', () => {
     expect(screen.getByRole('button', { name: 'Create Expense' })).toBeDisabled();
   });
 
+  it('disables creation when the amount is invalid', async () => {
+    render(<CreateSplitwiseExpenseModal show={true} onHide={onHide} selectedLineItems={selectedLineItems} />);
+
+    await userEvent.click(screen.getByText('Alice Smith'));
+    await userEvent.clear(screen.getByLabelText('Amount'));
+    await userEvent.type(screen.getByLabelText('Amount'), 'e');
+
+    expect(screen.getByRole('button', { name: 'Create Expense' })).toBeDisabled();
+  });
+
   it('remounts with fresh defaults when selected line items change', async () => {
     const { rerender } = render(<CreateSplitwiseExpenseModal show={true} onHide={onHide} selectedLineItems={selectedLineItems} />);
     await userEvent.clear(screen.getByLabelText('Description'));

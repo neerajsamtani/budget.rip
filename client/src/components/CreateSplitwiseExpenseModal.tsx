@@ -73,7 +73,8 @@ function CreateSplitwiseExpenseForm({
     });
   };
 
-  const disableSubmit = !description.trim() || Number(amount) <= 0 || friendIds.length === 0 || createExpenseMutation.isPending;
+  const parsedAmount = Number(amount);
+  const disableSubmit = !description.trim() || !Number.isFinite(parsedAmount) || parsedAmount <= 0 || friendIds.length === 0 || createExpenseMutation.isPending;
 
   return (
     <ResponsiveDialog open={show} onOpenChange={onHide} className={isMobile ? "" : "w-full !max-w-[34rem]"}>
