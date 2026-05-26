@@ -85,12 +85,13 @@ def create_splitwise_expense_api(body: SplitwiseExpenseCreateIn):
 
 
 def list_splitwise_friends(client) -> List[Dict[str, Any]]:
-    return [serialize_splitwise_friend(friend) for friend in client.getFriends()]
+    friends = [serialize_splitwise_friend(friend) for friend in client.getFriends()]
+    return sorted(friends, key=lambda friend: friend["name"].lower())
 
 
 def serialize_splitwise_friend(friend) -> Dict[str, Any]:
-    first_name = friend.getFirstName()
-    last_name = friend.getLastName()
+    first_name = title_case_name(friend.getFirstName())
+    last_name = title_case_name(friend.getLastName())
     return {
         "id": friend.getId(),
         "first_name": first_name,
@@ -98,6 +99,10 @@ def serialize_splitwise_friend(friend) -> Dict[str, Any]:
         "name": f"{first_name} {last_name}".strip(),
         "email": friend.getEmail(),
     }
+
+
+def title_case_name(name: str | None) -> str:
+    return (name or "").title()
 
 
 def create_splitwise_equal_expense(client, data: Dict[str, Any]):

@@ -349,8 +349,16 @@ describe('useApi hooks', () => {
     });
 
     describe('useCreateSplitwiseExpense', () => {
-        it('creates a Splitwise expense', async () => {
-            mockPost.mockResolvedValue({ data: { id: 'splitwise_123' } });
+        it('creates a Splitwise expense and starts refreshing Splitwise data', async () => {
+            let finishRefresh: () => void = () => {};
+            mockPost.mockImplementation((url: string) => {
+                if (url === 'api/refresh/account') {
+                    return new Promise((resolve) => {
+                        finishRefresh = () => resolve({ data: { message: 'success' } });
+                    });
+                }
+                return Promise.resolve({ data: { id: 'splitwise_123' } });
+            });
 
             const { result } = renderHook(() => useCreateSplitwiseExpense(), {
                 wrapper: createWrapper(),
@@ -373,6 +381,11 @@ describe('useApi hooks', () => {
                 date: '2024-01-15',
                 currency_code: 'USD',
             });
+            expect(mockPost).toHaveBeenCalledWith('api/refresh/account', {
+                accountId: 'splitwise',
+                source: 'splitwise',
+            });
+            finishRefresh();
         });
     });
 

@@ -253,7 +253,11 @@ export function useCreateSplitwiseExpense(): UseMutationResult<unknown, Error, C
       return response.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['lineItems'] });
+      queryClient.invalidateQueries({ queryKey: ['connectedAccounts'] });
+      void axiosInstance
+        .post('api/refresh/account', { accountId: 'splitwise', source: 'splitwise' })
+        .then(() => queryClient.invalidateQueries({ queryKey: ['lineItems'] }))
+        .catch((error) => console.error('Failed to refresh Splitwise after expense creation', error));
     },
   });
 }

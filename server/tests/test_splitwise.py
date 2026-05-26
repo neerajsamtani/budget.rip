@@ -99,14 +99,19 @@ class TestSplitwiseAPI:
         assert response.status_code == 401
 
     def test_splitwise_friends_are_returned(self, test_client, jwt_token, mocker):
-        """Splitwise friends are returned in a UI-friendly shape"""
+        """Splitwise friends are returned alphabetically with title-cased names"""
         friend = mocker.Mock()
         friend.getId.return_value = 123
-        friend.getFirstName.return_value = "Alice"
-        friend.getLastName.return_value = "Smith"
-        friend.getEmail.return_value = "alice@example.com"
+        friend.getFirstName.return_value = "zoe"
+        friend.getLastName.return_value = "smith"
+        friend.getEmail.return_value = "zoe@example.com"
+        earlier_friend = mocker.Mock()
+        earlier_friend.getId.return_value = 456
+        earlier_friend.getFirstName.return_value = "alice"
+        earlier_friend.getLastName.return_value = "jones"
+        earlier_friend.getEmail.return_value = "alice@example.com"
         mock_splitwise_client = mocker.patch("resources.splitwise.splitwise_client")
-        mock_splitwise_client.getFriends.return_value = [friend]
+        mock_splitwise_client.getFriends.return_value = [friend, earlier_friend]
 
         response = test_client.get(
             "/api/splitwise/friends",
@@ -116,12 +121,19 @@ class TestSplitwiseAPI:
         assert response.status_code == 200
         assert response.get_json()["data"] == [
             {
-                "id": 123,
+                "id": 456,
                 "first_name": "Alice",
-                "last_name": "Smith",
-                "name": "Alice Smith",
+                "last_name": "Jones",
+                "name": "Alice Jones",
                 "email": "alice@example.com",
-            }
+            },
+            {
+                "id": 123,
+                "first_name": "Zoe",
+                "last_name": "Smith",
+                "name": "Zoe Smith",
+                "email": "zoe@example.com",
+            },
         ]
 
     def test_splitwise_expense_creates_equal_split(self, test_client, jwt_token, mocker):
