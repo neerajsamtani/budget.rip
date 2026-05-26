@@ -1,6 +1,7 @@
 import json
 import re
 from datetime import datetime, timezone
+from decimal import ROUND_HALF_UP, Decimal
 from typing import Any, Dict, List, TypeVar, Union
 
 from apiflask import abort
@@ -29,6 +30,10 @@ def flip_amount(amount: float) -> float:
 
 def cents_to_dollars(amount: float) -> float:
     return 0.01 * round(float(amount), 2)
+
+
+def format_money(amount: Decimal) -> str:
+    return str(amount.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
 
 
 def to_dict(obj: Any) -> Dict[str, Any]:

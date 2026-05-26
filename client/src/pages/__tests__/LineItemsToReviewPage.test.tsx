@@ -23,6 +23,16 @@ jest.mock('../../components/CreateManualTransactionModal', () => {
     };
 });
 
+jest.mock('../../components/CreateSplitwiseExpenseModal', () => {
+    return function MockCreateSplitwiseExpenseModal({ show, onHide }: { show: boolean; onHide: () => void }) {
+        return show ? (
+            <div data-testid="splitwise-expense-modal">
+                <button onClick={onHide}>Close Splitwise Modal</button>
+            </div>
+        ) : null;
+    };
+});
+
 jest.mock('../../components/CreateEventModal', () => {
     return function MockCreateEventModal({ show, onHide }: { show: boolean; onHide: () => void }) {
         return show ? (
@@ -192,6 +202,7 @@ describe('LineItemsToReviewPage', () => {
             render(<LineItemsToReviewPage />);
 
             expect(screen.getByRole('button', { name: /create manual transaction/i })).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: /create splitwise expense/i })).toBeInTheDocument();
             expect(screen.getByRole('button', { name: /create event/i })).toBeInTheDocument();
         });
 
@@ -215,6 +226,7 @@ describe('LineItemsToReviewPage', () => {
 
             expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
             expect(screen.getByRole('button', { name: /create manual transaction/i })).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: /create splitwise expense/i })).toBeInTheDocument();
             expect(screen.getByRole('button', { name: /create event/i })).toBeInTheDocument();
         });
 
@@ -224,6 +236,7 @@ describe('LineItemsToReviewPage', () => {
 
             expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
             expect(screen.getByRole('button', { name: /create manual transaction/i })).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: /create splitwise expense/i })).toBeInTheDocument();
             expect(screen.getByRole('button', { name: /create event/i })).toBeInTheDocument();
         });
     });
@@ -246,6 +259,16 @@ describe('LineItemsToReviewPage', () => {
             await userEvent.click(eventButton);
 
             expect(screen.getByTestId('event-modal')).toBeInTheDocument();
+        });
+
+        it('opens splitwise expense modal when button is clicked', async () => {
+            mockUseLineItems.mockReturnValue({ lineItems: mockLineItemsWithSelection, isPending: false });
+            render(<LineItemsToReviewPage />);
+
+            const splitwiseButton = screen.getByRole('button', { name: /create splitwise expense/i });
+            await userEvent.click(splitwiseButton);
+
+            expect(screen.getByTestId('splitwise-expense-modal')).toBeInTheDocument();
         });
 
         it('closes manual transaction modal when onHide is called', async () => {

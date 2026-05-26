@@ -22,6 +22,7 @@ import {
     queryKeys,
     useCreateEvent,
     useCreateManualTransaction,
+    useCreateSplitwiseExpense,
     useDeleteEvent,
     useEventLineItems,
     useEvents,
@@ -30,6 +31,7 @@ import {
     useLogout,
     useMonthlyBreakdown,
     usePaymentMethods,
+    useSplitwiseFriends,
 } from '../useApi';
 
 const createTestQueryClient = () => new QueryClient({
@@ -71,6 +73,7 @@ describe('useApi hooks', () => {
             expect(queryKeys.monthlyBreakdown()).toEqual(['monthlyBreakdown']);
             expect(queryKeys.connectedAccounts()).toEqual(['connectedAccounts']);
             expect(queryKeys.paymentMethods()).toEqual(['paymentMethods']);
+            expect(queryKeys.splitwiseFriends()).toEqual(['splitwiseFriends']);
         });
     });
 
@@ -253,6 +256,22 @@ describe('useApi hooks', () => {
         });
     });
 
+    describe('useSplitwiseFriends', () => {
+        it('fetches Splitwise friends', async () => {
+            const mockFriends = [{ id: 1, name: 'Alice Smith' }];
+            mockGet.mockResolvedValue({ data: { data: mockFriends } });
+
+            const { result } = renderHook(() => useSplitwiseFriends(), {
+                wrapper: createWrapper(),
+            });
+
+            await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+            expect(mockGet).toHaveBeenCalledWith('api/splitwise/friends');
+            expect(result.current.data).toEqual(mockFriends);
+        });
+    });
+
     describe('useCreateEvent', () => {
         it('creates an event and invalidates queries', async () => {
             mockPost.mockResolvedValue({ data: { id: 'new-event' } });
@@ -325,6 +344,34 @@ describe('useApi hooks', () => {
                 description: 'Cash Payment',
                 amount: 50,
                 payment_method_id: 'pm_cash',
+            });
+        });
+    });
+
+    describe('useCreateSplitwiseExpense', () => {
+        it('creates a Splitwise expense', async () => {
+            mockPost.mockResolvedValue({ data: { id: 'splitwise_123' } });
+
+            const { result } = renderHook(() => useCreateSplitwiseExpense(), {
+                wrapper: createWrapper(),
+            });
+
+            await act(async () => {
+                await result.current.mutateAsync({
+                    description: 'Dinner',
+                    amount: 42,
+                    friend_ids: [123],
+                    date: '2024-01-15',
+                    currency_code: 'USD',
+                });
+            });
+
+            expect(mockPost).toHaveBeenCalledWith('api/splitwise/expenses', {
+                description: 'Dinner',
+                amount: 42,
+                friend_ids: [123],
+                date: '2024-01-15',
+                currency_code: 'USD',
             });
         });
     });

@@ -14,6 +14,7 @@ export const queryKeys = {
   connectedAccounts: () => ['connectedAccounts'] as const,
   accountsAndBalances: () => ['accountsAndBalances'] as const,
   paymentMethods: () => ['paymentMethods'] as const,
+  splitwiseFriends: () => ['splitwiseFriends'] as const,
   tags: () => ['tags'] as const,
   eventHints: () => ['eventHints'] as const,
   eventHintSuggestion: (lineItemIds: string[]) => ['eventHintSuggestion', lineItemIds] as const,
@@ -134,6 +135,19 @@ export function usePaymentMethods(): UseQueryResult<PaymentMethod[]> {
   });
 }
 
+export type SplitwiseFriend = components['schemas']['SplitwiseFriendListResponse.SplitwiseFriendOut'];
+
+export function useSplitwiseFriends(enabled: boolean = true): UseQueryResult<SplitwiseFriend[]> {
+  return useQuery({
+    queryKey: queryKeys.splitwiseFriends(),
+    queryFn: async () => {
+      const response = await axiosInstance.get('api/splitwise/friends');
+      return response.data.data as SplitwiseFriend[];
+    },
+    enabled,
+  });
+}
+
 export interface Tag {
   id: string;
   name: string;
@@ -224,6 +238,22 @@ export function useCreateManualTransaction(): UseMutationResult<unknown, Error, 
       queryClient.invalidateQueries({ queryKey: ['lineItems'] });
       queryClient.invalidateQueries({ queryKey: ['events'], refetchType: 'none' });
       queryClient.invalidateQueries({ queryKey: ['monthlyBreakdown'], refetchType: 'none' });
+    },
+  });
+}
+
+export type CreateSplitwiseExpenseData = components['schemas']['SplitwiseExpenseCreateIn'];
+
+export function useCreateSplitwiseExpense(): UseMutationResult<unknown, Error, CreateSplitwiseExpenseData> {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (expenseData: CreateSplitwiseExpenseData) => {
+      const response = await axiosInstance.post('api/splitwise/expenses', expenseData);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['lineItems'] });
     },
   });
 }
