@@ -1,3 +1,5 @@
+from datetime import UTC, datetime
+
 import pytest
 
 from resources.line_item import LineItem, all_line_items
@@ -252,7 +254,7 @@ class TestLineItemFunctions:
             test_line_items = [
                 {
                     "id": "line_item_1",
-                    "date": 1234567890,
+                    "date": datetime(2026, 5, 29, tzinfo=UTC).timestamp(),
                     "responsible_party": "John Doe",
                     "payment_method": "Cash",
                     "description": "Test transaction 1",
@@ -260,7 +262,7 @@ class TestLineItemFunctions:
                 },
                 {
                     "id": "line_item_2",
-                    "date": 1234567891,
+                    "date": datetime(2026, 5, 30, tzinfo=UTC).timestamp(),
                     "responsible_party": "Jane Smith",
                     "payment_method": "Venmo",
                     "description": "Test transaction 2",
@@ -281,6 +283,46 @@ class TestLineItemFunctions:
             assert result[1]["description"] == "Test transaction 1"
             assert result[0]["id"] == created_items[1].id
             assert result[1]["id"] == created_items[0].id
+
+    def test_all_line_items_ignores_time_and_sorts_same_day_items_by_description(self, flask_app, pg_session):
+        """All line items sorts days descending and same-day descriptions ascending"""
+        from tests.test_helpers import setup_test_line_item
+
+        with flask_app.app_context():
+            test_line_items = [
+                {
+                    "id": "line_item_1",
+                    "date": datetime(2026, 5, 29, 23, tzinfo=UTC).timestamp(),
+                    "responsible_party": "John Doe",
+                    "payment_method": "Cash",
+                    "description": "Coffee",
+                    "amount": 5,
+                },
+                {
+                    "id": "line_item_2",
+                    "date": datetime(2026, 5, 29, 1, tzinfo=UTC).timestamp(),
+                    "responsible_party": "Jane Smith",
+                    "payment_method": "Cash",
+                    "description": "Bagels",
+                    "amount": 10,
+                },
+                {
+                    "id": "line_item_3",
+                    "date": datetime(2026, 5, 30, tzinfo=UTC).timestamp(),
+                    "responsible_party": "Bob Johnson",
+                    "payment_method": "Cash",
+                    "description": "Dinner",
+                    "amount": 20,
+                },
+            ]
+
+            for item in test_line_items:
+                setup_test_line_item(pg_session, item)
+            pg_session.commit()
+
+            result = all_line_items()
+
+            assert [item["description"] for item in result] == ["Dinner", "Bagels", "Coffee"]
 
     def test_payment_method_filter_returns_matching_items(self, flask_app, pg_session):
         """Payment method filter returns only matching line items"""

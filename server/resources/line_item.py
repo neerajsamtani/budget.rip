@@ -6,7 +6,7 @@ from flask import Blueprint, Response, jsonify, request
 from flask_jwt_extended import jwt_required
 
 from dao import get_all_line_items, get_line_item_by_id
-from helpers import sort_by_date_amount_descending, str_to_bool
+from helpers import sort_by_date_description, str_to_bool
 
 logger = logging.getLogger(__name__)
 
@@ -103,7 +103,7 @@ def all_line_items(
         filters["event_id"] = {"$exists": False}
 
     line_items: List[Dict[str, Any]] = get_all_line_items(filters)
-    line_items = sort_by_date_amount_descending(line_items)
+    line_items = sort_by_date_description(line_items)
     return line_items
 
 
