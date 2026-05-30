@@ -249,6 +249,87 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/refresh/splitwise": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Refresh Splitwise Api */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successful response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": unknown;
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/splitwise/friends": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Splitwise friends for expense creation. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successful response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SplitwiseFriendListResponse"];
+                    };
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/refresh/scheduled": {
         parameters: {
             query?: never;
@@ -279,6 +360,64 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/splitwise/expenses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create an equal-split Splitwise expense. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["SplitwiseExpenseCreateIn"];
+                };
+            };
+            responses: {
+                /** @description Successful response */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SplitwiseExpenseCreateResponse"];
+                    };
+                };
+                /** @description Bad request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ValidationError"];
+                    };
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -528,6 +667,71 @@ export interface components {
         CategoryCreateIn: {
             /** Name */
             name: string;
+        };
+        /** SplitwiseFriendOut */
+        "SplitwiseFriendListResponse.SplitwiseFriendOut": {
+            /** Id */
+            id: number;
+            /**
+             * First Name
+             * @default null
+             */
+            first_name: string | null;
+            /**
+             * Last Name
+             * @default null
+             */
+            last_name: string | null;
+            /** Name */
+            name: string;
+            /**
+             * Email
+             * @default null
+             */
+            email: string | null;
+        };
+        /** SplitwiseFriendListResponse */
+        SplitwiseFriendListResponse: {
+            /** Data */
+            data: components["schemas"]["SplitwiseFriendListResponse.SplitwiseFriendOut"][];
+        };
+        /** SplitwiseExpenseOut */
+        "SplitwiseExpenseCreateResponse.SplitwiseExpenseOut": {
+            /**
+             * Id
+             * @default null
+             */
+            id: number | null;
+            /**
+             * Description
+             * @default null
+             */
+            description: string | null;
+        };
+        /** SplitwiseExpenseCreateResponse */
+        SplitwiseExpenseCreateResponse: {
+            /** Message */
+            message: string;
+            data: components["schemas"]["SplitwiseExpenseCreateResponse.SplitwiseExpenseOut"];
+        };
+        /** SplitwiseExpenseCreateIn */
+        SplitwiseExpenseCreateIn: {
+            /** Description */
+            description: string;
+            /** Amount */
+            amount: number;
+            /** Friend Ids */
+            friend_ids: number[];
+            /**
+             * Date
+             * @default null
+             */
+            date: string | null;
+            /**
+             * Currency Code
+             * @default USD
+             */
+            currency_code: string;
         };
         /** CategoryUpdateIn */
         CategoryUpdateIn: {

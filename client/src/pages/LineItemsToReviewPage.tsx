@@ -5,6 +5,7 @@ import { CurrencyFormatter } from "@/utils/formatters";
 import React, { useCallback, useEffect, useState } from "react";
 import CreateEventModal from "../components/CreateEventModal";
 import CreateManualTransactionModal from "../components/CreateManualTransactionModal";
+import CreateSplitwiseExpenseModal from "../components/CreateSplitwiseExpenseModal";
 import LineItem, { LineItemCard } from "../components/LineItem";
 import { PageContainer, PageHeader } from "../components/ui/layout";
 import { Body, H1 } from "../components/ui/typography";
@@ -28,6 +29,7 @@ export default function LineItemsToReviewPage() {
 
     const [eventModalShow, setEventModalShow] = useState(false);
     const [manualTransactionModalShow, setManualTransactionModalShow] = useState(false);
+    const [splitwiseExpenseModalShow, setSplitwiseExpenseModalShow] = useState(false);
     const { lineItems, isPending } = useLineItems();
     const lineItemsDispatch = useLineItemsDispatch();
     const selectedLineItems = lineItems?.filter(lineItem => lineItem.isSelected) ?? [];
@@ -130,6 +132,11 @@ export default function LineItemsToReviewPage() {
                 show={manualTransactionModalShow}
                 onHide={() => setManualTransactionModalShow(false)}
             />
+            <CreateSplitwiseExpenseModal
+                show={splitwiseExpenseModalShow}
+                onHide={() => setSplitwiseExpenseModalShow(false)}
+                selectedLineItems={selectedLineItems}
+            />
             <CreateEventModal
                 show={eventModalShow}
                 onHide={() => setEventModalShow(false)}
@@ -141,11 +148,20 @@ export default function LineItemsToReviewPage() {
                         <Body className="text-muted-foreground text-sm sm:text-base whitespace-nowrap">
                             Total: {CurrencyFormatter.format(total)}
                         </Body>
-                        <div className="flex flex-row gap-2 sm:gap-4">
-                            <Button onClick={() => { setEventModalShow(false); setManualTransactionModalShow(true); }} variant="secondary" size="sm" className="px-2 sm:px-4">
+                        <div className="flex flex-row flex-wrap justify-end gap-2 sm:gap-4">
+                            <Button onClick={() => { setEventModalShow(false); setSplitwiseExpenseModalShow(false); setManualTransactionModalShow(true); }} variant="secondary" size="sm" className="px-2 sm:px-4">
                                 Create Manual Transaction
                             </Button>
-                            <Button onClick={() => { setManualTransactionModalShow(false); setEventModalShow(true); }} size="sm" className="px-2 sm:px-4" disabled={selectedLineItems.length === 0}>
+                            <Button
+                                onClick={() => { setEventModalShow(false); setManualTransactionModalShow(false); setSplitwiseExpenseModalShow(true); }}
+                                variant="secondary"
+                                size="sm"
+                                className="px-2 sm:px-4"
+                                disabled={selectedLineItems.length === 0}
+                            >
+                                Create Splitwise Expense
+                            </Button>
+                            <Button onClick={() => { setManualTransactionModalShow(false); setSplitwiseExpenseModalShow(false); setEventModalShow(true); }} size="sm" className="px-2 sm:px-4" disabled={selectedLineItems.length === 0}>
                                 Create Event<span className="hidden sm:inline"> (↵)</span>
                             </Button>
                         </div>

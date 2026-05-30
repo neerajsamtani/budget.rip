@@ -67,6 +67,14 @@ def mock_splitwise_expense_dict():
 
 
 class TestSplitwiseAPI:
+    def test_openapi_spec_exposes_splitwise_expense_paths(self, test_client):
+        """OpenAPI spec includes Splitwise expense helper endpoints"""
+        response = test_client.get("/api/openapi.json")
+        assert response.status_code == 200
+        paths = response.get_json()["paths"]
+        assert "/api/splitwise/friends" in paths
+        assert "/api/splitwise/expenses" in paths
+
     def test_refresh_splitwise_syncs_and_converts_expenses(self, test_client, jwt_token, flask_app, mocker):
         """Splitwise refresh syncs expenses and converts to line items"""
         mock_refresh = mocker.patch("resources.splitwise.refresh_splitwise")
@@ -89,6 +97,83 @@ class TestSplitwiseAPI:
         response = test_client.get("/api/refresh/splitwise")
 
         assert response.status_code == 401
+
+    def test_splitwise_friends_are_returned(self, test_client, jwt_token, mocker):
+        """Splitwise friends are returned alphabetically with title-cased names"""
+        friend = mocker.Mock()
+        friend.getId.return_value = 123
+        friend.getFirstName.return_value = "zoe"
+        friend.getLastName.return_value = "smith"
+        friend.getEmail.return_value = "zoe@example.com"
+        earlier_friend = mocker.Mock()
+        earlier_friend.getId.return_value = 456
+        earlier_friend.getFirstName.return_value = "alice"
+        earlier_friend.getLastName.return_value = "jones"
+        earlier_friend.getEmail.return_value = "alice@example.com"
+        mock_splitwise_client = mocker.patch("resources.splitwise.splitwise_client")
+        mock_splitwise_client.getFriends.return_value = [friend, earlier_friend]
+
+        response = test_client.get(
+            "/api/splitwise/friends",
+            headers={"Authorization": "Bearer " + jwt_token},
+        )
+
+        assert response.status_code == 200
+        assert response.get_json()["data"] == [
+            {
+                "id": 456,
+                "first_name": "Alice",
+                "last_name": "Jones",
+                "name": "Alice Jones",
+                "email": "alice@example.com",
+            },
+            {
+                "id": 123,
+                "first_name": "Zoe",
+                "last_name": "Smith",
+                "name": "Zoe Smith",
+                "email": "zoe@example.com",
+            },
+        ]
+
+    def test_splitwise_expense_creates_equal_split(self, test_client, jwt_token, mocker):
+        """Splitwise expense creation sends an equal split with the current user as payer"""
+        current_user = mocker.Mock()
+        current_user.getId.return_value = 1
+        created_expense = mocker.Mock()
+        created_expense.getId.return_value = 999
+        created_expense.getDescription.return_value = "Dinner"
+        mock_splitwise_client = mocker.patch("resources.splitwise.splitwise_client")
+        mock_splitwise_client.getCurrentUser.return_value = current_user
+        mock_splitwise_client.createExpense.return_value = (created_expense, None)
+
+        response = test_client.post(
+            "/api/splitwise/expenses",
+            json={"description": "Dinner", "amount": 10, "friend_ids": [2, 3], "date": "2024-01-15"},
+            headers={"Authorization": "Bearer " + jwt_token},
+        )
+
+        assert response.status_code == 201
+        expense = mock_splitwise_client.createExpense.call_args.args[0]
+        assert expense.getDescription() == "Dinner"
+        assert expense.getCost() == "10.00"
+        assert expense.getDate() == "2024-01-15"
+
+        users = expense.getUsers()
+        assert [user.getId() for user in users] == [1, 2, 3]
+        assert [user.getPaidShare() for user in users] == ["10.00", "0.00", "0.00"]
+        assert [user.getOwedShare() for user in users] == ["3.33", "3.33", "3.34"]
+
+    def test_splitwise_expense_requires_friends(self, test_client, jwt_token):
+        """Splitwise expense creation requires at least one friend"""
+        response = test_client.post(
+            "/api/splitwise/expenses",
+            json={"description": "Dinner", "amount": 10, "friend_ids": []},
+            headers={"Authorization": "Bearer " + jwt_token},
+        )
+
+        assert response.status_code == 400
+        assert response.get_json()["error"] == "friend_ids must include at least one Splitwise friend"
 
 
 class TestSplitwiseFunctions:
