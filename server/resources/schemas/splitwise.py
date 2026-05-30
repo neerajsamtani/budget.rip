@@ -1,3 +1,6 @@
+from decimal import Decimal
+from typing import Literal
+
 from pydantic import BaseModel
 
 
@@ -13,10 +16,20 @@ class SplitwiseFriendListResponse(BaseModel):
     data: list[SplitwiseFriendOut]
 
 
+class SplitwiseCurrentUserOut(BaseModel):
+    id: int
+
+
+class SplitwiseCurrentUserResponse(BaseModel):
+    data: SplitwiseCurrentUserOut
+
+
 class SplitwiseExpenseCreateIn(BaseModel):
     description: str
-    amount: float
+    amount: Decimal
     friend_ids: list[int]
+    split_method: Literal["equal", "custom"] = "equal"
+    owed_shares: dict[str, Decimal] | None = None
     date: str | None = None
     currency_code: str = "USD"
 

@@ -43,7 +43,7 @@ function ResponsiveDialog({ open, onOpenChange, children, className }: Responsiv
   return (
     <MobileContext.Provider value={false}>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className={className}>
+        <DialogContent className={`max-h-[90vh] overflow-y-auto overflow-x-hidden ${className || ""}`}>
           {children}
         </DialogContent>
       </Dialog>

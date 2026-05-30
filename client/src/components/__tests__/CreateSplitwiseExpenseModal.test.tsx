@@ -1,11 +1,13 @@
 import userEvent from '@testing-library/user-event';
 import React from 'react';
-import { useCreateSplitwiseExpense, useSplitwiseFriends } from '../../hooks/useApi';
+import { useCreateSplitwiseExpense, useSplitwiseCurrentUser, useSplitwiseFriends } from '../../hooks/useApi';
 import { render, screen, waitFor } from '../../utils/test-utils';
+import { showErrorToast } from '../../utils/toast-helpers';
 import CreateSplitwiseExpenseModal from '../CreateSplitwiseExpenseModal';
 
 jest.mock('../../hooks/useApi', () => ({
   useCreateSplitwiseExpense: jest.fn(),
+  useSplitwiseCurrentUser: jest.fn(),
   useSplitwiseFriends: jest.fn(),
 }));
 
@@ -15,6 +17,7 @@ jest.mock('../../utils/toast-helpers', () => ({
 }));
 
 const mockUseSplitwiseFriends = useSplitwiseFriends as jest.MockedFunction<typeof useSplitwiseFriends>;
+const mockUseSplitwiseCurrentUser = useSplitwiseCurrentUser as jest.MockedFunction<typeof useSplitwiseCurrentUser>;
 const mockUseCreateSplitwiseExpense = useCreateSplitwiseExpense as jest.MockedFunction<typeof useCreateSplitwiseExpense>;
 
 const selectedLineItems = [
@@ -37,6 +40,11 @@ describe('CreateSplitwiseExpenseModal', () => {
     jest.clearAllMocks();
     mockUseSplitwiseFriends.mockReturnValue({
       data: [{ id: 123, first_name: 'Alice', last_name: 'Smith', name: 'Alice Smith' }],
+      isLoading: false,
+      isError: false,
+    } as any);
+    mockUseSplitwiseCurrentUser.mockReturnValue({
+      data: { id: 1 },
       isLoading: false,
       isError: false,
     } as any);
@@ -67,6 +75,8 @@ describe('CreateSplitwiseExpenseModal', () => {
         description: 'Trader Joes',
         amount: 42.35,
         friend_ids: [123],
+        split_method: 'equal',
+        owed_shares: null,
         date: '2024-01-15',
         currency_code: 'USD',
       },
@@ -81,6 +91,94 @@ describe('CreateSplitwiseExpenseModal', () => {
     render(<CreateSplitwiseExpenseModal show={true} onHide={onHide} selectedLineItems={selectedLineItems} />);
 
     expect(screen.getByRole('button', { name: 'Create Expense' })).toBeDisabled();
+  });
+
+  it('waits for the current Splitwise user before enabling creation', () => {
+    mockUseSplitwiseCurrentUser.mockReturnValue({
+      isLoading: true,
+      isError: false,
+    } as any);
+
+    render(<CreateSplitwiseExpenseModal show={true} onHide={onHide} selectedLineItems={selectedLineItems} />);
+
+    expect(screen.queryByText('Alice Smith')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Create Expense' })).toBeDisabled();
+  });
+
+  it('shows an error when the current Splitwise user fails to load', async () => {
+    mockUseSplitwiseCurrentUser.mockReturnValue({
+      isLoading: false,
+      isError: true,
+    } as any);
+
+    render(<CreateSplitwiseExpenseModal show={true} onHide={onHide} selectedLineItems={selectedLineItems} />);
+
+    await waitFor(() => expect(showErrorToast).toHaveBeenCalledWith('Failed to load Splitwise data.'));
+  });
+
+  it('switches from equal to custom mode and renders participant shares', async () => {
+    render(<CreateSplitwiseExpenseModal show={true} onHide={onHide} selectedLineItems={selectedLineItems} />);
+
+    await userEvent.click(screen.getByText('Alice Smith'));
+    await userEvent.click(screen.getByRole('button', { name: 'Custom' }));
+
+    expect(screen.getByLabelText('You owed share')).toBeInTheDocument();
+    expect(screen.getByLabelText('Alice Smith owed share')).toBeInTheDocument();
+    expect(screen.getByText('Remaining: $42.35')).toBeInTheDocument();
+  });
+
+  it('keeps custom creation disabled until shares allocate the full amount', async () => {
+    render(<CreateSplitwiseExpenseModal show={true} onHide={onHide} selectedLineItems={selectedLineItems} />);
+
+    await userEvent.click(screen.getByText('Alice Smith'));
+    await userEvent.click(screen.getByRole('button', { name: 'Custom' }));
+    await userEvent.type(screen.getByLabelText('You owed share'), '20');
+
+    expect(screen.getByText('Remaining: $22.35')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Create Expense' })).toBeDisabled();
+
+    await userEvent.type(screen.getByLabelText('Alice Smith owed share'), '22.35');
+
+    expect(screen.getByText('Remaining: $0.00')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Create Expense' })).toBeEnabled();
+  });
+
+  it('creates a Splitwise expense with custom owed shares', async () => {
+    render(<CreateSplitwiseExpenseModal show={true} onHide={onHide} selectedLineItems={selectedLineItems} />);
+
+    await userEvent.click(screen.getByText('Alice Smith'));
+    await userEvent.click(screen.getByRole('button', { name: 'Custom' }));
+    await userEvent.type(screen.getByLabelText('You owed share'), '20');
+    await userEvent.type(screen.getByLabelText('Alice Smith owed share'), '22.35');
+    await userEvent.click(screen.getByRole('button', { name: 'Create Expense' }));
+
+    expect(mutate).toHaveBeenCalledWith(
+      {
+        description: 'Trader Joes',
+        amount: 42.35,
+        friend_ids: [123],
+        split_method: 'custom',
+        owed_shares: { '1': 20, '123': 22.35 },
+        date: '2024-01-15',
+        currency_code: 'USD',
+      },
+      expect.objectContaining({
+        onSuccess: expect.any(Function),
+        onError: expect.any(Function),
+      })
+    );
+  });
+
+  it('clears a custom share when its friend is removed', async () => {
+    render(<CreateSplitwiseExpenseModal show={true} onHide={onHide} selectedLineItems={selectedLineItems} />);
+
+    await userEvent.click(screen.getByText('Alice Smith'));
+    await userEvent.click(screen.getByRole('button', { name: 'Custom' }));
+    await userEvent.type(screen.getByLabelText('Alice Smith owed share'), '22.35');
+    await userEvent.click(screen.getAllByText('Alice Smith')[0]);
+    await userEvent.click(screen.getAllByText('Alice Smith')[0]);
+
+    expect(screen.getByLabelText('Alice Smith owed share')).toHaveValue(null);
   });
 
   it('disables creation when the amount is invalid', async () => {

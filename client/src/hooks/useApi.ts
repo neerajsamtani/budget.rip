@@ -15,6 +15,7 @@ export const queryKeys = {
   accountsAndBalances: () => ['accountsAndBalances'] as const,
   paymentMethods: () => ['paymentMethods'] as const,
   splitwiseFriends: () => ['splitwiseFriends'] as const,
+  splitwiseCurrentUser: () => ['splitwiseCurrentUser'] as const,
   tags: () => ['tags'] as const,
   eventHints: () => ['eventHints'] as const,
   eventHintSuggestion: (lineItemIds: string[]) => ['eventHintSuggestion', lineItemIds] as const,
@@ -136,6 +137,7 @@ export function usePaymentMethods(): UseQueryResult<PaymentMethod[]> {
 }
 
 export type SplitwiseFriend = components['schemas']['SplitwiseFriendListResponse.SplitwiseFriendOut'];
+export type SplitwiseCurrentUser = components['schemas']['SplitwiseCurrentUserResponse.SplitwiseCurrentUserOut'];
 
 export function useSplitwiseFriends(enabled: boolean = true): UseQueryResult<SplitwiseFriend[]> {
   return useQuery({
@@ -143,6 +145,17 @@ export function useSplitwiseFriends(enabled: boolean = true): UseQueryResult<Spl
     queryFn: async () => {
       const response = await axiosInstance.get('api/splitwise/friends');
       return response.data.data as SplitwiseFriend[];
+    },
+    enabled,
+  });
+}
+
+export function useSplitwiseCurrentUser(enabled: boolean = true): UseQueryResult<SplitwiseCurrentUser> {
+  return useQuery({
+    queryKey: queryKeys.splitwiseCurrentUser(),
+    queryFn: async () => {
+      const response = await axiosInstance.get('api/splitwise/current-user');
+      return response.data.data as SplitwiseCurrentUser;
     },
     enabled,
   });

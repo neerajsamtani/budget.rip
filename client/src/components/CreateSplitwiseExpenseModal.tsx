@@ -8,8 +8,9 @@ import { Body } from "@/components/ui/typography";
 import { DateTime } from "luxon";
 import React, { useEffect, useMemo, useState } from "react";
 import { LineItemInterface } from "../contexts/LineItemsContext";
-import { useCreateSplitwiseExpense, useSplitwiseFriends } from "../hooks/useApi";
+import { useCreateSplitwiseExpense, useSplitwiseCurrentUser, useSplitwiseFriends } from "../hooks/useApi";
 import { CurrencyFormatter } from "../utils/formatters";
+import { parseMoneyToCents } from "../utils/money";
 import defaultNameCleanup from "../utils/stringHelpers";
 import { showErrorToast, showSuccessToast } from "../utils/toast-helpers";
 
@@ -28,6 +29,8 @@ interface CreateSplitwiseExpenseFormProps {
   selectedTotal: number;
 }
 
+type SplitMethod = "equal" | "custom";
+
 function CreateSplitwiseExpenseForm({
   show,
   onHide,
@@ -40,26 +43,46 @@ function CreateSplitwiseExpenseForm({
   const [amount, setAmount] = useState(defaultAmount);
   const [date, setDate] = useState(defaultDate);
   const [friendIds, setFriendIds] = useState<number[]>([]);
+  const [splitMethod, setSplitMethod] = useState<SplitMethod>("equal");
+  const [owedShares, setOwedShares] = useState<Record<number, string>>({});
   const isMobile = useIsMobile();
 
   const { data: friends = [], isLoading: isLoadingFriends, isError: isFriendsError } = useSplitwiseFriends(show);
+  const { data: currentUser, isLoading: isLoadingCurrentUser, isError: isCurrentUserError } = useSplitwiseCurrentUser(show);
+  const currentUserId = currentUser?.id;
+  const isLoadingSplitwiseData = isLoadingFriends || isLoadingCurrentUser;
   const createExpenseMutation = useCreateSplitwiseExpense();
 
   useEffect(() => {
-    if (show && isFriendsError) {
-      showErrorToast("Failed to load Splitwise friends.");
+    if (show && (isFriendsError || isCurrentUserError)) {
+      showErrorToast("Failed to load Splitwise data.");
     }
-  }, [show, isFriendsError]);
+  }, [show, isFriendsError, isCurrentUserError]);
 
   const toggleFriend = (friendId: number) => {
-    setFriendIds(ids => ids.includes(friendId) ? ids.filter(id => id !== friendId) : [...ids, friendId]);
+    setFriendIds(ids => {
+      if (!ids.includes(friendId)) {
+        return [...ids, friendId];
+      }
+      setOwedShares(shares => {
+        const nextShares = { ...shares };
+        delete nextShares[friendId];
+        return nextShares;
+      });
+      return ids.filter(id => id !== friendId);
+    });
   };
 
   const createExpense = () => {
+    const customShares = splitMethod === "custom" && currentUserId !== undefined
+      ? Object.fromEntries([currentUserId, ...friendIds].map(userId => [String(userId), Number(owedShares[userId])]))
+      : undefined;
     createExpenseMutation.mutate({
       description,
       amount: Number(amount),
       friend_ids: friendIds,
+      split_method: splitMethod,
+      owed_shares: customShares ?? null,
       date: date || undefined,
       currency_code: "USD",
     }, {
@@ -74,7 +97,21 @@ function CreateSplitwiseExpenseForm({
   };
 
   const parsedAmount = Number(amount);
-  const disableSubmit = !description.trim() || !Number.isFinite(parsedAmount) || parsedAmount <= 0 || friendIds.length === 0 || createExpenseMutation.isPending;
+  const amountCents = parseMoneyToCents(amount);
+  const participantIds = currentUserId === undefined ? [] : [currentUserId, ...friendIds];
+  const customShareCents = participantIds.map(userId => parseMoneyToCents(owedShares[userId] ?? ""));
+  const allocatedCents = customShareCents.reduce<number>((sum, share) => sum + (share ?? 0), 0);
+  const remainingCents = (amountCents ?? 0) - allocatedCents;
+  const customSplitIsValid = splitMethod === "equal"
+    || (participantIds.length > 0 && customShareCents.every(share => share !== null) && remainingCents === 0);
+  const disableSubmit = !description.trim()
+    || !Number.isFinite(parsedAmount)
+    || amountCents === null
+    || amountCents <= 0
+    || friendIds.length === 0
+    || currentUserId === undefined
+    || !customSplitIsValid
+    || createExpenseMutation.isPending;
 
   return (
     <ResponsiveDialog open={show} onOpenChange={onHide} className={isMobile ? "" : "w-full !max-w-[34rem]"}>
@@ -126,9 +163,26 @@ function CreateSplitwiseExpenseForm({
         </div>
 
         <div className="space-y-3">
+          <Label>Split method</Label>
+          <div className="inline-flex rounded-md border p-1">
+            {(["equal", "custom"] as const).map(method => (
+              <Button
+                key={method}
+                type="button"
+                size="sm"
+                variant={splitMethod === method ? "default" : "ghost"}
+                onClick={() => setSplitMethod(method)}
+              >
+                {method === "equal" ? "Equal" : "Custom"}
+              </Button>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-3">
           <Label>Split with</Label>
           <div className="max-h-56 overflow-y-auto rounded-md border bg-white">
-            {isLoadingFriends ? (
+            {isLoadingSplitwiseData ? (
               <div className="flex justify-center py-6">
                 <Spinner size="sm" className="text-muted-foreground" />
               </div>
@@ -149,6 +203,49 @@ function CreateSplitwiseExpenseForm({
             )}
           </div>
         </div>
+
+        {splitMethod === "custom" && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label>Owed shares</Label>
+              <Body className="text-sm text-muted-foreground">
+                Remaining: {CurrencyFormatter.format(remainingCents / 100)}
+              </Body>
+            </div>
+            <div className="space-y-2">
+              {currentUserId !== undefined && (
+                <div className="flex items-center gap-3">
+                  <Label htmlFor={`splitwise-share-${currentUserId}`} className="flex-1">You</Label>
+                  <Input
+                    id={`splitwise-share-${currentUserId}`}
+                    aria-label="You owed share"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    className="w-28"
+                    value={owedShares[currentUserId] ?? ""}
+                    onChange={(event) => setOwedShares(shares => ({ ...shares, [currentUserId]: event.target.value }))}
+                  />
+                </div>
+              )}
+              {friends.filter(friend => friendIds.includes(friend.id)).map(friend => (
+                <div key={friend.id} className="flex items-center gap-3">
+                  <Label htmlFor={`splitwise-share-${friend.id}`} className="flex-1">{friend.name}</Label>
+                  <Input
+                    id={`splitwise-share-${friend.id}`}
+                    aria-label={`${friend.name} owed share`}
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    className="w-28"
+                    value={owedShares[friend.id] ?? ""}
+                    onChange={(event) => setOwedShares(shares => ({ ...shares, [friend.id]: event.target.value }))}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className={`flex pt-4 border-t border-muted gap-3 ${isMobile ? "flex-col" : "justify-end"}`}>

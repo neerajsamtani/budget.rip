@@ -375,7 +375,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Create an equal-split Splitwise expense. */
+        /** Create a Splitwise expense. */
         post: {
             parameters: {
                 query?: never;
@@ -448,6 +448,51 @@ export interface paths {
                     };
                     content: {
                         "application/json": unknown;
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/splitwise/current-user": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get the authenticated Splitwise user. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Successful response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SplitwiseCurrentUserResponse"];
+                    };
+                };
+                /** @description Authentication error */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["HTTPError"];
                     };
                 };
             };
@@ -719,9 +764,22 @@ export interface components {
             /** Description */
             description: string;
             /** Amount */
-            amount: number;
+            amount: number | string;
             /** Friend Ids */
             friend_ids: number[];
+            /**
+             * Split Method
+             * @default equal
+             * @enum {string}
+             */
+            split_method: "equal" | "custom";
+            /**
+             * Owed Shares
+             * @default null
+             */
+            owed_shares: {
+                [key: string]: number | string;
+            } | null;
             /**
              * Date
              * @default null
@@ -732,6 +790,15 @@ export interface components {
              * @default USD
              */
             currency_code: string;
+        };
+        /** SplitwiseCurrentUserOut */
+        "SplitwiseCurrentUserResponse.SplitwiseCurrentUserOut": {
+            /** Id */
+            id: number;
+        };
+        /** SplitwiseCurrentUserResponse */
+        SplitwiseCurrentUserResponse: {
+            data: components["schemas"]["SplitwiseCurrentUserResponse.SplitwiseCurrentUserOut"];
         };
         /** CategoryUpdateIn */
         CategoryUpdateIn: {
