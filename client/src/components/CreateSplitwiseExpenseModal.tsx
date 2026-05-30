@@ -114,7 +114,11 @@ function CreateSplitwiseExpenseForm({
     || createExpenseMutation.isPending;
 
   return (
-    <ResponsiveDialog open={show} onOpenChange={onHide} className={isMobile ? "" : "w-full !max-w-[34rem]"}>
+    <ResponsiveDialog
+      open={show}
+      onOpenChange={onHide}
+      className={isMobile ? "" : "max-h-[90vh] w-full !max-w-[34rem] overflow-y-auto overflow-x-hidden"}
+    >
       <div className="flex flex-col gap-2 pb-4 border-b border-muted">
         <ResponsiveDialogTitle className="text-lg font-semibold text-foreground">New Splitwise Expense</ResponsiveDialogTitle>
         <ResponsiveDialogDescription className="text-muted-foreground text-sm">
