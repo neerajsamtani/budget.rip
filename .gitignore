@@ -13,3 +13,9 @@ coverage
 migrations/
 migration_examples/
 exports/
+.codex/
+**/.playwright-mcp/
+adhoc/
+*.code-workspace
+*_dump_*.sql
+/*.png
