@@ -1,5 +1,5 @@
 import logging
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from typing import Any, Dict, List
 
 from apiflask import APIBlueprint, abort
@@ -15,6 +15,7 @@ from helpers import flip_amount, format_money, iso_8601_to_posix
 from models.database import SessionLocal
 from resources.line_item import LineItem
 from resources.schemas.splitwise import (
+    SplitwiseCurrentUserResponse,
     SplitwiseErrorResponse,
     SplitwiseExpenseCreateIn,
     SplitwiseExpenseCreateResponse,
@@ -56,15 +57,24 @@ def get_splitwise_friends_api():
     return SplitwiseFriendListResponse(data=list_splitwise_friends(splitwise_client))
 
 
+@splitwise_blueprint.get("/api/splitwise/current-user")
+@splitwise_blueprint.output(SplitwiseCurrentUserResponse)
+@splitwise_blueprint.doc(security=_SECURITY)
+@jwt_required()
+def get_splitwise_current_user_api():
+    """Get the authenticated Splitwise user."""
+    return SplitwiseCurrentUserResponse(data={"id": splitwise_client.getCurrentUser().getId()})
+
+
 @splitwise_blueprint.post("/api/splitwise/expenses")
 @splitwise_blueprint.input(SplitwiseExpenseCreateIn, arg_name="body")
 @splitwise_blueprint.output(SplitwiseExpenseCreateResponse, status_code=201)
 @splitwise_blueprint.doc(security=_SECURITY, responses=_ERROR_RESPONSES)
 @jwt_required()
 def create_splitwise_expense_api(body: SplitwiseExpenseCreateIn):
-    """Create an equal-split Splitwise expense."""
+    """Create a Splitwise expense."""
     try:
-        created_expense, errors = create_splitwise_equal_expense(splitwise_client, body.model_dump())
+        created_expense, errors = create_splitwise_expense(splitwise_client, body.model_dump())
     except ValueError as exc:
         abort(400, message=str(exc))
 
@@ -105,10 +115,10 @@ def title_case_name(name: str | None) -> str:
     return (name or "").title()
 
 
-def create_splitwise_equal_expense(client, data: Dict[str, Any]):
+def create_splitwise_expense(client, data: Dict[str, Any]):
     description = str(data.get("description", "")).strip()
     friend_ids = data.get("friend_ids", [])
-    amount = parse_splitwise_amount(data.get("amount"))
+    amount = parse_splitwise_amount(data.get("amount"), "amount")
 
     if not description:
         raise ValueError("description is required")
@@ -121,31 +131,83 @@ def create_splitwise_equal_expense(client, data: Dict[str, Any]):
         splitwise_friend_ids = [int(friend_id) for friend_id in friend_ids]
     except (TypeError, ValueError) as exc:
         raise ValueError("friend_ids must be Splitwise user IDs") from exc
+    if len(set(splitwise_friend_ids)) != len(splitwise_friend_ids):
+        raise ValueError("friend_ids must not contain duplicates")
 
     current_user = client.getCurrentUser()
-    expense = build_splitwise_equal_expense(
+    current_user_id = current_user.getId()
+    participant_ids = [current_user_id, *splitwise_friend_ids]
+    if len(set(participant_ids)) != len(participant_ids):
+        raise ValueError("friend_ids must not contain the current Splitwise user")
+
+    split_method = data.get("split_method", "equal")
+    owed_shares = (
+        build_equal_owed_shares(amount, participant_ids)
+        if split_method == "equal"
+        else parse_custom_owed_shares(data.get("owed_shares"), amount, participant_ids)
+    )
+    expense = build_splitwise_expense(
         amount=amount,
         description=description,
-        current_user_id=current_user.getId(),
-        friend_ids=splitwise_friend_ids,
+        current_user_id=current_user_id,
+        owed_shares=owed_shares,
         currency_code=data.get("currency_code", "USD"),
         date=data.get("date"),
     )
     return client.createExpense(expense)
 
 
-def parse_splitwise_amount(value: Any) -> Decimal:
+def parse_splitwise_amount(value: Any, field_name: str) -> Decimal:
     try:
-        return Decimal(str(value)).copy_abs()
-    except Exception as exc:
-        raise ValueError("amount must be a valid number") from exc
+        amount = Decimal(str(value))
+        normalized_amount = Decimal(format_money(amount))
+    except (InvalidOperation, ValueError) as exc:
+        raise ValueError(f"{field_name} must be a valid monetary amount") from exc
+    if not amount.is_finite() or amount < 0 or amount != normalized_amount:
+        raise ValueError(f"{field_name} must be a non-negative monetary amount with at most two decimal places")
+    return normalized_amount
 
 
-def build_splitwise_equal_expense(
+def parse_custom_owed_shares(
+    owed_shares: Any,
+    amount: Decimal,
+    participant_ids: List[int],
+) -> Dict[int, Decimal]:
+    if not isinstance(owed_shares, dict):
+        raise ValueError("owed_shares must include exactly one amount for every participant")
+
+    parsed_shares: Dict[int, Decimal] = {}
+    try:
+        for user_id, share in owed_shares.items():
+            parsed_user_id = int(user_id)
+            if parsed_user_id in parsed_shares:
+                raise ValueError("owed_shares must include exactly one amount for every participant")
+            parsed_shares[parsed_user_id] = parse_splitwise_amount(share, "owed_shares values")
+    except (TypeError, ValueError) as exc:
+        if isinstance(exc, ValueError) and str(exc).startswith("owed_shares"):
+            raise
+        raise ValueError("owed_shares keys must be Splitwise user IDs") from exc
+
+    if set(parsed_shares) != set(participant_ids):
+        raise ValueError("owed_shares participants must match the current user and selected friends")
+    if sum(parsed_shares.values(), Decimal("0.00")) != amount:
+        raise ValueError("owed_shares must add up to the expense amount")
+    return parsed_shares
+
+
+def build_equal_owed_shares(amount: Decimal, participant_ids: List[int]) -> Dict[int, Decimal]:
+    share = Decimal(format_money(amount / Decimal(len(participant_ids))))
+    remainder = amount - (share * (len(participant_ids) - 1))
+    return {
+        user_id: remainder if index == len(participant_ids) - 1 else share for index, user_id in enumerate(participant_ids)
+    }
+
+
+def build_splitwise_expense(
     amount: Decimal,
     description: str,
     current_user_id: int,
-    friend_ids: List[int],
+    owed_shares: Dict[int, Decimal],
     currency_code: str,
     date: str | None,
 ) -> Expense:
@@ -153,23 +215,19 @@ def build_splitwise_equal_expense(
     expense.setDescription(description)
     expense.setCost(format_money(amount))
     expense.setCurrencyCode(currency_code)
-    expense.setUsers(build_equal_split_users(amount, current_user_id, friend_ids))
+    expense.setUsers(build_splitwise_users(amount, current_user_id, owed_shares))
     if date:
         expense.setDate(date)
     return expense
 
 
-def build_equal_split_users(amount: Decimal, current_user_id: int, friend_ids: List[int]) -> List[ExpenseUser]:
-    participant_ids = [current_user_id, *friend_ids]
-    share = Decimal(format_money(amount / Decimal(len(participant_ids))))
-    remainder = amount - (share * (len(participant_ids) - 1))
-
+def build_splitwise_users(amount: Decimal, current_user_id: int, owed_shares: Dict[int, Decimal]) -> List[ExpenseUser]:
     users: List[ExpenseUser] = []
-    for index, user_id in enumerate(participant_ids):
+    for user_id, owed_share in owed_shares.items():
         user = ExpenseUser()
         user.setId(user_id)
         user.setPaidShare(format_money(amount) if user_id == current_user_id else "0.00")
-        user.setOwedShare(format_money(remainder if index == len(participant_ids) - 1 else share))
+        user.setOwedShare(format_money(owed_share))
         users.append(user)
     return users
 

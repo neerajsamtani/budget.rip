@@ -31,6 +31,7 @@ import {
     useLogout,
     useMonthlyBreakdown,
     usePaymentMethods,
+    useSplitwiseCurrentUser,
     useSplitwiseFriends,
 } from '../useApi';
 
@@ -74,6 +75,7 @@ describe('useApi hooks', () => {
             expect(queryKeys.connectedAccounts()).toEqual(['connectedAccounts']);
             expect(queryKeys.paymentMethods()).toEqual(['paymentMethods']);
             expect(queryKeys.splitwiseFriends()).toEqual(['splitwiseFriends']);
+            expect(queryKeys.splitwiseCurrentUser()).toEqual(['splitwiseCurrentUser']);
         });
     });
 
@@ -272,6 +274,21 @@ describe('useApi hooks', () => {
         });
     });
 
+    describe('useSplitwiseCurrentUser', () => {
+        it('fetches the current Splitwise user', async () => {
+            mockGet.mockResolvedValue({ data: { data: { id: 99 } } });
+
+            const { result } = renderHook(() => useSplitwiseCurrentUser(), {
+                wrapper: createWrapper(),
+            });
+
+            await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+            expect(mockGet).toHaveBeenCalledWith('api/splitwise/current-user');
+            expect(result.current.data).toEqual({ id: 99 });
+        });
+    });
+
     describe('useCreateEvent', () => {
         it('creates an event and invalidates queries', async () => {
             mockPost.mockResolvedValue({ data: { id: 'new-event' } });
@@ -369,6 +386,8 @@ describe('useApi hooks', () => {
                     description: 'Dinner',
                     amount: 42,
                     friend_ids: [123],
+                    split_method: 'equal',
+                    owed_shares: null,
                     date: '2024-01-15',
                     currency_code: 'USD',
                 });
@@ -378,6 +397,8 @@ describe('useApi hooks', () => {
                 description: 'Dinner',
                 amount: 42,
                 friend_ids: [123],
+                split_method: 'equal',
+                owed_shares: null,
                 date: '2024-01-15',
                 currency_code: 'USD',
             });
