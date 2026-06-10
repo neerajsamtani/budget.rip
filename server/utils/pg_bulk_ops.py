@@ -75,7 +75,7 @@ def bulk_upsert_transactions(db_session, transactions_source_data: List[Any], so
             logger.warning(f"Skipping transaction without id: {txn_dict}")
             continue
 
-        source_ids.append((source, source_id))
+        source_ids.append(source_id)
         transaction_dicts.append(txn_dict)
 
     if not transaction_dicts:
@@ -84,13 +84,13 @@ def bulk_upsert_transactions(db_session, transactions_source_data: List[Any], so
     existing_by_source_id = {
         txn.source_id: txn
         for txn in db_session.query(Transaction)
-        .filter(Transaction.source == source, Transaction.source_id.in_([sid for _, sid in source_ids]))
+        .filter(Transaction.source == source, Transaction.source_id.in_(source_ids))
         .all()
     }
 
     bulk_inserts = []
     updated_count = 0
-    for txn_dict, (_, source_id) in zip(transaction_dicts, source_ids):
+    for txn_dict, source_id in zip(transaction_dicts, source_ids):
         transaction_date = get_transaction_date(txn_dict, source)
         source_data = _normalize_source_data({k: v for k, v in txn_dict.items() if k != "id"})
 
