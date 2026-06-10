@@ -13,6 +13,8 @@ export default function CreateManualTransactionModal({ show, onHide }: { show: b
   const date = useField<string>("date", "" as string)
   const person = useField<string>("text", "" as string)
   const description = useField<string>("text", "" as string)
+  // Stored as a string because DOM inputs always yield strings (even type="number"),
+  // and intermediate states like "" or "1." aren't valid numbers. Parsed on submit.
   const amount = useField<string>("number", "" as string)
   const [paymentMethodId, setPaymentMethodId] = useState<string>("")
   const isMobile = useIsMobile();
