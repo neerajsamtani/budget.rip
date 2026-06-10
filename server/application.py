@@ -1,4 +1,5 @@
 import logging
+import secrets
 import sys
 from datetime import datetime
 from typing import Any, Dict, List, Optional
@@ -22,6 +23,7 @@ from constants import (
     JWT_COOKIE_DOMAIN,
     JWT_SECRET_KEY,
     LOG_LEVEL,
+    SCHEDULED_REFRESH_SECRET,
     SPLITWISE_API_KEY,
     SPLITWISE_CONSUMER_KEY,
     SPLITWISE_CONSUMER_SECRET,
@@ -166,13 +168,19 @@ def index_api() -> tuple[Response, int]:
 
 @application.route("/api/refresh/scheduled")
 def schedule_refresh_api() -> tuple[Response, int]:
+    # This endpoint is called by an unauthenticated cron, so it's protected by a
+    # shared secret header instead of a JWT. compare_digest prevents timing attacks.
+    provided_secret = request.headers.get("X-Refresh-Secret", "")
+    if not SCHEDULED_REFRESH_SECRET or not secrets.compare_digest(provided_secret, SCHEDULED_REFRESH_SECRET):
+        return jsonify({"error": "Unauthorized"}), 401
+
     logger.info("Initiating scheduled refresh at " + str(datetime.now()))
     try:
         refresh_all()
         create_consistent_line_items()
     except Exception as e:
         logger.error("Error refreshing all: " + str(e))
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Refresh failed"}), 500
     return jsonify({"message": "success"}), 200
 
 

@@ -211,6 +211,7 @@ External API data follows this flow:
 - `SPLITWISE_CONSUMER_KEY`, `SPLITWISE_CONSUMER_SECRET`, `SPLITWISE_API_KEY` - Splitwise OAuth
 - `JWT_SECRET_KEY` - JWT signing key (defaults to `testSecretKey123` for development)
 - `JWT_COOKIE_DOMAIN` - Cookie domain for JWT (for cross-origin authentication)
+- `SCHEDULED_REFRESH_SECRET` - Shared secret for the cron-triggered `/api/refresh/scheduled` endpoint (cron must send it in the `X-Refresh-Secret` header; endpoint rejects all requests if unset)
 - `CORS_ALLOWED_ORIGINS` - Comma-separated list of allowed origins (defaults to `http://dev.localhost:5173`)
 - `LOG_LEVEL` - Logging level (defaults to `INFO`)
 
