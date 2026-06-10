@@ -74,11 +74,11 @@ def get_categorized_data() -> List[Dict[str, Any]]:
             .subquery()
         )
 
-        # Subquery: first line item amount per event (for duplicates)
-        first_li_subq = (
+        # Subquery: minimum line item amount per event (for duplicates)
+        min_li_subq = (
             db.query(
                 EventLineItem.event_id,
-                func.min(LineItem.amount).label("first_amount"),
+                func.min(LineItem.amount).label("min_amount"),
             )
             .join(LineItem, EventLineItem.line_item_id == LineItem.id)
             .group_by(EventLineItem.event_id)
@@ -91,13 +91,13 @@ def get_categorized_data() -> List[Dict[str, Any]]:
                 Event.date,
                 Category.name.label("category"),
                 case(
-                    (Event.is_duplicate == True, first_li_subq.c.first_amount),  # noqa: E712
+                    (Event.is_duplicate == True, min_li_subq.c.min_amount),  # noqa: E712
                     else_=total_subq.c.total,
                 ).label("amount"),
             )
             .join(Category, Event.category_id == Category.id)
             .outerjoin(total_subq, total_subq.c.event_id == Event.id)
-            .outerjoin(first_li_subq, first_li_subq.c.event_id == Event.id)
+            .outerjoin(min_li_subq, min_li_subq.c.event_id == Event.id)
             .all()
         )
 

@@ -80,7 +80,8 @@ def post_event_api() -> tuple[Response, int]:
         new_event["date"] = earliest_line_item["date"]
 
     if new_event.get("is_duplicate_transaction"):
-        new_event["amount"] = line_items[0]["amount"]
+        # Count only one side of the duplicate; min() matches Event.total_amount and the monthly breakdown
+        new_event["amount"] = min(line_item["amount"] for line_item in line_items)
     else:
         new_event["amount"] = sum(line_item["amount"] for line_item in line_items)
 
@@ -123,8 +124,8 @@ def update_event_api(event_id: str) -> tuple[Response, int]:
         "name": update_data.get("name", event.get("name", "")),
         "category": update_data.get("category", event.get("category")),
         "line_items": update_data["line_items"],
-        "is_duplicate_transaction": update_data.get("is_duplicate_transaction", False),
-        "tags": update_data.get("tags", []),
+        "is_duplicate_transaction": update_data.get("is_duplicate_transaction", event.get("is_duplicate_transaction", False)),
+        "tags": update_data.get("tags", event.get("tags", [])),
     }
 
     if update_data.get("date"):
@@ -138,7 +139,7 @@ def update_event_api(event_id: str) -> tuple[Response, int]:
 
     # Calculate updated amount for response
     if event_dict.get("is_duplicate_transaction"):
-        updated_amount = line_items[0]["amount"]
+        updated_amount = min(li["amount"] for li in line_items)
     else:
         updated_amount = sum(li["amount"] for li in line_items)
 

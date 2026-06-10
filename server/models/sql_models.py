@@ -191,7 +191,9 @@ class Event(Base):
         if not self.line_items:
             return Decimal("0.00")
         if self.is_duplicate:
-            return self.line_items[0].amount
+            # Count only one side of the duplicate; min() keeps this deterministic
+            # and consistent with the monthly breakdown query in dao.py
+            return min(li.amount for li in self.line_items)
         return sum(li.amount for li in self.line_items)
 
 
