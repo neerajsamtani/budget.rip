@@ -13,7 +13,7 @@ export default function CreateManualTransactionModal({ show, onHide }: { show: b
   const date = useField<string>("date", "" as string)
   const person = useField<string>("text", "" as string)
   const description = useField<string>("text", "" as string)
-  const amount = useField<number>("number", 0 as number)
+  const amount = useField<string>("number", "" as string)
   const [paymentMethodId, setPaymentMethodId] = useState<string>("")
   const isMobile = useIsMobile();
 
@@ -35,11 +35,17 @@ export default function CreateManualTransactionModal({ show, onHide }: { show: b
       return;
     }
 
+    const parsedAmount = Number(amount.value);
+    if (!amount.value.trim() || !Number.isFinite(parsedAmount)) {
+      showErrorToast(new Error("Please enter a valid amount"));
+      return;
+    }
+
     const newManualTransaction: CreateManualTransactionData = {
       date: date.value,
       person: person.value,
       description: description.value,
-      amount: amount.value,
+      amount: parsedAmount,
       payment_method_id: paymentMethodId,
     };
     createManualTransactionMutation.mutate(newManualTransaction, {
@@ -48,8 +54,8 @@ export default function CreateManualTransactionModal({ show, onHide }: { show: b
         closeAndReset();
       },
       onError: (error) => {
+        // Keep the form contents so the user can retry after a transient failure
         showErrorToast(error);
-        closeAndReset();
       }
     });
   }

@@ -2,7 +2,7 @@ import { SelectFilter } from "@/components/ui/select-filter";
 import React from 'react';
 
 // Define a constant array for months
-const MONTHS = [
+export const MONTHS = [
   'January',
   'February',
   'March',

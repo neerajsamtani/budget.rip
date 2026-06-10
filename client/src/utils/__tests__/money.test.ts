@@ -7,6 +7,9 @@ describe('parseMoneyToCents', () => {
     ['42.35', 4235],
     ['.5', 50],
     [' 10.00 ', 1000],
+    ['19.99', 1999],
+    ['0.29', 29],
+    ['1.15', 115],
   ])('converts %s to cents', (value, expectedCents) => {
     expect(parseMoneyToCents(value)).toBe(expectedCents);
   });

@@ -22,7 +22,8 @@ axiosInstance.interceptors.response.use(
     (response) => response,
     (error) => {
         // Don't redirect for auth endpoints (login check, etc.)
-        const isAuthEndpoint = error.config?.url?.includes('/api/auth/');
+        // Match without a leading slash since calls use relative URLs ('api/auth/me')
+        const isAuthEndpoint = error.config?.url?.includes('api/auth/');
 
         if (error.response?.status === 401 && !isAuthEndpoint) {
             // Token expired or invalid - redirect to login

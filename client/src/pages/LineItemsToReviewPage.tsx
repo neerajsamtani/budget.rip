@@ -40,10 +40,10 @@ export default function LineItemsToReviewPage() {
     }, [lineItemsDispatch]);
 
     const handleKeyDown = useCallback((event) => {
-        if (event.key === 'Enter' && selectedLineItems.length > 0 && !eventModalShow && !manualTransactionModalShow) {
+        if (event.key === 'Enter' && selectedLineItems.length > 0 && !eventModalShow && !manualTransactionModalShow && !splitwiseExpenseModalShow) {
             setEventModalShow(true);
         }
-    }, [selectedLineItems.length, eventModalShow, manualTransactionModalShow]);
+    }, [selectedLineItems.length, eventModalShow, manualTransactionModalShow, splitwiseExpenseModalShow]);
 
     useEffect(() => {
         document.addEventListener('keydown', handleKeyDown);

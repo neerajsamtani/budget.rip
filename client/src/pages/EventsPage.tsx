@@ -9,7 +9,7 @@ import React, { useState } from "react";
 import { NON_SPENDING_CATEGORIES } from "../components/charts/chart-utils";
 import CategoryFilter from "../components/CategoryFilter";
 import Event, { EventCard, EventInterface } from "../components/Event";
-import MonthFilter from "../components/MonthFilter";
+import MonthFilter, { MONTHS } from "../components/MonthFilter";
 import TagsFilter from "../components/TagsFilter";
 import { PageContainer, PageHeader } from "../components/ui/layout";
 import { StatusBadge } from "../components/ui/status-badge";
@@ -21,7 +21,9 @@ export default function EventsPage() {
     const now = DateTime.utc()
 
     const [category, setCategory] = useState("All")
-    const [month, setMonth] = useState(now.monthLong)
+    // Use the MonthFilter's English month names rather than the browser
+    // locale's, so the default is selectable and parses below
+    const [month, setMonth] = useState<(typeof MONTHS)[number]>(MONTHS[now.month - 1])
     const [year, setYear] = useState(String(now.year))
     const years = Array.from({ length: now.year - 2021 }, (_, i) => String(2022 + i))
     const [tagFilter, setTagFilter] = useState<string>('');
@@ -30,7 +32,7 @@ export default function EventsPage() {
     // Calculate time range for API query
     let startTime, endTime;
     if (month !== "All") {
-        const start = DateTime.fromFormat(`${month} ${year}`, "LLLL yyyy", { zone: 'utc' })
+        const start = DateTime.fromFormat(`${month} ${year}`, "LLLL yyyy", { zone: 'utc', locale: 'en-US' })
         startTime = start.toUnixInteger()
         endTime = start.endOf("month").toUnixInteger()
     } else {

@@ -35,18 +35,23 @@ jest.mock('../../components/CategoryFilter', () => {
 });
 
 jest.mock('../../components/MonthFilter', () => {
-    return function MockMonthFilter({ month, setMonth }: any) {
-        return (
-            <select
-                data-testid="month-filter"
-                value={month}
-                onChange={(e) => setMonth(e.target.value)}
-            >
-                <option value="January">January</option>
-                <option value="February">February</option>
-                <option value="All">All</option>
-            </select>
-        );
+    const { MONTHS } = jest.requireActual('../../components/MonthFilter');
+    return {
+        __esModule: true,
+        MONTHS,
+        default: function MockMonthFilter({ month, setMonth }: any) {
+            return (
+                <select
+                    data-testid="month-filter"
+                    value={month}
+                    onChange={(e) => setMonth(e.target.value)}
+                >
+                    <option value="January">January</option>
+                    <option value="February">February</option>
+                    <option value="All">All</option>
+                </select>
+            );
+        },
     };
 });
 

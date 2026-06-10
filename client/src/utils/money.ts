@@ -17,6 +17,8 @@ export function parseMoneyToCents(value: string): number | null {
     return null;
   }
 
-  const cents = amount * 100;
+  // Input is validated to <=2 decimals, so rounding only corrects float error
+  // (e.g. 19.99 * 100 === 1998.9999...).
+  const cents = Math.round(amount * 100);
   return Number.isSafeInteger(cents) ? cents : null;
 }
