@@ -123,8 +123,8 @@ def update_event_api(event_id: str) -> tuple[Response, int]:
         "name": update_data.get("name", event.get("name", "")),
         "category": update_data.get("category", event.get("category")),
         "line_items": update_data["line_items"],
-        "is_duplicate_transaction": update_data.get("is_duplicate_transaction", False),
-        "tags": update_data.get("tags", []),
+        "is_duplicate_transaction": update_data.get("is_duplicate_transaction", event.get("is_duplicate_transaction", False)),
+        "tags": update_data.get("tags", event.get("tags", [])),
     }
 
     if update_data.get("date"):

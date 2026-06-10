@@ -590,6 +590,48 @@ class TestEventAPI:
         data = response.get_json()
         assert data["error"] == "Event must have at least one line item"
 
+    def test_updating_event_without_tags_or_duplicate_flag_preserves_existing_values(
+        self,
+        test_client,
+        jwt_token,
+        flask_app,
+        create_line_item_via_manual,
+        create_event_via_api,
+    ):
+        """Omitting tags/is_duplicate_transaction in a PUT falls back to existing event values"""
+        create_line_item_via_manual(date="2009-02-13", person="Person1", description="Transaction 1", amount=100)
+
+        with flask_app.app_context():
+            from dao import get_all_line_items
+
+            all_line_items = get_all_line_items(None)
+            line_item_ids = [item["id"] for item in all_line_items]
+
+        event_response = create_event_via_api(
+            {
+                "name": "Original Event",
+                "category": "Dining",
+                "date": "2009-02-13",
+                "line_items": line_item_ids,
+                "tags": ["vacation"],
+                "is_duplicate_transaction": True,
+            }
+        )
+        event_id = event_response["id"]
+
+        # Rename without sending tags or is_duplicate_transaction
+        response = test_client.put(
+            f"/api/events/{event_id}",
+            json={"name": "Renamed Event", "line_items": line_item_ids},
+            headers={"Authorization": "Bearer " + jwt_token},
+        )
+
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data["name"] == "Renamed Event"
+        assert data["tags"] == ["vacation"]
+        assert data["is_duplicate_transaction"] is True
+
     def test_event_line_items_returns_associated_line_items(
         self,
         test_client,
