@@ -78,23 +78,45 @@ class TestApplicationRoutes:
 
     def test_scheduled_refresh_triggers_data_sync(self, test_client, mocker):
         """Scheduled refresh triggers data refresh and line item creation"""
+        mocker.patch("application.SCHEDULED_REFRESH_SECRET", "test_refresh_secret")
         mock_refresh_all = mocker.patch("application.refresh_all")
         mock_create_consistent = mocker.patch("application.create_consistent_line_items")
 
-        response = test_client.get("/api/refresh/scheduled")
+        response = test_client.get("/api/refresh/scheduled", headers={"X-Refresh-Secret": "test_refresh_secret"})
 
         assert response.status_code == 200
         mock_refresh_all.assert_called_once()
         mock_create_consistent.assert_called_once()
 
+    def test_scheduled_refresh_rejects_missing_or_wrong_secret(self, test_client, mocker):
+        """Scheduled refresh returns 401 when the secret header is missing or wrong"""
+        mocker.patch("application.SCHEDULED_REFRESH_SECRET", "test_refresh_secret")
+        mock_refresh_all = mocker.patch("application.refresh_all")
+
+        assert test_client.get("/api/refresh/scheduled").status_code == 401
+        assert test_client.get("/api/refresh/scheduled", headers={"X-Refresh-Secret": "wrong"}).status_code == 401
+        mock_refresh_all.assert_not_called()
+
+    def test_scheduled_refresh_rejects_all_requests_when_secret_unconfigured(self, test_client, mocker):
+        """Scheduled refresh returns 401 for all requests when no secret is configured"""
+        mocker.patch("application.SCHEDULED_REFRESH_SECRET", None)
+        mock_refresh_all = mocker.patch("application.refresh_all")
+
+        response = test_client.get("/api/refresh/scheduled", headers={"X-Refresh-Secret": ""})
+
+        assert response.status_code == 401
+        mock_refresh_all.assert_not_called()
+
     def test_scheduled_refresh_returns_500_on_error(self, test_client, mocker):
-        """Scheduled refresh returns 500 when data refresh fails"""
+        """Scheduled refresh returns 500 without leaking error details when data refresh fails"""
+        mocker.patch("application.SCHEDULED_REFRESH_SECRET", "test_refresh_secret")
         mock_refresh_all = mocker.patch("application.refresh_all", side_effect=Exception("Test error"))
         mock_create_consistent = mocker.patch("application.create_consistent_line_items")
 
-        response = test_client.get("/api/refresh/scheduled")
+        response = test_client.get("/api/refresh/scheduled", headers={"X-Refresh-Secret": "test_refresh_secret"})
 
         assert response.status_code == 500
+        assert "Test error" not in response.get_data(as_text=True)
         mock_refresh_all.assert_called_once()
         mock_create_consistent.assert_not_called()
 

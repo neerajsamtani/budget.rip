@@ -273,7 +273,7 @@ class TestStripeAPI:
             assert response.status_code == 200
             assert response.get_data(as_text=True).strip() == '"succeeded"'
 
-    def test_refresh_account_updates_account_data(self, flask_app, mocker):
+    def test_refresh_account_updates_account_data(self, flask_app, jwt_token, mocker):
         """Refreshing account updates stored account data"""
         mocker.patch("resources.stripe.STRIPE_API_KEY", "test_api_key")
         mocker.patch("resources.stripe.STRIPE_CUSTOMER_ID", "test_customer_id")
@@ -289,7 +289,10 @@ class TestStripeAPI:
             mock_account.__getitem__.side_effect = lambda k: getattr(mock_account, k)
             mock_retrieve.return_value = mock_account
 
-            response = flask_app.test_client().get("/api/refresh_account/fca_test123")
+            response = flask_app.test_client().get(
+                "/api/refresh_account/fca_test123",
+                headers={"Authorization": f"Bearer {jwt_token}"},
+            )
 
             assert response.status_code == 200
             data = response.get_json()
@@ -357,7 +360,7 @@ class TestStripeAPI:
             data = response.get_json()
             assert not data["relink_required"]
 
-    def test_refresh_transactions_fetches_new_transactions(self, flask_app, mocker):
+    def test_refresh_transactions_fetches_new_transactions(self, flask_app, jwt_token, mocker):
         """Refreshing transactions fetches new transactions from Stripe"""
         mocker.patch("resources.stripe.STRIPE_API_KEY", "test_api_key")
         mocker.patch("resources.stripe.STRIPE_CUSTOMER_ID", "test_customer_id")
@@ -380,7 +383,10 @@ class TestStripeAPI:
             mocked_list_object.has_more = False
             mock_list.return_value = mocked_list_object
 
-            response = flask_app.test_client().get("/api/refresh_transactions/fca_test123")
+            response = flask_app.test_client().get(
+                "/api/refresh_transactions/fca_test123",
+                headers={"Authorization": f"Bearer {jwt_token}"},
+            )
 
             assert response.status_code == 200
             assert "Refreshed Stripe Connection for Given Account" in response.get_data(as_text=True)
@@ -390,8 +396,8 @@ class TestStripeFunctions:
     def test_refresh_stripe_syncs_each_account(self, flask_app, mocker):
         """Refresh stripe syncs each stored bank account"""
         with flask_app.app_context():
-            mock_refresh_account = mocker.patch("resources.stripe.refresh_account_api")
-            mock_refresh_transactions = mocker.patch("resources.stripe.refresh_transactions_api")
+            mock_refresh_account = mocker.patch("resources.stripe.refresh_account")
+            mock_refresh_transactions = mocker.patch("resources.stripe.refresh_transactions")
             mock_convert = mocker.patch("resources.stripe.stripe_to_line_items")
 
             # Insert test account data
@@ -418,8 +424,8 @@ class TestStripeFunctions:
     def test_no_accounts_skips_sync_but_converts_line_items(self, flask_app, mocker):
         """No accounts skips sync but still converts existing transactions"""
         with flask_app.app_context():
-            mock_refresh_account = mocker.patch("resources.stripe.refresh_account_api")
-            mock_refresh_transactions = mocker.patch("resources.stripe.refresh_transactions_api")
+            mock_refresh_account = mocker.patch("resources.stripe.refresh_account")
+            mock_refresh_transactions = mocker.patch("resources.stripe.refresh_transactions")
             mock_convert = mocker.patch("resources.stripe.stripe_to_line_items")
 
             # Call the function with no accounts
@@ -670,8 +676,8 @@ class TestStripeIntegration:
     def test_complete_workflow_syncs_accounts_and_creates_line_items(self, flask_app, mocker):
         """Complete workflow syncs accounts, transactions, and creates line items"""
         with flask_app.app_context():
-            mock_refresh_account = mocker.patch("resources.stripe.refresh_account_api")
-            mock_refresh_transactions = mocker.patch("resources.stripe.refresh_transactions_api")
+            mock_refresh_account = mocker.patch("resources.stripe.refresh_account")
+            mock_refresh_transactions = mocker.patch("resources.stripe.refresh_transactions")
             mocker.patch("resources.stripe.bulk_upsert_line_items")
 
             # Insert test account

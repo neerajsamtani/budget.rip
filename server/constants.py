@@ -43,6 +43,8 @@ SPLITWISE_CONSUMER_KEY = os.getenv("SPLITWISE_CONSUMER_KEY")
 SPLITWISE_CONSUMER_SECRET = os.getenv("SPLITWISE_CONSUMER_SECRET")
 SPLITWISE_API_KEY = os.getenv("SPLITWISE_API_KEY")
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+# Shared secret required in the X-Refresh-Secret header to trigger the scheduled refresh endpoint
+SCHEDULED_REFRESH_SECRET = os.getenv("SCHEDULED_REFRESH_SECRET")
 JWT_COOKIE_DOMAIN = os.getenv("JWT_COOKIE_DOMAIN")
 # CORS configuration - comma-separated list of allowed origins
 CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", "http://dev.localhost:5173").split(",")

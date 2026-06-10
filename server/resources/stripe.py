@@ -245,16 +245,20 @@ def subscribe_to_account_api() -> tuple[Response, int]:
         return jsonify(error=str(e)), 500
 
 
+def refresh_account(account_id: str) -> None:
+    logger.info(f"Refreshing {account_id}")
+    account: stripe.financial_connections.Account = stripe.financial_connections.Account.retrieve(account_id)
+    account["can_relink"] = check_can_relink(account)
+
+    with SessionLocal.begin() as db:
+        bulk_upsert_bank_accounts(db, [account])
+
+
 @stripe_blueprint.route("/api/refresh_account/<account_id>")
+@jwt_required()
 def refresh_account_api(account_id: str) -> tuple[Response, int]:
     try:
-        logger.info(f"Refreshing {account_id}")
-        account: stripe.financial_connections.Account = stripe.financial_connections.Account.retrieve(account_id)
-        account["can_relink"] = check_can_relink(account)
-
-        with SessionLocal.begin() as db:
-            bulk_upsert_bank_accounts(db, [account])
-
+        refresh_account(account_id)
         return jsonify({"data": "success"}), 200
     except Exception as e:
         return jsonify(error=str(e)), 500
@@ -276,50 +280,53 @@ def relink_account_api(account_id: str) -> tuple[Response, int]:
         return jsonify(error=str(e)), 500
 
 
-@stripe_blueprint.route("/api/refresh_transactions/<account_id>")
-def refresh_transactions_api(account_id: str) -> tuple[Response, int]:
+def refresh_transactions(account_id: str) -> None:
     logger.info(f"Getting Transactions for {account_id}")
     # TODO: This gets all transactions ever. We should only get those that we don't have
+    has_more: bool = True
+    starting_after = ""
+    all_transactions: List[Dict[str, Any]] = []
+    stripe.api_key = STRIPE_API_KEY
+    stripe.api_version = "2022-08-01; financial_connections_transactions_beta=v1"
+
+    while has_more:
+        transactions_list_params = {
+            "account": account_id,
+            "limit": 100,
+        }
+        if starting_after:
+            transactions_list_params["starting_after"] = starting_after
+
+        transactions_list_object = stripe.financial_connections.Transaction.list(**transactions_list_params)
+
+        transactions = transactions_list_object.data
+
+        for transaction in transactions:
+            if transaction.status == "posted":
+                all_transactions.append(transaction)
+            elif transaction.status == "pending":
+                logger.info(
+                    f"Pending Transaction: {transaction.description} | "
+                    + f"{cents_to_dollars(flip_amount(transaction.amount))}"
+                )
+
+        has_more = transactions_list_object.has_more
+        starting_after = transactions[-1].id if transactions else ""
+
+    if all_transactions:
+        with SessionLocal.begin() as db:
+            bulk_upsert_transactions(db, all_transactions, source="stripe_api")
+
+    # Best-effort: fetch latest balance for this account (won't fail transaction refresh)
+    refresh_account_balances(account_ids=[account_id])
+
+
+@stripe_blueprint.route("/api/refresh_transactions/<account_id>")
+@jwt_required()
+def refresh_transactions_api(account_id: str) -> tuple[Response, int]:
     try:
-        has_more: bool = True
-        starting_after = ""
-        all_transactions: List[Dict[str, Any]] = []
-        stripe.api_key = STRIPE_API_KEY
-        stripe.api_version = "2022-08-01; financial_connections_transactions_beta=v1"
-
-        while has_more:
-            transactions_list_params = {
-                "account": account_id,
-                "limit": 100,
-            }
-            if starting_after:
-                transactions_list_params["starting_after"] = starting_after
-
-            transactions_list_object = stripe.financial_connections.Transaction.list(**transactions_list_params)
-
-            transactions = transactions_list_object.data
-
-            for transaction in transactions:
-                if transaction.status == "posted":
-                    all_transactions.append(transaction)
-                elif transaction.status == "pending":
-                    logger.info(
-                        f"Pending Transaction: {transaction.description} | "
-                        + f"{cents_to_dollars(flip_amount(transaction.amount))}"
-                    )
-
-            has_more = transactions_list_object.has_more
-            starting_after = transactions[-1].id if transactions else ""
-
-        if all_transactions:
-            with SessionLocal.begin() as db:
-                bulk_upsert_transactions(db, all_transactions, source="stripe_api")
-
-        # Best-effort: fetch latest balance for this account (won't fail transaction refresh)
-        refresh_account_balances(account_ids=[account_id])
-
+        refresh_transactions(account_id)
         return jsonify("Refreshed Stripe Connection for Given Account"), 200
-
     except Exception as e:
         return jsonify(error=str(e)), 500
 
@@ -328,8 +335,8 @@ def refresh_stripe() -> None:
     logger.info("Refreshing Stripe Data")
     bank_accounts: List[Dict[str, Any]] = get_all_bank_accounts(None)
     for account in bank_accounts:
-        refresh_account_api(account["id"])
-        refresh_transactions_api(account["id"])
+        refresh_account(account["id"])
+        refresh_transactions(account["id"])
     stripe_to_line_items()
     # Best-effort: refresh balances for all accounts after transactions updated
     refresh_account_balances()
