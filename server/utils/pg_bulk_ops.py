@@ -5,6 +5,7 @@ Shared bulk write functions for efficiently upserting transactions and line item
 to PostgreSQL during the dual-write period.
 """
 
+import json
 import logging
 from datetime import UTC, datetime
 from decimal import Decimal
@@ -12,7 +13,7 @@ from typing import Any, Dict, List, Optional
 
 from helpers import iso_8601_to_posix, to_dict_robust
 from models.database import SessionLocal
-from models.sql_models import BankAccount, Category, LineItem, PaymentMethod, Transaction, User
+from models.sql_models import BankAccount, Category, EventLineItem, LineItem, PaymentMethod, Transaction, User
 from utils.id_generator import generate_id
 
 logger = logging.getLogger(__name__)
@@ -35,9 +36,18 @@ def get_transaction_date(transaction: Dict[str, Any], source: str) -> datetime:
         return datetime.now(UTC)
 
 
+def _normalize_source_data(source_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Round-trip through JSON so comparisons against stored JSON columns are type-stable."""
+    return json.loads(json.dumps(source_data, default=str))
+
+
 def bulk_upsert_transactions(db_session, transactions_source_data: List[Any], source: str) -> int:
     """
     Bulk upsert transactions to PostgreSQL.
+
+    Inserts new transactions and updates source_data on existing ones when the
+    external record changed (e.g. an edited Splitwise amount), so re-imports
+    propagate upstream edits.
 
     Args:
         db_session: SQLAlchemy session
@@ -45,7 +55,7 @@ def bulk_upsert_transactions(db_session, transactions_source_data: List[Any], so
         source: Transaction source type (venmo, splitwise, stripe, cash)
 
     Returns:
-        Count of inserted transactions
+        Count of inserted and updated transactions
     """
     if not transactions_source_data:
         return 0
@@ -71,23 +81,26 @@ def bulk_upsert_transactions(db_session, transactions_source_data: List[Any], so
     if not transaction_dicts:
         return 0
 
-    existing_query = db_session.query(Transaction.source, Transaction.source_id).filter(Transaction.source == source)
-    if source_ids:
-        existing_pairs = set(
-            (row.source, row.source_id)
-            for row in existing_query.filter(Transaction.source_id.in_([sid for _, sid in source_ids])).all()
-        )
-    else:
-        existing_pairs = set()
+    existing_by_source_id = {
+        txn.source_id: txn
+        for txn in db_session.query(Transaction)
+        .filter(Transaction.source == source, Transaction.source_id.in_([sid for _, sid in source_ids]))
+        .all()
+    }
 
     bulk_inserts = []
-    for txn_dict, (src, source_id) in zip(transaction_dicts, source_ids):
-        if (src, source_id) in existing_pairs:
-            continue
-
+    updated_count = 0
+    for txn_dict, (_, source_id) in zip(transaction_dicts, source_ids):
         transaction_date = get_transaction_date(txn_dict, source)
+        source_data = _normalize_source_data({k: v for k, v in txn_dict.items() if k != "id"})
 
-        source_data = {k: v for k, v in txn_dict.items() if k != "id"}
+        existing = existing_by_source_id.get(source_id)
+        if existing:
+            if existing.source_data != source_data:
+                existing.source_data = source_data
+                existing.transaction_date = transaction_date
+                updated_count += 1
+            continue
 
         bulk_inserts.append(
             {
@@ -102,9 +115,10 @@ def bulk_upsert_transactions(db_session, transactions_source_data: List[Any], so
     if bulk_inserts:
         db_session.bulk_insert_mappings(Transaction, bulk_inserts)
         logger.info(f"Bulk inserted {len(bulk_inserts)} {source} transactions to PostgreSQL")
-        return len(bulk_inserts)
+    if updated_count:
+        logger.info(f"Updated {updated_count} changed {source} transactions in PostgreSQL")
 
-    return 0
+    return len(bulk_inserts) + updated_count
 
 
 def _convert_line_item_to_dict(li: Any) -> Optional[Dict[str, Any]]:
@@ -131,36 +145,70 @@ def _convert_line_item_to_dict(li: Any) -> Optional[Dict[str, Any]]:
         return None
 
 
+def _parse_line_item_date(date_value: Any) -> datetime:
+    if isinstance(date_value, (int, float)):
+        return datetime.fromtimestamp(float(date_value), UTC)
+    logger.warning(f"Unexpected date type: {type(date_value)}, using current time")
+    return datetime.now(UTC)
+
+
+def _parse_line_item_amount(amount_value: Any) -> Decimal:
+    try:
+        return Decimal(str(amount_value))
+    except (ValueError, TypeError):
+        logger.warning(f"Invalid amount: {amount_value}, using 0")
+        return Decimal("0.00")
+
+
 def _build_line_item_insert_mapping(
     li_dict: Dict[str, Any],
     transaction_id: str,
     payment_method_id: str,
 ) -> Dict[str, Any]:
     """Build bulk insert mapping for a single line item."""
-    date_value = li_dict.get("date", 0)
-    if isinstance(date_value, (int, float)):
-        li_date = datetime.fromtimestamp(float(date_value), UTC)
-    else:
-        logger.warning(f"Unexpected date type: {type(date_value)}, using current time")
-        li_date = datetime.now(UTC)
-
-    amount_value = li_dict.get("amount", 0)
-    try:
-        li_amount = Decimal(str(amount_value))
-    except (ValueError, TypeError):
-        logger.warning(f"Invalid amount: {amount_value}, using 0")
-        li_amount = Decimal("0.00")
-
     return {
         "id": generate_id("li"),
         "transaction_id": transaction_id,
-        "date": li_date,
-        "amount": li_amount,
+        "date": _parse_line_item_date(li_dict.get("date", 0)),
+        "amount": _parse_line_item_amount(li_dict.get("amount", 0)),
         "description": li_dict.get("description", ""),
         "payment_method_id": payment_method_id,
         "responsible_party": li_dict.get("responsible_party", ""),
         "notes": li_dict.get("notes"),
     }
+
+
+def _dates_equal(a: Optional[datetime], b: Optional[datetime]) -> bool:
+    """Compare datetimes treating naive values (e.g. from SQLite) as UTC."""
+    if a is None or b is None:
+        return a == b
+    if a.tzinfo is None:
+        a = a.replace(tzinfo=UTC)
+    if b.tzinfo is None:
+        b = b.replace(tzinfo=UTC)
+    return a == b
+
+
+def _update_line_item_if_changed(line_item: LineItem, li_dict: Dict[str, Any]) -> bool:
+    """Apply external edits to an existing line item. Returns True if anything changed."""
+    new_date = _parse_line_item_date(li_dict.get("date", 0))
+    new_amount = _parse_line_item_amount(li_dict.get("amount", 0))
+    new_description = li_dict.get("description", "")
+    new_responsible_party = li_dict.get("responsible_party", "")
+
+    if (
+        line_item.amount == new_amount
+        and line_item.description == new_description
+        and (line_item.responsible_party or "") == new_responsible_party
+        and _dates_equal(line_item.date, new_date)
+    ):
+        return False
+
+    line_item.date = new_date
+    line_item.amount = new_amount
+    line_item.description = new_description
+    line_item.responsible_party = new_responsible_party
+    return True
 
 
 def bulk_upsert_line_items(db_session, line_items_data: List[Any], source: str) -> int:
@@ -228,25 +276,36 @@ def bulk_upsert_line_items(db_session, line_items_data: List[Any], source: str) 
     if not line_item_dicts:
         return 0
 
-    # Prevent duplicates: Skip line items for transactions that already have them.
-    # This allows safe re-importing of API data without creating duplicate line items.
-    existing_source_ids = set()
+    # Find line items that already exist for these transactions so re-imports
+    # update them instead of creating duplicates.
+    existing_line_items_by_source_id: Dict[str, LineItem] = {}
+    evented_line_item_ids: set = set()
     if source_ids_to_check:
-        # Find line items that already exist for these transactions
-        transactions_with_items = (
-            db_session.query(Transaction.source_id)
-            .join(LineItem, Transaction.id == LineItem.transaction_id)
+        rows = (
+            db_session.query(LineItem, Transaction.source_id)
+            .join(Transaction, Transaction.id == LineItem.transaction_id)
             .filter(Transaction.source == source, Transaction.source_id.in_(source_ids_to_check))
             .all()
         )
-        existing_source_ids = {row[0] for row in transactions_with_items}
+        existing_line_items_by_source_id = {row[1]: row[0] for row in rows}
+        if existing_line_items_by_source_id:
+            evented_line_item_ids = {
+                row[0]
+                for row in db_session.query(EventLineItem.line_item_id)
+                .filter(EventLineItem.line_item_id.in_([li.id for li in existing_line_items_by_source_id.values()]))
+                .all()
+            }
 
     bulk_inserts = []
+    updated_count = 0
     for li_dict in line_item_dicts:
         source_id = li_dict.get("source_id", "")
 
-        # Skip if this transaction already has a line item
-        if source_id and source_id in existing_source_ids:
+        existing_li = existing_line_items_by_source_id.get(source_id) if source_id else None
+        if existing_li:
+            # Propagate external edits, but never touch line items already reviewed into an event
+            if existing_li.id not in evented_line_item_ids:
+                updated_count += _update_line_item_if_changed(existing_li, li_dict)
             continue
 
         if not source_id:
@@ -276,9 +335,58 @@ def bulk_upsert_line_items(db_session, line_items_data: List[Any], source: str) 
     if bulk_inserts:
         db_session.bulk_insert_mappings(LineItem, bulk_inserts)
         logger.info(f"Bulk inserted {len(bulk_inserts)} {source} line items to PostgreSQL")
-        return len(bulk_inserts)
+    if updated_count:
+        logger.info(f"Updated {updated_count} changed {source} line items in PostgreSQL")
 
-    return 0
+    return len(bulk_inserts) + updated_count
+
+
+def delete_transactions_for_removed_sources(db_session, source: str, source_ids: List[str]) -> int:
+    """
+    Delete transactions (and their line items) whose source records were deleted upstream.
+
+    Transactions whose line item has already been reviewed into an event are kept
+    and logged, so upstream deletions never silently alter events.
+
+    Returns:
+        Count of deleted transactions
+    """
+    if not source_ids:
+        return 0
+
+    transactions = (
+        db_session.query(Transaction).filter(Transaction.source == source, Transaction.source_id.in_(source_ids)).all()
+    )
+    if not transactions:
+        return 0
+
+    line_items = db_session.query(LineItem).filter(LineItem.transaction_id.in_([txn.id for txn in transactions])).all()
+    line_item_by_transaction_id = {li.transaction_id: li for li in line_items}
+    evented_line_item_ids = (
+        {
+            row[0]
+            for row in db_session.query(EventLineItem.line_item_id)
+            .filter(EventLineItem.line_item_id.in_([li.id for li in line_items]))
+            .all()
+        }
+        if line_items
+        else set()
+    )
+
+    deleted_count = 0
+    for txn in transactions:
+        line_item = line_item_by_transaction_id.get(txn.id)
+        if line_item and line_item.id in evented_line_item_ids:
+            logger.warning(f"Keeping {source} transaction {txn.source_id} deleted upstream: its line item belongs to an event")
+            continue
+        if line_item:
+            db_session.delete(line_item)
+        db_session.delete(txn)
+        deleted_count += 1
+
+    if deleted_count:
+        logger.info(f"Deleted {deleted_count} {source} transactions removed upstream")
+    return deleted_count
 
 
 def bulk_upsert_bank_accounts(db_session, accounts_data: List[Any]) -> int:

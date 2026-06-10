@@ -21,7 +21,11 @@ from resources.schemas.splitwise import (
     SplitwiseExpenseCreateResponse,
     SplitwiseFriendListResponse,
 )
-from utils.pg_bulk_ops import bulk_upsert_line_items, bulk_upsert_transactions
+from utils.pg_bulk_ops import (
+    bulk_upsert_line_items,
+    bulk_upsert_transactions,
+    delete_transactions_for_removed_sources,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -234,24 +238,26 @@ def build_splitwise_users(amount: Decimal, current_user_id: int, owed_shares: Di
 
 def refresh_splitwise() -> None:
     logger.info("Refreshing Splitwise Data")
-    expenses: List[Any] = splitwise_client.getExpenses(limit=LIMIT, dated_after=MOVING_DATE)
 
-    # Collect all non-deleted expenses for bulk upsert
-    all_expenses: List[Any] = []
-    deleted_count = 0
-    for expense in expenses:
-        # TODO: What if an expense is deleted? What if it's part of an event?
-        # Should I send a notification?
-        if expense.deleted_at is not None:
-            deleted_count += 1
-            continue
-        all_expenses.append(expense)
+    # Page through all expenses; a single call is capped at LIMIT results
+    expenses: List[Any] = []
+    offset = 0
+    while True:
+        page: List[Any] = splitwise_client.getExpenses(limit=LIMIT, offset=offset, dated_after=MOVING_DATE)
+        expenses.extend(page)
+        if len(page) < LIMIT:
+            break
+        offset += LIMIT
 
-    # Bulk upsert all collected expenses at once
-    if all_expenses:
+    all_expenses: List[Any] = [expense for expense in expenses if expense.deleted_at is None]
+    deleted_source_ids: List[str] = [str(expense.id) for expense in expenses if expense.deleted_at is not None]
+
+    if all_expenses or deleted_source_ids:
         with SessionLocal.begin() as db:
             bulk_upsert_transactions(db, all_expenses, source="splitwise_api")
-        logger.info(f"Refreshed {len(all_expenses)} Splitwise expenses (skipped {deleted_count} deleted)")
+            # Remove expenses deleted in Splitwise (unless already reviewed into an event)
+            delete_transactions_for_removed_sources(db, "splitwise_api", deleted_source_ids)
+        logger.info(f"Refreshed {len(all_expenses)} Splitwise expenses ({len(deleted_source_ids)} deleted upstream)")
     else:
         logger.info("No new Splitwise expenses to refresh")
 

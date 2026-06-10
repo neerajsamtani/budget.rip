@@ -271,7 +271,7 @@ class TestSplitwiseFunctions:
             refresh_splitwise()
 
             # Verify getExpenses was called with correct parameters
-            mock_splitwise_client.getExpenses.assert_called_once_with(limit=1000, dated_after="2022-08-03T00:00:00Z")
+            mock_splitwise_client.getExpenses.assert_called_once_with(limit=1000, offset=0, dated_after="2022-08-03T00:00:00Z")
 
     def test_deleted_expenses_are_filtered_out(
         self, flask_app, mock_splitwise_expense, mock_splitwise_expense_deleted, mocker
@@ -326,6 +326,151 @@ class TestSplitwiseFunctions:
                 assert line_item.payment_method_id is not None
                 assert line_item.description == "Test expense"
                 assert line_item.amount == 50.0
+
+    def test_edited_expense_updates_unevented_line_item_on_reimport(self, flask_app, mock_splitwise_expense_dict, mocker):
+        """Re-importing an edited expense updates the transaction and its un-evented line item"""
+        with flask_app.app_context():
+            from models.database import SessionLocal
+            from models.sql_models import LineItem, Transaction
+            from utils.pg_bulk_ops import bulk_upsert_transactions
+
+            with SessionLocal.begin() as db:
+                bulk_upsert_transactions(db, [mock_splitwise_expense_dict], source="splitwise_api")
+            splitwise_to_line_items()
+
+            # The expense amount is edited upstream and re-imported
+            edited = {
+                **mock_splitwise_expense_dict,
+                "users": [
+                    {"first_name": USER_FIRST_NAME, "net_balance": -75.0},
+                    {"first_name": "John Doe", "net_balance": 75.0},
+                ],
+            }
+            with SessionLocal.begin() as db:
+                bulk_upsert_transactions(db, [edited], source="splitwise_api")
+            splitwise_to_line_items()
+
+            with SessionLocal.begin() as db:
+                transaction = db.query(Transaction).filter_by(source="splitwise_api", source_id="expense_1").one()
+                assert transaction.source_data["users"][0]["net_balance"] == -75.0
+                line_items = db.query(LineItem).all()
+                assert len(line_items) == 1
+                assert line_items[0].amount == 75.0
+
+    def test_edited_expense_does_not_touch_evented_line_item(self, flask_app, mock_splitwise_expense_dict, mocker):
+        """Re-importing an edited expense leaves line items already assigned to an event unchanged"""
+        with flask_app.app_context():
+            from models.database import SessionLocal
+            from models.sql_models import Category, Event, EventLineItem, LineItem
+            from utils.id_generator import generate_id
+            from utils.pg_bulk_ops import bulk_upsert_transactions
+
+            with SessionLocal.begin() as db:
+                bulk_upsert_transactions(db, [mock_splitwise_expense_dict], source="splitwise_api")
+            splitwise_to_line_items()
+
+            with SessionLocal.begin() as db:
+                line_item = db.query(LineItem).one()
+                category = db.query(Category).first()
+                event = Event(
+                    id=generate_id("evt"),
+                    date=line_item.date,
+                    description="Reviewed event",
+                    category_id=category.id,
+                )
+                db.add(event)
+                db.add(EventLineItem(id=generate_id("eli"), event_id=event.id, line_item_id=line_item.id))
+
+            edited = {
+                **mock_splitwise_expense_dict,
+                "users": [
+                    {"first_name": USER_FIRST_NAME, "net_balance": -75.0},
+                    {"first_name": "John Doe", "net_balance": 75.0},
+                ],
+            }
+            with SessionLocal.begin() as db:
+                bulk_upsert_transactions(db, [edited], source="splitwise_api")
+            splitwise_to_line_items()
+
+            with SessionLocal.begin() as db:
+                assert db.query(LineItem).one().amount == 50.0
+
+    def test_deleted_expense_removes_unevented_transaction_and_line_item(self, flask_app, mock_splitwise_expense_dict, mocker):
+        """An expense deleted upstream removes its transaction and un-evented line item"""
+        with flask_app.app_context():
+            from models.database import SessionLocal
+            from models.sql_models import LineItem, Transaction
+            from utils.pg_bulk_ops import bulk_upsert_transactions, delete_transactions_for_removed_sources
+
+            with SessionLocal.begin() as db:
+                bulk_upsert_transactions(db, [mock_splitwise_expense_dict], source="splitwise_api")
+            splitwise_to_line_items()
+
+            with SessionLocal.begin() as db:
+                deleted = delete_transactions_for_removed_sources(db, "splitwise_api", ["expense_1"])
+                assert deleted == 1
+
+            with SessionLocal.begin() as db:
+                assert db.query(Transaction).count() == 0
+                assert db.query(LineItem).count() == 0
+
+    def test_deleted_expense_keeps_evented_line_item(self, flask_app, mock_splitwise_expense_dict, mocker):
+        """An expense deleted upstream is kept when its line item belongs to an event"""
+        with flask_app.app_context():
+            from models.database import SessionLocal
+            from models.sql_models import Category, Event, EventLineItem, LineItem, Transaction
+            from utils.id_generator import generate_id
+            from utils.pg_bulk_ops import bulk_upsert_transactions, delete_transactions_for_removed_sources
+
+            with SessionLocal.begin() as db:
+                bulk_upsert_transactions(db, [mock_splitwise_expense_dict], source="splitwise_api")
+            splitwise_to_line_items()
+
+            with SessionLocal.begin() as db:
+                line_item = db.query(LineItem).one()
+                category = db.query(Category).first()
+                event = Event(
+                    id=generate_id("evt"),
+                    date=line_item.date,
+                    description="Reviewed event",
+                    category_id=category.id,
+                )
+                db.add(event)
+                db.add(EventLineItem(id=generate_id("eli"), event_id=event.id, line_item_id=line_item.id))
+
+            with SessionLocal.begin() as db:
+                deleted = delete_transactions_for_removed_sources(db, "splitwise_api", ["expense_1"])
+                assert deleted == 0
+
+            with SessionLocal.begin() as db:
+                assert db.query(Transaction).count() == 1
+                assert db.query(LineItem).count() == 1
+
+    def test_refresh_paginates_past_expense_limit(self, flask_app, mocker):
+        """Refresh keeps fetching pages until fewer than LIMIT expenses are returned"""
+        with flask_app.app_context():
+            from constants import LIMIT
+
+            mock_splitwise_client = mocker.patch("resources.splitwise.splitwise_client")
+            mock_bulk_upsert = mocker.patch("resources.splitwise.bulk_upsert_transactions")
+            mocker.patch("resources.splitwise.delete_transactions_for_removed_sources")
+
+            def make_expense(i):
+                expense = mocker.Mock()
+                expense.deleted_at = None
+                expense.id = f"expense_{i}"
+                return expense
+
+            first_page = [make_expense(i) for i in range(LIMIT)]
+            second_page = [make_expense(LIMIT)]
+            mock_splitwise_client.getExpenses.side_effect = [first_page, second_page]
+
+            refresh_splitwise()
+
+            assert mock_splitwise_client.getExpenses.call_count == 2
+            assert mock_splitwise_client.getExpenses.call_args_list[1].kwargs["offset"] == LIMIT
+            # All expenses from both pages are upserted
+            assert len(mock_bulk_upsert.call_args[0][1]) == LIMIT + 1
 
     def test_expenses_with_ignored_parties_are_skipped(self, flask_app, mocker):
         """Expenses where responsible party is in ignore list are skipped"""

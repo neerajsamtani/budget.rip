@@ -144,7 +144,7 @@ class TestApplicationRoutes:
 
     def test_refresh_account_syncs_stripe_transactions(self, test_client, jwt_token, mocker):
         """Refresh account endpoint syncs Stripe transactions"""
-        mock_refresh_transactions = mocker.patch("application.refresh_transactions_api")
+        mock_refresh_transactions = mocker.patch("application.refresh_transactions")
         mock_stripe_to_line_items = mocker.patch("application.stripe_to_line_items")
 
         response = test_client.post(
@@ -214,7 +214,7 @@ class TestApplicationRoutes:
 
     def test_refresh_account_returns_500_on_error(self, test_client, jwt_token, mocker):
         """Refresh account endpoint returns 500 when refresh fails"""
-        mocker.patch("application.refresh_transactions_api", side_effect=Exception("Test error"))
+        mocker.patch("application.refresh_transactions", side_effect=Exception("Test error"))
 
         response = test_client.post(
             "/api/refresh/account",

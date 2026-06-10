@@ -200,8 +200,8 @@ def test_event_total_amount_sums_all_linked_line_items(db_session, common_fixtur
     assert event.total_amount == expected_total
 
 
-def test_duplicate_event_uses_first_line_item_amount_only(db_session, common_fixtures):
-    """Duplicate event uses only the first line item amount"""
+def test_duplicate_event_uses_minimum_line_item_amount_only(db_session, common_fixtures):
+    """Duplicate event uses only the minimum line item amount"""
     category = common_fixtures["category"]
     payment_method = common_fixtures["payment_method"]
 
@@ -217,7 +217,7 @@ def test_duplicate_event_uses_first_line_item_amount_only(db_session, common_fix
     db_session.commit()
 
     # Add two line items with different amounts (each with its own transaction)
-    amounts = [Decimal("100.00"), Decimal("100.00")]
+    amounts = [Decimal("100.01"), Decimal("100.00")]
     for i, amount in enumerate(amounts):
         transaction = Transaction(
             id=generate_id("txn"),
@@ -246,9 +246,9 @@ def test_duplicate_event_uses_first_line_item_amount_only(db_session, common_fix
     db_session.commit()
     db_session.refresh(event)
 
-    # With is_duplicate=True, should use first item only
+    # With is_duplicate=True, should use the minimum line item amount only
     assert event.total_amount == Decimal("100.00")
-    # Not the sum of both (200.00)
+    # Not the sum of both (200.01)
     assert event.total_amount != sum(amounts)
 
 

@@ -47,7 +47,7 @@ from resources.splitwise import (
 )
 from resources.stripe import (
     refresh_stripe,
-    refresh_transactions_api,
+    refresh_transactions,
     stripe_blueprint,
     stripe_to_line_items,
 )
@@ -211,7 +211,7 @@ def refresh_single_account_api() -> tuple[Response, int]:
             return jsonify({"error": "accountId and source are required"}), 400
 
         if source == "stripe":
-            refresh_transactions_api(account_id)
+            refresh_transactions(account_id)
             stripe_to_line_items()
         elif source == "venmo":
             refresh_venmo()
