@@ -864,6 +864,61 @@ class TestEventAPI:
             assert line_item_data3_after is not None
             assert "event_id" not in line_item_data3_after
 
+    def test_event_creation_with_nonexistent_line_item_ids_returns_400(self, test_client, jwt_token):
+        """Event creation with non-existent line item IDs returns 400"""
+        response = test_client.post(
+            "/api/events",
+            json={
+                "name": "Ghost Event",
+                "category": "Dining",
+                "line_items": ["nonexistent-id-1", "nonexistent-id-2"],
+                "tags": [],
+                "is_duplicate_transaction": False,
+            },
+            headers={"Authorization": "Bearer " + jwt_token},
+        )
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+
+    def test_event_update_with_nonexistent_line_item_ids_returns_400(
+        self, test_client, jwt_token, flask_app, create_line_item_via_manual, create_event_via_api
+    ):
+        """Event update with non-existent line item IDs returns 400"""
+        create_line_item_via_manual(date="2009-02-13", person="Person1", description="Transaction 1", amount=100)
+
+        with flask_app.app_context():
+            from dao import get_all_line_items
+
+            all_line_items = get_all_line_items(None)
+            line_item_id = all_line_items[0]["id"]
+
+        event = create_event_via_api(
+            {
+                "name": "Real Event",
+                "category": "Dining",
+                "date": "2009-02-13",
+                "line_items": [line_item_id],
+                "tags": [],
+                "is_duplicate_transaction": False,
+            }
+        )
+
+        response = test_client.put(
+            f"/api/events/{event['id']}",
+            json={
+                "name": "Real Event",
+                "category": "Dining",
+                "line_items": ["nonexistent-id-1"],
+                "tags": [],
+                "is_duplicate_transaction": False,
+            },
+            headers={"Authorization": "Bearer " + jwt_token},
+        )
+        assert response.status_code == 400
+        data = response.get_json()
+        assert "error" in data
+
     def test_get_line_item_amounts_returns_only_id_date_amount(self, flask_app, create_line_item_via_manual):
         """get_line_item_amounts returns only id, date, and amount keys"""
         create_line_item_via_manual(date="2009-02-13", person="John Doe", description="Transaction 1", amount=100)
