@@ -9,6 +9,8 @@ venv
 dist
 coverage
 *.md
+!plans/
+!plans/*.md
 .cursorignore
 migrations/
 migration_examples/
