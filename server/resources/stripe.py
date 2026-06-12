@@ -162,7 +162,8 @@ def create_fc_session_api(
 
         return jsonify({"clientSecret": session["client_secret"]}), 200
     except Exception as e:
-        return jsonify(error=str(e)), 500
+        logger.error(f"Error creating financial connections session: {e}")
+        return jsonify({"error": "Request failed"}), 500
 
 
 @stripe_blueprint.route("/api/create_accounts", methods=["POST"])
@@ -190,7 +191,8 @@ def get_accounts_api(session_id: str) -> tuple[Response, int]:
 
         return jsonify({"accounts": accounts}), 200
     except Exception as e:
-        return jsonify(error=str(e)), 500
+        logger.error(f"Error retrieving accounts for session {session_id}: {e}")
+        return jsonify({"error": "Request failed"}), 500
 
 
 @stripe_blueprint.route("/api/accounts_and_balances")
@@ -242,7 +244,8 @@ def subscribe_to_account_api() -> tuple[Response, int]:
         refresh_status: str = response.get("transaction_refresh", {}).get("status", "unknown")
         return jsonify(str(refresh_status)), 200
     except Exception as e:
-        return jsonify(error=str(e)), 500
+        logger.error(f"Error subscribing to account: {e}")
+        return jsonify({"error": "Request failed"}), 500
 
 
 def refresh_account(account_id: str) -> None:
@@ -261,7 +264,8 @@ def refresh_account_api(account_id: str) -> tuple[Response, int]:
         refresh_account(account_id)
         return jsonify({"data": "success"}), 200
     except Exception as e:
-        return jsonify(error=str(e)), 500
+        logger.error(f"Error refreshing account {account_id}: {e}")
+        return jsonify({"error": "Request failed"}), 500
 
 
 @stripe_blueprint.route("/api/relink_account/<account_id>", methods=["POST"])
@@ -277,7 +281,8 @@ def relink_account_api(account_id: str) -> tuple[Response, int]:
         create_fc_session_response = create_fc_session_api(account["authorization"])
         return jsonify(create_fc_session_response[0].json), 200
     except Exception as e:
-        return jsonify(error=str(e)), 500
+        logger.error(f"Error relinking account {account_id}: {e}")
+        return jsonify({"error": "Request failed"}), 500
 
 
 def refresh_transactions(account_id: str) -> None:
@@ -328,7 +333,8 @@ def refresh_transactions_api(account_id: str) -> tuple[Response, int]:
         refresh_transactions(account_id)
         return jsonify("Refreshed Stripe Connection for Given Account"), 200
     except Exception as e:
-        return jsonify(error=str(e)), 500
+        logger.error(f"Error refreshing transactions for account {account_id}: {e}")
+        return jsonify({"error": "Request failed"}), 500
 
 
 def refresh_stripe() -> None:

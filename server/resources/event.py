@@ -208,4 +208,4 @@ def get_line_items_for_event_api(
         return jsonify({"data": line_items}), 200
     except Exception as e:
         logger.error(f"Error retrieving line items for event {event_id}: {e}")
-        return jsonify(error=str(e)), 500
+        return jsonify({"error": "Request failed"}), 500
