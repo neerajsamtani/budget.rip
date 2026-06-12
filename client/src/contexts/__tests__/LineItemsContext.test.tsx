@@ -225,6 +225,127 @@ describe('LineItemsContext', () => {
             });
         });
 
+        it('toggle_line_item_select sets unselected item to selected, leaving other items unchanged', async () => {
+            await act(async () => {
+                renderWithProviders(
+                    <LineItemsProvider>
+                        <TestComponent />
+                    </LineItemsProvider>
+                );
+            });
+
+            await waitFor(() => {
+                expect(screen.getByTestId('line-item-1')).toHaveTextContent('Test transaction 1 - not selected');
+                expect(screen.getByTestId('line-item-2')).toHaveTextContent('Test transaction 2 - not selected');
+            });
+
+            await act(async () => {
+                await userEvent.click(screen.getByTestId('toggle-button'));
+            });
+
+            await waitFor(() => {
+                expect(screen.getByTestId('line-item-1')).toHaveTextContent('Test transaction 1 - selected');
+                expect(screen.getByTestId('line-item-2')).toHaveTextContent('Test transaction 2 - not selected');
+            });
+        });
+
+        it('toggle_line_item_select sets selected item to unselected', async () => {
+            mockAxiosInstance.get.mockImplementation((url: string) => {
+                if (url.includes('api/auth/me')) {
+                    return Promise.resolve({
+                        data: { id: 'user_123', email: 'test@example.com', first_name: 'Test', last_name: 'User' }
+                    });
+                }
+                return Promise.resolve({ data: { data: [{ ...mockLineItems[0], isSelected: true }, mockLineItems[1]] } });
+            });
+
+            await act(async () => {
+                renderWithProviders(
+                    <LineItemsProvider>
+                        <TestComponent />
+                    </LineItemsProvider>
+                );
+            });
+
+            await waitFor(() => {
+                expect(screen.getByTestId('line-item-1')).toHaveTextContent('Test transaction 1 - selected');
+            });
+
+            await act(async () => {
+                await userEvent.click(screen.getByTestId('toggle-button'));
+            });
+
+            await waitFor(() => {
+                expect(screen.getByTestId('line-item-1')).toHaveTextContent('Test transaction 1 - not selected');
+            });
+        });
+
+        it('remove_line_items removes only the specified items', async () => {
+            const threeLineItems = [
+                ...mockLineItems,
+                {
+                    id: '3',
+                    date: 1640995200,
+                    payment_method: 'debit_card',
+                    description: 'Test transaction 3',
+                    responsible_party: 'Test Store 3',
+                    amount: 25.00,
+                    isSelected: false,
+                }
+            ];
+
+            mockAxiosInstance.get.mockImplementation((url: string) => {
+                if (url.includes('api/auth/me')) {
+                    return Promise.resolve({
+                        data: { id: 'user_123', email: 'test@example.com', first_name: 'Test', last_name: 'User' }
+                    });
+                }
+                return Promise.resolve({ data: { data: threeLineItems } });
+            });
+
+            const RemoveSpecificComponent = () => {
+                const { lineItems } = useLineItems();
+                const dispatch = useLineItemsDispatch();
+                return (
+                    <div>
+                        <div data-testid="line-items-count">{lineItems.length}</div>
+                        {lineItems.map(item => (
+                            <div key={item.id} data-testid={`line-item-${item.id}`}>{item.description}</div>
+                        ))}
+                        <button
+                            onClick={() => dispatch({ type: 'remove_line_items', lineItemIds: ['1', '3'] })}
+                            data-testid="remove-1-3-button"
+                        >
+                            Remove Items 1 and 3
+                        </button>
+                    </div>
+                );
+            };
+
+            await act(async () => {
+                renderWithProviders(
+                    <LineItemsProvider>
+                        <RemoveSpecificComponent />
+                    </LineItemsProvider>
+                );
+            });
+
+            await waitFor(() => {
+                expect(screen.getByTestId('line-items-count')).toHaveTextContent('3');
+            });
+
+            await act(async () => {
+                await userEvent.click(screen.getByTestId('remove-1-3-button'));
+            });
+
+            await waitFor(() => {
+                expect(screen.getByTestId('line-items-count')).toHaveTextContent('1');
+                expect(screen.queryByTestId('line-item-1')).not.toBeInTheDocument();
+                expect(screen.getByTestId('line-item-2')).toBeInTheDocument();
+                expect(screen.queryByTestId('line-item-3')).not.toBeInTheDocument();
+            });
+        });
+
         it('populate_line_items action is handled', async () => {
             const newLineItems = [
                 {
