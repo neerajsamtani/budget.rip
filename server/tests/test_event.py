@@ -879,7 +879,7 @@ class TestEventAPI:
         )
         assert response.status_code == 400
         data = response.get_json()
-        assert "error" in data
+        assert data["error"] == "None of the provided line item IDs exist"
 
     def test_event_update_with_nonexistent_line_item_ids_returns_400(
         self, test_client, jwt_token, flask_app, create_line_item_via_manual, create_event_via_api
@@ -917,7 +917,7 @@ class TestEventAPI:
         )
         assert response.status_code == 400
         data = response.get_json()
-        assert "error" in data
+        assert data["error"] == "None of the provided line item IDs exist"
 
     def test_get_line_item_amounts_returns_only_id_date_amount(self, flask_app, create_line_item_via_manual):
         """get_line_item_amounts returns only id, date, and amount keys"""
