@@ -221,6 +221,9 @@ External API data follows this flow:
 Test names should read as statements of fact about system behavior, not as descriptions of what the test does.
 **Be specific**: `'line items are fetched on mount'` not `'fetches data'`
 
+### Assertion Specificity
+Assert the exact value, not just the key's presence. Prefer `assert data["error"] == "expected message"` over `assert "error" in data`. A test that only checks structure (key exists, status code) can pass even when the wrong code path runs.
+
 ### Client
 - Tests use Jest with jsdom environment
 - Setup file at `src/setupTests.ts`
