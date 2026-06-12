@@ -1,6 +1,7 @@
 import logging
 from datetime import datetime
 from datetime import timezone as tz
+from decimal import Decimal
 from typing import Any, Dict, List, Optional, Union
 
 from sqlalchemy.orm import joinedload, subqueryload
@@ -101,16 +102,16 @@ def get_categorized_data() -> List[Dict[str, Any]]:
             .all()
         )
 
-        breakdown: Dict[tuple, float] = defaultdict(float)
+        breakdown: Dict[tuple, Decimal] = defaultdict(Decimal)
         for row in rows:
             if not row.category:
                 continue
             utc_date = row.date.astimezone(tz.utc) if row.date.tzinfo else row.date.replace(tzinfo=tz.utc)
             key = (utc_date.year, utc_date.month, row.category)
-            breakdown[key] += float(row.amount or 0)
+            breakdown[key] += row.amount if row.amount is not None else Decimal("0")
 
         return [
-            {"year": year, "month": month, "category": category, "totalExpense": amount}
+            {"year": year, "month": month, "category": category, "totalExpense": float(amount)}
             for (year, month, category), amount in sorted(breakdown.items())
         ]
 
