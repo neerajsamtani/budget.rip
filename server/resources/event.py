@@ -72,6 +72,9 @@ def post_event_api() -> tuple[Response, int]:
         return jsonify("Failed to Create Event: No Line Items Submitted"), 400
 
     line_items: List[Dict[str, Any]] = get_line_item_amounts(new_event["line_items"])
+    if not line_items:
+        logger.warning("Event creation attempt: no valid line items found for provided IDs")
+        return jsonify({"error": "None of the provided line item IDs exist"}), 400
     earliest_line_item: Dict[str, Any] = min(line_items, key=lambda line_item: line_item["date"])
 
     if new_event.get("date"):
@@ -116,6 +119,9 @@ def update_event_api(event_id: str) -> tuple[Response, int]:
 
     filters: Dict[str, Any] = {"id": {"$in": update_data["line_items"]}}
     line_items: List[Dict[str, Any]] = get_all_line_items(filters)
+    if not line_items:
+        logger.warning(f"Event update attempt for {event_id}: no valid line items found for provided IDs")
+        return jsonify({"error": "None of the provided line item IDs exist"}), 400
     earliest_line_item: Dict[str, Any] = min(line_items, key=lambda li: li["date"])
 
     # Build the event dict for upsert
