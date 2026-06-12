@@ -1,3 +1,4 @@
+from decimal import Decimal
 from typing import Any, Dict
 
 import pytest
@@ -587,6 +588,32 @@ class TestMonthlyBreakdownAPI:
         assert jan_shopping["amount"] == 765.0, (
             f"Expected 765.0 but got {jan_shopping['amount']} — is_duplicate events must not double-count line items"
         )
+
+    def test_decimal_accumulation_avoids_float_rounding(self, test_client, jwt_token, flask_app, pg_session):
+        """Amounts that cause float rounding error (0.1+0.1+0.1 != 0.3) sum correctly"""
+        with flask_app.app_context():
+            for i, amount in enumerate([Decimal("0.10"), Decimal("0.10"), Decimal("0.10")]):
+                create_event_with_line_item(
+                    pg_session,
+                    {
+                        "id": f"event_decimal_{i}",
+                        "date": 1672531200,  # 2023-01-01
+                        "category": "Dining",
+                        "amount": float(amount),
+                        "description": "Ten cents",
+                    },
+                )
+            pg_session.commit()
+
+        response = test_client.get(
+            "/api/monthly_breakdown",
+            headers={"Authorization": "Bearer " + jwt_token},
+        )
+
+        assert response.status_code == 200
+        data = response.get_json()
+        jan_dining = next(item for item in data["Dining"] if item["date"] == "1-2023")
+        assert round(jan_dining["amount"], 2) == 0.30
 
     def test_response_has_correct_structure(self, test_client, jwt_token, flask_app, mock_event_data, pg_session):
         """Response has category names as keys with date and amount arrays"""
