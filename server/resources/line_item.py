@@ -81,10 +81,14 @@ def all_line_items_api() -> tuple[Response, int]:
     Get All Line Items
         - Payment Method (optional)
         - Only Line Items To Review (optional)
+        - Limit (optional)
+        - Offset (optional)
     """
     only_line_items_to_review: Optional[bool] = str_to_bool(request.args.get("only_line_items_to_review"))
     payment_method: Optional[str] = request.args.get("payment_method")
-    line_items: List[Dict[str, Any]] = all_line_items(only_line_items_to_review, payment_method)
+    limit: Optional[int] = int(request.args["limit"]) if "limit" in request.args else None
+    offset: int = int(request.args.get("offset", 0))
+    line_items: List[Dict[str, Any]] = all_line_items(only_line_items_to_review, payment_method, limit, offset)
     line_items_total: float = sum(line_item["amount"] for line_item in line_items)
     logger.info(f"Retrieved {len(line_items)} line items (total: ${line_items_total:.2f})")
     return jsonify({"total": line_items_total, "data": line_items}), 200
@@ -93,6 +97,8 @@ def all_line_items_api() -> tuple[Response, int]:
 def all_line_items(
     only_line_items_to_review: Optional[bool] = None,
     payment_method: Optional[str] = None,
+    limit: Optional[int] = None,
+    offset: int = 0,
 ) -> List[Dict[str, Any]]:
     filters: Dict[str, Any] = {}
     if payment_method not in ["All", None]:
@@ -102,7 +108,7 @@ def all_line_items(
         # Only get line items that don't have an event associated
         filters["event_id"] = {"$exists": False}
 
-    line_items: List[Dict[str, Any]] = get_all_line_items(filters)
+    line_items: List[Dict[str, Any]] = get_all_line_items(filters, limit, offset)
     line_items = sort_by_date_description(line_items)
     return line_items
 

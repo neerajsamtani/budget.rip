@@ -532,3 +532,124 @@ class TestLineItemFunctions:
             result = all_line_items(payment_method="All")
 
             assert len(result) == 2  # Should return all items, same as no filter
+
+    def test_limit_restricts_number_of_returned_items(self, flask_app, pg_session):
+        """Limit parameter restricts the number of line items returned"""
+        from tests.test_helpers import setup_test_line_item
+
+        with flask_app.app_context():
+            # Use distinct days so DB date order matches final sorted order
+            for i in range(5):
+                setup_test_line_item(
+                    pg_session,
+                    {
+                        "id": f"line_item_{i}",
+                        "date": 1234567890 + i * 86400,
+                        "responsible_party": "John Doe",
+                        "payment_method": "Cash",
+                        "description": f"Transaction {i}",
+                        "amount": 10 * (i + 1),
+                    },
+                )
+            pg_session.commit()
+
+            result = all_line_items(limit=3)
+
+            assert len(result) == 3
+
+    def test_offset_skips_leading_items(self, flask_app, pg_session):
+        """Offset parameter skips the first N line items"""
+        from tests.test_helpers import setup_test_line_item
+
+        with flask_app.app_context():
+            # Use distinct days so DB date order matches final sorted order
+            for i in range(5):
+                setup_test_line_item(
+                    pg_session,
+                    {
+                        "id": f"line_item_{i}",
+                        "date": 1234567890 + i * 86400,
+                        "responsible_party": "John Doe",
+                        "payment_method": "Cash",
+                        "description": f"Transaction {i}",
+                        "amount": 10 * (i + 1),
+                    },
+                )
+            pg_session.commit()
+
+            all_result = all_line_items()
+            paged_result = all_line_items(offset=2)
+
+            assert len(paged_result) == 3
+            assert paged_result[0]["id"] == all_result[2]["id"]
+
+    def test_limit_and_offset_together_return_correct_page(self, flask_app, pg_session):
+        """Limit and offset together select a specific page of results"""
+        from tests.test_helpers import setup_test_line_item
+
+        with flask_app.app_context():
+            # Use distinct days so DB date order matches final sorted order
+            for i in range(5):
+                setup_test_line_item(
+                    pg_session,
+                    {
+                        "id": f"line_item_{i}",
+                        "date": 1234567890 + i * 86400,
+                        "responsible_party": "John Doe",
+                        "payment_method": "Cash",
+                        "description": f"Transaction {i}",
+                        "amount": 10 * (i + 1),
+                    },
+                )
+            pg_session.commit()
+
+            all_result = all_line_items()
+            page2 = all_line_items(limit=2, offset=2)
+
+            assert len(page2) == 2
+            assert page2[0]["id"] == all_result[2]["id"]
+            assert page2[1]["id"] == all_result[3]["id"]
+
+    def test_limit_via_api_restricts_returned_items(self, test_client, jwt_token, create_line_item_via_manual):
+        """GET /api/line_items?limit=N returns at most N line items"""
+        for i in range(4):
+            create_line_item_via_manual(
+                date="2009-02-13",
+                person="John Doe",
+                description=f"Transaction {i}",
+                amount=10,
+            )
+
+        response = test_client.get(
+            "/api/line_items?limit=2",
+            headers={"Authorization": "Bearer " + jwt_token},
+        )
+
+        assert response.status_code == 200
+        data = response.get_json()
+        assert len(data["data"]) == 2
+
+    def test_offset_via_api_skips_leading_items(self, test_client, jwt_token, create_line_item_via_manual):
+        """GET /api/line_items?offset=N skips the first N line items"""
+        for i in range(4):
+            create_line_item_via_manual(
+                date="2009-02-13",
+                person="John Doe",
+                description=f"Transaction {i}",
+                amount=10,
+            )
+
+        full_response = test_client.get(
+            "/api/line_items",
+            headers={"Authorization": "Bearer " + jwt_token},
+        )
+        paged_response = test_client.get(
+            "/api/line_items?offset=2",
+            headers={"Authorization": "Bearer " + jwt_token},
+        )
+
+        assert paged_response.status_code == 200
+        full_data = full_response.get_json()["data"]
+        paged_data = paged_response.get_json()["data"]
+        assert len(paged_data) == 2
+        assert paged_data[0]["id"] == full_data[2]["id"]

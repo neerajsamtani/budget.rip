@@ -881,6 +881,88 @@ class TestEventAPI:
         data = response.get_json()
         assert data["error"] == "None of the provided line item IDs exist"
 
+    def test_limit_via_api_restricts_returned_events(
+        self,
+        test_client,
+        jwt_token,
+        flask_app,
+        create_line_item_via_manual,
+        create_event_via_api,
+    ):
+        """GET /api/events?limit=N returns at most N events"""
+        for i in range(4):
+            create_line_item_via_manual(date="2009-02-13", person=f"Person{i}", description=f"Transaction {i}", amount=10)
+
+        with flask_app.app_context():
+            from dao import get_all_line_items
+
+            line_item_ids = [item["id"] for item in get_all_line_items(None)]
+
+        for li_id in line_item_ids:
+            create_event_via_api(
+                {
+                    "name": f"Event {li_id}",
+                    "category": "Dining",
+                    "date": "2009-02-13",
+                    "line_items": [li_id],
+                    "tags": [],
+                    "is_duplicate_transaction": False,
+                }
+            )
+
+        response = test_client.get(
+            "/api/events?limit=2",
+            headers={"Authorization": "Bearer " + jwt_token},
+        )
+
+        assert response.status_code == 200
+        data = response.get_json()
+        assert len(data["data"]) == 2
+
+    def test_offset_via_api_skips_leading_events(
+        self,
+        test_client,
+        jwt_token,
+        flask_app,
+        create_line_item_via_manual,
+        create_event_via_api,
+    ):
+        """GET /api/events?offset=N skips the first N events"""
+        for i in range(4):
+            create_line_item_via_manual(date="2009-02-13", person=f"Person{i}", description=f"Transaction {i}", amount=10)
+
+        with flask_app.app_context():
+            from dao import get_all_line_items
+
+            line_item_ids = [item["id"] for item in get_all_line_items(None)]
+
+        for li_id in line_item_ids:
+            create_event_via_api(
+                {
+                    "name": f"Event {li_id}",
+                    "category": "Dining",
+                    "date": "2009-02-13",
+                    "line_items": [li_id],
+                    "tags": [],
+                    "is_duplicate_transaction": False,
+                }
+            )
+
+        full_response = test_client.get(
+            "/api/events",
+            headers={"Authorization": "Bearer " + jwt_token},
+        )
+        paged_response = test_client.get(
+            "/api/events?offset=2",
+            headers={"Authorization": "Bearer " + jwt_token},
+        )
+
+        assert paged_response.status_code == 200
+        full_data = full_response.get_json()["data"]
+        paged_data = paged_response.get_json()["data"]
+        assert len(paged_data) == 2
+        assert paged_data[0]["id"] == full_data[2]["id"]
+
     def test_event_update_with_nonexistent_line_item_ids_returns_400(
         self, test_client, jwt_token, flask_app, create_line_item_via_manual, create_event_via_api
     ):

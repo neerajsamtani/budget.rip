@@ -190,7 +190,11 @@ def get_line_item_amounts(line_item_ids: list[str]) -> List[Dict[str, Any]]:
         return [{"id": row.id, "date": serialize_datetime(row.date), "amount": float(row.amount or 0.0)} for row in rows]
 
 
-def get_all_line_items(filters: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def get_all_line_items(
+    filters: Optional[Dict[str, Any]],
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[Dict[str, Any]]:
     """Get line items from PostgreSQL"""
     from models.database import SessionLocal
     from models.sql_models import Event, LineItem, PaymentMethod
@@ -222,6 +226,10 @@ def get_all_line_items(filters: Optional[Dict[str, Any]]) -> List[Dict[str, Any]
                         query = query.outerjoin(LineItem.events).filter(Event.id.is_(None))
 
         query = query.order_by(LineItem.date.desc())
+        if offset:
+            query = query.offset(offset)
+        if limit is not None:
+            query = query.limit(limit)
         line_items = query.all()
         return [serialize_line_item(li) for li in line_items]
 
@@ -252,7 +260,11 @@ def get_user_by_id(id: str) -> Optional[Dict[str, Any]]:
         return serialize_user(user) if user else None
 
 
-def get_all_events(filters: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def get_all_events(
+    filters: Optional[Dict[str, Any]],
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> List[Dict[str, Any]]:
     """Get events from PostgreSQL"""
     from datetime import datetime
 
@@ -278,7 +290,12 @@ def get_all_events(filters: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
                 if "$lte" in date_filter:
                     query = query.filter(Event.date <= datetime.fromtimestamp(date_filter["$lte"], UTC))
 
-        events = query.order_by(Event.date.desc()).all()
+        query = query.order_by(Event.date.desc())
+        if offset:
+            query = query.offset(offset)
+        if limit is not None:
+            query = query.limit(limit)
+        events = query.all()
         return [serialize_event(event) for event in events]
 
 

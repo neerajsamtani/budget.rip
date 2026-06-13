@@ -23,7 +23,7 @@ export const queryKeys = {
 };
 
 // Query Hooks
-export function useEvents(startTime?: number, endTime?: number): UseQueryResult<EventInterface[]> {
+export function useEvents(startTime?: number, endTime?: number, limit?: number, offset?: number): UseQueryResult<EventInterface[]> {
   return useQuery({
     queryKey: queryKeys.events(startTime, endTime),
     queryFn: async () => {
@@ -31,6 +31,8 @@ export function useEvents(startTime?: number, endTime?: number): UseQueryResult<
         params: {
           start_time: startTime,
           end_time: endTime,
+          ...(limit !== undefined && { limit }),
+          ...(offset !== undefined && offset > 0 && { offset }),
         },
       });
       return response.data.data as EventInterface[];
@@ -39,17 +41,23 @@ export function useEvents(startTime?: number, endTime?: number): UseQueryResult<
   });
 }
 
-export function useLineItems(params?: { onlyLineItemsToReview?: boolean; paymentMethod?: string; enabled?: boolean }): UseQueryResult<LineItemInterface[]> {
+export function useLineItems(params?: { onlyLineItemsToReview?: boolean; paymentMethod?: string; enabled?: boolean; limit?: number; offset?: number }): UseQueryResult<LineItemInterface[]> {
   return useQuery({
     queryKey: queryKeys.lineItems(params ? { onlyLineItemsToReview: params.onlyLineItemsToReview, paymentMethod: params.paymentMethod } : undefined),
     queryFn: async () => {
-      const queryParams: Record<string, string | boolean> = {};
+      const queryParams: Record<string, string | boolean | number> = {};
 
       if (params?.onlyLineItemsToReview) {
         queryParams.only_line_items_to_review = true;
       }
       if (params?.paymentMethod && params.paymentMethod !== 'All') {
         queryParams.payment_method = params.paymentMethod;
+      }
+      if (params?.limit !== undefined) {
+        queryParams.limit = params.limit;
+      }
+      if (params?.offset !== undefined && params.offset > 0) {
+        queryParams.offset = params.offset;
       }
 
       const response = await axiosInstance.get('api/line_items', { params: queryParams });
