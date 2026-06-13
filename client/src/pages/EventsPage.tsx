@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { CurrencyFormatter } from "@/utils/formatters";
 import { ChevronDown, ChevronUp, Filter } from "lucide-react";
 import { DateTime } from "luxon";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { NON_SPENDING_CATEGORIES } from "../components/charts/chart-utils";
 import CategoryFilter from "../components/CategoryFilter";
 import Event, { EventCard, EventInterface } from "../components/Event";
@@ -68,9 +68,18 @@ export default function EventsPage() {
         return sum;
     }
 
-    const cashFlowWithFilters = calculateCashFlowWithFilters(events);
-    const spending = calculateSpending(events);
-    const filteredEvents = events.filter(event => matchCategory(event) && matchTags(event));
+    const filteredEvents = useMemo(
+        () => events.filter(event => matchCategory(event) && matchTags(event)),
+        [events, category, tagFilter]
+    );
+    const spending = useMemo(
+        () => calculateSpending(events),
+        [events, category, tagFilter]
+    );
+    const cashFlowWithFilters = useMemo(
+        () => calculateCashFlowWithFilters(events),
+        [events, category, tagFilter]
+    );
 
     // Count active filters
     const activeFilterCount = [
