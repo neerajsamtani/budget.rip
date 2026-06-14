@@ -21,8 +21,8 @@ from resources.schemas.splitwise import (
     SplitwiseExpenseCreateResponse,
     SplitwiseFriendListResponse,
 )
+from utils.integrations import DataSourceIntegration
 from utils.pg_bulk_ops import (
-    bulk_upsert_line_items,
     bulk_upsert_transactions,
     delete_transactions_for_removed_sources,
 )
@@ -250,83 +250,77 @@ def build_splitwise_users(amount: Decimal, current_user_id: int, owed_shares: Di
     return users
 
 
+class SplitwiseIntegration(DataSourceIntegration):
+    """Splitwise-specific fetch and field mapping for the shared integration pipeline."""
+
+    source_name = "splitwise_api"
+
+    def fetch_and_store(self) -> None:
+        logger.info("Refreshing Splitwise Data")
+
+        # Page through all expenses; a single call is capped at LIMIT results
+        expenses: List[Any] = []
+        offset = 0
+        while True:
+            page: List[Any] = splitwise_client.getExpenses(limit=LIMIT, offset=offset, dated_after=MOVING_DATE)
+            expenses.extend(page)
+            if len(page) < LIMIT:
+                break
+            offset += LIMIT
+
+        all_expenses: List[Any] = [expense for expense in expenses if expense.deleted_at is None]
+        deleted_source_ids: List[str] = [str(expense.id) for expense in expenses if expense.deleted_at is not None]
+
+        if all_expenses or deleted_source_ids:
+            with SessionLocal.begin() as db:
+                bulk_upsert_transactions(db, all_expenses, source=self.source_name)
+                # Remove expenses deleted in Splitwise (unless already reviewed into an event)
+                delete_transactions_for_removed_sources(db, self.source_name, deleted_source_ids)
+            logger.info(f"Refreshed {len(all_expenses)} Splitwise expenses ({len(deleted_source_ids)} deleted upstream)")
+        else:
+            logger.info("No new Splitwise expenses to refresh")
+
+    def transactions_to_line_items(self, transactions: List[Dict[str, Any]]) -> List[LineItem]:
+        payment_method = "Splitwise"
+        line_items: List[LineItem] = []
+
+        for splitwise_transaction in transactions:
+            # Determine responsible party
+            responsible_party = ""
+            for user in splitwise_transaction["users"]:
+                if user["first_name"] != USER_FIRST_NAME:
+                    # TODO: Set up comma separated list of responsible parties
+                    responsible_party += f"{user['first_name']} "
+
+            # Skip if responsible party is in ignore list
+            if responsible_party.strip() in PARTIES_TO_IGNORE:
+                continue
+
+            posix_date = iso_8601_to_posix(splitwise_transaction["date"])
+
+            # Find the current user's data and create line item
+            for user in splitwise_transaction["users"]:
+                if user["first_name"] != USER_FIRST_NAME:
+                    continue
+
+                line_items.append(
+                    LineItem(
+                        posix_date,
+                        responsible_party,
+                        payment_method,
+                        splitwise_transaction["description"],
+                        flip_amount(user["net_balance"]),
+                        source_id=str(splitwise_transaction["source_id"]),
+                    )
+                )
+                break  # Found the user, no need to continue loop
+
+        return line_items
+
+
 def refresh_splitwise() -> None:
-    logger.info("Refreshing Splitwise Data")
-
-    # Page through all expenses; a single call is capped at LIMIT results
-    expenses: List[Any] = []
-    offset = 0
-    while True:
-        page: List[Any] = splitwise_client.getExpenses(limit=LIMIT, offset=offset, dated_after=MOVING_DATE)
-        expenses.extend(page)
-        if len(page) < LIMIT:
-            break
-        offset += LIMIT
-
-    all_expenses: List[Any] = [expense for expense in expenses if expense.deleted_at is None]
-    deleted_source_ids: List[str] = [str(expense.id) for expense in expenses if expense.deleted_at is not None]
-
-    if all_expenses or deleted_source_ids:
-        with SessionLocal.begin() as db:
-            bulk_upsert_transactions(db, all_expenses, source="splitwise_api")
-            # Remove expenses deleted in Splitwise (unless already reviewed into an event)
-            delete_transactions_for_removed_sources(db, "splitwise_api", deleted_source_ids)
-        logger.info(f"Refreshed {len(all_expenses)} Splitwise expenses ({len(deleted_source_ids)} deleted upstream)")
-    else:
-        logger.info("No new Splitwise expenses to refresh")
+    SplitwiseIntegration().fetch_and_store()
 
 
 def splitwise_to_line_items() -> None:
-    """
-    Convert Splitwise expenses to line items with optimized database operations.
-
-    Optimizations:
-    1. Use bulk upsert operations instead of individual upserts
-    2. Collect all line items before bulk upserting
-    3. Improved logic flow for better performance
-    """
-    payment_method: str = "Splitwise"
-    splitwise_raw_data: List[Dict[str, Any]] = get_transactions("splitwise_api", None)
-
-    # Collect all line items for bulk upsert
-    all_line_items: List[LineItem] = []
-    ignored_count = 0
-
-    for splitwise_transaction in splitwise_raw_data:
-        # Determine responsible party
-        responsible_party: str = ""
-        for user in splitwise_transaction["users"]:
-            if user["first_name"] != USER_FIRST_NAME:
-                # TODO: Set up comma separated list of responsible parties
-                responsible_party += f"{user['first_name']} "
-
-        # Skip if responsible party is in ignore list
-        if responsible_party.strip() in PARTIES_TO_IGNORE:
-            ignored_count += 1
-            continue
-
-        posix_date: float = iso_8601_to_posix(splitwise_transaction["date"])
-
-        # Find the current user's data and create line item
-        for user in splitwise_transaction["users"]:
-            if user["first_name"] != USER_FIRST_NAME:
-                continue
-
-            line_item = LineItem(
-                posix_date,
-                responsible_party,
-                payment_method,
-                splitwise_transaction["description"],
-                flip_amount(user["net_balance"]),
-                source_id=str(splitwise_transaction["source_id"]),
-            )
-            all_line_items.append(line_item)
-            break  # Found the user, no need to continue loop
-
-    # Bulk upsert all collected line items at once
-    if all_line_items:
-        with SessionLocal.begin() as db:
-            bulk_upsert_line_items(db, all_line_items, source="splitwise_api")
-        logger.info(f"Converted {len(all_line_items)} Splitwise expenses to line items (ignored {ignored_count})")
-    else:
-        logger.info("No Splitwise expenses to convert to line items")
+    SplitwiseIntegration().upsert_line_items(get_transactions("splitwise_api", None))

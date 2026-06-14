@@ -360,8 +360,6 @@ class TestVenmoFunctions:
     def test_empty_transactions_creates_no_line_items(self, flask_app, mocker):
         """Empty transaction list creates no line items"""
         with flask_app.app_context():
-            mocker.patch("resources.venmo.bulk_upsert_line_items")
-
             # Call the function with no transactions
             venmo_to_line_items()
 

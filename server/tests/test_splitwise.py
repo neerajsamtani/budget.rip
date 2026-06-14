@@ -476,7 +476,6 @@ class TestSplitwiseFunctions:
         """Expenses where responsible party is in ignore list are skipped"""
         with flask_app.app_context():
             mock_get_data = mocker.patch("resources.splitwise.get_transactions")
-            mocker.patch("resources.splitwise.bulk_upsert_line_items")
 
             # Mock expense where the responsible party is in the ignore list
             expense_with_ignored = {
@@ -565,7 +564,6 @@ class TestSplitwiseFunctions:
         """Empty expense list creates no line items"""
         with flask_app.app_context():
             mock_get_data = mocker.patch("resources.splitwise.get_transactions")
-            mocker.patch("resources.splitwise.bulk_upsert_line_items")
 
             # Mock get_transactions to return empty list
             mock_get_data.return_value = []
@@ -577,7 +575,6 @@ class TestSplitwiseFunctions:
         """Expenses without the current user are skipped"""
         with flask_app.app_context():
             mock_get_data = mocker.patch("resources.splitwise.get_transactions")
-            mocker.patch("resources.splitwise.bulk_upsert_line_items")
 
             # Mock expense without the current user
             expense_no_user = {
@@ -665,7 +662,6 @@ class TestSplitwiseIntegration:
         """Complete workflow fetches expenses and converts to line items"""
         with flask_app.app_context():
             mock_splitwise_client = mocker.patch("resources.splitwise.splitwise_client")
-            mocker.patch("resources.splitwise.bulk_upsert_line_items")
             mocker.patch("resources.splitwise.bulk_upsert_transactions")
             mock_get_data = mocker.patch("resources.splitwise.get_transactions")
 

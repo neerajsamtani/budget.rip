@@ -479,8 +479,6 @@ class TestStripeFunctions:
     def test_empty_transactions_creates_no_line_items(self, flask_app, mocker):
         """Empty transaction list creates no line items"""
         with flask_app.app_context():
-            mocker.patch("resources.stripe.bulk_upsert_line_items")
-
             # Call the function with no transactions
             stripe_to_line_items()
 
@@ -494,8 +492,6 @@ class TestStripeFunctions:
 
             with SessionLocal.begin() as db:
                 bulk_upsert_transactions(db, [test_transaction], source="stripe_api")
-
-            mocker.patch("resources.stripe.bulk_upsert_line_items")
 
             # Call the function
             stripe_to_line_items()
@@ -534,8 +530,6 @@ class TestStripeFunctions:
 
             with SessionLocal.begin() as db:
                 bulk_upsert_transactions(db, transactions, source="stripe_api")
-
-            mocker.patch("resources.stripe.bulk_upsert_line_items")
 
             # Call the function
             stripe_to_line_items()
@@ -678,7 +672,6 @@ class TestStripeIntegration:
         with flask_app.app_context():
             mock_refresh_account = mocker.patch("resources.stripe.refresh_account")
             mock_refresh_transactions = mocker.patch("resources.stripe.refresh_transactions")
-            mocker.patch("resources.stripe.bulk_upsert_line_items")
 
             # Insert test account
             test_account = {

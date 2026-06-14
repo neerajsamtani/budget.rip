@@ -6,7 +6,7 @@ import stripe
 from flask import Blueprint, Response, jsonify, request
 from flask_jwt_extended import jwt_required
 
-from constants import BATCH_SIZE, STRIPE_API_KEY, STRIPE_CUSTOMER_EMAIL, STRIPE_CUSTOMER_ID, STRIPE_CUSTOMER_NAME
+from constants import STRIPE_API_KEY, STRIPE_CUSTOMER_EMAIL, STRIPE_CUSTOMER_ID, STRIPE_CUSTOMER_NAME
 from helpers import cents_to_dollars, flip_amount
 from models.database import SessionLocal
 from queries import (
@@ -14,9 +14,9 @@ from queries import (
     get_transactions,
 )
 from resources.line_item import LineItem
+from utils.integrations import DataSourceIntegration
 from utils.pg_bulk_ops import (
     bulk_upsert_bank_accounts,
-    bulk_upsert_line_items,
     bulk_upsert_transactions,
 )
 
@@ -337,58 +337,49 @@ def refresh_transactions_api(account_id: str) -> tuple[Response, int]:
         return jsonify({"error": "Request failed"}), 500
 
 
+class StripeIntegration(DataSourceIntegration):
+    """Stripe-specific fetch and field mapping for the shared integration pipeline."""
+
+    source_name = "stripe_api"
+
+    def __init__(self) -> None:
+        # Memoized so a single pass over transactions reads accounts from the DB once.
+        self._bank_account_lookup: Optional[Dict[str, Dict[str, Any]]] = None
+
+    def fetch_and_store(self) -> None:
+        for account in get_all_bank_accounts(None):
+            refresh_account(account["id"])
+            refresh_transactions(account["id"])
+
+    def transactions_to_line_items(self, transactions: List[Dict[str, Any]]) -> List[LineItem]:
+        if self._bank_account_lookup is None:
+            self._bank_account_lookup = {account["id"]: account for account in get_all_bank_accounts(None)}
+
+        line_items: List[LineItem] = []
+        for stripe_transaction in transactions:
+            stripe_account = self._bank_account_lookup.get(stripe_transaction["account"])
+            payment_method = stripe_account["display_name"] if stripe_account else "Stripe"
+
+            line_items.append(
+                LineItem(
+                    stripe_transaction["transacted_at"],
+                    stripe_transaction["description"],
+                    payment_method,
+                    stripe_transaction["description"],
+                    flip_amount(stripe_transaction["amount"]) / 100,
+                    source_id=str(stripe_transaction["source_id"]),
+                )
+            )
+        return line_items
+
+
 def refresh_stripe() -> None:
     logger.info("Refreshing Stripe Data")
-    bank_accounts: List[Dict[str, Any]] = get_all_bank_accounts(None)
-    for account in bank_accounts:
-        refresh_account(account["id"])
-        refresh_transactions(account["id"])
+    StripeIntegration().fetch_and_store()
     stripe_to_line_items()
     # Best-effort: refresh balances for all accounts after transactions updated
     refresh_account_balances()
 
 
 def stripe_to_line_items() -> None:
-    """
-    Convert Stripe transactions to line items with optimized database operations.
-
-    Optimizations:
-    1. Pre-fetch all accounts and create a lookup dictionary to avoid repeated database calls
-    2. Use bulk upsert operations instead of individual upserts
-    3. Process transactions in batches to handle large datasets efficiently
-    """
-    all_bank_accounts: List[Dict[str, Any]] = get_all_bank_accounts(None)
-    bank_account_lookup: Dict[str, Dict[str, Any]] = {account["id"]: account for account in all_bank_accounts}
-
-    stripe_raw_data: List[Dict[str, Any]] = get_transactions("stripe_api", None)
-
-    line_items_batch: List[LineItem] = []
-
-    for stripe_transaction in stripe_raw_data:
-        # Use memoized account lookup instead of database call
-        stripe_account: Optional[Dict[str, Any]] = bank_account_lookup.get(stripe_transaction["account"])
-
-        if stripe_account:
-            payment_method: str = stripe_account["display_name"]
-        else:
-            payment_method = "Stripe"
-
-        line_item = LineItem(
-            stripe_transaction["transacted_at"],
-            stripe_transaction["description"],
-            payment_method,
-            stripe_transaction["description"],
-            flip_amount(stripe_transaction["amount"]) / 100,
-            source_id=str(stripe_transaction["source_id"]),
-        )
-
-        line_items_batch.append(line_item)
-
-        if len(line_items_batch) >= BATCH_SIZE:
-            with SessionLocal.begin() as db:
-                bulk_upsert_line_items(db, line_items_batch, source="stripe_api")
-            line_items_batch = []
-
-    if line_items_batch:
-        with SessionLocal.begin() as db:
-            bulk_upsert_line_items(db, line_items_batch, source="stripe_api")
+    StripeIntegration().upsert_line_items(get_transactions("stripe_api", None))
