@@ -35,5 +35,5 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
-              body: `### 🗄️ Database migration required\n\nThis PR adds ${files.length === 1 ? 'a new migration' : 'new migrations'}:\n${list}\n\nAfter merging, run it in production via the [Run Migrations](../../actions/workflows/run-migrations.yml) workflow.`,
+              body: `### 🗄️ Database migration required\n\nThis PR adds ${files.length === 1 ? 'a new migration' : 'new migrations'}:\n${list}\n\nAfter merging, run it in production via the [Run Migrations](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/workflows/run-migrations.yml) workflow.`,
             });
