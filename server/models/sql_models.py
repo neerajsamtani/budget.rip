@@ -110,13 +110,19 @@ class Tag(Base):
     __tablename__ = "tags"
 
     id = Column(String(255), primary_key=True)  # tag_xxx
-    name = Column(String(100), nullable=False, unique=True)
+    user_id = Column(String(255), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    name = Column(String(100), nullable=False)
     created_at = Column(TIMESTAMP(timezone=True), default=lambda: datetime.now(UTC))
     updated_at = Column(
         TIMESTAMP(timezone=True),
         default=lambda: datetime.now(UTC),
         onupdate=lambda: datetime.now(UTC),
     )
+
+    # Relationships
+    user = relationship("User")
+
+    __table_args__ = (UniqueConstraint("user_id", "name", name="uq_user_tag_name"),)
 
 
 class Transaction(Base):

@@ -734,7 +734,7 @@ class TestEventAPI:
             from utils.pg_event_operations import upsert_event_to_postgresql
 
             with SessionLocal.begin() as db:
-                upsert_event_to_postgresql(test_event, db)
+                upsert_event_to_postgresql(test_event, db, "user_id")
 
             # Get the actual PostgreSQL event ID that was created
             all_events = get_all_events(None)

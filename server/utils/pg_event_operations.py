@@ -11,7 +11,7 @@ from utils.id_generator import generate_id
 logger = logging.getLogger(__name__)
 
 
-def upsert_event_to_postgresql(event_dict: Dict[str, Any], db_session) -> str:
+def upsert_event_to_postgresql(event_dict: Dict[str, Any], db_session, user_id: str) -> str:
     """
     Write event to PostgreSQL with all relationships.
 
@@ -93,13 +93,14 @@ def upsert_event_to_postgresql(event_dict: Dict[str, Any], db_session) -> str:
     # Create EventTag junctions (batch-fetch existing tags to avoid N+1)
     tag_names = event_dict.get("tags", [])
     if tag_names:
-        existing_tags = db_session.query(Tag).filter(Tag.name.in_(tag_names)).all()
+        existing_tags = db_session.query(Tag).filter(Tag.user_id == user_id, Tag.name.in_(tag_names)).all()
         tag_map = {t.name: t for t in existing_tags}
         for tag_name in tag_names:
             tag = tag_map.get(tag_name)
             if not tag:
                 tag = Tag(
                     id=generate_id("tag"),
+                    user_id=user_id,
                     name=tag_name,
                     created_at=datetime.now(UTC),
                     updated_at=datetime.now(UTC),
@@ -119,12 +120,12 @@ def upsert_event_to_postgresql(event_dict: Dict[str, Any], db_session) -> str:
     return pg_event_id
 
 
-def upsert_event(event_dict: Dict[str, Any]) -> str:
+def upsert_event(event_dict: Dict[str, Any], user_id: str) -> str:
     """
     Upsert an event while managing the session lifecycle.
     """
     with SessionLocal.begin() as db_session:
-        pg_event_id = upsert_event_to_postgresql(event_dict, db_session)
+        pg_event_id = upsert_event_to_postgresql(event_dict, db_session, user_id)
         return pg_event_id
 
 
