@@ -105,4 +105,4 @@ describe('String Helpers', () => {
             expect(defaultNameCleanup('TEST__STORE')).toBe('Teststore');
         });
     });
-}); 
+});

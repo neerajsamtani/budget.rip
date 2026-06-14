@@ -444,4 +444,4 @@ describe('PaymentMethodFilter', () => {
             expect(trigger).toHaveTextContent('Bank of America Credit Card');
         });
     });
-}); 
+});

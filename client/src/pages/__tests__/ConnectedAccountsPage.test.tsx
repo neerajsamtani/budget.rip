@@ -368,4 +368,4 @@ describe('ConnectedAccountsPage', () => {
             });
         });
     });
-}); 
+});

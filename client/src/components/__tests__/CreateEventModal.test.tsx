@@ -1003,4 +1003,4 @@ describe('CreateEventModal', () => {
             expect(screen.queryByRole('option')).not.toBeInTheDocument();
         });
     });
-}); 
+});

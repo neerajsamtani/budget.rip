@@ -23,14 +23,14 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v4
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
         cache-dependency-path: client/package-lock.json
-    
+
     - name: Debug - Check working directory and files
       run: |
         pwd
@@ -39,20 +39,20 @@ jobs:
         ls -la client/
         echo "Checking package-lock.json:"
         head -5 client/package-lock.json
-    
+
     - name: Install dependencies
       working-directory: client
       run: npm ci --legacy-peer-deps
-    
+
     #   TODO: Consider upgrading to react-scripts version 5.x instead of downgrading @testing-library/jest-dom
     - name: Downgrade @testing-library/jest-dom for compatibility
       working-directory: client
       run: npm install @testing-library/jest-dom@5.16.5 --legacy-peer-deps
-    
+
     - name: Build the application
       working-directory: client
       run: npm run build
-    
+
     - name: Run tests
       working-directory: client
-      run: npm test 
+      run: npm test

@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - **Prefer editing over adding**: Modify existing functions to be more extensible rather than creating new ones
 - **Minimize code**: Write only what's necessary to accomplish the task - no more, no less
-- **Prioritize readability**: Code should be easily understood by developers jumping into the codebase. 
+- **Prioritize readability**: Code should be easily understood by developers jumping into the codebase.
 - **Prudent comments**: Only add comments for things that are not obvious when reading the code, or when summarizing large chunks of code when a comment would greatly improve readability. Comments should generally talk about _why_ the code is doing what it's doing and not just _what_ the code is doing.
 - **Favor maintainability**: Simple, clear solutions over clever ones
 - **Keep it accessible**: New developers should be able to quickly understand and make changes

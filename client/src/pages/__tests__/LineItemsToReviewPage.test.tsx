@@ -705,4 +705,4 @@ describe('LineItemsToReviewPage', () => {
             expect(messages.length).toBeGreaterThan(0);
         });
     });
-}); 
+});

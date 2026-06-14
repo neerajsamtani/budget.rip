@@ -282,4 +282,4 @@ describe('MonthFilter', () => {
             expect(screen.getByText('December')).toBeInTheDocument();
         });
     });
-}); 
+});
