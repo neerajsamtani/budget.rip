@@ -44,11 +44,6 @@ jobs:
       working-directory: client
       run: npm ci --legacy-peer-deps
 
-    #   TODO: Consider upgrading to react-scripts version 5.x instead of downgrading @testing-library/jest-dom
-    - name: Downgrade @testing-library/jest-dom for compatibility
-      working-directory: client
-      run: npm install @testing-library/jest-dom@5.16.5 --legacy-peer-deps
-
     - name: Build the application
       working-directory: client
       run: npm run build
