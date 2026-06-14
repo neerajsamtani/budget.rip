@@ -11,4 +11,4 @@ export default async () => {
         }
         return originalEmitWarning.apply(process, args);
     };
-}; 
+};

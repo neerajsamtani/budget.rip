@@ -604,4 +604,4 @@ describe('LineItemsPage', () => {
             });
         });
     });
-}); 
+});

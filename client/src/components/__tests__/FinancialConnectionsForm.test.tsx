@@ -557,4 +557,4 @@ describe('FinancialConnectionsForm', () => {
             process.env.VITE_API_ENDPOINT = originalEnv;
         });
     });
-}); 
+});

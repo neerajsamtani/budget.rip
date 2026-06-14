@@ -92,10 +92,10 @@ describe('MyComponent', () => {
   it('handles user interactions', async () => {
     const user = userEvent.setup();
     render(<MyComponent />);
-    
+
     const button = screen.getByRole('button', { name: /click me/i });
     await user.click(button);
-    
+
     expect(screen.getByText('Clicked!')).toBeInTheDocument();
   });
 });
@@ -143,7 +143,7 @@ afterAll(() => server.close());
 
 it('fetches and displays data', async () => {
   render(<DataComponent />);
-  
+
   await waitFor(() => {
     expect(screen.getByText('test')).toBeInTheDocument();
   });
@@ -192,12 +192,12 @@ export const createMockUser = (overrides = {}) => ({
 ```typescript
 it('loads data asynchronously', async () => {
   render(<AsyncComponent />);
-  
+
   // Wait for loading to complete
   await waitFor(() => {
     expect(screen.queryByText('Loading...')).not.toBeInTheDocument();
   });
-  
+
   expect(screen.getByText('Data loaded')).toBeInTheDocument();
 });
 ```
@@ -206,13 +206,13 @@ it('loads data asynchronously', async () => {
 ```typescript
 it('is accessible', () => {
   render(<MyComponent />);
-  
+
   // Check for proper heading structure
   expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
-  
+
   // Check for proper form labels
   expect(screen.getByLabelText('Email')).toBeInTheDocument();
-  
+
   // Check for proper button labels
   expect(screen.getByRole('button', { name: /submit/i })).toBeInTheDocument();
 });
@@ -293,4 +293,4 @@ When adding new features:
 2. Ensure all tests pass
 3. Maintain good test coverage
 4. Follow the testing patterns established in this guide
-5. Update this documentation if needed 
+5. Update this documentation if needed

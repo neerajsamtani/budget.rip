@@ -194,4 +194,4 @@ describe('Event', () => {
             expect(detailsButton).toBeInTheDocument();
         });
     });
-}); 
+});

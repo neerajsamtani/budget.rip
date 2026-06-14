@@ -41,7 +41,7 @@
 - **Success Green**: `#059669` - Positive values, budget under target
 - **Success Light**: `#ECFDF5` - Success backgrounds
 - **Warning Amber**: `#D97706` - Caution, approaching limits
-- **Warning Light**: `#FFFBEB` - Warning backgrounds  
+- **Warning Light**: `#FFFBEB` - Warning backgrounds
 - **Error Red**: `#DC2626` - Over budget, negative values
 - **Error Light**: `#FEF2F2` - Error backgrounds
 - **Neutral Slate**: `#64748B` - Neutral data, comparisons
@@ -134,12 +134,12 @@
 
 ### Grid System
 - **Desktop**: 12-column grid, 1200px max-width, 24px gutters
-- **Tablet**: 8-column grid, 768px breakpoint, 16px gutters  
+- **Tablet**: 8-column grid, 768px breakpoint, 16px gutters
 - **Mobile**: 4-column grid, 320px min-width, 16px gutters
 
 ### Content Hierarchy
 - **Primary Content**: 60% width on desktop
-- **Secondary Sidebar**: 30% width on desktop  
+- **Secondary Sidebar**: 30% width on desktop
 - **Navigation**: Fixed or sticky positioning
 - **White Space**: Generous padding, never cramped
 
@@ -237,7 +237,7 @@
 
 ### Color Usage Rules
 1. **Green** for positive financial outcomes
-2. **Red** for negative or concerning data  
+2. **Red** for negative or concerning data
 3. **Nordic Blue** for neutral/informational data
 4. **Purple** for future projections and goals
 5. **Amber** for warnings and attention items
@@ -302,7 +302,7 @@
 - Keep interface elements simple and functional
 - Use animations to provide clear feedback
 
-### Don'ts  
+### Don'ts
 - Don't overcrowd interfaces with too many elements
 - Don't use more than 3 colors in a single data visualization
 - Don't create interactions without clear feedback

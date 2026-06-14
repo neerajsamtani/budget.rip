@@ -992,4 +992,4 @@ describe('EventDetailsModal', () => {
             expect(screen.getByText('business')).toBeInTheDocument();
         });
     });
-}); 
+});

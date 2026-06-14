@@ -74,4 +74,4 @@ export default {
 
     // Global setup to suppress deprecation warnings
     globalSetup: '<rootDir>/src/test-setup.js'
-}; 
+};

@@ -120,4 +120,4 @@ export const waitForElementToBeRemoved = (element: HTMLElement) => {
         });
         observer.observe(document.body, { childList: true, subtree: true });
     });
-}; 
+};
