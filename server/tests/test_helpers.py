@@ -74,6 +74,7 @@ def setup_test_event(
     pg_session,
     event_data: Dict[str, Any],
     line_items: Optional[List[LineItem]] = None,
+    user_id: str = "user_id",
 ) -> Event:
     """
     Create an event in PostgreSQL.
@@ -120,10 +121,11 @@ def setup_test_event(
         from models.sql_models import EventTag, Tag
 
         for tag_name in event_data["tags"]:
-            tag = pg_session.query(Tag).filter(Tag.name == tag_name).first()
+            tag = pg_session.query(Tag).filter(Tag.user_id == user_id, Tag.name == tag_name).first()
             if not tag:
                 tag = Tag(
                     id=generate_id("tag"),
+                    user_id=user_id,
                     name=tag_name,
                     created_at=datetime.now(UTC),
                     updated_at=datetime.now(UTC),

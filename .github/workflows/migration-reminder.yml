@@ -1,0 +1,39 @@
+name: Migration reminder
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "server/alembic/versions/**.py"
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  comment:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Find new migration files
+        id: migrations
+        run: |
+          files=$(git diff --name-only --diff-filter=A origin/main...HEAD -- 'server/alembic/versions/*.py')
+          echo "files=$files" >> $GITHUB_OUTPUT
+
+      - name: Post reminder comment
+        if: steps.migrations.outputs.files != ''
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const files = `${{ steps.migrations.outputs.files }}`.trim().split('\n');
+            const list = files.map(f => `- \`${f}\``).join('\n');
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `### 🗄️ Database migration required\n\nThis PR adds ${files.length === 1 ? 'a new migration' : 'new migrations'}:\n${list}\n\nAfter merging, run it in production via the [Run Migrations](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/workflows/run-migrations.yml) workflow.`,
+            });

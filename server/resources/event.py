@@ -95,7 +95,7 @@ def post_event_api() -> tuple[Response, int]:
 
     from utils.pg_event_operations import upsert_event
 
-    pg_event_id = upsert_event(new_event)
+    pg_event_id = upsert_event(new_event, get_current_user()["id"])
     new_event["id"] = pg_event_id
 
     logger.info(f"Created event: {new_event['id']} with {len(line_items)} line items (amount: ${new_event['amount']:.2f})")
@@ -142,7 +142,7 @@ def update_event_api(event_id: str) -> tuple[Response, int]:
 
     from utils.pg_event_operations import upsert_event
 
-    upsert_event(event_dict)
+    upsert_event(event_dict, get_current_user()["id"])
 
     # Calculate updated amount for response
     if event_dict.get("is_duplicate_transaction"):

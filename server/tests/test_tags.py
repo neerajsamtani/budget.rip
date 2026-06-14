@@ -6,10 +6,11 @@ def sample_tags(pg_session):
     """Create sample tags for testing"""
     from models.sql_models import Tag
 
+    user_id = "user_id"
     tags_data = [
-        {"id": "tag_1", "name": "vacation"},
-        {"id": "tag_2", "name": "groceries"},
-        {"id": "tag_3", "name": "birthday"},
+        {"id": "tag_1", "user_id": user_id, "name": "vacation"},
+        {"id": "tag_2", "user_id": user_id, "name": "groceries"},
+        {"id": "tag_3", "user_id": user_id, "name": "birthday"},
     ]
 
     tags = [Tag(**tag_data) for tag_data in tags_data]
@@ -54,3 +55,30 @@ class TestTagsAPI:
         response = test_client.get("/api/tags")
 
         assert response.status_code == 401
+
+    def test_tags_from_other_users_are_not_returned(self, test_client, flask_app, pg_session, sample_tags):
+        """Tags belonging to a different user are not visible"""
+        from flask_jwt_extended import create_access_token
+
+        from models.sql_models import Tag, User
+
+        other_user = User(
+            id="user_other",
+            first_name="Other",
+            last_name="User",
+            email="other@example.com",
+            password_hash="hashed",
+        )
+        pg_session.add(other_user)
+        pg_session.flush()
+        pg_session.add(Tag(id="tag_other", user_id="user_other", name="secret"))
+        pg_session.commit()
+
+        with flask_app.app_context():
+            other_token = create_access_token(identity="user_other")
+
+        response = test_client.get("/api/tags", headers={"Authorization": f"Bearer {other_token}"})
+        assert response.status_code == 200
+        data = response.get_json()
+        assert len(data["data"]) == 1
+        assert data["data"][0]["name"] == "secret"
