@@ -10,9 +10,9 @@ from splitwise.user import ExpenseUser
 
 from clients import splitwise_client
 from constants import LIMIT, MOVING_DATE, PARTIES_TO_IGNORE, USER_FIRST_NAME
-from dao import get_transactions
 from helpers import flip_amount, format_money, iso_8601_to_posix
 from models.database import SessionLocal
+from queries import get_transactions
 from resources.line_item import LineItem
 from resources.schemas.splitwise import (
     SplitwiseCurrentUserResponse,

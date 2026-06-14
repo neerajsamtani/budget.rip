@@ -3,14 +3,9 @@ from decimal import Decimal
 
 import pytest
 
-from dao import (
-    create_manual_transaction,
-    delete_manual_transaction,
-    get_all_line_items,
-    get_payment_method_by_id,
-    get_transactions,
-)
+from domain import create_manual_transaction, delete_manual_transaction
 from helpers import html_date_to_posix
+from queries import get_all_line_items, get_payment_method_by_id, get_transactions
 from utils.id_generator import generate_id
 
 

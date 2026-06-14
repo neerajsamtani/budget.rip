@@ -140,7 +140,7 @@ def flask_app():
             user_id = jwt_payload.get("sub")
             if user_id:
                 # Query PostgreSQL using the dao layer
-                from dao import get_user_by_id
+                from queries import get_user_by_id
 
                 user = get_user_by_id(user_id)
                 if user:

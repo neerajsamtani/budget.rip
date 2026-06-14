@@ -6,7 +6,7 @@ from typing import Any, Dict, List
 from flask import Blueprint, Response, jsonify
 from flask_jwt_extended import jwt_required
 
-from dao import get_categorized_data
+from domain import get_categorized_data
 from helpers import empty_list
 
 logger = logging.getLogger(__name__)

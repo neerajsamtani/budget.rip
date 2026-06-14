@@ -5,8 +5,8 @@ from typing import Any, Dict, List, Optional
 from flask import Blueprint, Response, jsonify, request
 from flask_jwt_extended import jwt_required
 
-from dao import get_all_line_items, get_line_item_by_id
 from helpers import sort_by_date_description, str_to_bool
+from queries import get_all_line_items, get_line_item_by_id
 
 logger = logging.getLogger(__name__)
 

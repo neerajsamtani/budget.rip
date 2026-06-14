@@ -7,12 +7,12 @@ from flask import Blueprint, Response, jsonify, request
 from flask_jwt_extended import jwt_required
 
 from constants import BATCH_SIZE, STRIPE_API_KEY, STRIPE_CUSTOMER_EMAIL, STRIPE_CUSTOMER_ID, STRIPE_CUSTOMER_NAME
-from dao import (
+from helpers import cents_to_dollars, flip_amount
+from models.database import SessionLocal
+from queries import (
     get_all_bank_accounts,
     get_transactions,
 )
-from helpers import cents_to_dollars, flip_amount
-from models.database import SessionLocal
 from resources.line_item import LineItem
 from utils.pg_bulk_ops import (
     bulk_upsert_bank_accounts,

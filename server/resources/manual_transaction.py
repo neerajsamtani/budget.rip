@@ -6,8 +6,9 @@ from typing import Any, Dict
 from flask import Blueprint, Response, jsonify, request
 from flask_jwt_extended import jwt_required
 
-from dao import create_manual_transaction, delete_manual_transaction, get_payment_method_by_id
+from domain import create_manual_transaction, delete_manual_transaction
 from helpers import html_date_to_posix
+from queries import get_payment_method_by_id
 from utils.id_generator import generate_id
 
 logger = logging.getLogger(__name__)
