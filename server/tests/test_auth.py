@@ -54,7 +54,7 @@ class TestAuthAPI:
 
         # Verify user was created in database
         with flask_app.app_context():
-            from dao import get_user_by_email
+            from queries import get_user_by_email
 
             created_user = get_user_by_email("neerajjsamtani@gmail.com")
             assert created_user is not None
@@ -304,7 +304,7 @@ class TestAuthFunctions:
         from tests.test_helpers import setup_test_user
 
         with flask_app.app_context():
-            from dao import get_user_by_email
+            from queries import get_user_by_email
 
             test_user = {
                 "id": "test_user",
@@ -327,7 +327,7 @@ class TestAuthFunctions:
     def test_nonexistent_email_returns_none(self, flask_app):
         """Looking up a nonexistent email returns None"""
         with flask_app.app_context():
-            from dao import get_user_by_email
+            from queries import get_user_by_email
 
             # Test function call with non-existent email
             found_user = get_user_by_email("nonexistent@example.com")

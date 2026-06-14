@@ -1,7 +1,7 @@
 import pytest
 import stripe
 
-from dao import get_all_bank_accounts
+from queries import get_all_bank_accounts
 from resources.stripe import refresh_stripe, stripe_to_line_items
 
 

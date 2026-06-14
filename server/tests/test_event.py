@@ -1,6 +1,7 @@
 import pytest
 
-from dao import get_all_events, get_line_item_amounts
+from domain import get_line_item_amounts
+from queries import get_all_events
 
 
 @pytest.fixture
@@ -56,7 +57,7 @@ class TestEventAPI:
 
         # Get created line item IDs
         with flask_app.app_context():
-            from dao import get_all_line_items
+            from queries import get_all_line_items
 
             all_line_items = get_all_line_items()
             line_item_ids = [item["id"] for item in all_line_items]
@@ -112,7 +113,7 @@ class TestEventAPI:
 
         # Get created line item IDs and dates (sort by date to ensure consistent ordering)
         with flask_app.app_context():
-            from dao import get_all_line_items
+            from queries import get_all_line_items
 
             all_line_items = get_all_line_items()
             all_line_items_sorted = sorted(all_line_items, key=lambda x: x["date"])
@@ -170,7 +171,7 @@ class TestEventAPI:
 
         # Get created line item ID
         with flask_app.app_context():
-            from dao import get_all_line_items
+            from queries import get_all_line_items
 
             all_line_items = get_all_line_items()
             line_item_ids = [item["id"] for item in all_line_items]
@@ -230,7 +231,7 @@ class TestEventAPI:
 
         # Get created line item IDs
         with flask_app.app_context():
-            from dao import get_all_line_items
+            from queries import get_all_line_items
 
             all_line_items = get_all_line_items()
             line_item_ids = [item["id"] for item in all_line_items]
@@ -263,7 +264,7 @@ class TestEventAPI:
 
         # Verify event was created
         with flask_app.app_context():
-            from dao import get_event_by_id, get_line_item_by_id
+            from queries import get_event_by_id, get_line_item_by_id
 
             created_event = get_event_by_id(created_event_id)
             assert created_event is not None
@@ -308,7 +309,7 @@ class TestEventAPI:
 
         # Get created line item ID
         with flask_app.app_context():
-            from dao import get_all_line_items
+            from queries import get_all_line_items
 
             all_line_items = get_all_line_items()
             line_item_ids = [item["id"] for item in all_line_items]
@@ -336,7 +337,7 @@ class TestEventAPI:
 
         # Verify event was created with correct amount (should be line_item_1 amount only)
         with flask_app.app_context():
-            from dao import get_event_by_id
+            from queries import get_event_by_id
 
             created_event = get_event_by_id(created_event_id)
             assert created_event is not None
@@ -354,7 +355,7 @@ class TestEventAPI:
 
         # Get created line item ID
         with flask_app.app_context():
-            from dao import get_all_line_items
+            from queries import get_all_line_items
 
             all_line_items = get_all_line_items()
             line_item_ids = [item["id"] for item in all_line_items]
@@ -382,7 +383,7 @@ class TestEventAPI:
 
         # Verify event was created with earliest line item date
         with flask_app.app_context():
-            from dao import get_event_by_id
+            from queries import get_event_by_id
 
             created_event = get_event_by_id(created_event_id)
             assert created_event is not None
@@ -407,7 +408,7 @@ class TestEventAPI:
 
         # Get created line item ID
         with flask_app.app_context():
-            from dao import get_all_line_items
+            from queries import get_all_line_items
 
             all_line_items = get_all_line_items()
             line_item_ids = [item["id"] for item in all_line_items]
@@ -436,7 +437,7 @@ class TestEventAPI:
 
         # Verify event was deleted
         with flask_app.app_context():
-            from dao import get_event_by_id, get_line_item_by_id
+            from queries import get_event_by_id, get_line_item_by_id
 
             deleted_event = get_event_by_id(event_id)
             assert deleted_event is None
@@ -472,7 +473,7 @@ class TestEventAPI:
 
         # Get created line item IDs
         with flask_app.app_context():
-            from dao import get_all_line_items
+            from queries import get_all_line_items
 
             all_line_items = get_all_line_items()
             line_item_ids = [item["id"] for item in all_line_items]
@@ -516,7 +517,7 @@ class TestEventAPI:
 
         # Verify event was updated in database
         with flask_app.app_context():
-            from dao import get_event_by_id
+            from queries import get_event_by_id
 
             updated_event = get_event_by_id(event_id)
             assert updated_event is not None
@@ -555,7 +556,7 @@ class TestEventAPI:
 
         # Get created line item ID
         with flask_app.app_context():
-            from dao import get_all_line_items
+            from queries import get_all_line_items
 
             all_line_items = get_all_line_items()
             line_item_ids = [item["id"] for item in all_line_items]
@@ -602,7 +603,7 @@ class TestEventAPI:
         create_line_item_via_manual(date="2009-02-13", person="Person1", description="Transaction 1", amount=100)
 
         with flask_app.app_context():
-            from dao import get_all_line_items
+            from queries import get_all_line_items
 
             all_line_items = get_all_line_items()
             line_item_ids = [item["id"] for item in all_line_items]
@@ -657,7 +658,7 @@ class TestEventAPI:
 
         # Get created line item IDs
         with flask_app.app_context():
-            from dao import get_all_line_items
+            from queries import get_all_line_items
 
             all_line_items = get_all_line_items()
             line_item_ids = [item["id"] for item in all_line_items]
@@ -712,7 +713,7 @@ class TestEventAPI:
 
         # Get created line item ID
         with flask_app.app_context():
-            from dao import get_all_line_items
+            from queries import get_all_line_items
 
             all_line_items = get_all_line_items()
             line_item_ids = [item["id"] for item in all_line_items]
@@ -758,7 +759,8 @@ class TestEventAPI:
         from tests.test_helpers import setup_test_event, setup_test_line_item_with_event
 
         with flask_app.app_context():
-            from dao import get_line_item_by_id, remove_event_from_line_item
+            from domain import remove_event_from_line_item
+            from queries import get_line_item_by_id
 
             # Create events
             event1 = setup_test_event(
@@ -894,7 +896,7 @@ class TestEventAPI:
             create_line_item_via_manual(date="2009-02-13", person=f"Person{i}", description=f"Transaction {i}", amount=10)
 
         with flask_app.app_context():
-            from dao import get_all_line_items
+            from queries import get_all_line_items
 
             line_item_ids = [item["id"] for item in get_all_line_items()]
 
@@ -932,7 +934,7 @@ class TestEventAPI:
             create_line_item_via_manual(date="2009-02-13", person=f"Person{i}", description=f"Transaction {i}", amount=10)
 
         with flask_app.app_context():
-            from dao import get_all_line_items
+            from queries import get_all_line_items
 
             line_item_ids = [item["id"] for item in get_all_line_items()]
 
@@ -970,7 +972,7 @@ class TestEventAPI:
         create_line_item_via_manual(date="2009-02-13", person="Person1", description="Transaction 1", amount=100)
 
         with flask_app.app_context():
-            from dao import get_all_line_items
+            from queries import get_all_line_items
 
             all_line_items = get_all_line_items()
             line_item_id = all_line_items[0]["id"]
@@ -1007,7 +1009,7 @@ class TestEventAPI:
         create_line_item_via_manual(date="2009-02-14", person="Jane Smith", description="Transaction 2", amount=50)
 
         with flask_app.app_context():
-            from dao import get_all_line_items
+            from queries import get_all_line_items
 
             all_line_items = get_all_line_items()
             line_item_ids = [item["id"] for item in all_line_items]

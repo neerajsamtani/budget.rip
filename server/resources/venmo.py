@@ -7,9 +7,9 @@ from venmo_api.models.user import User
 
 from clients import get_venmo_client
 from constants import MOVING_DATE_POSIX, PARTIES_TO_IGNORE, USER_FIRST_NAME
-from dao import get_transactions
 from helpers import flip_amount
 from models.database import SessionLocal
+from queries import get_transactions
 from resources.line_item import LineItem
 from utils.pg_bulk_ops import bulk_upsert_line_items, bulk_upsert_transactions
 

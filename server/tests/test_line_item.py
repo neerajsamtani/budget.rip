@@ -175,7 +175,7 @@ class TestLineItemAPI:
 
         # Get created line item IDs (sort by amount to ensure consistent ordering)
         with flask_app.app_context():
-            from dao import get_all_line_items
+            from queries import get_all_line_items
 
             all_line_items = get_all_line_items()
             all_line_items_sorted = sorted(all_line_items, key=lambda x: x["amount"])
@@ -219,7 +219,7 @@ class TestLineItemAPI:
 
         # Get created line item ID
         with flask_app.app_context():
-            from dao import get_all_line_items
+            from queries import get_all_line_items
 
             all_line_items = get_all_line_items()
             assert len(all_line_items) == 1
