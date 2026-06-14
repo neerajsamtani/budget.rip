@@ -10,7 +10,8 @@ interface PaymentMethodFilterProps {
 }
 
 export default function PaymentMethodFilter({ paymentMethod, setPaymentMethod }: PaymentMethodFilterProps) {
-  const { data: fetchedMethods = [], error } = usePaymentMethods();
+  const { data: fetchedMethodsData, error } = usePaymentMethods();
+  const fetchedMethods = fetchedMethodsData ?? [];
   // Extract names and add "All" option at the beginning
   const paymentMethodNames = useMemo(
     () => ["All", ...fetchedMethods.map(pm => pm.name)],

@@ -403,6 +403,8 @@ describe('PaymentMethodFilter', () => {
 
     describe('State Management', () => {
         it('payment methods array is initialized as empty', async () => {
+            mockAxiosInstance.get.mockReturnValue(new Promise(() => {})); // never resolves
+
             render(<PaymentMethodFilter paymentMethod={mockPaymentMethod} setPaymentMethod={mockSetPaymentMethod} />);
 
             const trigger = screen.getByRole('combobox');
