@@ -738,7 +738,7 @@ class TestEventAPI:
                 upsert_event_to_postgresql(test_event, db, "user_id")
 
             # Get the actual PostgreSQL event ID that was created
-            all_events = get_all_events(None)
+            all_events = get_all_events(None, "user_id")
             assert len(all_events) == 1
             actual_event_id = all_events[0]["id"]
 

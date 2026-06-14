@@ -26,13 +26,15 @@ def remove_event_from_line_item(line_item_id: Union[str, int]) -> None:
         raise
 
 
-def get_categorized_data() -> List[Dict[str, Any]]:
-    """Group totalExpense by month, year, and category.
+def get_categorized_data(user_id: str) -> List[Dict[str, Any]]:
+    """Group totalExpense by month, year, and category, scoped to the given user.
 
     Uses SQL subqueries to compute per-event amounts instead of loading all
     LineItem ORM objects, reducing the work from O(events * line_items) to
     O(events). Duplicate events (is_duplicate=True) count only the minimum
     line item amount rather than the sum.
+
+    Isolation is enforced explicitly via the Event -> Category -> user_id join.
     """
     from collections import defaultdict
     from datetime import timezone as tz
@@ -76,6 +78,7 @@ def get_categorized_data() -> List[Dict[str, Any]]:
                 ).label("amount"),
             )
             .join(Category, Event.category_id == Category.id)
+            .filter(Category.user_id == user_id)
             .outerjoin(total_subq, total_subq.c.event_id == Event.id)
             .outerjoin(min_li_subq, min_li_subq.c.event_id == Event.id)
             .all()

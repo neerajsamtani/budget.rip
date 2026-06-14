@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Any, Dict, List
 
 from flask import Blueprint, Response, jsonify
-from flask_jwt_extended import jwt_required
+from flask_jwt_extended import get_current_user, jwt_required
 
 from domain import get_categorized_data
 from helpers import empty_list
@@ -38,7 +38,7 @@ def get_monthly_breakdown_api() -> tuple[Response, int]:
     """
     Get Monthly Breakdown For Plotly Graph
     """
-    categorized_data: List[Dict[str, Any]] = get_categorized_data()
+    categorized_data: List[Dict[str, Any]] = get_categorized_data(get_current_user()["id"])
     categories: Dict[str, List[Dict[str, Any]]] = defaultdict(empty_list)
     seen_dates: set[str] = set()
     all_dates: List[str] = []

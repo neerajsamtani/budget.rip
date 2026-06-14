@@ -32,7 +32,7 @@ def all_events_api() -> tuple[Response, int]:
     filters["date"] = {"$gte": start_time, "$lte": end_time}
     limit: Optional[int] = int(request.args["limit"]) if "limit" in request.args else None
     offset: int = int(request.args.get("offset", 0))
-    events: List[Dict[str, Any]] = get_all_events(filters, limit, offset)
+    events: List[Dict[str, Any]] = get_all_events(filters, get_current_user()["id"], limit, offset)
     events_total: float = sum(event["amount"] for event in events)
     logger.info(f"Retrieved {len(events)} events (total: ${events_total:.2f})")
     return jsonify({"total": events_total, "data": events}), 200

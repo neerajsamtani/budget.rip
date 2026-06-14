@@ -29,7 +29,15 @@ def get_all_line_items(
     limit: Optional[int] = None,
     offset: int = 0,
 ) -> List[Dict[str, Any]]:
-    """Get line items from PostgreSQL"""
+    """Get line items from PostgreSQL.
+
+    NOTE: Line items are not yet user-scoped. They have no direct user_id FK and
+    their only association with a user is transitively, through an event's
+    category — but unreviewed line items have no event by definition. Filtering
+    here would require a schema change (a user_id FK on LineItem, populated from
+    the owning integration). Tracked as the follow-up to plan 023; until then
+    this is a single-user assumption.
+    """
     from models.database import SessionLocal
     from models.sql_models import Event, LineItem, PaymentMethod
 
@@ -84,22 +92,32 @@ def get_user_by_id(id: str) -> Optional[Dict[str, Any]]:
 
 def get_all_events(
     filters: Optional[Dict[str, Any]],
+    user_id: str,
     limit: Optional[int] = None,
     offset: int = 0,
 ) -> List[Dict[str, Any]]:
-    """Get events from PostgreSQL"""
+    """Get events from PostgreSQL, scoped to the given user.
+
+    Isolation is enforced explicitly via the Event -> Category -> user_id join
+    rather than relying on the implicit category ownership chain.
+    """
     from datetime import datetime
 
     from models.database import SessionLocal
-    from models.sql_models import Event, LineItem
+    from models.sql_models import Category, Event, LineItem
 
     with SessionLocal.begin() as db:
         # Use subqueryload for one-to-many relationships to avoid duplicate rows
         # joinedload is fine for many-to-one (category)
-        query = db.query(Event).options(
-            joinedload(Event.category),
-            subqueryload(Event.line_items).joinedload(LineItem.payment_method),
-            subqueryload(Event.tags),
+        query = (
+            db.query(Event)
+            .join(Category, Event.category_id == Category.id)
+            .filter(Category.user_id == user_id)
+            .options(
+                joinedload(Event.category),
+                subqueryload(Event.line_items).joinedload(LineItem.payment_method),
+                subqueryload(Event.tags),
+            )
         )
 
         if filters and "date" in filters:
