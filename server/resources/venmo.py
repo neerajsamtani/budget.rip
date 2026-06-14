@@ -18,7 +18,6 @@ logger = logging.getLogger(__name__)
 venmo_blueprint = Blueprint("venmo", __name__)
 
 
-# TODO: Exceptions
 # TODO: Can I remove MOVING_DATE_POSIX
 # TODO: Can I remove PARTIES_TO_IGNORE
 
@@ -26,9 +25,13 @@ venmo_blueprint = Blueprint("venmo", __name__)
 @venmo_blueprint.route("/api/refresh/venmo")
 @jwt_required()
 def refresh_venmo_api() -> tuple[Response, int]:
-    refresh_venmo()
-    venmo_to_line_items()
-    return jsonify("Refreshed Venmo Connection"), 200
+    try:
+        refresh_venmo()
+        venmo_to_line_items()
+        return jsonify("Refreshed Venmo Connection"), 200
+    except Exception as e:
+        logger.error(f"Venmo refresh failed: {e}", exc_info=True)
+        return jsonify({"error": "Venmo refresh failed"}), 500
 
 
 def refresh_venmo() -> None:

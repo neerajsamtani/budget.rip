@@ -13,8 +13,6 @@ logger = logging.getLogger(__name__)
 
 monthly_breakdown_blueprint = Blueprint("monthly_breakdown", __name__)
 
-# TODO: Exceptions
-
 
 def month_year_range(all_dates_dt: List[datetime]) -> List[str]:
     """Generate all month-year strings (m-YYYY) from min to max date inclusive."""

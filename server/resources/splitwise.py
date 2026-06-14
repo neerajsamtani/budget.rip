@@ -36,7 +36,6 @@ _ERROR_RESPONSES = {
 }
 
 
-# TODO: Exceptions
 # TODO: Can I remove MOVING_DATE_POSIX
 # TODO: Can I remove PARTIES_TO_IGNORE
 
@@ -47,9 +46,13 @@ _ERROR_RESPONSES = {
 @splitwise_blueprint.route("/api/refresh/splitwise")
 @jwt_required()
 def refresh_splitwise_api() -> tuple[Response, int]:
-    refresh_splitwise()
-    splitwise_to_line_items()
-    return jsonify("Refreshed Splitwise Connection"), 200
+    try:
+        refresh_splitwise()
+        splitwise_to_line_items()
+        return jsonify("Refreshed Splitwise Connection"), 200
+    except Exception as e:
+        logger.error(f"Splitwise refresh failed: {e}", exc_info=True)
+        return jsonify({"error": "Splitwise refresh failed"}), 500
 
 
 @splitwise_blueprint.get("/api/splitwise/friends")
@@ -58,7 +61,11 @@ def refresh_splitwise_api() -> tuple[Response, int]:
 @jwt_required()
 def get_splitwise_friends_api():
     """Get Splitwise friends for expense creation."""
-    return SplitwiseFriendListResponse(data=list_splitwise_friends(splitwise_client))
+    try:
+        return SplitwiseFriendListResponse(data=list_splitwise_friends(splitwise_client))
+    except Exception as e:
+        logger.error(f"Failed to fetch Splitwise friends: {e}", exc_info=True)
+        abort(503, message="Failed to fetch Splitwise friends")
 
 
 @splitwise_blueprint.get("/api/splitwise/current-user")
@@ -67,7 +74,11 @@ def get_splitwise_friends_api():
 @jwt_required()
 def get_splitwise_current_user_api():
     """Get the authenticated Splitwise user."""
-    return SplitwiseCurrentUserResponse(data={"id": splitwise_client.getCurrentUser().getId()})
+    try:
+        return SplitwiseCurrentUserResponse(data={"id": splitwise_client.getCurrentUser().getId()})
+    except Exception as e:
+        logger.error(f"Failed to fetch Splitwise current user: {e}", exc_info=True)
+        abort(503, message="Failed to fetch Splitwise current user")
 
 
 @splitwise_blueprint.post("/api/splitwise/expenses")
@@ -81,6 +92,9 @@ def create_splitwise_expense_api(body: SplitwiseExpenseCreateIn):
         created_expense, errors = create_splitwise_expense(splitwise_client, body.model_dump())
     except ValueError as exc:
         abort(400, message=str(exc))
+    except Exception as e:
+        logger.error(f"Splitwise expense creation failed: {e}", exc_info=True)
+        abort(503, message="Failed to create Splitwise expense")
 
     if errors:
         logger.warning(f"Splitwise expense creation failed: {errors.getErrors()}")
