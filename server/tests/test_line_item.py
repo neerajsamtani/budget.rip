@@ -177,7 +177,7 @@ class TestLineItemAPI:
         with flask_app.app_context():
             from dao import get_all_line_items
 
-            all_line_items = get_all_line_items(None)
+            all_line_items = get_all_line_items()
             all_line_items_sorted = sorted(all_line_items, key=lambda x: x["amount"])
             assert len(all_line_items_sorted) == 2
             line_item_100 = all_line_items_sorted[1]  # amount=100
@@ -221,7 +221,7 @@ class TestLineItemAPI:
         with flask_app.app_context():
             from dao import get_all_line_items
 
-            all_line_items = get_all_line_items(None)
+            all_line_items = get_all_line_items()
             assert len(all_line_items) == 1
             line_item_id = all_line_items[0]["id"]
 

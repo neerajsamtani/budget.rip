@@ -121,8 +121,7 @@ def update_event_api(event_id: str) -> tuple[Response, int]:
         logger.warning("Event update attempt with no line items")
         return jsonify({"error": "Event must have at least one line item"}), 400
 
-    filters: Dict[str, Any] = {"id": {"$in": update_data["line_items"]}}
-    line_items: List[Dict[str, Any]] = get_all_line_items(filters)
+    line_items: List[Dict[str, Any]] = get_all_line_items(ids=update_data["line_items"])
     if not line_items:
         logger.warning(f"Event update attempt for {event_id}: no valid line items found for provided IDs")
         return jsonify({"error": "None of the provided line item IDs exist"}), 400
@@ -206,8 +205,7 @@ def get_line_items_for_event_api(
         if event is None:
             logger.warning(f"Line items request for non-existent event: {event_id}")
             return jsonify({"error": "Event not found"}), 404
-        filters = {"id": {"$in": event["line_items"]}}
-        line_items: List[Dict[str, Any]] = get_all_line_items(filters)
+        line_items: List[Dict[str, Any]] = get_all_line_items(ids=event["line_items"])
         logger.info(f"Retrieved {len(line_items)} line items for event: {event_id}")
         return jsonify({"data": line_items}), 200
     except Exception as e:

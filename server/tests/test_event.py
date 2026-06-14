@@ -58,7 +58,7 @@ class TestEventAPI:
         with flask_app.app_context():
             from dao import get_all_line_items
 
-            all_line_items = get_all_line_items(None)
+            all_line_items = get_all_line_items()
             line_item_ids = [item["id"] for item in all_line_items]
             assert len(line_item_ids) == 2
 
@@ -114,7 +114,7 @@ class TestEventAPI:
         with flask_app.app_context():
             from dao import get_all_line_items
 
-            all_line_items = get_all_line_items(None)
+            all_line_items = get_all_line_items()
             all_line_items_sorted = sorted(all_line_items, key=lambda x: x["date"])
             assert len(all_line_items_sorted) == 2
             line_item_feb13 = all_line_items_sorted[0]  # 2009-02-13, amount=100
@@ -172,7 +172,7 @@ class TestEventAPI:
         with flask_app.app_context():
             from dao import get_all_line_items
 
-            all_line_items = get_all_line_items(None)
+            all_line_items = get_all_line_items()
             line_item_ids = [item["id"] for item in all_line_items]
             assert len(line_item_ids) == 1
 
@@ -232,7 +232,7 @@ class TestEventAPI:
         with flask_app.app_context():
             from dao import get_all_line_items
 
-            all_line_items = get_all_line_items(None)
+            all_line_items = get_all_line_items()
             line_item_ids = [item["id"] for item in all_line_items]
             assert len(line_item_ids) == 2
 
@@ -310,7 +310,7 @@ class TestEventAPI:
         with flask_app.app_context():
             from dao import get_all_line_items
 
-            all_line_items = get_all_line_items(None)
+            all_line_items = get_all_line_items()
             line_item_ids = [item["id"] for item in all_line_items]
             assert len(line_item_ids) == 1
 
@@ -356,7 +356,7 @@ class TestEventAPI:
         with flask_app.app_context():
             from dao import get_all_line_items
 
-            all_line_items = get_all_line_items(None)
+            all_line_items = get_all_line_items()
             line_item_ids = [item["id"] for item in all_line_items]
             assert len(line_item_ids) == 1
 
@@ -409,7 +409,7 @@ class TestEventAPI:
         with flask_app.app_context():
             from dao import get_all_line_items
 
-            all_line_items = get_all_line_items(None)
+            all_line_items = get_all_line_items()
             line_item_ids = [item["id"] for item in all_line_items]
             assert len(line_item_ids) == 1
 
@@ -474,7 +474,7 @@ class TestEventAPI:
         with flask_app.app_context():
             from dao import get_all_line_items
 
-            all_line_items = get_all_line_items(None)
+            all_line_items = get_all_line_items()
             line_item_ids = [item["id"] for item in all_line_items]
             assert len(line_item_ids) == 2
 
@@ -557,7 +557,7 @@ class TestEventAPI:
         with flask_app.app_context():
             from dao import get_all_line_items
 
-            all_line_items = get_all_line_items(None)
+            all_line_items = get_all_line_items()
             line_item_ids = [item["id"] for item in all_line_items]
 
         # Create event via API
@@ -604,7 +604,7 @@ class TestEventAPI:
         with flask_app.app_context():
             from dao import get_all_line_items
 
-            all_line_items = get_all_line_items(None)
+            all_line_items = get_all_line_items()
             line_item_ids = [item["id"] for item in all_line_items]
 
         event_response = create_event_via_api(
@@ -659,7 +659,7 @@ class TestEventAPI:
         with flask_app.app_context():
             from dao import get_all_line_items
 
-            all_line_items = get_all_line_items(None)
+            all_line_items = get_all_line_items()
             line_item_ids = [item["id"] for item in all_line_items]
             assert len(line_item_ids) == 2
 
@@ -714,7 +714,7 @@ class TestEventAPI:
         with flask_app.app_context():
             from dao import get_all_line_items
 
-            all_line_items = get_all_line_items(None)
+            all_line_items = get_all_line_items()
             line_item_ids = [item["id"] for item in all_line_items]
             assert len(line_item_ids) == 1
 
@@ -896,7 +896,7 @@ class TestEventAPI:
         with flask_app.app_context():
             from dao import get_all_line_items
 
-            line_item_ids = [item["id"] for item in get_all_line_items(None)]
+            line_item_ids = [item["id"] for item in get_all_line_items()]
 
         for li_id in line_item_ids:
             create_event_via_api(
@@ -934,7 +934,7 @@ class TestEventAPI:
         with flask_app.app_context():
             from dao import get_all_line_items
 
-            line_item_ids = [item["id"] for item in get_all_line_items(None)]
+            line_item_ids = [item["id"] for item in get_all_line_items()]
 
         for li_id in line_item_ids:
             create_event_via_api(
@@ -972,7 +972,7 @@ class TestEventAPI:
         with flask_app.app_context():
             from dao import get_all_line_items
 
-            all_line_items = get_all_line_items(None)
+            all_line_items = get_all_line_items()
             line_item_id = all_line_items[0]["id"]
 
         event = create_event_via_api(
@@ -1009,7 +1009,7 @@ class TestEventAPI:
         with flask_app.app_context():
             from dao import get_all_line_items
 
-            all_line_items = get_all_line_items(None)
+            all_line_items = get_all_line_items()
             line_item_ids = [item["id"] for item in all_line_items]
             assert len(line_item_ids) == 2
 
