@@ -100,15 +100,12 @@ def all_line_items(
     limit: Optional[int] = None,
     offset: int = 0,
 ) -> List[Dict[str, Any]]:
-    filters: Dict[str, Any] = {}
-    if payment_method not in ["All", None]:
-        filters["payment_method"] = payment_method
-
-    if only_line_items_to_review:
-        # Only get line items that don't have an event associated
-        filters["event_id"] = {"$exists": False}
-
-    line_items: List[Dict[str, Any]] = get_all_line_items(filters, limit, offset)
+    line_items: List[Dict[str, Any]] = get_all_line_items(
+        payment_method=payment_method,
+        only_unreviewed=bool(only_line_items_to_review),
+        limit=limit,
+        offset=offset,
+    )
     line_items = sort_by_date_description(line_items)
     return line_items
 

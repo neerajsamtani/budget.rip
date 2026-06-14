@@ -191,7 +191,9 @@ def get_line_item_amounts(line_item_ids: list[str]) -> List[Dict[str, Any]]:
 
 
 def get_all_line_items(
-    filters: Optional[Dict[str, Any]],
+    ids: Optional[List[str]] = None,
+    payment_method: Optional[str] = None,
+    only_unreviewed: bool = False,
     limit: Optional[int] = None,
     offset: int = 0,
 ) -> List[Dict[str, Any]]:
@@ -206,24 +208,12 @@ def get_all_line_items(
             joinedload(LineItem.transaction),
         )
 
-        if filters:
-            # Handle id: {$in: [...]} pattern (used in event creation)
-            if "id" in filters:
-                id_filter = filters["id"]
-                if isinstance(id_filter, dict) and "$in" in id_filter:
-                    ids = [str(id) for id in id_filter["$in"]]
-                    query = query.filter(LineItem.id.in_(ids))
-
-            if "payment_method" in filters and filters["payment_method"] not in [
-                "All",
-                None,
-            ]:
-                query = query.join(LineItem.payment_method).filter(PaymentMethod.name == filters["payment_method"])
-
-            if "event_id" in filters:
-                if isinstance(filters["event_id"], dict) and "$exists" in filters["event_id"]:
-                    if not filters["event_id"]["$exists"]:
-                        query = query.outerjoin(LineItem.events).filter(Event.id.is_(None))
+        if ids is not None:
+            query = query.filter(LineItem.id.in_(ids))
+        if payment_method and payment_method != "All":
+            query = query.join(LineItem.payment_method).filter(PaymentMethod.name == payment_method)
+        if only_unreviewed:
+            query = query.outerjoin(LineItem.events).filter(Event.id.is_(None))
 
         query = query.order_by(LineItem.date.desc())
         if offset:
