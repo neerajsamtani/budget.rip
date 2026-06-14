@@ -12,8 +12,6 @@ logger = logging.getLogger(__name__)
 
 line_items_blueprint = Blueprint("line_items", __name__)
 
-# TODO: Exceptions
-
 
 class LineItem:
     """

@@ -17,8 +17,6 @@ logger = logging.getLogger(__name__)
 
 events_blueprint = Blueprint("events", __name__)
 
-# TODO: Exceptions
-
 
 @events_blueprint.route("/api/events", methods=["GET"])
 @jwt_required()

@@ -21,8 +21,6 @@ logger = logging.getLogger(__name__)
 
 auth_blueprint = Blueprint("auth", __name__)
 
-# TODO: Exceptions
-
 
 @auth_blueprint.route("/api/auth/signup", methods=["POST"])
 def signup_user_api() -> tuple[Response, int]:
