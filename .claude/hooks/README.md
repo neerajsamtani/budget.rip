@@ -2,6 +2,32 @@
 
 This directory contains hooks for Claude Code that automate quality checks during development.
 
+## Session Setup Hook
+
+The `session-setup.sh` hook runs automatically on `SessionStart` to install
+project dependencies, so a fresh container is ready to run tests before the
+first commit.
+
+### Why it exists
+
+Fresh Claude Code (web/remote) containers clone the repo but never install
+dependencies. Because `client/node_modules/` is gitignored, the client's local
+`jest` binary is missing, and the pre-commit test hook fails with
+`jest: not found` — blocking commits even for server-only changes.
+
+### What it does
+
+1. **Client deps**: runs `npm ci --legacy-peer-deps` in `client/` (matches CI), skipping if already installed
+2. **Server deps**: runs `uv sync` in `server/` (matches CI)
+3. **Never blocks the session**: if an install fails (e.g. offline / restricted network policy) it logs a warning and exits 0; the pre-commit hook then surfaces a clear, actionable message
+
+### Configuration
+
+Registered as a `SessionStart` hook in `.claude/settings.json` with a 600s
+timeout (a cold `npm ci` can take a few minutes).
+
+---
+
 ## Pre-Commit Lint Hook
 
 The `pre-commit-lint.py` hook runs `make lint-fix` before commits to auto-fix linting issues.
