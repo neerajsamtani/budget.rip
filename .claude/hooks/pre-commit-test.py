@@ -71,6 +71,13 @@ def run_client_tests(project_dir: str) -> tuple[bool, str]:
     if not os.path.exists(client_dir):
         return True, "No client directory found, skipping client tests"
 
+    if not os.path.isdir(os.path.join(client_dir, 'node_modules')):
+        return False, (
+            "Client dependencies not installed (no client/node_modules), so jest is "
+            "unavailable. Run `npm ci --legacy-peer-deps` in client/ or re-run "
+            ".claude/hooks/session-setup.sh, then commit again."
+        )
+
     try:
         result = subprocess.run(
             ['npm', 'test'],
