@@ -14,7 +14,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import joinedload
 
 from models.database import SessionLocal
-from models.sql_models import Category, EventHint, LineItem
+from models.sql_models import Category, EventHint, LineItem, PaymentMethod
 from utils.cel_evaluator import CELEvaluator, evaluate_hints
 from utils.id_generator import generate_id
 
@@ -34,16 +34,6 @@ def serialize_event_hint(hint: EventHint) -> dict[str, Any]:
         "prefill_category_id": hint.prefill_category_id,
         "display_order": hint.display_order,
         "is_active": hint.is_active,
-    }
-
-
-def serialize_line_item_for_cel(line_item: LineItem) -> dict[str, Any]:
-    """Convert LineItem ORM object to dict for CEL evaluation."""
-    return {
-        "description": line_item.description or "",
-        "amount": float(line_item.amount) if line_item.amount else 0.0,
-        "payment_method": line_item.payment_method.name if line_item.payment_method else "",
-        "responsible_party": line_item.responsible_party or "",
     }
 
 
@@ -248,18 +238,32 @@ def evaluate_event_hints() -> tuple[Response, int]:
         return jsonify({"data": {"suggestion": None}}), 200
 
     with SessionLocal.begin() as db:
-        # Get line items
         line_items = (
-            db.query(LineItem).options(joinedload(LineItem.payment_method)).filter(LineItem.id.in_(line_item_ids)).all()
+            db.query(
+                LineItem.description,
+                LineItem.amount,
+                LineItem.responsible_party,
+                PaymentMethod.name.label("payment_method"),
+            )
+            .join(PaymentMethod, LineItem.payment_method_id == PaymentMethod.id)
+            .filter(LineItem.id.in_(line_item_ids))
+            .all()
         )
 
         if not line_items:
             return jsonify({"data": {"suggestion": None}}), 200
 
-        # Get user's active hints in order
         hints = (
-            db.query(EventHint)
-            .options(joinedload(EventHint.prefill_category))
+            db.query(
+                EventHint.id,
+                EventHint.name,
+                EventHint.cel_expression,
+                EventHint.prefill_name,
+                EventHint.display_order,
+                EventHint.is_active,
+                Category.name.label("prefill_category"),
+            )
+            .outerjoin(Category, EventHint.prefill_category_id == Category.id)
             .filter(EventHint.user_id == user_id, EventHint.is_active == True)  # noqa: E712
             .order_by(EventHint.display_order)
             .all()
@@ -268,9 +272,27 @@ def evaluate_event_hints() -> tuple[Response, int]:
         if not hints:
             return jsonify({"data": {"suggestion": None}}), 200
 
-        # Convert to dicts for CEL evaluation
-        line_item_dicts = [serialize_line_item_for_cel(li) for li in line_items]
-        hint_dicts = [serialize_event_hint(h) for h in hints]
+        line_item_dicts = [
+            {
+                "description": row.description or "",
+                "amount": float(row.amount) if row.amount else 0.0,
+                "payment_method": row.payment_method or "",
+                "responsible_party": row.responsible_party or "",
+            }
+            for row in line_items
+        ]
+        hint_dicts = [
+            {
+                "id": row.id,
+                "name": row.name,
+                "cel_expression": row.cel_expression,
+                "prefill_name": row.prefill_name,
+                "prefill_category": row.prefill_category,
+                "display_order": row.display_order,
+                "is_active": row.is_active,
+            }
+            for row in hints
+        ]
 
         # Evaluate hints
         suggestion = evaluate_hints(hint_dicts, line_item_dicts)

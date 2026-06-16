@@ -545,6 +545,7 @@ export function useEvaluateEventHints(lineItemIds: string[], enabled: boolean = 
       return response.data.data.suggestion as EventHintSuggestion | null;
     },
     enabled: enabled && lineItemIds.length > 0,
+    staleTime: LIST_STALE_TIME_MS,
   });
 }
 
