@@ -39,7 +39,7 @@ export default function EventsPage() {
         endTime = start.endOf("year").toUnixInteger()
     }
 
-    const { data: events = [], isLoading, error } = useEvents(startTime, endTime)
+    const { data: events = [], isLoading, isFetching, error } = useEvents(startTime, endTime)
 
     const matchCategory = (event: EventInterface) => category === "All" || category === event.category
 
@@ -126,6 +126,11 @@ export default function EventsPage() {
                         <CategoryFilter category={category} setCategory={setCategory} />
                         <TagsFilter tagFilter={tagFilter} setTagFilter={setTagFilter} />
                     </div>
+                    {isFetching && !isLoading && (
+                        <div className="flex justify-end">
+                            <Spinner size="sm" className="text-muted-foreground" />
+                        </div>
+                    )}
                 </div>
 
                 {/* Summary cards */}

@@ -10,6 +10,7 @@ from sqlalchemy import (
     Column,
     Enum,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
@@ -127,7 +128,10 @@ class Tag(Base):
 
 class Transaction(Base):
     __tablename__ = "transactions"
-    __table_args__ = (UniqueConstraint("source", "source_id", name="uq_transaction_source"),)
+    __table_args__ = (
+        UniqueConstraint("source", "source_id", name="uq_transaction_source"),
+        Index("ix_transactions_source_transaction_date", "source", "transaction_date"),
+    )
 
     id = Column(String(255), primary_key=True)  # txn_xxx
     source = Column(
@@ -143,11 +147,14 @@ class Transaction(Base):
 
 class LineItem(Base):
     __tablename__ = "line_items"
-    __table_args__ = (UniqueConstraint("transaction_id", name="uq_line_item_transaction"),)
+    __table_args__ = (
+        UniqueConstraint("transaction_id", name="uq_line_item_transaction"),
+        Index("ix_line_items_payment_method_date", "payment_method_id", "date"),
+    )
 
     id = Column(String(255), primary_key=True)  # li_xxx
     transaction_id = Column(String(255), ForeignKey("transactions.id", ondelete="CASCADE"), nullable=False, index=True)
-    date = Column(TIMESTAMP(timezone=True), nullable=False)
+    date = Column(TIMESTAMP(timezone=True), nullable=False, index=True)
     amount = Column(DECIMAL(12, 2), nullable=False)
     description = Column(Text, nullable=False)
     payment_method_id = Column(
@@ -175,7 +182,7 @@ class Event(Base):
     __tablename__ = "events"
 
     id = Column(String(255), primary_key=True)  # evt_xxx
-    date = Column(TIMESTAMP(timezone=True), nullable=False)
+    date = Column(TIMESTAMP(timezone=True), nullable=False, index=True)
     description = Column(Text, nullable=False)
     category_id = Column(String(255), ForeignKey("categories.id", ondelete="RESTRICT"), nullable=False, index=True)
     is_duplicate = Column(Boolean, default=False)
@@ -218,8 +225,8 @@ class EventTag(Base):
     __table_args__ = (UniqueConstraint("event_id", "tag_id", name="uq_event_tag"),)
 
     id = Column(String(255), primary_key=True)  # etag_xxx
-    event_id = Column(String(255), ForeignKey("events.id", ondelete="CASCADE"), nullable=False)
-    tag_id = Column(String(255), ForeignKey("tags.id", ondelete="CASCADE"), nullable=False)
+    event_id = Column(String(255), ForeignKey("events.id", ondelete="CASCADE"), nullable=False, index=True)
+    tag_id = Column(String(255), ForeignKey("tags.id", ondelete="CASCADE"), nullable=False, index=True)
     created_at = Column(TIMESTAMP(timezone=True), default=lambda: datetime.now(UTC))
 
 
