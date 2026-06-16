@@ -25,9 +25,13 @@ export const queryKeys = {
   categories: () => ['categories'] as const,
 };
 
+const MINUTE_MS = 60 * 1000;
+const LIST_STALE_TIME_MS = 5 * MINUTE_MS;
+const LOOKUP_STALE_TIME_MS = 10 * MINUTE_MS;
+
 const listQueryOptions = {
   placeholderData: keepPreviousData,
-  staleTime: 5 * 60 * 1000,
+  staleTime: LIST_STALE_TIME_MS,
 };
 
 // Query Hooks
@@ -105,7 +109,7 @@ export function useMonthlyBreakdown(): UseQueryResult<MonthlyBreakdownData> {
       const response = await axiosInstance.get('api/monthly_breakdown');
       return response.data;
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: LIST_STALE_TIME_MS,
   });
 }
 
@@ -158,7 +162,7 @@ export function usePaymentMethods(): UseQueryResult<PaymentMethod[]> {
       const response = await axiosInstance.get('api/payment_methods');
       return response.data.data as PaymentMethod[];
     },
-    staleTime: 10 * 60 * 1000,
+    staleTime: LOOKUP_STALE_TIME_MS,
   });
 }
 
@@ -199,7 +203,7 @@ export function useTags(): UseQueryResult<Tag[]> {
       const response = await axiosInstance.get('api/tags');
       return response.data.data as Tag[];
     },
-    staleTime: 10 * 60 * 1000,
+    staleTime: LOOKUP_STALE_TIME_MS,
   });
 }
 
@@ -238,10 +242,12 @@ export function useCreateEvent(): UseMutationResult<unknown, Error, CreateEventD
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['lineItems'] });
       queryClient.invalidateQueries({ queryKey: ['events'], refetchType: 'none' });
       queryClient.invalidateQueries({ queryKey: ['monthlyBreakdown'], refetchType: 'none' });
       queryClient.invalidateQueries({ queryKey: ['tags'], refetchType: 'none' });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['lineItems'] });
     },
   });
 }
@@ -470,7 +476,7 @@ export function useEventHints(): UseQueryResult<EventHint[]> {
       const response = await axiosInstance.get('api/event-hints');
       return response.data.data as EventHint[];
     },
-    staleTime: 10 * 60 * 1000,
+    staleTime: LOOKUP_STALE_TIME_MS,
   });
 }
 
@@ -481,7 +487,7 @@ export function useCategories(): UseQueryResult<CategoryOption[]> {
       const response = await axiosInstance.get('api/categories');
       return response.data.data as CategoryOption[];
     },
-    staleTime: 10 * 60 * 1000,
+    staleTime: LOOKUP_STALE_TIME_MS,
   });
 }
 
