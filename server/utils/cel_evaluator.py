@@ -24,6 +24,7 @@ import logging
 import re
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import TimeoutError as FuturesTimeoutError
+from functools import lru_cache
 from typing import Any
 
 import celpy
@@ -52,6 +53,14 @@ LINE_ITEM_DECLS = {
     "amount": celtypes.DoubleType,
     "payment_method": celtypes.StringType,
     "responsible_party": celtypes.StringType,
+}
+
+AGGREGATE_DECLS = {
+    "sum_amount": celtypes.DoubleType,
+    "count_items": celtypes.DoubleType,
+    "avg_amount": celtypes.DoubleType,
+    "min_amount": celtypes.DoubleType,
+    "max_amount": celtypes.DoubleType,
 }
 
 
@@ -93,17 +102,39 @@ def _lowercase_string_literals(expression: str) -> str:
     return re.sub(r'"([^"]*)"', lowercase_match, expression)
 
 
+def _process_aggregate_expression(expression: str) -> str:
+    processed = expression
+    processed = re.sub(r"\bsum\s*\(\s*amount\s*\)", "sum_amount", processed)
+    processed = re.sub(r"\bcount\s*\(\s*\)", "count_items", processed)
+    processed = re.sub(r"\bavg\s*\(\s*amount\s*\)", "avg_amount", processed)
+    processed = re.sub(r"\bmin_val\s*\(\s*amount\s*\)", "min_amount", processed)
+    processed = re.sub(r"\bmax_val\s*\(\s*amount\s*\)", "max_amount", processed)
+    return re.sub(r"\b(\d+)(?!\.\d)", r"\1.0", processed)
+
+
+@lru_cache(maxsize=256)
+def _compile_single_expression(expression: str):
+    # CEL compilation is expensive; hints are reused often when the modal opens.
+    expression = _lowercase_string_literals(expression)
+    env = celpy.Environment(annotations=LINE_ITEM_DECLS)
+    ast = env.compile(expression)
+    return env.program(ast)
+
+
+@lru_cache(maxsize=128)
+def _compile_aggregate_expression(processed_expression: str):
+    env = celpy.Environment(annotations=AGGREGATE_DECLS)
+    ast = env.compile(processed_expression)
+    return env.program(ast)
+
+
 def _evaluate_single_expression(expression: str, line_items: list[dict]) -> bool:
     """
     Evaluate a single-item expression against line items.
     Returns True if ANY line item matches the expression.
     """
     try:
-        # Lowercase string literals for case-insensitive matching
-        expression = _lowercase_string_literals(expression)
-        env = celpy.Environment(annotations=LINE_ITEM_DECLS)
-        ast = env.compile(expression)
-        prgm = env.program(ast)
+        prgm = _compile_single_expression(expression)
 
         for item in line_items:
             context = _build_line_item_context(item)
@@ -126,11 +157,7 @@ def _evaluate_single_expression(expression: str, line_items: list[dict]) -> bool
 def _evaluate_single_item(expression: str, item: dict) -> bool:
     """Evaluate an expression against a single line item."""
     try:
-        # Lowercase string literals for case-insensitive matching
-        expression = _lowercase_string_literals(expression)
-        env = celpy.Environment(annotations=LINE_ITEM_DECLS)
-        ast = env.compile(expression)
-        prgm = env.program(ast)
+        prgm = _compile_single_expression(expression)
         context = _build_line_item_context(item)
         result = prgm.evaluate(context)
         return bool(result)
@@ -183,30 +210,9 @@ def _evaluate_aggregate_expression(expression: str, line_items: list[dict]) -> b
         "max_amount": celtypes.DoubleType(max_amount),
     }
 
-    # Replace aggregate function calls with variable references
-    processed = expression
-    processed = re.sub(r"\bsum\s*\(\s*amount\s*\)", "sum_amount", processed)
-    processed = re.sub(r"\bcount\s*\(\s*\)", "count_items", processed)
-    processed = re.sub(r"\bavg\s*\(\s*amount\s*\)", "avg_amount", processed)
-    processed = re.sub(r"\bmin_val\s*\(\s*amount\s*\)", "min_amount", processed)
-    processed = re.sub(r"\bmax_val\s*\(\s*amount\s*\)", "max_amount", processed)
-
-    # Also convert integer literals to floats for type consistency
-    # Match integer literals that are not part of a float (not followed by .)
-    processed = re.sub(r"\b(\d+)(?!\.\d)", r"\1.0", processed)
-
     # Evaluate the processed expression
     try:
-        decls = {
-            "sum_amount": celtypes.DoubleType,
-            "count_items": celtypes.DoubleType,
-            "avg_amount": celtypes.DoubleType,
-            "min_amount": celtypes.DoubleType,
-            "max_amount": celtypes.DoubleType,
-        }
-        env = celpy.Environment(annotations=decls)
-        ast = env.compile(processed)
-        prgm = env.program(ast)
+        prgm = _compile_aggregate_expression(_process_aggregate_expression(expression))
         result = prgm.evaluate(context)
         return bool(result)
     except Exception as e:
@@ -232,16 +238,10 @@ class CELEvaluator:
         if not line_items:
             return False
 
-        def _do_evaluate() -> bool:
-            if self.is_aggregate:
-                return _evaluate_aggregate_expression(self.expression, line_items)
-            else:
-                return _evaluate_single_expression(self.expression, line_items)
-
         # Run evaluation with timeout to prevent DoS from complex expressions
         try:
             with ThreadPoolExecutor(max_workers=1) as executor:
-                future = executor.submit(_do_evaluate)
+                future = executor.submit(self.evaluate_without_timeout, line_items)
                 return future.result(timeout=EVALUATION_TIMEOUT_SECONDS)
         except FuturesTimeoutError:
             logger.warning(
@@ -249,6 +249,11 @@ class CELEvaluator:
                 extra={"expression": self.expression[:100]},
             )
             raise CELValidationError(f"Expression evaluation timed out (max {EVALUATION_TIMEOUT_SECONDS}s)")
+
+    def evaluate_without_timeout(self, line_items: list[dict]) -> bool:
+        if self.is_aggregate:
+            return _evaluate_aggregate_expression(self.expression, line_items)
+        return _evaluate_single_expression(self.expression, line_items)
 
     @classmethod
     def validate(cls, expression: str) -> tuple[bool, str | None]:
@@ -309,27 +314,8 @@ class CELEvaluator:
     @classmethod
     def _validate_aggregate_expression(cls, expression: str) -> tuple[bool, str | None]:
         """Validate an aggregate expression."""
-        # Replace aggregate functions with variable references
-        processed = expression
-        processed = re.sub(r"\bsum\s*\(\s*amount\s*\)", "sum_amount", processed)
-        processed = re.sub(r"\bcount\s*\(\s*\)", "count_items", processed)
-        processed = re.sub(r"\bavg\s*\(\s*amount\s*\)", "avg_amount", processed)
-        processed = re.sub(r"\bmin_val\s*\(\s*amount\s*\)", "min_amount", processed)
-        processed = re.sub(r"\bmax_val\s*\(\s*amount\s*\)", "max_amount", processed)
-
-        # Convert integer literals to floats for type consistency
-        processed = re.sub(r"\b(\d+)(?!\.\d)", r"\1.0", processed)
-
         try:
-            decls = {
-                "sum_amount": celtypes.DoubleType,
-                "count_items": celtypes.DoubleType,
-                "avg_amount": celtypes.DoubleType,
-                "min_amount": celtypes.DoubleType,
-                "max_amount": celtypes.DoubleType,
-            }
-            env = celpy.Environment(annotations=decls)
-            env.compile(processed)
+            _compile_aggregate_expression(_process_aggregate_expression(expression))
             return True, None
         except Exception as e:
             return False, str(e)
@@ -348,24 +334,38 @@ def evaluate_hints(hints: list[dict], line_items: list[dict]) -> dict | None:
     Returns:
         Dict with 'name', 'category', 'matched_hint_id', 'matched_hint_name' or None.
     """
-    for hint in hints:
-        if not hint.get("is_active", True):
-            continue
 
-        try:
-            evaluator = CELEvaluator(hint["cel_expression"])
-            if evaluator.evaluate(line_items):
-                return {
-                    "name": hint["prefill_name"],
-                    "category": hint.get("prefill_category"),
-                    "matched_hint_id": hint.get("id"),
-                    "matched_hint_name": hint.get("name"),
-                }
-        except Exception as e:
-            logger.warning(
-                f"Hint evaluation failed for hint '{hint.get('name', 'unknown')}': {e}",
-                extra={"hint_id": hint.get("id"), "expression": hint.get("cel_expression", "")[:100]},
-            )
-            continue
+    # Use one timeout for the full hint scan instead of one executor per hint.
+    def _evaluate_all_hints() -> dict | None:
+        for hint in hints:
+            if not hint.get("is_active", True):
+                continue
 
-    return None
+            try:
+                evaluator = CELEvaluator(hint["cel_expression"])
+                if evaluator.evaluate_without_timeout(line_items):
+                    return {
+                        "name": hint["prefill_name"],
+                        "category": hint.get("prefill_category"),
+                        "matched_hint_id": hint.get("id"),
+                        "matched_hint_name": hint.get("name"),
+                    }
+            except Exception as e:
+                logger.warning(
+                    f"Hint evaluation failed for hint '{hint.get('name', 'unknown')}': {e}",
+                    extra={"hint_id": hint.get("id"), "expression": hint.get("cel_expression", "")[:100]},
+                )
+                continue
+
+        return None
+
+    try:
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(_evaluate_all_hints)
+            return future.result(timeout=EVALUATION_TIMEOUT_SECONDS)
+    except FuturesTimeoutError:
+        logger.warning(
+            f"Event hint evaluation timed out after {EVALUATION_TIMEOUT_SECONDS}s",
+            extra={"hint_count": len(hints), "line_item_count": len(line_items)},
+        )
+        return None

@@ -1,4 +1,4 @@
-import { useMutation, UseMutationResult, useQuery, useQueryClient, UseQueryResult } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, UseMutationResult, useQuery, useQueryClient, UseQueryResult } from '@tanstack/react-query';
 import { EventInterface } from '../components/Event';
 import { LineItemInterface } from '../contexts/LineItemsContext';
 import type { components } from '../types/api.generated';
@@ -6,8 +6,11 @@ import axiosInstance from '../utils/axiosInstance';
 
 // Query Keys
 export const queryKeys = {
-  events: (startTime?: number, endTime?: number) => ['events', startTime, endTime] as const,
-  lineItems: (params?: { onlyLineItemsToReview?: boolean; paymentMethod?: string }) =>
+  events: (startTime?: number, endTime?: number, limit?: number, offset?: number) =>
+    limit !== undefined || offset !== undefined
+      ? ['events', startTime, endTime, limit, offset] as const
+      : ['events', startTime, endTime] as const,
+  lineItems: (params?: { onlyLineItemsToReview?: boolean; paymentMethod?: string; limit?: number; offset?: number }) =>
     ['lineItems', params] as const,
   eventLineItems: (eventId: string) => ['eventLineItems', eventId] as const,
   monthlyBreakdown: () => ['monthlyBreakdown'] as const,
@@ -22,10 +25,19 @@ export const queryKeys = {
   categories: () => ['categories'] as const,
 };
 
+const MINUTE_MS = 60 * 1000;
+const LIST_STALE_TIME_MS = 5 * MINUTE_MS;
+const LOOKUP_STALE_TIME_MS = 10 * MINUTE_MS;
+
+const listQueryOptions = {
+  placeholderData: keepPreviousData,
+  staleTime: LIST_STALE_TIME_MS,
+};
+
 // Query Hooks
 export function useEvents(startTime?: number, endTime?: number, limit?: number, offset?: number): UseQueryResult<EventInterface[]> {
   return useQuery({
-    queryKey: queryKeys.events(startTime, endTime),
+    queryKey: queryKeys.events(startTime, endTime, limit, offset),
     queryFn: async () => {
       const response = await axiosInstance.get('api/events', {
         params: {
@@ -38,12 +50,18 @@ export function useEvents(startTime?: number, endTime?: number, limit?: number, 
       return response.data.data as EventInterface[];
     },
     enabled: !!startTime && !!endTime,
+    ...listQueryOptions,
   });
 }
 
 export function useLineItems(params?: { onlyLineItemsToReview?: boolean; paymentMethod?: string; enabled?: boolean; limit?: number; offset?: number }): UseQueryResult<LineItemInterface[]> {
   return useQuery({
-    queryKey: queryKeys.lineItems(params ? { onlyLineItemsToReview: params.onlyLineItemsToReview, paymentMethod: params.paymentMethod } : undefined),
+    queryKey: queryKeys.lineItems(params ? {
+      onlyLineItemsToReview: params.onlyLineItemsToReview,
+      paymentMethod: params.paymentMethod,
+      limit: params.limit,
+      offset: params.offset,
+    } : undefined),
     queryFn: async () => {
       const queryParams: Record<string, string | boolean | number> = {};
 
@@ -64,6 +82,7 @@ export function useLineItems(params?: { onlyLineItemsToReview?: boolean; payment
       return response.data.data as LineItemInterface[];
     },
     enabled: params?.enabled ?? true,
+    ...listQueryOptions,
   });
 }
 
@@ -75,6 +94,7 @@ export function useEventLineItems(eventId: string): UseQueryResult<LineItemInter
       return response.data.data as LineItemInterface[];
     },
     enabled: !!eventId,
+    ...listQueryOptions,
   });
 }
 
@@ -89,6 +109,7 @@ export function useMonthlyBreakdown(): UseQueryResult<MonthlyBreakdownData> {
       const response = await axiosInstance.get('api/monthly_breakdown');
       return response.data;
     },
+    staleTime: LIST_STALE_TIME_MS,
   });
 }
 
@@ -141,6 +162,7 @@ export function usePaymentMethods(): UseQueryResult<PaymentMethod[]> {
       const response = await axiosInstance.get('api/payment_methods');
       return response.data.data as PaymentMethod[];
     },
+    staleTime: LOOKUP_STALE_TIME_MS,
   });
 }
 
@@ -181,6 +203,7 @@ export function useTags(): UseQueryResult<Tag[]> {
       const response = await axiosInstance.get('api/tags');
       return response.data.data as Tag[];
     },
+    staleTime: LOOKUP_STALE_TIME_MS,
   });
 }
 
@@ -202,11 +225,29 @@ export function useCreateEvent(): UseMutationResult<unknown, Error, CreateEventD
       const response = await axiosInstance.post('api/events', eventData);
       return response.data;
     },
+    onMutate: async (eventData) => {
+      await queryClient.cancelQueries({ queryKey: ['lineItems'] });
+      const previousLineItems = queryClient.getQueriesData<LineItemInterface[]>({ queryKey: ['lineItems'] });
+      const reviewedIds = new Set(eventData.line_items);
+
+      queryClient.setQueriesData<LineItemInterface[]>({ queryKey: ['lineItems'] }, (old) =>
+        old?.filter((lineItem) => !reviewedIds.has(lineItem.id))
+      );
+
+      return { previousLineItems };
+    },
+    onError: (_error, _eventData, context) => {
+      context?.previousLineItems.forEach(([queryKey, data]) => {
+        queryClient.setQueryData(queryKey, data);
+      });
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['lineItems'] });
       queryClient.invalidateQueries({ queryKey: ['events'], refetchType: 'none' });
       queryClient.invalidateQueries({ queryKey: ['monthlyBreakdown'], refetchType: 'none' });
       queryClient.invalidateQueries({ queryKey: ['tags'], refetchType: 'none' });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['lineItems'] });
     },
   });
 }
@@ -435,6 +476,7 @@ export function useEventHints(): UseQueryResult<EventHint[]> {
       const response = await axiosInstance.get('api/event-hints');
       return response.data.data as EventHint[];
     },
+    staleTime: LOOKUP_STALE_TIME_MS,
   });
 }
 
@@ -445,6 +487,7 @@ export function useCategories(): UseQueryResult<CategoryOption[]> {
       const response = await axiosInstance.get('api/categories');
       return response.data.data as CategoryOption[];
     },
+    staleTime: LOOKUP_STALE_TIME_MS,
   });
 }
 
@@ -502,6 +545,7 @@ export function useEvaluateEventHints(lineItemIds: string[], enabled: boolean = 
       return response.data.data.suggestion as EventHintSuggestion | null;
     },
     enabled: enabled && lineItemIds.length > 0,
+    staleTime: LIST_STALE_TIME_MS,
   });
 }
 

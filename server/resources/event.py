@@ -7,7 +7,7 @@ from flask_jwt_extended import get_current_user, jwt_required
 from constants import LARGEST_EPOCH_TIME, SMALLEST_EPOCH_TIME
 from domain import get_line_item_amounts
 from helpers import html_date_to_posix
-from queries import get_all_events, get_all_line_items, get_event_by_id
+from queries import get_all_events, get_all_line_items, get_event_by_id, get_line_items_for_event
 
 logger = logging.getLogger(__name__)
 
@@ -195,11 +195,10 @@ def get_line_items_for_event_api(
     Get All Line Items Belonging To An Event
     """
     try:
-        event: Optional[Dict[str, Any]] = get_event_by_id(event_id)
-        if event is None:
+        line_items = get_line_items_for_event(event_id)
+        if line_items is None:
             logger.warning(f"Line items request for non-existent event: {event_id}")
             return jsonify({"error": "Event not found"}), 404
-        line_items: List[Dict[str, Any]] = get_all_line_items(ids=event["line_items"])
         logger.info(f"Retrieved {len(line_items)} line items for event: {event_id}")
         return jsonify({"data": line_items}), 200
     except Exception as e:

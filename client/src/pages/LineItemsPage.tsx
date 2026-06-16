@@ -10,7 +10,7 @@ import { useLineItems } from "../hooks/useApi";
 export default function LineItemsPage() {
     const [paymentMethod, setPaymentMethod] = useState("All")
 
-    const { data: lineItems = [], isLoading, error } = useLineItems({ paymentMethod })
+    const { data: lineItems = [], isLoading, isFetching, error } = useLineItems({ paymentMethod })
 
     return (
         <PageContainer>
@@ -24,6 +24,11 @@ export default function LineItemsPage() {
             <div className="space-y-6">
                 <div className="flex flex-col sm:flex-row gap-4">
                     <PaymentMethodFilter paymentMethod={paymentMethod} setPaymentMethod={setPaymentMethod} />
+                    {isFetching && !isLoading && (
+                        <div className="flex items-center">
+                            <Spinner size="sm" className="text-muted-foreground" />
+                        </div>
+                    )}
                 </div>
 
                 {/* Mobile card layout */}
