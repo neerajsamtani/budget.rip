@@ -72,7 +72,7 @@ function CreateEventModalContent({
     return calculateEventTotal(selectedLineItems, isDuplicateTransaction.value);
   }, [selectedLineItems, isDuplicateTransaction.value]);
 
-  const createEvent = () => {
+  const createEvent = async () => {
     const newEvent = {
       name: name.value,
       category: category.value,
@@ -81,16 +81,14 @@ function CreateEventModalContent({
       is_duplicate_transaction: isDuplicateTransaction.value,
       tags: tags.map(tag => tag.text)
     };
-    createEventMutation.mutate(newEvent, {
-      onSuccess: (response: { name?: string }) => {
-        lineItemsDispatch({ type: "remove_line_items", lineItemIds: selectedLineItemIds });
-        onClose();
-        showSuccessToast(response.name || newEvent.name, "Created Event");
-      },
-      onError: (error) => {
-        showErrorToast(error);
-      }
-    });
+    try {
+      const response = await createEventMutation.mutateAsync(newEvent) as { name?: string };
+      lineItemsDispatch({ type: "remove_line_items", lineItemIds: selectedLineItemIds });
+      onClose();
+      showSuccessToast(response.name || newEvent.name, "Created Event");
+    } catch (error) {
+      showErrorToast(error);
+    }
   };
 
   const isMobile = useIsMobile();
@@ -111,7 +109,7 @@ function CreateEventModalContent({
   } else {
     return (
       <>
-        <div className="space-y-6 py-4">
+        <div className="space-y-6 pt-4 pb-4 px-1 -mx-1 overflow-y-auto max-h-[60vh]">
           <div className="space-y-3">
             <Label htmlFor="event-name" className="text-sm font-medium text-foreground">
               Event Name
