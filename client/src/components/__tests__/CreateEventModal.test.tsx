@@ -139,6 +139,12 @@ describe('CreateEventModal', () => {
             expect(screen.getByText('Duplicate Transaction')).toBeInTheDocument();
         });
 
+        it('form content is constrained and scrollable inside the modal', () => {
+            render(<CreateEventModal show={true} onHide={mockOnHide} />);
+
+            expect(screen.getByLabelText('Override Date (optional)').closest('.overflow-y-auto')).toHaveClass('max-h-[60vh]');
+        });
+
         it('all category options are rendered', async () => {
             render(<CreateEventModal show={true} onHide={mockOnHide} />);
 
@@ -583,6 +589,36 @@ describe('CreateEventModal', () => {
                         tags: ['important']
                     }
                 );
+            });
+        });
+
+        it('modal closes after successful creation even if selected line items clear first', async () => {
+            let resolveCreateEvent: (value: { data: { name: string; success: boolean } }) => void;
+            mockAxiosInstance.post.mockReturnValue(new Promise(resolve => {
+                resolveCreateEvent = resolve;
+            }));
+
+            const { rerender } = render(<CreateEventModal show={true} onHide={mockOnHide} />);
+
+            fireEvent.change(screen.getByPlaceholderText('Enter a descriptive name for this event'), {
+                target: { value: 'Test Event' },
+            });
+
+            const categorySelect = screen.getByRole('combobox', { name: /category/i });
+            await userEvent.click(categorySelect);
+            await userEvent.click(screen.getByRole('option', { name: 'Dining' }));
+
+            await userEvent.click(screen.getByRole('button', { name: /create event/i }));
+
+            mockUseLineItems.mockReturnValue({ lineItems: [], isPending: false });
+            rerender(<CreateEventModal show={true} onHide={mockOnHide} />);
+
+            await act(async () => {
+                resolveCreateEvent({ data: { name: 'Test Event', success: true } });
+            });
+
+            await waitFor(() => {
+                expect(mockOnHide).toHaveBeenCalled();
             });
         });
 
