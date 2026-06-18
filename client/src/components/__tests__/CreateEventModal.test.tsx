@@ -139,10 +139,10 @@ describe('CreateEventModal', () => {
             expect(screen.getByText('Duplicate Transaction')).toBeInTheDocument();
         });
 
-        it('form content is constrained and scrollable inside the modal', () => {
+        it('form content flexes and scrolls inside the modal', () => {
             render(<CreateEventModal show={true} onHide={mockOnHide} />);
 
-            expect(screen.getByLabelText('Override Date (optional)').closest('.overflow-y-auto')).toHaveClass('max-h-[60vh]');
+            expect(screen.getByLabelText('Override Date (optional)').closest('.overflow-y-auto')).toHaveClass('min-h-0', 'flex-1');
         });
 
         it('all category options are rendered', async () => {

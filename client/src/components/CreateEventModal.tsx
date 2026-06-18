@@ -109,7 +109,7 @@ function CreateEventModalContent({
   } else {
     return (
       <>
-        <div className="space-y-6 pt-4 pb-4 px-1 -mx-1 overflow-y-auto max-h-[60vh]">
+        <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-1 pt-4 pb-4 -mx-1">
           <div className="space-y-3">
             <Label htmlFor="event-name" className="text-sm font-medium text-foreground">
               Event Name
@@ -184,7 +184,7 @@ function CreateEventModalContent({
           </div>
         </div>
 
-        <div className={`flex pt-4 border-t border-muted ${isMobile ? "flex-col gap-3" : "items-center justify-between"}`}>
+        <div className={`flex shrink-0 pt-4 border-t border-muted ${isMobile ? "flex-col gap-3" : "items-center justify-between"}`}>
           <div className="bg-muted px-4 py-2 rounded-lg">
             <Body className="text-sm font-medium text-foreground">
               Total: <span className="text-primary font-semibold">{CurrencyFormatter.format(total)}</span>
@@ -257,10 +257,13 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
   const formKey = `${show}-${isLoadingHints}-${selectedLineItemIds.join(',')}`;
 
   const isMobile = useIsMobile();
+  const dialogClassName = isMobile
+    ? "h-[calc(100dvh-1rem)] overflow-hidden pb-[max(1.5rem,env(safe-area-inset-bottom))]"
+    : "w-full !max-w-[42rem]";
 
   return (
-    <ResponsiveDialog open={show} onOpenChange={onHide} className={isMobile ? "" : "w-full !max-w-[42rem]"}>
-      <div className="flex flex-col gap-2 pb-4 border-b border-muted">
+    <ResponsiveDialog open={show} onOpenChange={onHide} className={dialogClassName}>
+      <div className="flex shrink-0 flex-col gap-2 pb-4 border-b border-muted">
         <h3 className="text-lg font-semibold text-foreground">New Event Details</h3>
         <p className="text-muted-foreground text-sm">
           Create a financial event from your selected transactions

@@ -27,12 +27,17 @@ interface ResponsiveDialogProps {
 
 function ResponsiveDialog({ open, onOpenChange, children, className }: ResponsiveDialogProps) {
   const isMobile = useIsMobile()
+  const mobileSheetStyle = { maxHeight: "min(90vh, calc(100dvh - 1rem))" }
 
   if (isMobile) {
     return (
       <MobileContext.Provider value={true}>
         <Sheet open={open} onOpenChange={onOpenChange}>
-          <SheetContent side="bottom" className={`max-h-[90vh] overflow-y-auto overflow-x-hidden ${className || ""}`}>
+          <SheetContent
+            side="bottom"
+            className={`max-h-[90vh] overflow-y-auto overflow-x-hidden ${className || ""}`}
+            style={mobileSheetStyle}
+          >
             {children}
           </SheetContent>
         </Sheet>
