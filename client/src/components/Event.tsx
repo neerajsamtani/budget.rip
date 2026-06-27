@@ -1,12 +1,10 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { TableCell } from "@/components/ui/table";
-import React, { useEffect, useState } from "react";
+import { TableCell, TableRow } from "@/components/ui/table";
+import React from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { StatusBadge } from "../components/ui/status-badge";
-import { useEventLineItems } from "../hooks/useApi";
 import { CurrencyFormatter, DateFormatter } from "../utils/formatters";
-import { showErrorToast } from "../utils/toast-helpers";
-import EventDetailsModal from "./EventDetailsModal";
 
 export interface EventInterface {
     id: string;
@@ -19,31 +17,15 @@ export interface EventInterface {
     is_duplicate_transaction?: boolean;
 }
 
-function useEventDetails(eventId: string) {
-    const [modalShow, setModalShow] = useState(false);
-    const [shouldFetch, setShouldFetch] = useState(false);
-    const { data: lineItems = [], error, isLoading: isLoadingLineItemsForEvent } = useEventLineItems(shouldFetch ? eventId : '');
-
-    useEffect(() => {
-        if (error) showErrorToast(error);
-    }, [error]);
-
-    const show = () => {
-        setShouldFetch(true);
-        setModalShow(true);
-    };
-
-    return { modalShow, lineItems, isLoadingLineItemsForEvent, show, hide: () => setModalShow(false) };
-}
-
 export function EventCard({ event }: { event: EventInterface }) {
     const readableDate = DateFormatter.format(event.date * 1000);
-    const { modalShow, lineItems, isLoadingLineItemsForEvent, show, hide } = useEventDetails(event.id);
+    const location = useLocation();
     const amountStatus = event.amount > 0 ? 'warning' : 'success';
+    const detailPath = `/events/${event.id}${location.search}`;
 
     return (
-        <>
-            <div className="p-4 border-b last:border-b-0" onClick={show}>
+        <Link to={detailPath} className="block no-underline text-inherit">
+            <div className="p-4 border-b last:border-b-0 hover:bg-gray-50 transition-colors">
                 <div className="flex justify-between items-start gap-2 mb-2">
                     <span className="text-sm text-muted-foreground">{readableDate}</span>
                     <StatusBadge status={amountStatus}>
@@ -65,18 +47,29 @@ export function EventCard({ event }: { event: EventInterface }) {
                     )}
                 </div>
             </div>
-            <EventDetailsModal show={modalShow} event={event} lineItemsForEvent={lineItems} isLoadingLineItemsForEvent={isLoadingLineItemsForEvent} onHide={hide} />
-        </>
+        </Link>
     );
 }
 
 export default function Event({ event }: { event: EventInterface }) {
     const readableDate = DateFormatter.format(event.date * 1000);
-    const { modalShow, lineItems, isLoadingLineItemsForEvent, show, hide } = useEventDetails(event.id);
+    const location = useLocation();
+    const navigate = useNavigate();
     const amountStatus = event.amount > 0 ? 'warning' : 'success';
+    const detailPath = `/events/${event.id}${location.search}`;
 
     return (
-        <>
+        <TableRow
+            className="cursor-pointer"
+            onClick={() => navigate(detailPath)}
+            tabIndex={0}
+            onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    navigate(detailPath);
+                }
+            }}
+        >
             <TableCell className="text-sm text-foreground">{readableDate}</TableCell>
             <TableCell className="font-medium text-foreground">{event.name}</TableCell>
             <TableCell>
@@ -103,11 +96,12 @@ export default function Event({ event }: { event: EventInterface }) {
                 )}
             </TableCell>
             <TableCell>
-                <Button onClick={show} variant="secondary" size="sm">
+                <Button asChild variant="secondary" size="sm" onClick={(clickEvent) => clickEvent.stopPropagation()}>
+                    <Link to={detailPath}>
                     View Details
+                    </Link>
                 </Button>
-                <EventDetailsModal show={modalShow} event={event} lineItemsForEvent={lineItems} isLoadingLineItemsForEvent={isLoadingLineItemsForEvent} onHide={hide} />
             </TableCell>
-        </>
+        </TableRow>
     )
 }

@@ -19,7 +19,7 @@ import LineItem, { LineItemCard } from './LineItem';
 import { Tag, TagsField } from './TagsField';
 import { Spinner } from "./ui/spinner";
 
-interface ViewEventContentProps {
+export interface ViewEventContentProps {
   event: EventInterface;
   lineItemsForEvent: LineItemInterface[];
   isLoadingLineItemsForEvent: boolean;
@@ -28,7 +28,7 @@ interface ViewEventContentProps {
   onDelete: () => void;
 }
 
-function ViewEventContent({ event, lineItemsForEvent, isLoadingLineItemsForEvent, isMobile, onEdit, onDelete }: ViewEventContentProps) {
+export function ViewEventContent({ event, lineItemsForEvent, isLoadingLineItemsForEvent, isMobile, onEdit, onDelete }: ViewEventContentProps) {
   return (
     <>
       <div className="flex flex-col gap-2 pb-4 border-b border-muted">
@@ -108,7 +108,7 @@ function ViewEventContent({ event, lineItemsForEvent, isLoadingLineItemsForEvent
   );
 }
 
-interface EditEventContentProps {
+export interface EditEventContentProps {
   name: string;
   setName: React.Dispatch<React.SetStateAction<string>>;
   category: string;
@@ -135,11 +135,12 @@ interface EditEventContentProps {
   disableSave: boolean;
   isSaving: boolean;
   isMobile: boolean;
+  titleAsDialog?: boolean;
   onCancel: () => void;
   onSave: () => void;
 }
 
-function EditEventContent({
+export function EditEventContent({
   name, setName,
   category, setCategory,
   categories, isLoadingCategories, isCategoriesError,
@@ -150,15 +151,25 @@ function EditEventContent({
   isLoadingLineItemsForEvent,
   onRemoveLineItem, onAddLineItem,
   total, disableSave, isSaving, isMobile,
+  titleAsDialog = true,
   onCancel, onSave
 }: EditEventContentProps) {
   return (
     <>
       <div className="flex flex-col gap-2 pb-4 border-b border-muted">
-        <ResponsiveDialogTitle className="text-foreground">Edit Event</ResponsiveDialogTitle>
-        <ResponsiveDialogDescription className="text-muted-foreground">
-          Modify event details and line items
-        </ResponsiveDialogDescription>
+        {titleAsDialog ? (
+          <>
+            <ResponsiveDialogTitle className="text-foreground">Edit Event</ResponsiveDialogTitle>
+            <ResponsiveDialogDescription className="text-muted-foreground">
+              Modify event details and line items
+            </ResponsiveDialogDescription>
+          </>
+        ) : (
+          <>
+            <h2 className="text-xl font-semibold text-foreground">Edit Event</h2>
+            <p className="text-sm text-muted-foreground">Modify event details and line items</p>
+          </>
+        )}
       </div>
       <div className="space-y-6 pt-4 pb-4 px-1 -mx-1 overflow-y-auto max-h-[60vh]">
         <div className="space-y-3">

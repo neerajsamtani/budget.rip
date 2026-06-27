@@ -24,6 +24,7 @@ import {
     useCreateManualTransaction,
     useCreateSplitwiseExpense,
     useDeleteEvent,
+    useEvent,
     useEventLineItems,
     useEvents,
     useLineItems,
@@ -56,6 +57,7 @@ describe('useApi hooks', () => {
 
     describe('queryKeys', () => {
         it('events query key includes date range parameters', () => {
+            expect(queryKeys.event('event-123')).toEqual(['event', 'event-123']);
             expect(queryKeys.events(1000, 2000)).toEqual(['events', 1000, 2000]);
             expect(queryKeys.events()).toEqual(['events', undefined, undefined]);
         });
@@ -114,6 +116,28 @@ describe('useApi hooks', () => {
 
             await waitFor(() => expect(result.current.isError).toBe(true));
             expect(result.current.error).toBeInstanceOf(Error);
+        });
+    });
+
+    describe('useEvent', () => {
+        it('fetches a specific event', async () => {
+            const mockEvent = { id: 'event-123', name: 'Dinner', amount: 42, date: 1640995200, line_items: [] };
+            mockGet.mockResolvedValue({ data: mockEvent });
+
+            const { result } = renderHook(() => useEvent('event-123'), {
+                wrapper: createWrapper(),
+            });
+
+            await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+            expect(mockGet).toHaveBeenCalledWith('api/events/event-123');
+            expect(result.current.data).toEqual(mockEvent);
+        });
+
+        it('does not fetch when eventId is empty', () => {
+            renderHook(() => useEvent(''), { wrapper: createWrapper() });
+
+            expect(mockGet).not.toHaveBeenCalled();
         });
     });
 

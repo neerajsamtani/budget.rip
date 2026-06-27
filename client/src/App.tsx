@@ -18,6 +18,7 @@ import { useRefreshAllData } from "./hooks/useApi";
 import LineItemsToReviewPage from "./pages/LineItemsToReviewPage";
 
 const ConnectedAccountsPage = React.lazy(() => import("./pages/ConnectedAccountsPage"));
+const EventDetailPage = React.lazy(() => import("./pages/EventDetailPage"));
 const EventsPage = React.lazy(() => import("./pages/EventsPage"));
 const GraphsPage = React.lazy(() => import("./pages/GraphsPage"));
 const LineItemsPage = React.lazy(() => import("./pages/LineItemsPage"));
@@ -215,6 +216,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<ProtectedRoute><LineItemsToReviewPage /></ProtectedRoute>} />
             <Route path="/events" element={<ProtectedRoute><EventsPage /></ProtectedRoute>} />
+            <Route path="/events/:eventId" element={<ProtectedRoute><EventDetailPage /></ProtectedRoute>} />
             <Route path="/line_items" element={<ProtectedRoute><LineItemsPage /></ProtectedRoute>} />
             <Route path="/connected_accounts" element={<ProtectedRoute><ConnectedAccountsPage stripePromise={stripePromise} /></ProtectedRoute>} />
             <Route path="/graphs" element={<ProtectedRoute><GraphsPage /></ProtectedRoute>} />

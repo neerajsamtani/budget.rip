@@ -6,6 +6,7 @@ import axiosInstance from '../utils/axiosInstance';
 
 // Query Keys
 export const queryKeys = {
+  event: (eventId: string) => ['event', eventId] as const,
   events: (startTime?: number, endTime?: number, limit?: number, offset?: number) =>
     limit !== undefined || offset !== undefined
       ? ['events', startTime, endTime, limit, offset] as const
@@ -51,6 +52,18 @@ export function useEvents(startTime?: number, endTime?: number, limit?: number, 
     },
     enabled: !!startTime && !!endTime,
     ...listQueryOptions,
+  });
+}
+
+export function useEvent(eventId: string): UseQueryResult<EventInterface> {
+  return useQuery({
+    queryKey: queryKeys.event(eventId),
+    queryFn: async () => {
+      const response = await axiosInstance.get(`api/events/${eventId}`);
+      return response.data as EventInterface;
+    },
+    enabled: !!eventId,
+    staleTime: LIST_STALE_TIME_MS,
   });
 }
 
@@ -271,6 +284,7 @@ export function useUpdateEvent(): UseMutationResult<unknown, Error, UpdateEventD
       return response.data;
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['event'] });
       queryClient.invalidateQueries({ queryKey: ['events'] });
       queryClient.invalidateQueries({ queryKey: ['eventLineItems'] });
       queryClient.invalidateQueries({ queryKey: ['lineItems'], refetchType: 'none' });
@@ -348,6 +362,7 @@ export function useDeleteEvent(): UseMutationResult<void, Error, string> {
       await axiosInstance.delete(`api/events/${eventId}`);
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['event'] });
       queryClient.invalidateQueries({ queryKey: ['events'] });
       queryClient.invalidateQueries({ queryKey: ['lineItems'], refetchType: 'none' });
       queryClient.invalidateQueries({ queryKey: ['monthlyBreakdown'], refetchType: 'none' });
