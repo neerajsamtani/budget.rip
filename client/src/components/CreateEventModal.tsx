@@ -81,10 +81,10 @@ function CreateEventModalContent({
       is_duplicate_transaction: isDuplicateTransaction.value,
       tags: tags.map(tag => tag.text)
     };
+    onClose();
     try {
       const response = await createEventMutation.mutateAsync(newEvent) as { name?: string };
       lineItemsDispatch({ type: "remove_line_items", lineItemIds: selectedLineItemIds });
-      onClose();
       showSuccessToast(response.name || newEvent.name, "Created Event");
     } catch (error) {
       showErrorToast(error);

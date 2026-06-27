@@ -592,13 +592,13 @@ describe('CreateEventModal', () => {
             });
         });
 
-        it('modal closes after successful creation even if selected line items clear first', async () => {
+        it('modal closes immediately when creation starts so optimistic line item clearing cannot empty it first', async () => {
             let resolveCreateEvent: (value: { data: { name: string; success: boolean } }) => void;
             mockAxiosInstance.post.mockReturnValue(new Promise(resolve => {
                 resolveCreateEvent = resolve;
             }));
 
-            const { rerender } = render(<CreateEventModal show={true} onHide={mockOnHide} />);
+            render(<CreateEventModal show={true} onHide={mockOnHide} />);
 
             fireEvent.change(screen.getByPlaceholderText('Enter a descriptive name for this event'), {
                 target: { value: 'Test Event' },
@@ -610,15 +610,10 @@ describe('CreateEventModal', () => {
 
             await userEvent.click(screen.getByRole('button', { name: /create event/i }));
 
-            mockUseLineItems.mockReturnValue({ lineItems: [], isPending: false });
-            rerender(<CreateEventModal show={true} onHide={mockOnHide} />);
+            expect(mockOnHide).toHaveBeenCalled();
 
             await act(async () => {
                 resolveCreateEvent({ data: { name: 'Test Event', success: true } });
-            });
-
-            await waitFor(() => {
-                expect(mockOnHide).toHaveBeenCalled();
             });
         });
 
