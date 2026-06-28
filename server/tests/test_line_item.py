@@ -238,6 +238,137 @@ class TestLineItemAPI:
         assert data["payment_method"] == "Cash"
         assert data["description"] == "Test transaction"
         assert data["amount"] == 100
+        assert data["transaction_id"]
+        assert data["payment_method_id"] == "pm_cash"
+        assert data["notes"] is None
+        assert data["is_manual"] is True
+
+    def test_manual_line_item_can_be_updated(self, test_client, flask_app, jwt_token, create_line_item_via_manual):
+        """Manual line items can be updated"""
+        create_line_item_via_manual(
+            date="2009-02-13",
+            person="John Doe",
+            description="Original transaction",
+            amount=100,
+        )
+
+        with flask_app.app_context():
+            from queries import get_all_line_items
+
+            line_item = get_all_line_items()[0]
+
+        response = test_client.put(
+            f"/api/line_items/{line_item['id']}",
+            json={
+                "date": "2009-02-14",
+                "responsible_party": "Jane Smith",
+                "description": "Updated transaction",
+                "amount": "42.50",
+                "payment_method_id": "pm_venmo",
+                "notes": "Updated notes",
+            },
+            headers={"Authorization": f"Bearer {jwt_token}"},
+        )
+
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data["id"] == line_item["id"]
+        assert data["responsible_party"] == "Jane Smith"
+        assert data["description"] == "Updated transaction"
+        assert data["amount"] == 42.5
+        assert data["payment_method"] == "Venmo"
+        assert data["payment_method_id"] == "pm_venmo"
+        assert data["notes"] == "Updated notes"
+
+    def test_synced_line_item_cannot_be_updated(self, test_client, flask_app, jwt_token, create_line_item_via_manual):
+        """Synced line items cannot be updated"""
+        create_line_item_via_manual(
+            date="2009-02-13",
+            person="John Doe",
+            description="Synced transaction",
+            amount=100,
+        )
+
+        with flask_app.app_context():
+            from models.database import SessionLocal
+            from models.sql_models import LineItem as SQLLineItem
+            from queries import get_all_line_items
+
+            line_item = get_all_line_items()[0]
+            with SessionLocal.begin() as db:
+                db_line_item = db.query(SQLLineItem).filter(SQLLineItem.id == line_item["id"]).first()
+                db_line_item.transaction.source = "venmo_api"
+
+        response = test_client.put(
+            f"/api/line_items/{line_item['id']}",
+            json={
+                "date": "2009-02-14",
+                "responsible_party": "Jane Smith",
+                "description": "Should not update",
+                "amount": "42.50",
+                "payment_method_id": "pm_venmo",
+                "notes": "Updated notes",
+            },
+            headers={"Authorization": f"Bearer {jwt_token}"},
+        )
+
+        assert response.status_code == 400
+        assert response.get_json()["error"] == "Synced line items cannot be edited"
+
+        with flask_app.app_context():
+            from queries import get_line_item_by_id
+
+            unchanged = get_line_item_by_id(line_item["id"])
+            assert unchanged["description"] == "Synced transaction"
+            assert unchanged["payment_method"] == "Cash"
+
+    def test_line_item_update_fails_with_invalid_payment_method(
+        self, test_client, flask_app, jwt_token, create_line_item_via_manual
+    ):
+        """Line item update fails with invalid payment method"""
+        create_line_item_via_manual(
+            date="2009-02-13",
+            person="John Doe",
+            description="Original transaction",
+            amount=100,
+        )
+
+        with flask_app.app_context():
+            from queries import get_all_line_items
+
+            line_item = get_all_line_items()[0]
+
+        response = test_client.put(
+            f"/api/line_items/{line_item['id']}",
+            json={
+                "date": "2009-02-14",
+                "responsible_party": "Jane Smith",
+                "description": "Updated transaction",
+                "amount": "42.50",
+                "payment_method_id": "pm_missing",
+            },
+            headers={"Authorization": f"Bearer {jwt_token}"},
+        )
+
+        assert response.status_code == 400
+        assert response.get_json()["error"] == "Payment method not found: pm_missing"
+
+    def test_nonexistent_line_item_update_returns_404(self, test_client, jwt_token):
+        """Updating a nonexistent line item returns 404"""
+        response = test_client.put(
+            "/api/line_items/nonexistent_id",
+            json={
+                "date": "2009-02-14",
+                "responsible_party": "Jane Smith",
+                "description": "Updated transaction",
+                "amount": "42.50",
+                "payment_method_id": "pm_cash",
+            },
+            headers={"Authorization": f"Bearer {jwt_token}"},
+        )
+
+        assert response.status_code == 404
+        assert response.get_json()["error"] == "Line item not found"
 
     def test_nonexistent_line_item_returns_404(self, test_client, jwt_token):
         """Requesting a nonexistent line item returns 404"""

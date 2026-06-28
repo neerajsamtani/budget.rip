@@ -11,6 +11,7 @@ export const queryKeys = {
     limit !== undefined || offset !== undefined
       ? ['events', startTime, endTime, limit, offset] as const
       : ['events', startTime, endTime] as const,
+  lineItem: (lineItemId: string) => ['lineItem', lineItemId] as const,
   lineItems: (params?: { onlyLineItemsToReview?: boolean; paymentMethod?: string; limit?: number; offset?: number }) =>
     ['lineItems', params] as const,
   eventLineItems: (eventId: string) => ['eventLineItems', eventId] as const,
@@ -96,6 +97,18 @@ export function useLineItems(params?: { onlyLineItemsToReview?: boolean; payment
     },
     enabled: params?.enabled ?? true,
     ...listQueryOptions,
+  });
+}
+
+export function useLineItem(lineItemId: string): UseQueryResult<LineItemInterface> {
+  return useQuery({
+    queryKey: queryKeys.lineItem(lineItemId),
+    queryFn: async () => {
+      const response = await axiosInstance.get(`api/line_items/${lineItemId}`);
+      return response.data as LineItemInterface;
+    },
+    enabled: !!lineItemId,
+    staleTime: LIST_STALE_TIME_MS,
   });
 }
 
@@ -318,6 +331,34 @@ export function useCreateManualTransaction(): UseMutationResult<unknown, Error, 
   });
 }
 
+export interface UpdateLineItemData {
+  lineItemId: string;
+  date: string;
+  responsible_party: string;
+  description: string;
+  amount: number;
+  payment_method_id: string;
+  notes?: string;
+}
+
+export function useUpdateLineItem(): UseMutationResult<LineItemInterface, Error, UpdateLineItemData> {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ lineItemId, ...lineItemData }: UpdateLineItemData) => {
+      const response = await axiosInstance.put(`api/line_items/${lineItemId}`, lineItemData);
+      return response.data as LineItemInterface;
+    },
+    onSuccess: (lineItem) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.lineItem(lineItem.id) });
+      queryClient.invalidateQueries({ queryKey: ['lineItems'] });
+      queryClient.invalidateQueries({ queryKey: ['eventLineItems'] });
+      queryClient.invalidateQueries({ queryKey: ['events'], refetchType: 'none' });
+      queryClient.invalidateQueries({ queryKey: ['monthlyBreakdown'], refetchType: 'none' });
+    },
+  });
+}
+
 export type CreateSplitwiseExpenseData = components['schemas']['SplitwiseExpenseCreateIn'];
 
 export function useCreateSplitwiseExpense(): UseMutationResult<unknown, Error, CreateSplitwiseExpenseData> {
@@ -346,6 +387,7 @@ export function useDeleteManualTransaction(): UseMutationResult<void, Error, str
       await axiosInstance.delete(`api/manual_transaction/${transactionId}`);
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['lineItem'] });
       queryClient.invalidateQueries({ queryKey: ['events'] });
       queryClient.invalidateQueries({ queryKey: ['eventLineItems'] });
       queryClient.invalidateQueries({ queryKey: ['lineItems'], refetchType: 'none' });

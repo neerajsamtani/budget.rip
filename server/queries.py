@@ -40,7 +40,9 @@ def get_all_line_items(
         query = (
             db.query(
                 LineItem.id,
+                LineItem.transaction_id,
                 LineItem.date,
+                LineItem.payment_method_id,
                 PaymentMethod.name.label("payment_method"),
                 LineItem.description,
                 LineItem.amount,
@@ -65,7 +67,9 @@ def get_all_line_items(
 
         query = query.group_by(
             LineItem.id,
+            LineItem.transaction_id,
             LineItem.date,
+            LineItem.payment_method_id,
             PaymentMethod.name,
             LineItem.description,
             LineItem.amount,
@@ -83,7 +87,9 @@ def get_all_line_items(
         return [
             {
                 "id": row.id,
+                "transaction_id": row.transaction_id,
                 "date": serialize_datetime(row.date),
+                "payment_method_id": row.payment_method_id,
                 "payment_method": row.payment_method or "Unknown",
                 "description": row.description or "",
                 "amount": float(row.amount or 0.0),

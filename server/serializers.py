@@ -23,7 +23,9 @@ def serialize_line_item(li: LineItem) -> Dict[str, Any]:
 
     data = {
         "id": li.id,
+        "transaction_id": li.transaction_id,
         "date": serialize_datetime(li.date),
+        "payment_method_id": li.payment_method_id,
         "payment_method": li.payment_method.name if li.payment_method else "Unknown",
         "description": li.description or "",
         "amount": float(li.amount or 0.0),

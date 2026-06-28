@@ -12,6 +12,7 @@ import { Option } from "../components/Autocomplete";
 import { EditEventContent } from "../components/EventDetailsModal";
 import LineItem, { LineItemCard } from "../components/LineItem";
 import { PageContainer } from "../components/ui/layout";
+import { useIsMobile } from "../components/ui/responsive-dialog";
 import { LineItemInterface } from "../contexts/LineItemsContext";
 import { useCategories, useDeleteEvent, useEvent, useEventLineItems, useLineItems, useTags, useUpdateEvent } from "../hooks/useApi";
 import { calculateEventTotal } from "../utils/eventHelpers";
@@ -32,7 +33,7 @@ function DetailRow({ label, children }: { label: string; children: React.ReactNo
     );
 }
 
-function LinkedLineItems({ lineItems, isLoading, error }: { lineItems: LineItemInterface[]; isLoading: boolean; error: unknown }) {
+function LinkedLineItems({ lineItems, isLoading, error, returnTo }: { lineItems: LineItemInterface[]; isLoading: boolean; error: unknown; returnTo: string }) {
     if (isLoading) {
         return (
             <div className="flex justify-center py-8">
@@ -49,6 +50,8 @@ function LinkedLineItems({ lineItems, isLoading, error }: { lineItems: LineItemI
         return <div className="p-4 text-center text-muted-foreground">No linked line items found</div>;
     }
 
+    const detailPath = (lineItemId: string) => `/line_items/${lineItemId}?returnTo=${encodeURIComponent(returnTo)}`;
+
     return (
         <>
             <div className="md:hidden rounded-xl bg-white shadow-sm border overflow-hidden">
@@ -60,6 +63,7 @@ function LinkedLineItems({ lineItems, isLoading, error }: { lineItems: LineItemI
                         isChecked={false}
                         handleToggle={() => { }}
                         amountStatus={lineItem.amount < 0 ? "success" : "warning"}
+                        detailPath={detailPath(lineItem.id)}
                     />
                 ))}
             </div>
@@ -76,7 +80,7 @@ function LinkedLineItems({ lineItems, isLoading, error }: { lineItems: LineItemI
                     </TableHeader>
                     <TableBody>
                         {lineItems.map(lineItem => (
-                            <LineItem key={lineItem.id} lineItem={lineItem} />
+                            <LineItem key={lineItem.id} lineItem={lineItem} detailPath={detailPath(lineItem.id)} />
                         ))}
                     </TableBody>
                 </Table>
@@ -89,6 +93,7 @@ export default function EventDetailPage() {
     const { eventId = "" } = useParams();
     const location = useLocation();
     const navigate = useNavigate();
+    const isMobile = useIsMobile();
     const listPath = `/events${location.search}`;
 
     const { data: event, isLoading: isLoadingEvent, error: eventError } = useEvent(eventId);
@@ -240,22 +245,22 @@ export default function EventDetailPage() {
                 </Button>
 
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                    <div className="space-y-3">
-                        <div className="flex flex-wrap items-center gap-3">
-                            <H1>{event.name}</H1>
+                    <div className="min-w-0 space-y-3">
+                        <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+                            <H1 className="min-w-0 break-words text-[30px] tracking-normal">{event.name}</H1>
                             <StatusBadge status={amountStatus}>{CurrencyFormatter.format(Math.abs(event.amount))}</StatusBadge>
-                            <Badge className="bg-muted text-foreground border hover:bg-muted">{event.category}</Badge>
+                            <Badge className="max-w-full truncate bg-muted text-foreground border hover:bg-muted">{event.category}</Badge>
                             {event.tags?.map(tag => (
-                                <Badge key={tag} className="bg-primary text-white px-2 py-1">{tag}</Badge>
+                                <Badge key={tag} className="max-w-full truncate bg-primary text-white px-2 py-1">{tag}</Badge>
                             ))}
                         </div>
                     </div>
-                    <div className="flex gap-2">
-                        <Button variant="secondary" size="sm" onClick={() => setIsEditing(true)}>
+                    <div className="flex w-full gap-2 sm:w-auto">
+                        <Button variant="secondary" size="sm" onClick={() => setIsEditing(true)} className="flex-1 sm:flex-none">
                             <Pencil className="h-4 w-4" />
                             Edit
                         </Button>
-                        <Button variant="destructive" size="sm" onClick={deleteEvent} disabled={deleteEventMutation.isPending}>
+                        <Button variant="destructive" size="sm" onClick={deleteEvent} disabled={deleteEventMutation.isPending} className="flex-1 sm:flex-none">
                             <Trash2 className="h-4 w-4" />
                             Delete
                         </Button>
@@ -298,7 +303,7 @@ export default function EventDetailPage() {
                             total={total}
                             disableSave={disableSave}
                             isSaving={updateEventMutation.isPending}
-                            isMobile={false}
+                            isMobile={isMobile}
                             titleAsDialog={false}
                             onCancel={cancelEditing}
                             onSave={saveChanges}
@@ -313,11 +318,12 @@ export default function EventDetailPage() {
                                     lineItems={lineItemsForEvent}
                                     isLoading={isLoadingLineItemsForEvent}
                                     error={lineItemsError}
+                                    returnTo={`${location.pathname}${location.search}`}
                                 />
                             </section>
                         </main>
 
-                        <aside className="space-y-3">
+                        <aside className="order-first space-y-3 lg:order-none">
                             <h2 className="text-xl font-semibold text-foreground">Details</h2>
                             <div className="rounded-xl border bg-white p-4 md:p-5">
                                 <dl className="space-y-4">

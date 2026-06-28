@@ -21,6 +21,7 @@ const ConnectedAccountsPage = React.lazy(() => import("./pages/ConnectedAccounts
 const EventDetailPage = React.lazy(() => import("./pages/EventDetailPage"));
 const EventsPage = React.lazy(() => import("./pages/EventsPage"));
 const GraphsPage = React.lazy(() => import("./pages/GraphsPage"));
+const LineItemDetailPage = React.lazy(() => import("./pages/LineItemDetailPage"));
 const LineItemsPage = React.lazy(() => import("./pages/LineItemsPage"));
 const LoginPage = React.lazy(() => import("./pages/LoginPage"));
 const SettingsPage = React.lazy(() => import("./pages/SettingsPage"));
@@ -218,6 +219,7 @@ export default function App() {
             <Route path="/events" element={<ProtectedRoute><EventsPage /></ProtectedRoute>} />
             <Route path="/events/:eventId" element={<ProtectedRoute><EventDetailPage /></ProtectedRoute>} />
             <Route path="/line_items" element={<ProtectedRoute><LineItemsPage /></ProtectedRoute>} />
+            <Route path="/line_items/:lineItemId" element={<ProtectedRoute><LineItemDetailPage /></ProtectedRoute>} />
             <Route path="/connected_accounts" element={<ProtectedRoute><ConnectedAccountsPage stripePromise={stripePromise} /></ProtectedRoute>} />
             <Route path="/graphs" element={<ProtectedRoute><GraphsPage /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
