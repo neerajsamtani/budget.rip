@@ -246,8 +246,8 @@ export default function EventDetailPage() {
 
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                     <div className="min-w-0 space-y-3">
-                        <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-                            <H1 className="min-w-0 break-words text-[30px] tracking-normal">{event.name}</H1>
+                        <div className="flex min-w-0 flex-wrap items-center gap-2 sm:gap-3">
+                            <H1 className="min-w-0 w-full break-words text-[30px] tracking-normal sm:w-auto">{event.name}</H1>
                             <StatusBadge status={amountStatus}>{CurrencyFormatter.format(Math.abs(event.amount))}</StatusBadge>
                             <Badge className="max-w-full truncate bg-muted text-foreground border hover:bg-muted">{event.category}</Badge>
                             {event.tags?.map(tag => (

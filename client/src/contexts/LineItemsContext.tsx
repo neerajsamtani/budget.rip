@@ -7,6 +7,8 @@ import { useAuth } from './AuthContext';
 export interface LineItemInterface {
     id: string;
     transaction_id?: string;
+    source?: string;
+    source_label?: string;
     date: number; // Assuming date is a UNIX timestamp in seconds
     payment_method_id?: string;
     payment_method: string;

@@ -242,6 +242,8 @@ class TestLineItemAPI:
         assert data["payment_method_id"] == "pm_cash"
         assert data["notes"] is None
         assert data["is_manual"] is True
+        assert data["source"] == "manual"
+        assert data["source_label"] == "Manual"
 
     def test_manual_line_item_can_be_updated(self, test_client, flask_app, jwt_token, create_line_item_via_manual):
         """Manual line items can be updated"""
@@ -316,10 +318,15 @@ class TestLineItemAPI:
         assert response.get_json()["error"] == "Synced line items cannot be edited"
 
         with flask_app.app_context():
-            from queries import get_line_item_by_id
+            from queries import get_all_line_items, get_line_item_by_id
 
             unchanged = get_line_item_by_id(line_item["id"])
             assert unchanged["description"] == "Synced transaction"
+            assert unchanged["source"] == "venmo_api"
+            assert unchanged["source_label"] == "Venmo"
+            list_item = get_all_line_items()[0]
+            assert list_item["source"] == "venmo_api"
+            assert list_item["source_label"] == "Venmo"
             assert unchanged["payment_method"] == "Cash"
 
     def test_line_item_update_fails_with_invalid_payment_method(

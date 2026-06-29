@@ -11,8 +11,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Body, H1 } from "@/components/ui/typography";
 import { ArrowLeft, Pencil, Trash2 } from "lucide-react";
 import React, { useEffect, useState } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { useDeleteManualTransaction, useLineItem, usePaymentMethods, useUpdateLineItem } from "../hooks/useApi";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
+import { useDeleteManualTransaction, useEvent, useLineItem, usePaymentMethods, useUpdateLineItem } from "../hooks/useApi";
 import { CurrencyFormatter, DateFormatter } from "../utils/formatters";
 import { showErrorToast, showSuccessToast } from "../utils/toast-helpers";
 
@@ -96,6 +96,8 @@ export default function LineItemDetailPage() {
     };
 
     const { data: lineItem, isLoading, error } = useLineItem(lineItemId);
+    const eventId = lineItem?.event_id || "";
+    const { data: assignedEvent, isLoading: isLoadingAssignedEvent, error: assignedEventError } = useEvent(eventId);
     const { data: paymentMethods = [], isLoading: isLoadingPaymentMethods } = usePaymentMethods();
     const updateLineItemMutation = useUpdateLineItem();
     const deleteManualTransactionMutation = useDeleteManualTransaction();
@@ -149,6 +151,7 @@ export default function LineItemDetailPage() {
 
     const amountStatus = lineItem.amount < 0 ? "success" : "warning";
     const isManual = !!lineItem.is_manual;
+    const sourceLabel = lineItem.source_label || (isManual ? "Manual" : "Unknown");
     const isAssigned = !!lineItem.event_id;
     const editTooltip = isManual ? undefined : "Synced line items cannot be edited.";
     const deleteTooltip = !isManual
@@ -219,13 +222,9 @@ export default function LineItemDetailPage() {
 
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                     <div className="min-w-0 space-y-3">
-                        <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-                            <H1 className="min-w-0 break-words text-[30px] tracking-normal">{lineItem.description}</H1>
+                        <div className="flex min-w-0 flex-wrap items-center gap-2 sm:gap-3">
+                            <H1 className="min-w-0 w-full break-words text-[30px] tracking-normal sm:w-auto">{lineItem.description}</H1>
                             <StatusBadge status={amountStatus}>{CurrencyFormatter.format(Math.abs(lineItem.amount))}</StatusBadge>
-                            <Badge className="max-w-full truncate bg-muted text-foreground border hover:bg-muted">{lineItem.payment_method}</Badge>
-                            <Badge className={isManual ? "max-w-full truncate bg-primary text-white" : "max-w-full truncate bg-muted text-foreground border hover:bg-muted"}>
-                                {isManual ? "Manual" : "Synced"}
-                            </Badge>
                             {isAssigned && (
                                 <Badge className="max-w-full truncate bg-muted text-foreground border hover:bg-muted">Assigned to event</Badge>
                             )}
@@ -327,11 +326,26 @@ export default function LineItemDetailPage() {
                             <h2 className="text-xl font-semibold text-foreground">Details</h2>
                             <div className="rounded-xl border bg-white p-4 md:p-5">
                                 <dl className="space-y-4">
-                                    <DetailRow label="Line item ID">{lineItem.id}</DetailRow>
-                                    <DetailRow label="Transaction ID">{lineItem.transaction_id || "-"}</DetailRow>
-                                    <DetailRow label="Payment method ID">{lineItem.payment_method_id || "-"}</DetailRow>
-                                    <DetailRow label="Event ID">{lineItem.event_id || "-"}</DetailRow>
-                                    <DetailRow label="Source">{isManual ? "Manual" : "Synced"}</DetailRow>
+                                    <DetailRow label="Event">
+                                        {!isAssigned ? (
+                                            "Not assigned"
+                                        ) : isLoadingAssignedEvent ? (
+                                            "Loading..."
+                                        ) : assignedEventError || !assignedEvent ? (
+                                            "Assigned event unavailable"
+                                        ) : (
+                                            <Link to={`/events/${assignedEvent.id}`} className="text-primary hover:underline">
+                                                {assignedEvent.name}
+                                            </Link>
+                                        )}
+                                    </DetailRow>
+                                    <DetailRow label="Category">
+                                        {isAssigned && isLoadingAssignedEvent ? "Loading..." : assignedEvent?.category || "-"}
+                                    </DetailRow>
+                                    <DetailRow label="Tags">
+                                        {isAssigned && isLoadingAssignedEvent ? "Loading..." : assignedEvent?.tags?.length ? assignedEvent.tags.join(", ") : "-"}
+                                    </DetailRow>
+                                    <DetailRow label="Source">{sourceLabel}</DetailRow>
                                 </dl>
                             </div>
                         </aside>

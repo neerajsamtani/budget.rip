@@ -29,6 +29,8 @@ const manualLineItem = {
     amount: 4.5,
     notes: 'Morning',
     is_manual: true,
+    source: 'manual',
+    source_label: 'Manual',
 };
 
 const syncedLineItem = {
@@ -36,12 +38,24 @@ const syncedLineItem = {
     id: 'line-synced',
     transaction_id: 'txn-synced',
     is_manual: false,
+    source: 'splitwise_api',
+    source_label: 'Splitwise',
 };
 
 const assignedManualLineItem = {
     ...manualLineItem,
     id: 'line-assigned',
     event_id: 'event-1',
+};
+
+const assignedEvent = {
+    id: 'event-1',
+    name: 'Weekend trip',
+    category: 'Travel',
+    amount: 125,
+    date: 1640995200,
+    line_items: ['line-assigned'],
+    tags: ['friends', 'hotel'],
 };
 
 const paymentMethods = [
@@ -70,10 +84,16 @@ function renderLineItemDetail(initialEntry = '/line_items/line-1?paymentMethod=C
     );
 }
 
-function mockApi(lineItem = manualLineItem) {
+function mockApi(lineItem = manualLineItem, eventResponse: typeof assignedEvent | Error = assignedEvent) {
     mockAxiosInstance.get.mockImplementation((url: string) => {
         if (url.startsWith('api/line_items/')) {
             return Promise.resolve({ data: lineItem });
+        }
+        if (url === 'api/events/event-1') {
+            if (eventResponse instanceof Error) {
+                return Promise.reject(eventResponse);
+            }
+            return Promise.resolve({ data: eventResponse });
         }
         if (url === 'api/payment_methods') {
             return Promise.resolve({ data: { data: paymentMethods } });
@@ -96,10 +116,15 @@ describe('LineItemDetailPage', () => {
         await waitFor(() => expect(screen.getByRole('heading', { name: 'Coffee' })).toBeInTheDocument());
 
         expect(mockAxiosInstance.get).toHaveBeenCalledWith('api/line_items/line-1');
-        expect(screen.getByText('txn-1')).toBeInTheDocument();
-        expect(screen.getByText('pm_cash')).toBeInTheDocument();
+        expect(mockAxiosInstance.get).not.toHaveBeenCalledWith('api/events/event-1');
+        expect(screen.queryByText('Line item ID')).not.toBeInTheDocument();
+        expect(screen.queryByText('Transaction ID')).not.toBeInTheDocument();
+        expect(screen.queryByText('Payment method ID')).not.toBeInTheDocument();
+        expect(screen.queryByText('Event ID')).not.toBeInTheDocument();
         expect(screen.getAllByText('Cash').length).toBeGreaterThan(0);
         expect(screen.getByText('Morning')).toBeInTheDocument();
+        expect(screen.getByText('Not assigned')).toBeInTheDocument();
+        expect(screen.getByText('Manual')).toBeInTheDocument();
     });
 
     it('updates a manual line item and stays on the detail route', async () => {
@@ -143,6 +168,25 @@ describe('LineItemDetailPage', () => {
 
         await userEvent.hover(screen.getByRole('button', { name: /Delete/ }).parentElement as HTMLElement);
         expect(await screen.findAllByText('Synced line items cannot be deleted.')).not.toHaveLength(0);
+        expect(screen.getByText('Splitwise')).toBeInTheDocument();
+    });
+
+    it.each([
+        ['venmo_api', 'Venmo'],
+        ['stripe_api', 'Stripe'],
+        ['unexpected_source', 'Unknown'],
+    ])('renders %s source as %s', async (source, sourceLabel) => {
+        mockApi({
+            ...syncedLineItem,
+            id: `line-${source}`,
+            source,
+            source_label: sourceLabel,
+        });
+        renderLineItemDetail(`/line_items/line-${source}`);
+
+        await waitFor(() => expect(screen.getByRole('heading', { name: 'Coffee' })).toBeInTheDocument());
+
+        expect(screen.getByText(sourceLabel)).toBeInTheDocument();
     });
 
     it('disables assigned manual line item delete with tooltip copy', async () => {
@@ -154,6 +198,26 @@ describe('LineItemDetailPage', () => {
 
         await userEvent.hover(screen.getByRole('button', { name: /Delete/ }).parentElement as HTMLElement);
         expect(await screen.findAllByText('Remove this line item from its event before deleting it.')).not.toHaveLength(0);
+    });
+
+    it('fetches and renders assigned event details', async () => {
+        mockApi(assignedManualLineItem);
+        renderLineItemDetail('/line_items/line-assigned');
+
+        await waitFor(() => expect(mockAxiosInstance.get).toHaveBeenCalledWith('api/events/event-1'));
+
+        expect(screen.getByRole('link', { name: 'Weekend trip' })).toHaveAttribute('href', '/events/event-1');
+        expect(screen.getByText('Travel')).toBeInTheDocument();
+        expect(screen.getByText('friends, hotel')).toBeInTheDocument();
+    });
+
+    it('shows a fallback when assigned event details cannot be loaded', async () => {
+        mockApi(assignedManualLineItem, new Error('Event unavailable'));
+        renderLineItemDetail('/line_items/line-assigned');
+
+        await waitFor(() => expect(screen.getByText('Assigned event unavailable')).toBeInTheDocument());
+
+        expect(screen.getAllByText('-').length).toBeGreaterThanOrEqual(2);
     });
 
     it('falls back to line item list filters when there is no route history', async () => {
