@@ -1,11 +1,13 @@
 import json
 import logging
+from datetime import UTC, datetime
+from decimal import Decimal, InvalidOperation
 from typing import Any, Dict, List, Optional
 
 from flask import Blueprint, Response, jsonify, request
 from flask_jwt_extended import jwt_required
 
-from helpers import sort_by_date_description, str_to_bool
+from helpers import html_date_to_posix, sort_by_date_description, str_to_bool
 from queries import get_all_line_items, get_line_item_by_id
 
 logger = logging.getLogger(__name__)
@@ -120,3 +122,78 @@ def get_line_item_api(line_item_id: str) -> tuple[Response, int]:
         return jsonify({"error": "Line item not found"}), 404
     logger.info(f"Retrieved line item: {line_item_id}")
     return jsonify(line_item), 200
+
+
+@line_items_blueprint.route("/api/line_items/<line_item_id>", methods=["PUT"])
+@jwt_required()
+def update_line_item_api(line_item_id: str) -> tuple[Response, int]:
+    """
+    Update a manual line item.
+
+    Synced API-backed line items are intentionally read-only so refreshes from
+    the source system remain the authority for their normalized fields.
+    """
+    from models.database import SessionLocal
+    from models.sql_models import LineItem as SQLLineItem, PaymentMethod
+
+    data: Dict[str, Any] = request.get_json() or {}
+    required_fields = ["date", "responsible_party", "description", "amount", "payment_method_id"]
+    missing_fields = [field for field in required_fields if field not in data]
+    if missing_fields:
+        return jsonify({"error": f"Missing required fields: {', '.join(missing_fields)}"}), 400
+
+    try:
+        posix_date = html_date_to_posix(data["date"])
+        transaction_date = datetime.fromtimestamp(posix_date, UTC)
+    except Exception:
+        return jsonify({"error": "Invalid date"}), 400
+
+    try:
+        amount = Decimal(str(data["amount"]))
+    except (InvalidOperation, TypeError, ValueError):
+        return jsonify({"error": "Invalid amount"}), 400
+
+    description = str(data["description"]).strip()
+    if not description:
+        return jsonify({"error": "Description is required"}), 400
+
+    responsible_party = str(data.get("responsible_party") or "").strip()
+    notes = data.get("notes")
+    notes = None if notes is None else str(notes)
+
+    with SessionLocal.begin() as db:
+        line_item = (
+            db.query(SQLLineItem)
+            .filter(SQLLineItem.id == line_item_id)
+            .first()
+        )
+        if line_item is None:
+            return jsonify({"error": "Line item not found"}), 404
+
+        if not line_item.transaction or line_item.transaction.source != "manual":
+            return jsonify({"error": "Synced line items cannot be edited"}), 400
+
+        payment_method = db.query(PaymentMethod).filter(PaymentMethod.id == data["payment_method_id"]).first()
+        if not payment_method:
+            return jsonify({"error": f"Payment method not found: {data['payment_method_id']}"}), 400
+
+        line_item.date = transaction_date
+        line_item.amount = amount
+        line_item.description = description
+        line_item.payment_method_id = data["payment_method_id"]
+        line_item.responsible_party = responsible_party
+        line_item.notes = notes
+
+        line_item.transaction.transaction_date = transaction_date
+        line_item.transaction.source_data = {
+            **(line_item.transaction.source_data or {}),
+            "date": posix_date,
+            "person": responsible_party,
+            "description": description,
+            "amount": float(amount),
+            "payment_method_id": data["payment_method_id"],
+        }
+
+    updated_line_item = get_line_item_by_id(line_item_id)
+    logger.info(f"Updated line item: {line_item_id}")
+    return jsonify(updated_line_item), 200

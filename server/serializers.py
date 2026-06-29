@@ -5,6 +5,16 @@ from typing import Any, Dict, Optional
 from models.sql_models import Event, LineItem, User
 
 
+def serialize_transaction_source(source: Optional[str]) -> str:
+    labels = {
+        "manual": "Manual",
+        "venmo_api": "Venmo",
+        "splitwise_api": "Splitwise",
+        "stripe_api": "Stripe",
+    }
+    return labels.get(source or "", "Unknown")
+
+
 def serialize_datetime(dt: Optional[datetime]) -> float:
     """Treats naive datetimes from SQLite as UTC to ensure consistent timestamp conversion"""
     if not dt:
@@ -19,11 +29,16 @@ def serialize_datetime(dt: Optional[datetime]) -> float:
 def serialize_line_item(li: LineItem) -> Dict[str, Any]:
     """Convert LineItem ORM to dict"""
     # Determine if this is a manual transaction based on the source
-    is_manual = li.transaction.source == "manual" if li.transaction else False
+    transaction_source = li.transaction.source if li.transaction else None
+    is_manual = transaction_source == "manual"
 
     data = {
         "id": li.id,
+        "transaction_id": li.transaction_id,
+        "source": transaction_source or "unknown",
+        "source_label": serialize_transaction_source(transaction_source),
         "date": serialize_datetime(li.date),
+        "payment_method_id": li.payment_method_id,
         "payment_method": li.payment_method.name if li.payment_method else "Unknown",
         "description": li.description or "",
         "amount": float(li.amount or 0.0),

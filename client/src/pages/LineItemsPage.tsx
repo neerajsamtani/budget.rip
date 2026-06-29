@@ -1,6 +1,7 @@
 import { Spinner } from "@/components/ui/spinner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import React, { useState } from "react";
+import React from "react";
+import { useSearchParams } from "react-router-dom";
 import LineItem, { LineItemCard } from "../components/LineItem";
 import PaymentMethodFilter from "../components/PaymentMethodFilter";
 import { PageContainer, PageHeader } from "../components/ui/layout";
@@ -8,7 +9,17 @@ import { Body, H1 } from "../components/ui/typography";
 import { useLineItems } from "../hooks/useApi";
 
 export default function LineItemsPage() {
-    const [paymentMethod, setPaymentMethod] = useState("All")
+    const [searchParams, setSearchParams] = useSearchParams();
+    const paymentMethod = searchParams.get("paymentMethod") || "All";
+    const setPaymentMethod = (value: string) => {
+        const nextSearchParams = new URLSearchParams(searchParams);
+        if (value === "All") {
+            nextSearchParams.delete("paymentMethod");
+        } else {
+            nextSearchParams.set("paymentMethod", value);
+        }
+        setSearchParams(nextSearchParams, { replace: true });
+    };
 
     const { data: lineItems = [], isLoading, isFetching, error } = useLineItems({ paymentMethod })
 
@@ -51,6 +62,7 @@ export default function LineItemsPage() {
                                     isChecked={false}
                                     handleToggle={() => { }}
                                     amountStatus={lineItem.amount < 0 ? 'success' : 'warning'}
+                                    detailPath={`/line_items/${lineItem.id}${searchParams.toString() ? `?${searchParams.toString()}` : ""}`}
                                 />
                             ))
                         ) : (
@@ -88,7 +100,11 @@ export default function LineItemsPage() {
                                 </TableRow>
                             ) : lineItems.length > 0 ? (
                                 lineItems.map(lineItem => (
-                                    <LineItem key={lineItem.id} lineItem={lineItem} />
+                                    <LineItem
+                                        key={lineItem.id}
+                                        lineItem={lineItem}
+                                        detailPath={`/line_items/${lineItem.id}${searchParams.toString() ? `?${searchParams.toString()}` : ""}`}
+                                    />
                                 ))
                             ) : (
                                 <TableRow>

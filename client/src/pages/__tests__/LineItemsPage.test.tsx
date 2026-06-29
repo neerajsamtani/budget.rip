@@ -97,6 +97,7 @@ const mockLineItems = [
 describe('LineItemsPage', () => {
     beforeEach(() => {
         jest.clearAllMocks();
+        window.history.pushState({}, '', '/line_items');
         // Set up default environment variable
         process.env.VITE_API_ENDPOINT = 'http://localhost:5000/';
         // Default successful API response
@@ -256,6 +257,35 @@ describe('LineItemsPage', () => {
     });
 
     describe('Payment Method Filter', () => {
+        it('payment method filter is initialized from query params', async () => {
+            window.history.pushState({}, '', '/line_items?paymentMethod=cash');
+
+            render(<LineItemsPage />);
+
+            await waitFor(() => {
+                expect(screen.getByTestId('payment-method-select')).toHaveValue('cash');
+                expect(mockAxiosInstance.get).toHaveBeenCalledWith(
+                    'api/line_items',
+                    {
+                        params: {
+                            payment_method: 'cash'
+                        }
+                    }
+                );
+            });
+        });
+
+        it('payment method changes update query params', async () => {
+            render(<LineItemsPage />);
+
+            const select = screen.getByTestId('payment-method-select');
+            await userEvent.selectOptions(select, 'cash');
+
+            await waitFor(() => {
+                expect(window.location.search).toContain('paymentMethod=cash');
+            });
+        });
+
         it('changing payment method filter is allowed', async () => {
             render(<LineItemsPage />);
 
