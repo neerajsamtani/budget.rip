@@ -1,5 +1,6 @@
 import { UserPenIcon } from "lucide-react";
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import { LineItemInterface } from "../contexts/LineItemsContext";
 import { CurrencyFormatter, DateFormatter } from "../utils/formatters";
 import { Checkbox } from "./ui/checkbox";
@@ -12,6 +13,7 @@ interface LineItemProps {
     showCheckBox?: boolean;
     isChecked?: boolean;
     onToggle?: (lineItemId: string) => void;
+    detailPath?: string;
 }
 
 interface LineItemDisplayProps extends LineItemProps {
@@ -20,13 +22,15 @@ interface LineItemDisplayProps extends LineItemProps {
     amountStatus: 'success' | 'warning';
 }
 
-function LineItemCard({ lineItem, showCheckBox, isChecked, handleToggle, amountStatus }: LineItemDisplayProps) {
+function LineItemCard({ lineItem, showCheckBox, isChecked, handleToggle, amountStatus, detailPath }: LineItemDisplayProps) {
     const readableDate = DateFormatter.format(lineItem.date * 1000);
+    const navigate = useNavigate();
+    const handleCardClick = detailPath ? () => navigate(detailPath) : showCheckBox ? handleToggle : undefined;
 
     return (
         <div
-            className={`p-4 border-b last:border-b-0 ${isChecked ? 'bg-primary-light' : ''}`}
-            onClick={showCheckBox ? handleToggle : undefined}
+            className={`p-4 border-b last:border-b-0 ${isChecked ? 'bg-primary-light' : ''} ${detailPath ? 'cursor-pointer hover:bg-gray-50 transition-colors' : ''}`}
+            onClick={handleCardClick}
         >
             <div className="flex items-start gap-3">
                 {showCheckBox && (
@@ -71,13 +75,28 @@ function LineItemCard({ lineItem, showCheckBox, isChecked, handleToggle, amountS
     );
 }
 
-function LineItemRow({ lineItem, showCheckBox, isChecked, handleToggle, amountStatus }: LineItemDisplayProps) {
+function LineItemRow({ lineItem, showCheckBox, isChecked, handleToggle, amountStatus, detailPath }: LineItemDisplayProps) {
     const readableDate = DateFormatter.format(lineItem.date * 1000);
+    const navigate = useNavigate();
+    const handleRowNavigation = () => {
+        if (detailPath) navigate(detailPath);
+    };
 
     return (
-        <TableRow data-state={isChecked ? 'selected' : undefined}>
+        <TableRow
+            data-state={isChecked ? 'selected' : undefined}
+            className={detailPath ? "cursor-pointer" : undefined}
+            onClick={detailPath ? handleRowNavigation : undefined}
+            tabIndex={detailPath ? 0 : undefined}
+            onKeyDown={detailPath ? (event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    handleRowNavigation();
+                }
+            } : undefined}
+        >
             {showCheckBox && (
-                <TableCell className="w-12">
+                <TableCell className="w-12" onClick={(event) => event.stopPropagation()}>
                     <Checkbox
                         checked={isChecked}
                         onCheckedChange={handleToggle}
@@ -123,10 +142,10 @@ function LineItemRow({ lineItem, showCheckBox, isChecked, handleToggle, amountSt
     );
 }
 
-const LineItem = React.memo(function LineItem({ lineItem, showCheckBox, isChecked = false, onToggle }: LineItemProps) {
+const LineItem = React.memo(function LineItem({ lineItem, showCheckBox, isChecked = false, onToggle, detailPath }: LineItemProps) {
     const amountStatus: 'success' | 'warning' = lineItem.amount < 0 ? 'success' : 'warning';
     const handleToggle = onToggle ? () => onToggle(lineItem.id) : () => {};
-    const props = { lineItem, showCheckBox, isChecked, handleToggle, amountStatus };
+    const props = { lineItem, showCheckBox, isChecked, handleToggle, amountStatus, detailPath };
     return <LineItemRow {...props} />;
 });
 

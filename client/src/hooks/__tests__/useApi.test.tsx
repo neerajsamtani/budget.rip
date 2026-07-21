@@ -8,6 +8,7 @@ jest.mock('../../utils/axiosInstance', () => ({
     default: {
         get: jest.fn(),
         post: jest.fn(),
+        put: jest.fn(),
         delete: jest.fn(),
     },
 }));
@@ -16,6 +17,7 @@ jest.mock('../../utils/axiosInstance', () => ({
 import axiosInstance from '../../utils/axiosInstance';
 const mockGet = axiosInstance.get as jest.Mock;
 const mockPost = axiosInstance.post as jest.Mock;
+const mockPut = axiosInstance.put as jest.Mock;
 const mockDelete = axiosInstance.delete as jest.Mock;
 
 import {
@@ -24,7 +26,10 @@ import {
     useCreateManualTransaction,
     useCreateSplitwiseExpense,
     useDeleteEvent,
+    useDeleteManualTransaction,
+    useEvent,
     useEventLineItems,
+    useLineItem,
     useEvents,
     useLineItems,
     useLogin,
@@ -33,6 +38,7 @@ import {
     usePaymentMethods,
     useSplitwiseCurrentUser,
     useSplitwiseFriends,
+    useUpdateLineItem,
 } from '../useApi';
 
 const createTestQueryClient = () => new QueryClient({
@@ -56,11 +62,13 @@ describe('useApi hooks', () => {
 
     describe('queryKeys', () => {
         it('events query key includes date range parameters', () => {
+            expect(queryKeys.event('event-123')).toEqual(['event', 'event-123']);
             expect(queryKeys.events(1000, 2000)).toEqual(['events', 1000, 2000]);
             expect(queryKeys.events()).toEqual(['events', undefined, undefined]);
         });
 
         it('lineItems query key includes filter parameters', () => {
+            expect(queryKeys.lineItem('line-123')).toEqual(['lineItem', 'line-123']);
             expect(queryKeys.lineItems({ onlyLineItemsToReview: true })).toEqual(['lineItems', { onlyLineItemsToReview: true }]);
             expect(queryKeys.lineItems({ paymentMethod: 'cash' })).toEqual(['lineItems', { paymentMethod: 'cash' }]);
             expect(queryKeys.lineItems()).toEqual(['lineItems', undefined]);
@@ -114,6 +122,50 @@ describe('useApi hooks', () => {
 
             await waitFor(() => expect(result.current.isError).toBe(true));
             expect(result.current.error).toBeInstanceOf(Error);
+        });
+    });
+
+    describe('useEvent', () => {
+        it('fetches a specific event', async () => {
+            const mockEvent = { id: 'event-123', name: 'Dinner', amount: 42, date: 1640995200, line_items: [] };
+            mockGet.mockResolvedValue({ data: mockEvent });
+
+            const { result } = renderHook(() => useEvent('event-123'), {
+                wrapper: createWrapper(),
+            });
+
+            await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+            expect(mockGet).toHaveBeenCalledWith('api/events/event-123');
+            expect(result.current.data).toEqual(mockEvent);
+        });
+
+        it('does not fetch when eventId is empty', () => {
+            renderHook(() => useEvent(''), { wrapper: createWrapper() });
+
+            expect(mockGet).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('useLineItem', () => {
+        it('fetches a specific line item', async () => {
+            const mockLineItem = { id: 'line-123', description: 'Coffee', amount: 4.5 };
+            mockGet.mockResolvedValue({ data: mockLineItem });
+
+            const { result } = renderHook(() => useLineItem('line-123'), {
+                wrapper: createWrapper(),
+            });
+
+            await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+            expect(mockGet).toHaveBeenCalledWith('api/line_items/line-123');
+            expect(result.current.data).toEqual(mockLineItem);
+        });
+
+        it('does not fetch when lineItemId is empty', () => {
+            renderHook(() => useLineItem(''), { wrapper: createWrapper() });
+
+            expect(mockGet).not.toHaveBeenCalled();
         });
     });
 
@@ -365,6 +417,65 @@ describe('useApi hooks', () => {
         });
     });
 
+    describe('useUpdateLineItem', () => {
+        it('updates a line item and invalidates related queries', async () => {
+            const updatedLineItem = { id: 'line-123', description: 'Coffee', amount: 4.5 };
+            mockPut.mockResolvedValue({ data: updatedLineItem });
+
+            const queryClient = createTestQueryClient();
+            const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
+
+            const wrapper = ({ children }: { children: React.ReactNode }) => (
+                <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+            );
+
+            const { result } = renderHook(() => useUpdateLineItem(), { wrapper });
+
+            await act(async () => {
+                await result.current.mutateAsync({
+                    lineItemId: 'line-123',
+                    date: '2024-01-15',
+                    responsible_party: 'Cafe',
+                    description: 'Coffee',
+                    amount: 4.5,
+                    payment_method_id: 'pm_cash',
+                    notes: 'Morning',
+                });
+            });
+
+            expect(mockPut).toHaveBeenCalledWith('api/line_items/line-123', {
+                date: '2024-01-15',
+                responsible_party: 'Cafe',
+                description: 'Coffee',
+                amount: 4.5,
+                payment_method_id: 'pm_cash',
+                notes: 'Morning',
+            });
+            expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['lineItem', 'line-123'] });
+            expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['lineItems'] });
+            expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['eventLineItems'] });
+            expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['events'], refetchType: 'none' });
+            expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['monthlyBreakdown'], refetchType: 'none' });
+        });
+
+        it('surfaces update errors for synced line items', async () => {
+            mockPut.mockRejectedValue(new Error('Synced line items cannot be edited'));
+
+            const { result } = renderHook(() => useUpdateLineItem(), { wrapper: createWrapper() });
+
+            await expect(
+                result.current.mutateAsync({
+                    lineItemId: 'line-123',
+                    date: '2024-01-15',
+                    responsible_party: 'Cafe',
+                    description: 'Coffee',
+                    amount: 4.5,
+                    payment_method_id: 'pm_cash',
+                })
+            ).rejects.toThrow('Synced line items cannot be edited');
+        });
+    });
+
     describe('useCreateSplitwiseExpense', () => {
         it('creates a Splitwise expense and starts refreshing Splitwise data', async () => {
             let finishRefresh: () => void = () => {};
@@ -432,6 +543,30 @@ describe('useApi hooks', () => {
             expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['lineItems'], refetchType: 'none' });
             expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['monthlyBreakdown'], refetchType: 'none' });
             expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['tags'], refetchType: 'none' });
+        });
+    });
+
+    describe('useDeleteManualTransaction', () => {
+        it('deletes a manual transaction and invalidates line item detail/list queries', async () => {
+            mockDelete.mockResolvedValue({});
+
+            const queryClient = createTestQueryClient();
+            const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
+
+            const wrapper = ({ children }: { children: React.ReactNode }) => (
+                <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+            );
+
+            const { result } = renderHook(() => useDeleteManualTransaction(), { wrapper });
+
+            await act(async () => {
+                await result.current.mutateAsync('txn-to-delete');
+            });
+
+            expect(mockDelete).toHaveBeenCalledWith('api/manual_transaction/txn-to-delete');
+            expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['lineItem'] });
+            expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['lineItems'], refetchType: 'none' });
+            expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['eventLineItems'] });
         });
     });
 

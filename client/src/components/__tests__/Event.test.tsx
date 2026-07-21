@@ -1,7 +1,6 @@
 import { act } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import React from 'react';
-import { mockAxiosInstance, render, screen, waitFor } from '../../utils/test-utils';
+import { mockAxiosInstance, render, screen } from '../../utils/test-utils';
 import Event, { EventInterface } from '../Event';
 
 // Mock sonner toast
@@ -14,13 +13,6 @@ jest.mock('sonner', () => {
             warning: jest.fn(),
             info: jest.fn(),
         }),
-    };
-});
-
-// Mock EventDetailsModal component
-jest.mock('../EventDetailsModal', () => {
-    return function MockEventDetailsModal({ show }: { show: boolean }) {
-        return show ? <div data-testid="event-details-modal">Event Details Modal</div> : null;
     };
 });
 
@@ -58,6 +50,7 @@ const mockLineItems = [
 describe('Event', () => {
     beforeEach(() => {
         jest.clearAllMocks();
+        window.history.pushState({}, '', '/events');
         mockAxiosInstance.get.mockResolvedValue({ data: { data: mockLineItems } });
     });
 
@@ -65,7 +58,7 @@ describe('Event', () => {
         it('event data is displayed correctly', async () => {
             await act(async () => {
                 render(
-                    <table><tbody><tr><Event event={mockEvent} /></tr></tbody></table>
+                    <table><tbody><Event event={mockEvent} /></tbody></table>
                 );
             });
 
@@ -78,7 +71,7 @@ describe('Event', () => {
         it('tags are displayed when present', async () => {
             await act(async () => {
                 render(
-                    <table><tbody><tr><Event event={mockEvent} /></tr></tbody></table>
+                    <table><tbody><Event event={mockEvent} /></tbody></table>
                 );
             });
 
@@ -90,7 +83,7 @@ describe('Event', () => {
             const eventWithoutTags = { ...mockEvent, tags: undefined };
             await act(async () => {
                 render(
-                    <table><tbody><tr><Event event={eventWithoutTags} /></tr></tbody></table>
+                    <table><tbody><Event event={eventWithoutTags} /></tbody></table>
                 );
             });
 
@@ -102,7 +95,7 @@ describe('Event', () => {
             const eventWithEmptyTags = { ...mockEvent, tags: [] };
             await act(async () => {
                 render(
-                    <table><tbody><tr><Event event={eventWithEmptyTags} /></tr></tbody></table>
+                    <table><tbody><Event event={eventWithEmptyTags} /></tbody></table>
                 );
             });
 
@@ -112,60 +105,36 @@ describe('Event', () => {
     });
 
     describe('User Interactions', () => {
-        it('event details modal opens when Details button is clicked', async () => {
+        it('details link points to the event detail page', async () => {
             await act(async () => {
                 render(
-                    <table><tbody><tr><Event event={mockEvent} /></tr></tbody></table>
+                    <table><tbody><Event event={mockEvent} /></tbody></table>
                 );
             });
 
-            const detailsButton = screen.getByRole('button', { name: /details/i });
-            await act(async () => {
-                await userEvent.click(detailsButton);
-            });
-
-            await waitFor(() => {
-                expect(screen.getByTestId('event-details-modal')).toBeInTheDocument();
-            });
+            expect(screen.getByRole('link', { name: /view details/i })).toHaveAttribute('href', '/events/1');
         });
 
-        it('line items are fetched when Details button is clicked', async () => {
+        it('details link preserves the list query string', async () => {
+            window.history.pushState({}, '', '/events?month=January&tag=fun');
+
             await act(async () => {
                 render(
-                    <table><tbody><tr><Event event={mockEvent} /></tr></tbody></table>
+                    <table><tbody><Event event={mockEvent} /></tbody></table>
                 );
             });
 
-            const detailsButton = screen.getByRole('button', { name: /details/i });
-            await act(async () => {
-                await userEvent.click(detailsButton);
-            });
-
-            await waitFor(() => {
-                expect(mockAxiosInstance.get).toHaveBeenCalledWith(
-                    expect.stringContaining(`api/events/${mockEvent.id}/line_items_for_event`)
-                );
-            });
+            expect(screen.getByRole('link', { name: /view details/i })).toHaveAttribute('href', '/events/1?month=January&tag=fun');
         });
 
-        it('API error is handled gracefully', async () => {
-            mockAxiosInstance.get.mockRejectedValue(new Error('API Error'));
-
+        it('does not fetch line items from the list row', async () => {
             await act(async () => {
                 render(
-                    <table><tbody><tr><Event event={mockEvent} /></tr></tbody></table>
+                    <table><tbody><Event event={mockEvent} /></tbody></table>
                 );
             });
 
-            const detailsButton = screen.getByRole('button', { name: /details/i });
-            await act(async () => {
-                await userEvent.click(detailsButton);
-            });
-
-            // TanStack Query handles the error internally
-            await waitFor(() => {
-                expect(mockAxiosInstance.get).toHaveBeenCalled();
-            });
+            expect(mockAxiosInstance.get).not.toHaveBeenCalled();
         });
     });
 
@@ -174,7 +143,7 @@ describe('Event', () => {
             const eventWithDifferentDate = { ...mockEvent, date: 1640995200 }; // Jan 1, 2022
             await act(async () => {
                 render(
-                    <table><tbody><tr><Event event={eventWithDifferentDate} /></tr></tbody></table>
+                    <table><tbody><Event event={eventWithDifferentDate} /></tbody></table>
                 );
             });
 
@@ -183,15 +152,14 @@ describe('Event', () => {
     });
 
     describe('Accessibility', () => {
-        it('button has accessible label', async () => {
+        it('details link has accessible label', async () => {
             await act(async () => {
                 render(
-                    <table><tbody><tr><Event event={mockEvent} /></tr></tbody></table>
+                    <table><tbody><Event event={mockEvent} /></tbody></table>
                 );
             });
 
-            const detailsButton = screen.getByRole('button', { name: /details/i });
-            expect(detailsButton).toBeInTheDocument();
+            expect(screen.getByRole('link', { name: /view details/i })).toBeInTheDocument();
         });
     });
 });

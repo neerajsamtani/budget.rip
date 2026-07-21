@@ -6,6 +6,7 @@ import { CurrencyFormatter } from "@/utils/formatters";
 import { ChevronDown, ChevronUp, Filter } from "lucide-react";
 import { DateTime } from "luxon";
 import React, { useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { NON_SPENDING_CATEGORIES } from "../components/charts/chart-utils";
 import CategoryFilter from "../components/CategoryFilter";
 import Event, { EventCard, EventInterface } from "../components/Event";
@@ -19,13 +20,27 @@ import { useEvents } from "../hooks/useApi";
 
 export default function EventsPage() {
     const now = DateTime.utc()
+    const [searchParams, setSearchParams] = useSearchParams();
 
-    const [category, setCategory] = useState("All")
-    const [month, setMonth] = useState(now.monthLong)
-    const [year, setYear] = useState(String(now.year))
+    const defaultMonth = now.monthLong;
+    const defaultYear = String(now.year);
+    const category = searchParams.get("category") || "All";
+    const month = searchParams.get("month") || defaultMonth;
+    const year = searchParams.get("year") || defaultYear;
     const years = Array.from({ length: now.year - 2021 }, (_, i) => String(2022 + i))
-    const [tagFilter, setTagFilter] = useState<string>('');
+    const tagFilter = searchParams.get("tag") || "";
     const [filtersOpen, setFiltersOpen] = useState(false);
+
+    const updateFilter = (key: string, defaultValue: string) => (value: string | number) => {
+        const nextSearchParams = new URLSearchParams(searchParams);
+        const stringValue = String(value);
+        if (!stringValue || stringValue === defaultValue) {
+            nextSearchParams.delete(key);
+        } else {
+            nextSearchParams.set(key, stringValue);
+        }
+        setSearchParams(nextSearchParams, { replace: true });
+    };
 
     // Calculate time range for API query
     let startTime, endTime;
@@ -121,10 +136,10 @@ export default function EventsPage() {
                 {/* Filters - collapsible on mobile, always visible on desktop */}
                 <div className={`space-y-4 ${filtersOpen ? 'block' : 'hidden'} md:block`}>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-                        <MonthFilter month={month} setMonth={setMonth} />
-                        <YearFilter years={years} year={year} setYear={setYear} />
-                        <CategoryFilter category={category} setCategory={setCategory} />
-                        <TagsFilter tagFilter={tagFilter} setTagFilter={setTagFilter} />
+                        <MonthFilter month={month} setMonth={updateFilter("month", defaultMonth)} />
+                        <YearFilter years={years} year={year} setYear={updateFilter("year", defaultYear)} />
+                        <CategoryFilter category={category} setCategory={updateFilter("category", "All")} />
+                        <TagsFilter tagFilter={tagFilter} setTagFilter={updateFilter("tag", "")} />
                     </div>
                     {isFetching && !isLoading && (
                         <div className="flex justify-end">
@@ -210,9 +225,7 @@ export default function EventsPage() {
                                 </TableRow>
                             ) : filteredEvents.length > 0 ? (
                                 filteredEvents.map(event => (
-                                    <TableRow key={event.id}>
-                                        <Event event={event} />
-                                    </TableRow>
+                                    <Event key={event.id} event={event} />
                                 ))
                             ) : (
                                 <TableRow>

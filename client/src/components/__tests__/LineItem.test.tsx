@@ -1,11 +1,12 @@
 import userEvent from '@testing-library/user-event';
 import React from 'react';
-import { mockLineItem, render, screen } from '../../utils/test-utils';
+import { mockLineItem, render, screen, waitFor } from '../../utils/test-utils';
 import LineItem from '../LineItem';
 
 describe('LineItem', () => {
     beforeEach(() => {
         jest.clearAllMocks();
+        window.history.pushState({}, '', '/');
     });
 
     describe('Rendering', () => {
@@ -150,6 +151,30 @@ describe('LineItem', () => {
             const checkbox = screen.getByRole('checkbox');
             await userEvent.click(checkbox);
             expect(checkbox).toHaveFocus();
+        });
+
+        it('row opens detail path when detailPath is provided', async () => {
+            render(
+                <table><tbody><LineItem lineItem={mockLineItem} detailPath="/line_items/1" /></tbody></table>
+            );
+
+            await userEvent.click(screen.getByText('Test transaction'));
+
+            await waitFor(() => {
+                expect(window.location.pathname).toBe('/line_items/1');
+            });
+        });
+
+        it('checkbox click toggles selection without opening detail path', async () => {
+            const mockToggle = jest.fn();
+            render(
+                <table><tbody><LineItem lineItem={mockLineItem} showCheckBox={true} onToggle={mockToggle} detailPath="/line_items/1" /></tbody></table>
+            );
+
+            await userEvent.click(screen.getByRole('checkbox'));
+
+            expect(mockToggle).toHaveBeenCalledWith(mockLineItem.id);
+            expect(window.location.pathname).toBe('/');
         });
     });
 

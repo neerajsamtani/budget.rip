@@ -188,6 +188,7 @@ describe('EventsPage', () => {
 
     beforeEach(() => {
         jest.clearAllMocks();
+        window.history.pushState({}, '', '/');
         // Set up default environment variable
         process.env.VITE_API_ENDPOINT = 'http://localhost:5000/';
         // Default successful API response
@@ -548,6 +549,33 @@ describe('EventsPage', () => {
                 expect(params.start_time).toBeDefined();
                 expect(params.end_time).toBeDefined();
                 expect(params.end_time).toBeGreaterThan(params.start_time);
+            });
+        });
+    });
+
+    describe('URL Filters', () => {
+        it('filters are initialized from query params', async () => {
+            window.history.pushState({}, '', '/events?month=All&year=2023&category=Dining&tag=important');
+
+            render(<EventsPage />);
+
+            await waitFor(() => {
+                expect(screen.getByTestId('month-filter')).toHaveValue('All');
+                expect(screen.getByTestId('year-filter')).toHaveValue('2023');
+                expect(screen.getByTestId('category-filter')).toHaveValue('Dining');
+                expect(screen.getByTestId('tags-filter')).toHaveValue('important');
+            });
+        });
+
+        it('filter changes update query params', async () => {
+            render(<EventsPage />);
+
+            fireEvent.change(screen.getByTestId('category-filter'), { target: { value: 'Dining' } });
+            fireEvent.change(screen.getByTestId('tags-filter'), { target: { value: 'important' } });
+
+            await waitFor(() => {
+                expect(window.location.search).toContain('category=Dining');
+                expect(window.location.search).toContain('tag=important');
             });
         });
     });

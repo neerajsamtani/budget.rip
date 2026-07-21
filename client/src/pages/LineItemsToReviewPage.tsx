@@ -13,6 +13,7 @@ import { LineItemInterface, useLineItems, useLineItemsDispatch } from "../contex
 
 const MobileLineItemCard = React.memo(function MobileLineItemCard({ lineItem, isChecked, onToggle }: { lineItem: LineItemInterface; isChecked: boolean; onToggle: (lineItemId: string) => void }) {
     const amountStatus: 'success' | 'warning' = lineItem.amount < 0 ? 'success' : 'warning';
+    const detailPath = `/line_items/${lineItem.id}?returnTo=${encodeURIComponent("/")}`;
 
     return (
         <LineItemCard
@@ -21,6 +22,7 @@ const MobileLineItemCard = React.memo(function MobileLineItemCard({ lineItem, is
             isChecked={isChecked}
             handleToggle={() => onToggle(lineItem.id)}
             amountStatus={amountStatus}
+            detailPath={detailPath}
         />
     );
 });
@@ -114,6 +116,7 @@ export default function LineItemsToReviewPage() {
                                         showCheckBox={true}
                                         isChecked={!!lineItem.isSelected}
                                         onToggle={handleToggle}
+                                        detailPath={`/line_items/${lineItem.id}?returnTo=${encodeURIComponent("/")}`}
                                     />
                                 )
                             ) : (

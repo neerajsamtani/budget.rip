@@ -3,7 +3,7 @@ from typing import Any, Dict, List, Optional
 from sqlalchemy import func
 from sqlalchemy.orm import joinedload, subqueryload
 
-from serializers import serialize_datetime, serialize_event, serialize_line_item, serialize_user
+from serializers import serialize_datetime, serialize_event, serialize_line_item, serialize_transaction_source, serialize_user
 
 
 def get_user_by_email(email: str) -> Optional[Dict[str, Any]]:
@@ -40,7 +40,9 @@ def get_all_line_items(
         query = (
             db.query(
                 LineItem.id,
+                LineItem.transaction_id,
                 LineItem.date,
+                LineItem.payment_method_id,
                 PaymentMethod.name.label("payment_method"),
                 LineItem.description,
                 LineItem.amount,
@@ -65,7 +67,9 @@ def get_all_line_items(
 
         query = query.group_by(
             LineItem.id,
+            LineItem.transaction_id,
             LineItem.date,
+            LineItem.payment_method_id,
             PaymentMethod.name,
             LineItem.description,
             LineItem.amount,
@@ -83,8 +87,12 @@ def get_all_line_items(
         return [
             {
                 "id": row.id,
+                "transaction_id": row.transaction_id,
                 "date": serialize_datetime(row.date),
+                "payment_method_id": row.payment_method_id,
                 "payment_method": row.payment_method or "Unknown",
+                "source": row.transaction_source or "unknown",
+                "source_label": serialize_transaction_source(row.transaction_source),
                 "description": row.description or "",
                 "amount": float(row.amount or 0.0),
                 "responsible_party": row.responsible_party,
