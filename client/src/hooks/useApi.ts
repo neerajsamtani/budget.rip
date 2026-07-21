@@ -524,6 +524,40 @@ export interface EventHintSuggestion {
   matched_hint_name: string;
 }
 
+interface AcceptEventSuggestionData {
+  suggestionId: string;
+  name: string;
+}
+
+export function useAcceptEventSuggestion(): UseMutationResult<EventInterface, Error, AcceptEventSuggestionData> {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ suggestionId, name }: AcceptEventSuggestionData) => {
+      const response = await axiosInstance.post(`api/event-suggestions/${suggestionId}/accept`, { name });
+      return response.data as EventInterface;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['events'] });
+      queryClient.invalidateQueries({ queryKey: ['lineItems'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.monthlyBreakdown() });
+    },
+  });
+}
+
+export function useRejectEventSuggestion(): UseMutationResult<void, Error, string> {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (suggestionId: string) => {
+      await axiosInstance.post(`api/event-suggestions/${suggestionId}/reject`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['lineItems'] });
+    },
+  });
+}
+
 export type CategoryOption = components['schemas']['CategoryListResponse.CategoryOut'];
 
 export function useEventHints(): UseQueryResult<EventHint[]> {

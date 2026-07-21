@@ -1,8 +1,11 @@
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { CurrencyFormatter } from "@/utils/formatters";
 import React, { useCallback, useEffect, useState } from "react";
+import { CornerDownRight } from "lucide-react";
 import CreateEventModal from "../components/CreateEventModal";
 import CreateManualTransactionModal from "../components/CreateManualTransactionModal";
 import CreateSplitwiseExpenseModal from "../components/CreateSplitwiseExpenseModal";
@@ -10,6 +13,93 @@ import LineItem, { LineItemCard } from "../components/LineItem";
 import { PageContainer, PageHeader } from "../components/ui/layout";
 import { Body, H1 } from "../components/ui/typography";
 import { LineItemInterface, useLineItems, useLineItemsDispatch } from "../contexts/LineItemsContext";
+import { useAcceptEventSuggestion, useRejectEventSuggestion } from "../hooks/useApi";
+import { showErrorToast, showSuccessToast } from "../utils/toast-helpers";
+
+function EventSuggestionReview({ lineItem, mobile = false }: { lineItem: LineItemInterface; mobile?: boolean }) {
+    const suggestion = lineItem.event_suggestion;
+    const [name, setName] = useState(suggestion?.name ?? "");
+    const acceptSuggestion = useAcceptEventSuggestion();
+    const rejectSuggestion = useRejectEventSuggestion();
+    const lineItemsDispatch = useLineItemsDispatch();
+
+    if (!suggestion) return null;
+
+    const accept = async () => {
+        try {
+            const event = await acceptSuggestion.mutateAsync({ suggestionId: suggestion.id, name: name.trim() });
+            lineItemsDispatch({ type: "remove_line_items", lineItemIds: [lineItem.id] });
+            showSuccessToast(event.name, "Created Event");
+        } catch (error) {
+            showErrorToast(error);
+        }
+    };
+
+    const reject = async () => {
+        try {
+            await rejectSuggestion.mutateAsync(suggestion.id);
+            lineItemsDispatch({ type: "dismiss_event_suggestion", lineItemId: lineItem.id });
+        } catch (error) {
+            showErrorToast(error);
+        }
+    };
+
+    const isPending = acceptSuggestion.isPending || rejectSuggestion.isPending;
+    const content = (
+        <div className="flex items-start gap-3 border-l-2 border-primary/30 pl-3 md:pl-4">
+            <CornerDownRight className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+            <div className="min-w-0 flex-1">
+                <div>
+                    <p className="text-sm font-medium text-foreground">Create an event for this line item</p>
+                    <p className="text-xs text-muted-foreground">
+                        {lineItem.description} · {CurrencyFormatter.format(Math.abs(lineItem.amount))}
+                    </p>
+                </div>
+                <div className={`mt-2 flex ${mobile ? "flex-col" : "items-center"} gap-2`}>
+                    <div className={`flex min-w-0 flex-1 ${mobile ? "flex-col items-start" : "items-center"} gap-2`}>
+                        <Input
+                            aria-label={`Suggested event title for ${lineItem.description}`}
+                            value={name}
+                            onChange={(event) => setName(event.target.value)}
+                            onKeyDown={(event) => {
+                                if (event.key === "Enter" && name.trim() && !isPending) void accept();
+                            }}
+                            className="h-9 bg-white"
+                        />
+                        <Badge className="shrink-0 bg-white text-foreground border hover:bg-white">
+                            Category: {suggestion.category}
+                        </Badge>
+                    </div>
+                    <div className="flex shrink-0 gap-2">
+                        <Button
+                            aria-label={`Create event from ${lineItem.description}`}
+                            size="sm"
+                            onClick={() => void accept()}
+                            disabled={!name.trim() || isPending}
+                        >
+                            {acceptSuggestion.isPending ? <Spinner size="sm" /> : "Create event"}
+                        </Button>
+                        <Button
+                            aria-label={`Dismiss suggestion for ${lineItem.description}`}
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => void reject()}
+                            disabled={isPending}
+                        >
+                            Dismiss
+                        </Button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+
+    return mobile ? content : (
+        <TableRow data-testid={`event-suggestion-${lineItem.id}`} className="bg-primary-light/40 hover:bg-primary-light/40">
+            <TableCell colSpan={6} className="px-3 pt-0 pb-4 md:px-6 md:pt-0">{content}</TableCell>
+        </TableRow>
+    );
+}
 
 const MobileLineItemCard = React.memo(function MobileLineItemCard({ lineItem, isChecked, onToggle }: { lineItem: LineItemInterface; isChecked: boolean; onToggle: (lineItemId: string) => void }) {
     const amountStatus: 'success' | 'warning' = lineItem.amount < 0 ? 'success' : 'warning';
@@ -23,6 +113,7 @@ const MobileLineItemCard = React.memo(function MobileLineItemCard({ lineItem, is
             handleToggle={() => onToggle(lineItem.id)}
             amountStatus={amountStatus}
             detailPath={detailPath}
+            hasAttachedContent={!!lineItem.event_suggestion}
         />
     );
 });
@@ -74,12 +165,21 @@ export default function LineItemsToReviewPage() {
                         </div>
                     ) : lineItems && lineItems.length > 0 ? (
                         lineItems.map(lineItem => (
-                            <MobileLineItemCard
+                            <div
                                 key={lineItem.id}
-                                lineItem={lineItem}
-                                isChecked={!!lineItem.isSelected}
-                                onToggle={handleToggle}
-                            />
+                                className={lineItem.event_suggestion ? "m-2 overflow-hidden rounded-lg border border-primary/20 bg-primary-light/40" : undefined}
+                            >
+                                <MobileLineItemCard
+                                    lineItem={lineItem}
+                                    isChecked={!!lineItem.isSelected}
+                                    onToggle={handleToggle}
+                                />
+                                {lineItem.event_suggestion && (
+                                    <div className="border-t border-primary/15 p-3">
+                                        <EventSuggestionReview key={lineItem.event_suggestion.id} lineItem={lineItem} mobile />
+                                    </div>
+                                )}
+                            </div>
                         ))
                     ) : (
                         <div className="p-4 text-center text-muted-foreground">
@@ -109,16 +209,21 @@ export default function LineItemsToReviewPage() {
                                     </TableCell>
                                 </TableRow>
                             ) : lineItems && lineItems.length > 0 ? (
-                                lineItems.map(lineItem =>
-                                    <LineItem
-                                        key={lineItem.id}
-                                        lineItem={lineItem}
-                                        showCheckBox={true}
-                                        isChecked={!!lineItem.isSelected}
-                                        onToggle={handleToggle}
-                                        detailPath={`/line_items/${lineItem.id}?returnTo=${encodeURIComponent("/")}`}
-                                    />
-                                )
+                                lineItems.map(lineItem => (
+                                    <React.Fragment key={lineItem.id}>
+                                        <LineItem
+                                            lineItem={lineItem}
+                                            showCheckBox={true}
+                                            isChecked={!!lineItem.isSelected}
+                                            onToggle={handleToggle}
+                                            detailPath={`/line_items/${lineItem.id}?returnTo=${encodeURIComponent("/")}`}
+                                            hasAttachedContent={!!lineItem.event_suggestion}
+                                        />
+                                        {lineItem.event_suggestion && (
+                                            <EventSuggestionReview key={lineItem.event_suggestion.id} lineItem={lineItem} />
+                                        )}
+                                    </React.Fragment>
+                                ))
                             ) : (
                                 <TableRow>
                                     <TableCell colSpan={6} className="text-center text-muted-foreground">

@@ -30,6 +30,7 @@ def get_all_line_items(
     limit: Optional[int] = None,
     offset: int = 0,
     event_id: Optional[str] = None,
+    suggestion_user_id: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
     """Get line items from PostgreSQL"""
     from models.database import SessionLocal
@@ -84,7 +85,7 @@ def get_all_line_items(
         if limit is not None:
             query = query.limit(limit)
 
-        return [
+        line_items = [
             {
                 "id": row.id,
                 "transaction_id": row.transaction_id,
@@ -102,6 +103,42 @@ def get_all_line_items(
             }
             for row in query.all()
         ]
+
+        if suggestion_user_id and line_items:
+            from models.sql_models import Category, EventHint, EventSuggestion
+
+            suggestions = (
+                db.query(
+                    EventSuggestion.id,
+                    EventSuggestion.line_item_id,
+                    EventSuggestion.suggested_name,
+                    EventSuggestion.category_id,
+                    Category.name.label("category"),
+                    EventHint.name.label("matched_hint_name"),
+                )
+                .join(Category, EventSuggestion.category_id == Category.id)
+                .outerjoin(EventHint, EventSuggestion.event_hint_id == EventHint.id)
+                .filter(
+                    EventSuggestion.user_id == suggestion_user_id,
+                    EventSuggestion.rejected_at.is_(None),
+                    EventSuggestion.line_item_id.in_([item["id"] for item in line_items]),
+                )
+                .all()
+            )
+            suggestions_by_line_item = {
+                row.line_item_id: {
+                    "id": row.id,
+                    "name": row.suggested_name,
+                    "category_id": row.category_id,
+                    "category": row.category,
+                    "matched_hint_name": row.matched_hint_name,
+                }
+                for row in suggestions
+            }
+            for line_item in line_items:
+                line_item["event_suggestion"] = suggestions_by_line_item.get(line_item["id"])
+
+        return line_items
 
 
 def get_line_item_by_id(id: str) -> Optional[Dict[str, Any]]:

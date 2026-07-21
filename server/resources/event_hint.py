@@ -103,7 +103,7 @@ def create_event_hint() -> tuple[Response, int]:
         # Validate category if provided
         prefill_category_id = data.get("prefill_category_id")
         if prefill_category_id:
-            category = db.query(Category).filter(Category.id == prefill_category_id).first()
+            category = db.query(Category).filter(Category.id == prefill_category_id, Category.user_id == user_id).first()
             if not category:
                 return jsonify({"error": f"Category not found: {prefill_category_id}"}), 400
 
@@ -151,7 +151,7 @@ def update_event_hint(hint_id: str) -> tuple[Response, int]:
         if "prefill_category_id" in data:
             prefill_category_id = data["prefill_category_id"]
             if prefill_category_id:
-                category = db.query(Category).filter(Category.id == prefill_category_id).first()
+                category = db.query(Category).filter(Category.id == prefill_category_id, Category.user_id == user_id).first()
                 if not category:
                     return jsonify({"error": f"Category not found: {prefill_category_id}"}), 400
             hint.prefill_category_id = prefill_category_id

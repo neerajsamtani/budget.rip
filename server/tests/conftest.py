@@ -35,6 +35,7 @@ from resources.auth import auth_blueprint
 from resources.category import categories_blueprint
 from resources.event import events_blueprint
 from resources.event_hint import event_hints_blueprint
+from resources.event_suggestion import event_suggestions_blueprint
 from resources.line_item import line_items_blueprint
 from resources.manual_transaction import manual_transaction_blueprint
 from resources.monthly_breakdown import monthly_breakdown_blueprint
@@ -113,6 +114,7 @@ def flask_app():
     app.register_blueprint(manual_transaction_blueprint)
     app.register_blueprint(categories_blueprint)
     app.register_blueprint(event_hints_blueprint)
+    app.register_blueprint(event_suggestions_blueprint)
     app.register_blueprint(line_items_blueprint)
     app.register_blueprint(events_blueprint)
     app.register_blueprint(monthly_breakdown_blueprint)

@@ -5,7 +5,7 @@ from datetime import UTC, datetime
 from typing import Any, Dict
 
 from models.database import SessionLocal
-from models.sql_models import Category, Event, EventLineItem, EventTag, LineItem, Tag
+from models.sql_models import Category, Event, EventLineItem, EventSuggestion, EventTag, LineItem, Tag
 from utils.id_generator import generate_id
 
 logger = logging.getLogger(__name__)
@@ -35,7 +35,7 @@ def upsert_event_to_postgresql(event_dict: Dict[str, Any], db_session, user_id: 
     if not category_name:
         raise ValueError(f"Event {event_dict.get('id')} has no category - cannot write to PostgreSQL")
 
-    category = db_session.query(Category).filter(Category.name == category_name).first()
+    category = db_session.query(Category).filter(Category.name == category_name, Category.user_id == user_id).first()
     if not category:
         raise ValueError(f"Category '{category_name}' not found in PostgreSQL - cannot write event")
 
@@ -76,6 +76,9 @@ def upsert_event_to_postgresql(event_dict: Dict[str, Any], db_session, user_id: 
     # Create EventLineItem junctions (batch-fetch to avoid N+1)
     line_item_ids = [str(id) for id in event_dict.get("line_items", [])]
     if line_item_ids:
+        db_session.query(EventSuggestion).filter(EventSuggestion.line_item_id.in_(line_item_ids)).delete(
+            synchronize_session=False
+        )
         pg_line_items = db_session.query(LineItem).filter(LineItem.id.in_(line_item_ids)).all()
         found_ids = {li.id for li in pg_line_items}
         for li_id in line_item_ids:

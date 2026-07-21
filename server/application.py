@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 from flask import Response, jsonify, request
 from flask_bcrypt import Bcrypt
 from flask_cors import CORS
-from flask_jwt_extended import JWTManager, jwt_required
+from flask_jwt_extended import JWTManager, get_current_user, jwt_required
 from venmo_api.models.user import User
 from werkzeug.exceptions import HTTPException
 
@@ -37,6 +37,7 @@ from resources.auth import auth_blueprint
 from resources.category import categories_blueprint
 from resources.event import events_blueprint
 from resources.event_hint import event_hints_blueprint
+from resources.event_suggestion import event_suggestions_blueprint
 from resources.line_item import all_line_items, line_items_blueprint
 from resources.manual_transaction import manual_transaction_blueprint
 from resources.monthly_breakdown import monthly_breakdown_blueprint
@@ -53,6 +54,7 @@ from resources.stripe import (
 )
 from resources.tags import tags_blueprint
 from resources.venmo import refresh_venmo, venmo_blueprint, venmo_to_line_items
+from utils.event_suggestions import generate_event_suggestions
 
 # Configure logging to stdout for cloud compatibility
 # Logs are treated as event streams that can be aggregated by cloud platforms
@@ -129,6 +131,7 @@ application.register_blueprint(manual_transaction_blueprint)
 application.register_blueprint(stripe_blueprint)
 application.register_blueprint(tags_blueprint)
 application.register_blueprint(event_hints_blueprint)
+application.register_blueprint(event_suggestions_blueprint)
 application.register_blueprint(categories_blueprint)
 
 # If an environment variable is not found in the .env file,
@@ -178,6 +181,7 @@ def schedule_refresh_api() -> tuple[Response, int]:
     try:
         refresh_all()
         create_consistent_line_items()
+        generate_event_suggestions()
     except Exception as e:
         logger.error("Error refreshing all: " + str(e))
         return jsonify({"error": "Refresh failed"}), 500
@@ -189,7 +193,12 @@ def schedule_refresh_api() -> tuple[Response, int]:
 def refresh_all_api() -> tuple[Response, int]:
     refresh_all()
     create_consistent_line_items()
-    line_items: List[Dict[str, Any]] = all_line_items(only_line_items_to_review=True)
+    user_id = get_current_user()["id"]
+    generate_event_suggestions(user_id)
+    line_items: List[Dict[str, Any]] = all_line_items(
+        only_line_items_to_review=True,
+        suggestion_user_id=user_id,
+    )
     return jsonify({"data": line_items}), 200
 
 
@@ -221,6 +230,8 @@ def refresh_single_account_api() -> tuple[Response, int]:
             splitwise_to_line_items()
         else:
             return jsonify({"error": f"Invalid source: {source}"}), 400
+
+        generate_event_suggestions(get_current_user()["id"])
 
         return jsonify({"message": "success"}), 200
 

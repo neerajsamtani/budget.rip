@@ -14,6 +14,7 @@ interface LineItemProps {
     isChecked?: boolean;
     onToggle?: (lineItemId: string) => void;
     detailPath?: string;
+    hasAttachedContent?: boolean;
 }
 
 interface LineItemDisplayProps extends LineItemProps {
@@ -22,14 +23,14 @@ interface LineItemDisplayProps extends LineItemProps {
     amountStatus: 'success' | 'warning';
 }
 
-function LineItemCard({ lineItem, showCheckBox, isChecked, handleToggle, amountStatus, detailPath }: LineItemDisplayProps) {
+function LineItemCard({ lineItem, showCheckBox, isChecked, handleToggle, amountStatus, detailPath, hasAttachedContent }: LineItemDisplayProps) {
     const readableDate = DateFormatter.format(lineItem.date * 1000);
     const navigate = useNavigate();
     const handleCardClick = detailPath ? () => navigate(detailPath) : showCheckBox ? handleToggle : undefined;
 
     return (
         <div
-            className={`p-4 border-b last:border-b-0 ${isChecked ? 'bg-primary-light' : ''} ${detailPath ? 'cursor-pointer hover:bg-gray-50 transition-colors' : ''}`}
+            className={`p-4 ${hasAttachedContent ? 'bg-primary-light/40' : 'border-b last:border-b-0'} ${isChecked ? 'bg-primary-light' : ''} ${detailPath ? 'cursor-pointer hover:bg-gray-50 transition-colors' : ''}`}
             onClick={handleCardClick}
         >
             <div className="flex items-start gap-3">
@@ -75,7 +76,7 @@ function LineItemCard({ lineItem, showCheckBox, isChecked, handleToggle, amountS
     );
 }
 
-function LineItemRow({ lineItem, showCheckBox, isChecked, handleToggle, amountStatus, detailPath }: LineItemDisplayProps) {
+function LineItemRow({ lineItem, showCheckBox, isChecked, handleToggle, amountStatus, detailPath, hasAttachedContent }: LineItemDisplayProps) {
     const readableDate = DateFormatter.format(lineItem.date * 1000);
     const navigate = useNavigate();
     const handleRowNavigation = () => {
@@ -85,7 +86,7 @@ function LineItemRow({ lineItem, showCheckBox, isChecked, handleToggle, amountSt
     return (
         <TableRow
             data-state={isChecked ? 'selected' : undefined}
-            className={detailPath ? "cursor-pointer" : undefined}
+            className={`${detailPath ? "cursor-pointer" : ""} ${hasAttachedContent ? "border-b-0 bg-primary-light/40 hover:bg-primary-light/50" : ""}`}
             onClick={detailPath ? handleRowNavigation : undefined}
             tabIndex={detailPath ? 0 : undefined}
             onKeyDown={detailPath ? (event) => {
@@ -142,10 +143,10 @@ function LineItemRow({ lineItem, showCheckBox, isChecked, handleToggle, amountSt
     );
 }
 
-const LineItem = React.memo(function LineItem({ lineItem, showCheckBox, isChecked = false, onToggle, detailPath }: LineItemProps) {
+const LineItem = React.memo(function LineItem({ lineItem, showCheckBox, isChecked = false, onToggle, detailPath, hasAttachedContent }: LineItemProps) {
     const amountStatus: 'success' | 'warning' = lineItem.amount < 0 ? 'success' : 'warning';
     const handleToggle = onToggle ? () => onToggle(lineItem.id) : () => {};
-    const props = { lineItem, showCheckBox, isChecked, handleToggle, amountStatus, detailPath };
+    const props = { lineItem, showCheckBox, isChecked, handleToggle, amountStatus, detailPath, hasAttachedContent };
     return <LineItemRow {...props} />;
 });
 
