@@ -8,6 +8,9 @@ from flask import Blueprint, Response, jsonify, request
 from flask_jwt_extended import jwt_required
 
 from helpers import html_date_to_posix, sort_by_date_description, str_to_bool
+from models.database import SessionLocal
+from models.sql_models import LineItem as SQLLineItem
+from models.sql_models import PaymentMethod
 from queries import get_all_line_items, get_line_item_by_id
 
 logger = logging.getLogger(__name__)
@@ -133,9 +136,6 @@ def update_line_item_api(line_item_id: str) -> tuple[Response, int]:
     Synced API-backed line items are intentionally read-only so refreshes from
     the source system remain the authority for their normalized fields.
     """
-    from models.database import SessionLocal
-    from models.sql_models import LineItem as SQLLineItem, PaymentMethod
-
     data: Dict[str, Any] = request.get_json() or {}
     required_fields = ["date", "responsible_party", "description", "amount", "payment_method_id"]
     missing_fields = [field for field in required_fields if field not in data]
@@ -162,11 +162,7 @@ def update_line_item_api(line_item_id: str) -> tuple[Response, int]:
     notes = None if notes is None else str(notes)
 
     with SessionLocal.begin() as db:
-        line_item = (
-            db.query(SQLLineItem)
-            .filter(SQLLineItem.id == line_item_id)
-            .first()
-        )
+        line_item = db.query(SQLLineItem).filter(SQLLineItem.id == line_item_id).first()
         if line_item is None:
             return jsonify({"error": "Line item not found"}), 404
 
