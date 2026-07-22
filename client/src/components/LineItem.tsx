@@ -52,7 +52,7 @@ function LineItemCard({ lineItem, showCheckBox, isChecked, handleToggle, amountS
 
     return (
         <div
-            className={`p-4 ${hasAttachedContent ? 'bg-primary-light/40' : 'border-b last:border-b-0'} ${isChecked ? 'bg-primary-light' : ''}`}
+            className={`p-4 ${hasAttachedContent ? 'bg-muted/30' : 'border-b last:border-b-0'} ${isChecked ? 'bg-primary-light' : ''}`}
         >
             <div className="flex items-start gap-3">
                 {showCheckBox && (
@@ -106,7 +106,7 @@ function LineItemRow({ lineItem, showCheckBox, isChecked, handleToggle, amountSt
     return (
         <TableRow
             data-state={isChecked ? 'selected' : undefined}
-            className={hasAttachedContent ? "border-b-0 bg-primary-light/40 hover:bg-primary-light/50" : undefined}
+            className={hasAttachedContent ? "border-b-0 bg-muted/30 hover:bg-muted/40" : undefined}
         >
             {showCheckBox && (
                 <TableCell className="w-12" onClick={(event) => event.stopPropagation()}>

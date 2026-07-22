@@ -51,9 +51,6 @@ function EventSuggestionReview({ lineItem, mobile = false }: { lineItem: LineIte
             <div className="min-w-0 flex-1">
                 <div>
                     <p className="text-sm font-medium text-foreground">Create an event for this line item</p>
-                    <p className="text-xs text-muted-foreground">
-                        {lineItem.description} · {CurrencyFormatter.format(Math.abs(lineItem.amount))}
-                    </p>
                 </div>
                 <div className={`mt-2 flex ${mobile ? "flex-col" : "items-center"} gap-2`}>
                     <div className={`flex min-w-0 flex-1 ${mobile ? "flex-col items-start" : "items-center"} gap-2`}>
@@ -95,7 +92,7 @@ function EventSuggestionReview({ lineItem, mobile = false }: { lineItem: LineIte
     );
 
     return mobile ? content : (
-        <TableRow data-testid={`event-suggestion-${lineItem.id}`} className="bg-primary-light/40 hover:bg-primary-light/40">
+        <TableRow data-testid={`event-suggestion-${lineItem.id}`} className="bg-muted/30 hover:bg-muted/30">
             <TableCell colSpan={7} className="px-3 pt-0 pb-4 md:px-6 md:pt-0">{content}</TableCell>
         </TableRow>
     );
@@ -177,7 +174,7 @@ export default function LineItemsToReviewPage() {
                         lineItems.map(lineItem => (
                             <div
                                 key={lineItem.id}
-                                className={lineItem.event_suggestion ? "m-2 overflow-hidden rounded-lg border border-primary/20 bg-primary-light/40" : undefined}
+                                className={lineItem.event_suggestion ? "m-2 overflow-hidden rounded-lg border border-primary/20 bg-muted/30" : undefined}
                             >
                                 <MobileLineItemCard
                                     lineItem={lineItem}

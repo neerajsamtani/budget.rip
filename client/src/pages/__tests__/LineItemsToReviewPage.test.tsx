@@ -222,7 +222,6 @@ describe('LineItemsToReviewPage', () => {
             render(<LineItemsToReviewPage />);
 
             expect(screen.getAllByText('Create an event for this line item')).toHaveLength(2);
-            expect(screen.getAllByText('Test transaction 1 · $50.00')).toHaveLength(2);
             expect(screen.getAllByText('Category: Subscription')).toHaveLength(2);
         });
     });
