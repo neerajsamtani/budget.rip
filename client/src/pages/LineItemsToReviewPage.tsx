@@ -96,7 +96,7 @@ function EventSuggestionReview({ lineItem, mobile = false }: { lineItem: LineIte
 
     return mobile ? content : (
         <TableRow data-testid={`event-suggestion-${lineItem.id}`} className="bg-primary-light/40 hover:bg-primary-light/40">
-            <TableCell colSpan={6} className="px-3 pt-0 pb-4 md:px-6 md:pt-0">{content}</TableCell>
+            <TableCell colSpan={7} className="px-3 pt-0 pb-4 md:px-6 md:pt-0">{content}</TableCell>
         </TableRow>
     );
 }
@@ -133,17 +133,27 @@ export default function LineItemsToReviewPage() {
     }, [lineItemsDispatch]);
 
     const handleKeyDown = useCallback((event) => {
-        if (event.key === 'Enter' && selectedLineItems.length > 0 && !eventModalShow && !manualTransactionModalShow) {
+        const target = event.target;
+        const targetElement = target instanceof HTMLElement ? target : null;
+        const isCheckbox = !!targetElement?.closest("[role='checkbox']");
+        const isInteractiveTarget = !isCheckbox
+            && !!targetElement?.closest("button, input, a, [role='menuitem'], [contenteditable='true']");
+
+        if (event.key === 'Enter' && !event.defaultPrevented && !isInteractiveTarget && selectedLineItems.length > 0 && !eventModalShow && !manualTransactionModalShow) {
+            // Radix renders the checkbox as a button. Prevent its native Enter
+            // activation from toggling the selection while opening the modal.
+            if (isCheckbox) event.preventDefault();
             setEventModalShow(true);
         }
     }, [selectedLineItems.length, eventModalShow, manualTransactionModalShow]);
 
     useEffect(() => {
-        document.addEventListener('keydown', handleKeyDown);
+        // Capture the shortcut before Radix Checkbox consumes Enter.
+        document.addEventListener('keydown', handleKeyDown, true);
 
         // Cleanup the event listener on component unmount
         return () => {
-            document.removeEventListener('keydown', handleKeyDown);
+            document.removeEventListener('keydown', handleKeyDown, true);
         };
     }, [handleKeyDown]); // Re-run effect if handleKeyDown changes
 
@@ -199,12 +209,13 @@ export default function LineItemsToReviewPage() {
                                 <TableHead>Description</TableHead>
                                 <TableHead>Party</TableHead>
                                 <TableHead className="text-right">Amount</TableHead>
+                                <TableHead className="w-12 text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {isPending ? (
                                 <TableRow>
-                                    <TableCell colSpan={6} className="text-center py-8">
+                                    <TableCell colSpan={7} className="text-center py-8">
                                         <Spinner size="md" className="text-muted-foreground mx-auto" />
                                     </TableCell>
                                 </TableRow>
@@ -226,7 +237,7 @@ export default function LineItemsToReviewPage() {
                                 ))
                             ) : (
                                 <TableRow>
-                                    <TableCell colSpan={6} className="text-center text-muted-foreground">
+                                    <TableCell colSpan={7} className="text-center text-muted-foreground">
                                         No line items to review
                                     </TableCell>
                                 </TableRow>

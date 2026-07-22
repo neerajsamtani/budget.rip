@@ -75,7 +75,7 @@ jest.mock('../../components/LineItem', () => {
     const MockLineItem = function ({ lineItem, showCheckBox, onToggle }: MockLineItemProps) {
         return (
             <tr data-testid={`line-item-${lineItem.id}`}>
-                <td>{showCheckBox ? <button data-testid={`toggle-${lineItem.id}`} onClick={() => onToggle?.(lineItem.id)}>Checkbox</button> : 'No Checkbox'}</td>
+                <td>{showCheckBox ? <button role="checkbox" aria-checked="false" data-testid={`toggle-${lineItem.id}`} onKeyDown={(event) => event.preventDefault()} onClick={() => onToggle?.(lineItem.id)}>Checkbox</button> : 'No Checkbox'}</td>
                 <td>{new Date(lineItem.date * 1000).toLocaleDateString()}</td>
                 <td>{lineItem.payment_method || ''}</td>
                 <td>{lineItem.description || ''}</td>
@@ -242,6 +242,7 @@ describe('LineItemsToReviewPage', () => {
             expect(screen.getByText('Description')).toBeInTheDocument();
             expect(screen.getByText('Party')).toBeInTheDocument();
             expect(screen.getByText('Amount')).toBeInTheDocument();
+            expect(screen.getByText('Actions')).toBeInTheDocument();
         });
 
         it('renders line items in the table', () => {
@@ -413,6 +414,19 @@ describe('LineItemsToReviewPage', () => {
             });
         });
 
+        it('opens event modal when Enter is pressed after selecting a checkbox', async () => {
+            mockUseLineItems.mockReturnValue({ lineItems: mockLineItemsWithSelection, isPending: false });
+            render(<LineItemsToReviewPage />);
+
+            const checkbox = screen.getByTestId('toggle-1');
+            checkbox.focus();
+            fireEvent.keyDown(checkbox, { key: 'Enter' });
+
+            await waitFor(() => {
+                expect(screen.getByTestId('event-modal')).toBeInTheDocument();
+            });
+        });
+
         it('does not open event modal for other key presses', async () => {
             render(<LineItemsToReviewPage />);
 
@@ -480,11 +494,11 @@ describe('LineItemsToReviewPage', () => {
 
             const { unmount } = render(<LineItemsToReviewPage />);
 
-            expect(addEventListenerSpy).toHaveBeenCalledWith('keydown', expect.any(Function));
+            expect(addEventListenerSpy).toHaveBeenCalledWith('keydown', expect.any(Function), true);
 
             unmount();
 
-            expect(removeEventListenerSpy).toHaveBeenCalledWith('keydown', expect.any(Function));
+            expect(removeEventListenerSpy).toHaveBeenCalledWith('keydown', expect.any(Function), true);
 
             addEventListenerSpy.mockRestore();
             removeEventListenerSpy.mockRestore();

@@ -132,6 +132,7 @@ describe('LineItemsPage', () => {
                 expect(screen.getByText('Description')).toBeInTheDocument();
                 expect(screen.getByText('Party')).toBeInTheDocument();
                 expect(screen.getByText('Amount')).toBeInTheDocument();
+                expect(screen.getByText('Actions')).toBeInTheDocument();
             });
         });
 
@@ -362,7 +363,7 @@ describe('LineItemsPage', () => {
 
             await waitFor(() => {
                 const headers = screen.getAllByRole('columnheader');
-                expect(headers).toHaveLength(5); // Date, Payment Method, Description, Name, Amount
+                expect(headers).toHaveLength(6); // Date, Payment Method, Description, Name, Amount, Actions
             });
         });
     });

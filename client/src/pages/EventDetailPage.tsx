@@ -76,6 +76,7 @@ function LinkedLineItems({ lineItems, isLoading, error, returnTo }: { lineItems:
                             <TableHead>Description</TableHead>
                             <TableHead>Party</TableHead>
                             <TableHead className="text-right">Amount</TableHead>
+                            <TableHead className="w-12 text-right">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>

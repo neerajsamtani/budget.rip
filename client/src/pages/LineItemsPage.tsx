@@ -83,18 +83,19 @@ export default function LineItemsPage() {
                                 <TableHead>Description</TableHead>
                                 <TableHead>Party</TableHead>
                                 <TableHead className="text-right">Amount</TableHead>
+                                <TableHead className="w-12 text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {isLoading ? (
                                 <TableRow>
-                                    <TableCell colSpan={5} className="text-center py-8">
+                                    <TableCell colSpan={6} className="text-center py-8">
                                         <Spinner size="md" className="text-muted-foreground mx-auto" />
                                     </TableCell>
                                 </TableRow>
                             ) : error ? (
                                 <TableRow>
-                                    <TableCell colSpan={5} className="text-center text-destructive">
+                                    <TableCell colSpan={6} className="text-center text-destructive">
                                         Error loading line items. Please try again.
                                     </TableCell>
                                 </TableRow>
@@ -108,7 +109,7 @@ export default function LineItemsPage() {
                                 ))
                             ) : (
                                 <TableRow>
-                                    <TableCell colSpan={5} className="text-center text-muted-foreground">
+                                    <TableCell colSpan={6} className="text-center text-muted-foreground">
                                         No Line Items found
                                     </TableCell>
                                 </TableRow>

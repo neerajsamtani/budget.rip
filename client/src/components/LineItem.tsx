@@ -1,9 +1,11 @@
-import { UserPenIcon } from "lucide-react";
+import { MenuIcon, UserPenIcon } from "lucide-react";
 import React from "react";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { LineItemInterface } from "../contexts/LineItemsContext";
 import { CurrencyFormatter, DateFormatter } from "../utils/formatters";
+import { Button, buttonVariants } from "./ui/button";
 import { Checkbox } from "./ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { StatusBadge } from "./ui/status-badge";
 import { TableCell, TableRow } from "./ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
@@ -23,15 +25,35 @@ interface LineItemDisplayProps extends LineItemProps {
     amountStatus: 'success' | 'warning';
 }
 
+function LineItemActions({ detailPath, description }: { detailPath?: string; description: string }) {
+    if (!detailPath) return null;
+
+    return (
+        <Popover>
+            <PopoverTrigger asChild>
+                <button
+                    type="button"
+                    className={buttonVariants({ variant: "ghost", size: "icon", className: "h-8 w-8" })}
+                    aria-label={`Actions for ${description}`}
+                >
+                    <MenuIcon />
+                </button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-40 p-1">
+                <Button asChild variant="ghost" size="sm" className="w-full justify-start">
+                    <Link to={detailPath}>View Details</Link>
+                </Button>
+            </PopoverContent>
+        </Popover>
+    );
+}
+
 function LineItemCard({ lineItem, showCheckBox, isChecked, handleToggle, amountStatus, detailPath, hasAttachedContent }: LineItemDisplayProps) {
     const readableDate = DateFormatter.format(lineItem.date * 1000);
-    const navigate = useNavigate();
-    const handleCardClick = detailPath ? () => navigate(detailPath) : showCheckBox ? handleToggle : undefined;
 
     return (
         <div
-            className={`p-4 ${hasAttachedContent ? 'bg-primary-light/40' : 'border-b last:border-b-0'} ${isChecked ? 'bg-primary-light' : ''} ${detailPath ? 'cursor-pointer hover:bg-gray-50 transition-colors' : ''}`}
-            onClick={handleCardClick}
+            className={`p-4 ${hasAttachedContent ? 'bg-primary-light/40' : 'border-b last:border-b-0'} ${isChecked ? 'bg-primary-light' : ''}`}
         >
             <div className="flex items-start gap-3">
                 {showCheckBox && (
@@ -42,9 +64,12 @@ function LineItemCard({ lineItem, showCheckBox, isChecked, handleToggle, amountS
                 <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-start gap-2 mb-2">
                         <span className="text-sm text-muted-foreground">{readableDate}</span>
-                        <StatusBadge status={amountStatus}>
-                            {CurrencyFormatter.format(Math.abs(lineItem.amount))}
-                        </StatusBadge>
+                        <div className="flex items-center gap-1">
+                            <StatusBadge status={amountStatus}>
+                                {CurrencyFormatter.format(Math.abs(lineItem.amount))}
+                            </StatusBadge>
+                            <LineItemActions detailPath={detailPath} description={lineItem.description} />
+                        </div>
                     </div>
                     <p className="font-medium text-foreground truncate" title={lineItem.description}>
                         {lineItem.description}
@@ -78,23 +103,11 @@ function LineItemCard({ lineItem, showCheckBox, isChecked, handleToggle, amountS
 
 function LineItemRow({ lineItem, showCheckBox, isChecked, handleToggle, amountStatus, detailPath, hasAttachedContent }: LineItemDisplayProps) {
     const readableDate = DateFormatter.format(lineItem.date * 1000);
-    const navigate = useNavigate();
-    const handleRowNavigation = () => {
-        if (detailPath) navigate(detailPath);
-    };
 
     return (
         <TableRow
             data-state={isChecked ? 'selected' : undefined}
-            className={`${detailPath ? "cursor-pointer" : ""} ${hasAttachedContent ? "border-b-0 bg-primary-light/40 hover:bg-primary-light/50" : ""}`}
-            onClick={detailPath ? handleRowNavigation : undefined}
-            tabIndex={detailPath ? 0 : undefined}
-            onKeyDown={detailPath ? (event) => {
-                if (event.key === "Enter" || event.key === " ") {
-                    event.preventDefault();
-                    handleRowNavigation();
-                }
-            } : undefined}
+            className={hasAttachedContent ? "border-b-0 bg-primary-light/40 hover:bg-primary-light/50" : undefined}
         >
             {showCheckBox && (
                 <TableCell className="w-12" onClick={(event) => event.stopPropagation()}>
@@ -139,6 +152,11 @@ function LineItemRow({ lineItem, showCheckBox, isChecked, handleToggle, amountSt
                     {CurrencyFormatter.format(Math.abs(lineItem.amount))}
                 </StatusBadge>
             </TableCell>
+            {detailPath && (
+                <TableCell className="w-12 text-right">
+                    <LineItemActions detailPath={detailPath} description={lineItem.description} />
+                </TableCell>
+            )}
         </TableRow>
     );
 }
