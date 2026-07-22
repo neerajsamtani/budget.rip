@@ -1,11 +1,10 @@
-import { MenuIcon, UserPenIcon } from "lucide-react";
+import { EyeIcon, UserPenIcon } from "lucide-react";
 import React from "react";
 import { Link } from "react-router-dom";
 import { LineItemInterface } from "../contexts/LineItemsContext";
 import { CurrencyFormatter, DateFormatter } from "../utils/formatters";
-import { Button, buttonVariants } from "./ui/button";
+import { buttonVariants } from "./ui/button";
 import { Checkbox } from "./ui/checkbox";
-import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { StatusBadge } from "./ui/status-badge";
 import { TableCell, TableRow } from "./ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
@@ -29,22 +28,22 @@ function LineItemActions({ detailPath, description }: { detailPath?: string; des
     if (!detailPath) return null;
 
     return (
-        <Popover>
-            <PopoverTrigger asChild>
-                <button
-                    type="button"
-                    className={buttonVariants({ variant: "ghost", size: "icon", className: "h-8 w-8" })}
-                    aria-label={`Actions for ${description}`}
-                >
-                    <MenuIcon />
-                </button>
-            </PopoverTrigger>
-            <PopoverContent align="end" className="w-40 p-1">
-                <Button asChild variant="ghost" size="sm" className="w-full justify-start">
-                    <Link to={detailPath}>View Details</Link>
-                </Button>
-            </PopoverContent>
-        </Popover>
+        <TooltipProvider>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <Link
+                        to={detailPath}
+                        className={buttonVariants({ variant: "ghost", size: "icon", className: "h-8 w-8" })}
+                        aria-label={`View details for ${description}`}
+                    >
+                        <EyeIcon className="h-4 w-4" />
+                    </Link>
+                </TooltipTrigger>
+                <TooltipContent>
+                    <p>View details</p>
+                </TooltipContent>
+            </Tooltip>
+        </TooltipProvider>
     );
 }
 

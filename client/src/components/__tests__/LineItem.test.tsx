@@ -85,14 +85,14 @@ describe('LineItem', () => {
             expect(cells[4]).toHaveTextContent('$50.00');
         });
 
-        it('renders the details menu in a dedicated actions cell', () => {
+        it('renders the view details action in a dedicated actions cell', () => {
             render(
                 <table><tbody><LineItem lineItem={mockLineItem} detailPath="/line_items/1" /></tbody></table>
             );
 
             const cells = screen.getAllByRole('cell');
             const amountCell = screen.getByText('$50.00').closest('td');
-            const actionsCell = screen.getByRole('button', { name: 'Actions for Test transaction' }).closest('td');
+            const actionsCell = screen.getByRole('link', { name: 'View details for Test transaction' }).closest('td');
 
             expect(cells).toHaveLength(6);
             expect(amountCell).not.toBe(actionsCell);
@@ -168,16 +168,12 @@ describe('LineItem', () => {
             expect(checkbox).toHaveFocus();
         });
 
-        it('view details menu opens the detail path', async () => {
+        it('view details action opens the detail path', async () => {
             render(
                 <table><tbody><LineItem lineItem={mockLineItem} detailPath="/line_items/1" /></tbody></table>
             );
 
-            const actionsButton = screen.getByRole('button', { name: 'Actions for Test transaction' });
-            expect(actionsButton).toHaveAttribute('aria-expanded', 'false');
-            await userEvent.click(actionsButton);
-            expect(actionsButton).toHaveAttribute('aria-expanded', 'true');
-            await userEvent.click(await screen.findByRole('link', { name: 'View Details' }));
+            await userEvent.click(screen.getByRole('link', { name: 'View details for Test transaction' }));
 
             await waitFor(() => {
                 expect(window.location.pathname).toBe('/line_items/1');
@@ -196,7 +192,7 @@ describe('LineItem', () => {
             expect(window.location.pathname).toBe('/');
         });
 
-        it('mobile cards expose details through the actions menu', async () => {
+        it('mobile cards expose a direct view details action', async () => {
             render(
                 <LineItemCard
                     lineItem={mockLineItem}
@@ -207,8 +203,7 @@ describe('LineItem', () => {
                 />
             );
 
-            await userEvent.click(screen.getByRole('button', { name: 'Actions for Test transaction' }));
-            await userEvent.click(await screen.findByRole('link', { name: 'View Details' }));
+            await userEvent.click(screen.getByRole('link', { name: 'View details for Test transaction' }));
 
             await waitFor(() => {
                 expect(window.location.pathname).toBe('/line_items/1');
