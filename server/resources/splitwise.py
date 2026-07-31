@@ -4,7 +4,7 @@ from typing import Any, Dict, List
 
 from apiflask import APIBlueprint, abort
 from flask import Response, jsonify
-from flask_jwt_extended import jwt_required
+from flask_jwt_extended import get_current_user, jwt_required
 from splitwise.expense import Expense
 from splitwise.user import ExpenseUser
 
@@ -21,6 +21,7 @@ from resources.schemas.splitwise import (
     SplitwiseExpenseCreateResponse,
     SplitwiseFriendListResponse,
 )
+from utils.event_suggestions import generate_event_suggestions
 from utils.pg_bulk_ops import (
     bulk_upsert_line_items,
     bulk_upsert_transactions,
@@ -49,6 +50,7 @@ def refresh_splitwise_api() -> tuple[Response, int]:
     try:
         refresh_splitwise()
         splitwise_to_line_items()
+        generate_event_suggestions(get_current_user()["id"])
         return jsonify("Refreshed Splitwise Connection"), 200
     except Exception as e:
         logger.error(f"Splitwise refresh failed: {e}", exc_info=True)

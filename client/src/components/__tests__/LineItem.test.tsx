@@ -1,7 +1,7 @@
 import userEvent from '@testing-library/user-event';
 import React from 'react';
-import { mockLineItem, render, screen, waitFor } from '../../utils/test-utils';
-import LineItem from '../LineItem';
+import { fireEvent, mockLineItem, render, screen, waitFor } from '../../utils/test-utils';
+import LineItem, { LineItemCard } from '../LineItem';
 
 describe('LineItem', () => {
     beforeEach(() => {
@@ -84,6 +84,21 @@ describe('LineItem', () => {
             expect(cells[3]).toHaveTextContent('Test Store');
             expect(cells[4]).toHaveTextContent('$50.00');
         });
+
+        it('renders the view details action in a dedicated actions cell', () => {
+            render(
+                <table><tbody><LineItem lineItem={mockLineItem} detailPath="/line_items/1" /></tbody></table>
+            );
+
+            const cells = screen.getAllByRole('cell');
+            const amountCell = screen.getByText('$50.00').closest('td');
+            const actionsCell = screen.getByRole('link', { name: 'View details for Test transaction' }).closest('td');
+
+            expect(cells).toHaveLength(6);
+            expect(amountCell).not.toBe(actionsCell);
+            expect(cells[4]).toBe(amountCell);
+            expect(cells[5]).toBe(actionsCell);
+        });
     });
 
     describe('Checkbox State Management', () => {
@@ -153,12 +168,42 @@ describe('LineItem', () => {
             expect(checkbox).toHaveFocus();
         });
 
-        it('row opens detail path when detailPath is provided', async () => {
+        it('view details action opens the detail path', async () => {
             render(
                 <table><tbody><LineItem lineItem={mockLineItem} detailPath="/line_items/1" /></tbody></table>
             );
 
-            await userEvent.click(screen.getByText('Test transaction'));
+            await userEvent.click(screen.getByRole('link', { name: 'View details for Test transaction' }));
+
+            await waitFor(() => {
+                expect(window.location.pathname).toBe('/line_items/1');
+            });
+        });
+
+        it('clicking or pressing Enter on a row does not open details', async () => {
+            render(
+                <table><tbody><LineItem lineItem={mockLineItem} detailPath="/line_items/1" /></tbody></table>
+            );
+
+            const description = screen.getByText('Test transaction');
+            await userEvent.click(description);
+            fireEvent.keyDown(description, { key: 'Enter' });
+
+            expect(window.location.pathname).toBe('/');
+        });
+
+        it('mobile cards expose a direct view details action', async () => {
+            render(
+                <LineItemCard
+                    lineItem={mockLineItem}
+                    isChecked={false}
+                    handleToggle={() => { }}
+                    amountStatus="warning"
+                    detailPath="/line_items/1"
+                />
+            );
+
+            await userEvent.click(screen.getByRole('link', { name: 'View details for Test transaction' }));
 
             await waitFor(() => {
                 expect(window.location.pathname).toBe('/line_items/1');

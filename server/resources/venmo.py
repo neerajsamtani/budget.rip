@@ -2,7 +2,7 @@ import logging
 from typing import Any, Dict, List
 
 from flask import Blueprint, Response, jsonify
-from flask_jwt_extended import jwt_required
+from flask_jwt_extended import get_current_user, jwt_required
 from venmo_api.models.user import User
 
 from clients import get_venmo_client
@@ -11,6 +11,7 @@ from helpers import flip_amount
 from models.database import SessionLocal
 from queries import get_transactions
 from resources.line_item import LineItem
+from utils.event_suggestions import generate_event_suggestions
 from utils.pg_bulk_ops import bulk_upsert_line_items, bulk_upsert_transactions
 
 logger = logging.getLogger(__name__)
@@ -28,6 +29,7 @@ def refresh_venmo_api() -> tuple[Response, int]:
     try:
         refresh_venmo()
         venmo_to_line_items()
+        generate_event_suggestions(get_current_user()["id"])
         return jsonify("Refreshed Venmo Connection"), 200
     except Exception as e:
         logger.error(f"Venmo refresh failed: {e}", exc_info=True)

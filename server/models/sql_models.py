@@ -259,3 +259,29 @@ class EventHint(Base):
     # Relationships
     user = relationship("User")
     prefill_category = relationship("Category")
+
+
+class EventSuggestion(Base):
+    """A materialized single-line-item event suggestion and its review state."""
+
+    __tablename__ = "event_suggestions"
+    __table_args__ = (UniqueConstraint("user_id", "line_item_id", name="uq_event_suggestion_user_line_item"),)
+
+    id = Column(String(255), primary_key=True)  # es_xxx
+    user_id = Column(String(255), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    line_item_id = Column(String(255), ForeignKey("line_items.id", ondelete="CASCADE"), nullable=False, index=True)
+    event_hint_id = Column(String(255), ForeignKey("event_hints.id", ondelete="SET NULL"), nullable=True)
+    suggested_name = Column(String(255), nullable=False)
+    category_id = Column(String(255), ForeignKey("categories.id", ondelete="SET NULL"), nullable=True)
+    rejected_at = Column(TIMESTAMP(timezone=True), nullable=True)
+    created_at = Column(TIMESTAMP(timezone=True), default=lambda: datetime.now(UTC))
+    updated_at = Column(
+        TIMESTAMP(timezone=True),
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
+    )
+
+    user = relationship("User")
+    line_item = relationship("LineItem")
+    event_hint = relationship("EventHint")
+    category = relationship("Category")

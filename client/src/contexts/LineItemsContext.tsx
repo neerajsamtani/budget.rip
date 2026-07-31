@@ -19,12 +19,20 @@ export interface LineItemInterface {
     event_id?: string;
     is_manual?: boolean; // Whether this transaction was manually created vs synced from API (defaults to false)
     isSelected?: boolean; // Optional if not used in this context
+    event_suggestion?: {
+        id: string;
+        name: string;
+        category_id: string;
+        category: string;
+        matched_hint_name: string | null;
+    } | null;
 }
 
 type Action =
     | { type: 'populate_line_items'; fetchedLineItems: LineItemInterface[] }
     | { type: 'toggle_line_item_select'; lineItemId: string }
-    | { type: 'remove_line_items'; lineItemIds: string[] };
+    | { type: 'remove_line_items'; lineItemIds: string[] }
+    | { type: 'dismiss_event_suggestion'; lineItemId: string };
 
 interface LineItemsContextValue {
     lineItems: LineItemInterface[];
@@ -61,6 +69,11 @@ function lineItemsReducer(lineItems: LineItemInterface[], action: Action) {
         }
         case "remove_line_items": {
             return lineItems.filter(lineItem => !action.lineItemIds.includes(lineItem.id))
+        }
+        case "dismiss_event_suggestion": {
+            return lineItems.map(lineItem => lineItem.id === action.lineItemId
+                ? { ...lineItem, event_suggestion: null }
+                : lineItem)
         }
         default: {
             // Use `never` to signal an unreachable case

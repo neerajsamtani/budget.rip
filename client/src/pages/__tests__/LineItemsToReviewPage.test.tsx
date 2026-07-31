@@ -7,9 +7,21 @@ import LineItemsToReviewPage from '../LineItemsToReviewPage';
 
 // Mock the context
 const mockDispatch = jest.fn();
+const mockAcceptSuggestion = jest.fn();
+const mockRejectSuggestion = jest.fn();
 jest.mock('../../contexts/LineItemsContext', () => ({
     useLineItems: jest.fn(),
     useLineItemsDispatch: jest.fn(() => mockDispatch),
+}));
+jest.mock('../../hooks/useApi', () => ({
+    useAcceptEventSuggestion: () => ({
+        mutateAsync: mockAcceptSuggestion,
+        isPending: false,
+    }),
+    useRejectEventSuggestion: () => ({
+        mutateAsync: mockRejectSuggestion,
+        isPending: false,
+    }),
 }));
 
 // Mock the components
@@ -63,7 +75,7 @@ jest.mock('../../components/LineItem', () => {
     const MockLineItem = function ({ lineItem, showCheckBox, onToggle }: MockLineItemProps) {
         return (
             <tr data-testid={`line-item-${lineItem.id}`}>
-                <td>{showCheckBox ? <button data-testid={`toggle-${lineItem.id}`} onClick={() => onToggle?.(lineItem.id)}>Checkbox</button> : 'No Checkbox'}</td>
+                <td>{showCheckBox ? <button role="checkbox" aria-checked="false" data-testid={`toggle-${lineItem.id}`} onKeyDown={(event) => event.preventDefault()} onClick={() => onToggle?.(lineItem.id)}>Checkbox</button> : 'No Checkbox'}</td>
                 <td>{new Date(lineItem.date * 1000).toLocaleDateString()}</td>
                 <td>{lineItem.payment_method || ''}</td>
                 <td>{lineItem.description || ''}</td>
@@ -159,7 +171,59 @@ const mockLineItemsWithSelection = [
 describe('LineItemsToReviewPage', () => {
     beforeEach(() => {
         jest.clearAllMocks();
+        mockAcceptSuggestion.mockResolvedValue({ name: 'Spotify' });
+        mockRejectSuggestion.mockResolvedValue(undefined);
         mockUseLineItems.mockReturnValue({ lineItems: mockLineItems, isPending: false });
+    });
+
+    describe('Event suggestions', () => {
+        const suggestedLineItem = {
+            ...mockLineItems[0],
+            event_suggestion: {
+                id: 'es_1',
+                name: 'Spotify',
+                category_id: 'cat_subscription',
+                category: 'Subscription',
+                matched_hint_name: 'Spotify purchases',
+            },
+        };
+
+        it('accepts a suggestion with an edited event title', async () => {
+            mockAcceptSuggestion.mockResolvedValue({ name: 'Monthly Spotify' });
+            mockUseLineItems.mockReturnValue({ lineItems: [suggestedLineItem], isPending: false });
+            render(<LineItemsToReviewPage />);
+
+            const titleInputs = screen.getAllByRole('textbox', { name: /suggested event title/i });
+            await userEvent.clear(titleInputs[1]);
+            await userEvent.type(titleInputs[1], 'Monthly Spotify');
+            await userEvent.click(screen.getAllByRole('button', { name: /create event from/i })[1]);
+
+            await waitFor(() => {
+                expect(mockAcceptSuggestion).toHaveBeenCalledWith({ suggestionId: 'es_1', name: 'Monthly Spotify' });
+                expect(mockDispatch).toHaveBeenCalledWith({ type: 'remove_line_items', lineItemIds: ['1'] });
+            });
+        });
+
+        it('rejects a suggestion without removing the line item', async () => {
+            mockUseLineItems.mockReturnValue({ lineItems: [suggestedLineItem], isPending: false });
+            render(<LineItemsToReviewPage />);
+
+            await userEvent.click(screen.getAllByRole('button', { name: /dismiss suggestion/i })[1]);
+
+            await waitFor(() => {
+                expect(mockRejectSuggestion).toHaveBeenCalledWith('es_1');
+                expect(mockDispatch).toHaveBeenCalledWith({ type: 'dismiss_event_suggestion', lineItemId: '1' });
+            });
+            expect(mockDispatch).not.toHaveBeenCalledWith({ type: 'remove_line_items', lineItemIds: ['1'] });
+        });
+
+        it('explicitly connects the suggestion to its line item', () => {
+            mockUseLineItems.mockReturnValue({ lineItems: [suggestedLineItem], isPending: false });
+            render(<LineItemsToReviewPage />);
+
+            expect(screen.getAllByText('Create an event for this line item')).toHaveLength(2);
+            expect(screen.getAllByText('Category: Subscription')).toHaveLength(2);
+        });
     });
 
     describe('Rendering', () => {
@@ -177,6 +241,7 @@ describe('LineItemsToReviewPage', () => {
             expect(screen.getByText('Description')).toBeInTheDocument();
             expect(screen.getByText('Party')).toBeInTheDocument();
             expect(screen.getByText('Amount')).toBeInTheDocument();
+            expect(screen.getByText('Actions')).toBeInTheDocument();
         });
 
         it('renders line items in the table', () => {
@@ -348,6 +413,19 @@ describe('LineItemsToReviewPage', () => {
             });
         });
 
+        it('opens event modal when Enter is pressed after selecting a checkbox', async () => {
+            mockUseLineItems.mockReturnValue({ lineItems: mockLineItemsWithSelection, isPending: false });
+            render(<LineItemsToReviewPage />);
+
+            const checkbox = screen.getByTestId('toggle-1');
+            checkbox.focus();
+            fireEvent.keyDown(checkbox, { key: 'Enter' });
+
+            await waitFor(() => {
+                expect(screen.getByTestId('event-modal')).toBeInTheDocument();
+            });
+        });
+
         it('does not open event modal for other key presses', async () => {
             render(<LineItemsToReviewPage />);
 
@@ -415,11 +493,11 @@ describe('LineItemsToReviewPage', () => {
 
             const { unmount } = render(<LineItemsToReviewPage />);
 
-            expect(addEventListenerSpy).toHaveBeenCalledWith('keydown', expect.any(Function));
+            expect(addEventListenerSpy).toHaveBeenCalledWith('keydown', expect.any(Function), true);
 
             unmount();
 
-            expect(removeEventListenerSpy).toHaveBeenCalledWith('keydown', expect.any(Function));
+            expect(removeEventListenerSpy).toHaveBeenCalledWith('keydown', expect.any(Function), true);
 
             addEventListenerSpy.mockRestore();
             removeEventListenerSpy.mockRestore();

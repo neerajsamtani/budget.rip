@@ -22,6 +22,7 @@ const mockDelete = axiosInstance.delete as jest.Mock;
 
 import {
     queryKeys,
+    useAcceptEventSuggestion,
     useCreateEvent,
     useCreateManualTransaction,
     useCreateSplitwiseExpense,
@@ -36,6 +37,7 @@ import {
     useLogout,
     useMonthlyBreakdown,
     usePaymentMethods,
+    useRejectEventSuggestion,
     useSplitwiseCurrentUser,
     useSplitwiseFriends,
     useUpdateLineItem,
@@ -543,6 +545,44 @@ describe('useApi hooks', () => {
             expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['lineItems'], refetchType: 'none' });
             expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['monthlyBreakdown'], refetchType: 'none' });
             expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['tags'], refetchType: 'none' });
+        });
+    });
+
+    describe('event suggestion mutations', () => {
+        it('accepts a suggestion with the edited name and invalidates event data', async () => {
+            mockPost.mockResolvedValue({ data: { id: 'evt-1', name: 'Edited title' } });
+            const queryClient = createTestQueryClient();
+            const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
+            const wrapper = ({ children }: { children: React.ReactNode }) => (
+                <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+            );
+            const { result } = renderHook(() => useAcceptEventSuggestion(), { wrapper });
+
+            await act(async () => {
+                await result.current.mutateAsync({ suggestionId: 'es-1', name: 'Edited title' });
+            });
+
+            expect(mockPost).toHaveBeenCalledWith('api/event-suggestions/es-1/accept', { name: 'Edited title' });
+            expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['events'] });
+            expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['lineItems'] });
+            expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['monthlyBreakdown'] });
+        });
+
+        it('rejects a suggestion and invalidates line items', async () => {
+            mockPost.mockResolvedValue({});
+            const queryClient = createTestQueryClient();
+            const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
+            const wrapper = ({ children }: { children: React.ReactNode }) => (
+                <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+            );
+            const { result } = renderHook(() => useRejectEventSuggestion(), { wrapper });
+
+            await act(async () => {
+                await result.current.mutateAsync('es-1');
+            });
+
+            expect(mockPost).toHaveBeenCalledWith('api/event-suggestions/es-1/reject');
+            expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['lineItems'] });
         });
     });
 

@@ -5,7 +5,7 @@ from decimal import Decimal, InvalidOperation
 from typing import Any, Dict, List, Optional
 
 from flask import Blueprint, Response, jsonify, request
-from flask_jwt_extended import jwt_required
+from flask_jwt_extended import get_current_user, jwt_required
 
 from helpers import html_date_to_posix, sort_by_date_description, str_to_bool
 from models.database import SessionLocal
@@ -91,7 +91,13 @@ def all_line_items_api() -> tuple[Response, int]:
     payment_method: Optional[str] = request.args.get("payment_method")
     limit: Optional[int] = int(request.args["limit"]) if "limit" in request.args else None
     offset: int = int(request.args.get("offset", 0))
-    line_items: List[Dict[str, Any]] = all_line_items(only_line_items_to_review, payment_method, limit, offset)
+    line_items: List[Dict[str, Any]] = all_line_items(
+        only_line_items_to_review,
+        payment_method,
+        limit,
+        offset,
+        suggestion_user_id=get_current_user()["id"],
+    )
     line_items_total: float = sum(line_item["amount"] for line_item in line_items)
     logger.info(f"Retrieved {len(line_items)} line items (total: ${line_items_total:.2f})")
     return jsonify({"total": line_items_total, "data": line_items}), 200
@@ -102,12 +108,14 @@ def all_line_items(
     payment_method: Optional[str] = None,
     limit: Optional[int] = None,
     offset: int = 0,
+    suggestion_user_id: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
     line_items: List[Dict[str, Any]] = get_all_line_items(
         payment_method=payment_method,
         only_unreviewed=bool(only_line_items_to_review),
         limit=limit,
         offset=offset,
+        suggestion_user_id=suggestion_user_id,
     )
     line_items = sort_by_date_description(line_items)
     return line_items

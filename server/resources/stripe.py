@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional
 import requests  # Still needed for Authorization endpoint (not yet in SDK)
 import stripe
 from flask import Blueprint, Response, jsonify, request
-from flask_jwt_extended import jwt_required
+from flask_jwt_extended import get_current_user, jwt_required
 
 from constants import BATCH_SIZE, STRIPE_API_KEY, STRIPE_CUSTOMER_EMAIL, STRIPE_CUSTOMER_ID, STRIPE_CUSTOMER_NAME
 from helpers import cents_to_dollars, flip_amount
@@ -14,6 +14,7 @@ from queries import (
     get_transactions,
 )
 from resources.line_item import LineItem
+from utils.event_suggestions import generate_event_suggestions
 from utils.pg_bulk_ops import (
     bulk_upsert_bank_accounts,
     bulk_upsert_line_items,
@@ -135,6 +136,7 @@ def refresh_account_balances(account_ids: Optional[List[str]] = None) -> int:
 @jwt_required()
 def refresh_stripe_api() -> tuple[Response, int]:
     refresh_stripe()
+    generate_event_suggestions(get_current_user()["id"])
     return jsonify("Refreshed Stripe Connection"), 200
 
 
