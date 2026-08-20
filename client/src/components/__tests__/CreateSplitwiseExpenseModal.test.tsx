@@ -191,6 +191,31 @@ describe('CreateSplitwiseExpenseModal', () => {
     expect(screen.getByRole('button', { name: 'Create Expense' })).toBeDisabled();
   });
 
+  // 76.10 * 100 is 7609.999999999999 in binary floating point, which used to
+  // read as an invalid amount and disable creation for ~9% of cent values.
+  const inexactLineItems = [{ ...selectedLineItems[0], amount: 76.10 }];
+
+  it('allows creation for an amount that is inexact in floating point', async () => {
+    render(<CreateSplitwiseExpenseModal show={true} onHide={onHide} selectedLineItems={inexactLineItems} />);
+
+    await userEvent.click(screen.getByText('Alice Smith'));
+
+    expect(screen.getByLabelText('Amount')).toHaveValue(76.10);
+    expect(screen.getByRole('button', { name: 'Create Expense' })).toBeEnabled();
+  });
+
+  it('allocates custom shares for an amount that is inexact in floating point', async () => {
+    render(<CreateSplitwiseExpenseModal show={true} onHide={onHide} selectedLineItems={inexactLineItems} />);
+
+    await userEvent.click(screen.getByText('Alice Smith'));
+    await userEvent.click(screen.getByRole('button', { name: 'Custom' }));
+    await userEvent.type(screen.getByLabelText('You owed share'), '38.05');
+    await userEvent.type(screen.getByLabelText('Alice Smith owed share'), '38.05');
+
+    expect(screen.getByText('Remaining: $0.00')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Create Expense' })).toBeEnabled();
+  });
+
   it('remounts with fresh defaults when selected line items change', async () => {
     const { rerender } = render(<CreateSplitwiseExpenseModal show={true} onHide={onHide} selectedLineItems={selectedLineItems} />);
     await userEvent.clear(screen.getByLabelText('Description'));

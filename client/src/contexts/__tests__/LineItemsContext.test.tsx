@@ -1,7 +1,9 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
-import { mockAxiosInstance, render, screen, waitFor } from '../../utils/test-utils';
+import { mockAxiosInstance, render, screen, waitFor, within } from '../../utils/test-utils';
+import LineItemsToReviewPage from '../../pages/LineItemsToReviewPage';
 import { LineItemInterface, LineItemsProvider, useLineItems, useLineItemsDispatch } from '../LineItemsContext';
 import { AuthProvider } from '../AuthContext';
 
@@ -22,6 +24,7 @@ jest.mock('sonner', () => {
 const TestComponent = () => {
     const { lineItems, isPending } = useLineItems();
     const dispatch = useLineItemsDispatch();
+    const queryClient = useQueryClient();
 
     const handleToggle = () => {
         dispatch({
@@ -50,6 +53,12 @@ const TestComponent = () => {
             </div>
             <button onClick={handleToggle} data-testid="toggle-button">Toggle Item 1</button>
             <button onClick={handleRemove} data-testid="remove-button">Remove Items</button>
+            <button
+                onClick={() => queryClient.invalidateQueries({ queryKey: ['lineItems'] })}
+                data-testid="refetch-button"
+            >
+                Refetch
+            </button>
         </div>
     );
 };
@@ -378,6 +387,102 @@ describe('LineItemsContext', () => {
                 expect(screen.getByTestId('line-item-3')).toHaveTextContent('New transaction - not selected');
             });
         });
+
+        it('populate_line_items keeps items the user selected before the refetch', async () => {
+            await act(async () => {
+                renderWithProviders(
+                    <LineItemsProvider>
+                        <TestComponent />
+                    </LineItemsProvider>
+                );
+            });
+
+            await waitFor(() => {
+                expect(screen.getByTestId('line-items-count')).toHaveTextContent('2');
+            });
+
+            await act(async () => {
+                await userEvent.click(screen.getByTestId('toggle-button'));
+            });
+
+            await waitFor(() => {
+                expect(screen.getByTestId('line-item-1')).toHaveTextContent('Test transaction 1 - selected');
+            });
+
+            // A background refresh (e.g. after creating a Splitwise expense) pulls
+            // in a new line item and repopulates the list.
+            mockAxiosInstance.get.mockImplementation((url: string) => {
+                if (url.includes('api/auth/me')) {
+                    return Promise.resolve({
+                        data: { id: 'user_123', email: 'test@example.com', first_name: 'Test', last_name: 'User' }
+                    });
+                }
+                return Promise.resolve({
+                    data: {
+                        data: [...mockLineItems, {
+                            id: '3',
+                            date: 1640995200,
+                            payment_method: 'Splitwise',
+                            description: 'Refreshed transaction',
+                            responsible_party: 'Splitwise Friend',
+                            amount: 25.00,
+                        }]
+                    }
+                });
+            });
+
+            await act(async () => {
+                await userEvent.click(screen.getByTestId('refetch-button'));
+            });
+
+            await waitFor(() => {
+                expect(screen.getByTestId('line-items-count')).toHaveTextContent('3');
+            });
+            expect(screen.getByTestId('line-item-1')).toHaveTextContent('Test transaction 1 - selected');
+            expect(screen.getByTestId('line-item-2')).toHaveTextContent('Test transaction 2 - not selected');
+            expect(screen.getByTestId('line-item-3')).toHaveTextContent('Refreshed transaction - not selected');
+        });
+
+        it('populate_line_items drops a selected line item the refetch no longer returns', async () => {
+            await act(async () => {
+                renderWithProviders(
+                    <LineItemsProvider>
+                        <TestComponent />
+                    </LineItemsProvider>
+                );
+            });
+
+            await waitFor(() => {
+                expect(screen.getByTestId('line-items-count')).toHaveTextContent('2');
+            });
+
+            await act(async () => {
+                await userEvent.click(screen.getByTestId('toggle-button'));
+            });
+
+            await waitFor(() => {
+                expect(screen.getByTestId('line-item-1')).toHaveTextContent('Test transaction 1 - selected');
+            });
+
+            mockAxiosInstance.get.mockImplementation((url: string) => {
+                if (url.includes('api/auth/me')) {
+                    return Promise.resolve({
+                        data: { id: 'user_123', email: 'test@example.com', first_name: 'Test', last_name: 'User' }
+                    });
+                }
+                return Promise.resolve({ data: { data: [mockLineItems[1]] } });
+            });
+
+            await act(async () => {
+                await userEvent.click(screen.getByTestId('refetch-button'));
+            });
+
+            await waitFor(() => {
+                expect(screen.getByTestId('line-items-count')).toHaveTextContent('1');
+            });
+            expect(screen.queryByTestId('line-item-1')).not.toBeInTheDocument();
+            expect(screen.getByTestId('line-item-2')).toHaveTextContent('Test transaction 2 - not selected');
+        });
     });
 
     describe('Error Handling', () => {
@@ -560,6 +665,133 @@ describe('LineItemsContext', () => {
                 expect(screen.getByTestId('line-items-count')).toHaveTextContent('1');
                 expect(screen.getByTestId('line-item-4')).toHaveTextContent('Different transaction - selected');
             });
+        });
+    });
+
+    // End-to-end cover for the bug the selection-preserving populate fixes: the
+    // Splitwise refresh landing mid-edit used to blank the Create Event modal.
+    describe('Refresh Started By Creating A Splitwise Expense', () => {
+        const splitwiseLineItem = {
+            id: '3',
+            date: 1640995200,
+            payment_method: 'Splitwise',
+            description: 'Alex paid Test transaction 1',
+            responsible_party: 'Alex',
+            amount: -25.00,
+        };
+
+        let serverLineItems: LineItemInterface[];
+        let finishSplitwiseRefresh: () => void;
+
+        beforeEach(() => {
+            serverLineItems = mockLineItems;
+            finishSplitwiseRefresh = () => { };
+
+            mockAxiosInstance.get.mockImplementation((url: string) => {
+                switch (url) {
+                    case 'api/auth/me':
+                        return Promise.resolve({
+                            data: { id: 'user_123', email: 'test@example.com', first_name: 'Test', last_name: 'User' }
+                        });
+                    case 'api/line_items':
+                        return Promise.resolve({ data: { data: serverLineItems } });
+                    case 'api/categories':
+                        return Promise.resolve({ data: { data: [{ id: 'cat_dining', name: 'Dining' }] } });
+                    case 'api/tags':
+                        return Promise.resolve({ data: { data: [] } });
+                    case 'api/splitwise/friends':
+                        return Promise.resolve({ data: { data: [{ id: 7, name: 'Alex' }] } });
+                    case 'api/splitwise/current-user':
+                        return Promise.resolve({ data: { data: { id: 1, name: 'Me' } } });
+                    default:
+                        return Promise.reject(new Error(`Unexpected GET ${url}`));
+                }
+            });
+
+            mockAxiosInstance.post.mockImplementation((url: string) => {
+                switch (url) {
+                    case 'api/event-hints/evaluate':
+                        return Promise.resolve({ data: { data: { suggestion: null } } });
+                    case 'api/splitwise/expenses':
+                        return Promise.resolve({ data: { id: 'splitwise_expense_1' } });
+                    case 'api/refresh/account':
+                        // The refresh runs in the background and finishes whenever
+                        // the test decides to resolve it.
+                        return new Promise((resolve) => {
+                            finishSplitwiseRefresh = () => resolve({ data: { message: 'success' } });
+                        });
+                    default:
+                        return Promise.reject(new Error(`Unexpected POST ${url}`));
+                }
+            });
+        });
+
+        const renderReviewPage = () => renderWithProviders(
+            <LineItemsProvider>
+                <LineItemsToReviewPage />
+            </LineItemsProvider>
+        );
+
+        const selectFirstLineItem = async (user: ReturnType<typeof userEvent.setup>) => {
+            const table = await screen.findByRole('table');
+            await waitFor(() => expect(within(table).getAllByRole('checkbox')).toHaveLength(2));
+            await user.click(within(table).getAllByRole('checkbox')[0]);
+        };
+
+        const createSplitwiseExpense = async (user: ReturnType<typeof userEvent.setup>) => {
+            await user.click(screen.getByRole('button', { name: 'Create Splitwise Expense' }));
+            const splitwiseDialog = await screen.findByRole('dialog');
+            await within(splitwiseDialog).findByText('Alex');
+            await user.click(within(splitwiseDialog).getAllByRole('checkbox')[0]);
+            await user.click(within(splitwiseDialog).getByRole('button', { name: 'Create Expense' }));
+            await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+        };
+
+        const completeSplitwiseRefresh = async () => {
+            serverLineItems = [...mockLineItems, splitwiseLineItem];
+            await act(async () => {
+                finishSplitwiseRefresh();
+            });
+            await screen.findAllByText('Alex paid Test transaction 1');
+        };
+
+        it('the refresh finishing does not reset the open Create Event modal', async () => {
+            const user = userEvent.setup();
+            renderReviewPage();
+
+            await selectFirstLineItem(user);
+            await createSplitwiseExpense(user);
+
+            await user.click(screen.getByRole('button', { name: /Create Event/ }));
+            const eventDialog = await screen.findByRole('dialog');
+            await user.clear(within(eventDialog).getByLabelText('Event Name'));
+            await user.type(within(eventDialog).getByLabelText('Event Name'), 'Dinner with Alex');
+            await user.click(within(eventDialog).getByRole('combobox', { name: /category/i }));
+            await user.click(await screen.findByRole('option', { name: 'Dining' }));
+
+            await completeSplitwiseRefresh();
+
+            // Re-query: a form reset remounts the fields, so the original nodes
+            // would keep their values even after being detached from the document.
+            const dialogAfterRefresh = screen.getByRole('dialog');
+            expect(within(dialogAfterRefresh).getByLabelText('Event Name')).toHaveValue('Dinner with Alex');
+            expect(within(dialogAfterRefresh).getByRole('combobox', { name: /category/i })).toHaveTextContent('Dining');
+            expect(within(dialogAfterRefresh).getByText('$50.00')).toBeInTheDocument();
+            expect(within(dialogAfterRefresh).getByRole('button', { name: 'Create Event' })).toBeEnabled();
+        });
+
+        it('the refresh finishing keeps the line item selection', async () => {
+            const user = userEvent.setup();
+            renderReviewPage();
+
+            await selectFirstLineItem(user);
+            await createSplitwiseExpense(user);
+            await completeSplitwiseRefresh();
+
+            const checkboxes = within(screen.getByRole('table')).getAllByRole('checkbox');
+            expect(checkboxes[0]).toBeChecked();
+            expect(checkboxes[1]).not.toBeChecked();
+            expect(checkboxes[2]).not.toBeChecked();
         });
     });
 });
