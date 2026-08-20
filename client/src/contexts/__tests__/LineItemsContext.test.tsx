@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
@@ -22,6 +23,7 @@ jest.mock('sonner', () => {
 const TestComponent = () => {
     const { lineItems, isPending } = useLineItems();
     const dispatch = useLineItemsDispatch();
+    const queryClient = useQueryClient();
 
     const handleToggle = () => {
         dispatch({
@@ -50,6 +52,12 @@ const TestComponent = () => {
             </div>
             <button onClick={handleToggle} data-testid="toggle-button">Toggle Item 1</button>
             <button onClick={handleRemove} data-testid="remove-button">Remove Items</button>
+            <button
+                onClick={() => queryClient.invalidateQueries({ queryKey: ['lineItems'] })}
+                data-testid="refetch-button"
+            >
+                Refetch
+            </button>
         </div>
     );
 };
@@ -377,6 +385,102 @@ describe('LineItemsContext', () => {
                 expect(screen.getByTestId('line-items-count')).toHaveTextContent('1');
                 expect(screen.getByTestId('line-item-3')).toHaveTextContent('New transaction - not selected');
             });
+        });
+
+        it('populate_line_items keeps items the user selected before the refetch', async () => {
+            await act(async () => {
+                renderWithProviders(
+                    <LineItemsProvider>
+                        <TestComponent />
+                    </LineItemsProvider>
+                );
+            });
+
+            await waitFor(() => {
+                expect(screen.getByTestId('line-items-count')).toHaveTextContent('2');
+            });
+
+            await act(async () => {
+                await userEvent.click(screen.getByTestId('toggle-button'));
+            });
+
+            await waitFor(() => {
+                expect(screen.getByTestId('line-item-1')).toHaveTextContent('Test transaction 1 - selected');
+            });
+
+            // A background refresh (e.g. after creating a Splitwise expense) pulls
+            // in a new line item and repopulates the list.
+            mockAxiosInstance.get.mockImplementation((url: string) => {
+                if (url.includes('api/auth/me')) {
+                    return Promise.resolve({
+                        data: { id: 'user_123', email: 'test@example.com', first_name: 'Test', last_name: 'User' }
+                    });
+                }
+                return Promise.resolve({
+                    data: {
+                        data: [...mockLineItems, {
+                            id: '3',
+                            date: 1640995200,
+                            payment_method: 'Splitwise',
+                            description: 'Refreshed transaction',
+                            responsible_party: 'Splitwise Friend',
+                            amount: 25.00,
+                        }]
+                    }
+                });
+            });
+
+            await act(async () => {
+                await userEvent.click(screen.getByTestId('refetch-button'));
+            });
+
+            await waitFor(() => {
+                expect(screen.getByTestId('line-items-count')).toHaveTextContent('3');
+            });
+            expect(screen.getByTestId('line-item-1')).toHaveTextContent('Test transaction 1 - selected');
+            expect(screen.getByTestId('line-item-2')).toHaveTextContent('Test transaction 2 - not selected');
+            expect(screen.getByTestId('line-item-3')).toHaveTextContent('Refreshed transaction - not selected');
+        });
+
+        it('populate_line_items drops a selected line item the refetch no longer returns', async () => {
+            await act(async () => {
+                renderWithProviders(
+                    <LineItemsProvider>
+                        <TestComponent />
+                    </LineItemsProvider>
+                );
+            });
+
+            await waitFor(() => {
+                expect(screen.getByTestId('line-items-count')).toHaveTextContent('2');
+            });
+
+            await act(async () => {
+                await userEvent.click(screen.getByTestId('toggle-button'));
+            });
+
+            await waitFor(() => {
+                expect(screen.getByTestId('line-item-1')).toHaveTextContent('Test transaction 1 - selected');
+            });
+
+            mockAxiosInstance.get.mockImplementation((url: string) => {
+                if (url.includes('api/auth/me')) {
+                    return Promise.resolve({
+                        data: { id: 'user_123', email: 'test@example.com', first_name: 'Test', last_name: 'User' }
+                    });
+                }
+                return Promise.resolve({ data: { data: [mockLineItems[1]] } });
+            });
+
+            await act(async () => {
+                await userEvent.click(screen.getByTestId('refetch-button'));
+            });
+
+            await waitFor(() => {
+                expect(screen.getByTestId('line-items-count')).toHaveTextContent('1');
+            });
+            expect(screen.queryByTestId('line-item-1')).not.toBeInTheDocument();
+            expect(screen.getByTestId('line-item-2')).toHaveTextContent('Test transaction 2 - not selected');
         });
     });
 

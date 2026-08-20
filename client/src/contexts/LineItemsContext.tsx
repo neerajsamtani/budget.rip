@@ -53,7 +53,12 @@ export function useLineItemsDispatch() {
 function lineItemsReducer(lineItems: LineItemInterface[], action: Action) {
     switch (action.type) {
         case "populate_line_items": {
-            return action.fetchedLineItems
+            // Selection lives only on the client, so carry it over: background
+            // refetches (e.g. the Splitwise refresh kicked off after creating an
+            // expense) must not clear a selection the user is still working with.
+            const selectedIds = new Set(lineItems.filter(lineItem => lineItem.isSelected).map(lineItem => lineItem.id));
+            return action.fetchedLineItems.map(lineItem =>
+                selectedIds.has(lineItem.id) ? { ...lineItem, isSelected: true } : lineItem)
         }
         case "toggle_line_item_select": {
             return lineItems.map(lineItem => {
