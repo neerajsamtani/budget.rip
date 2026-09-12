@@ -5,7 +5,7 @@ import { AutoComplete, Option } from './Autocomplete';
 
 interface TagsFilterProps {
     tagFilter: string;
-    // eslint-disable-next-line no-unused-vars
+
     setTagFilter: (tag: string) => void;
 }
 

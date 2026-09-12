@@ -1,7 +1,7 @@
 import { fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
-import { useLineItems, useLineItemsDispatch } from '../../contexts/LineItemsContext';
+import { useLineItems } from '../../contexts/LineItemsContext';
 import { render, screen, waitFor } from '../../utils/test-utils';
 import LineItemsToReviewPage from '../LineItemsToReviewPage';
 

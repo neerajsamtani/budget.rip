@@ -381,10 +381,8 @@ describe('ConnectedAccountsPage', () => {
             });
 
             // Spinner should be gone
-            const { container } = render(<ConnectedAccountsPage stripePromise={mockStripePromise} />);
+            render(<ConnectedAccountsPage stripePromise={mockStripePromise} />);
             await waitFor(() => {
-                const spinners = container.querySelectorAll('.animate-spin:not([aria-hidden])');
-                // Spinners may exist but should not be visible in the loading state context
                 expect(screen.getAllByText(/Bank Checking 1234/).length).toBeGreaterThan(0);
             });
         });

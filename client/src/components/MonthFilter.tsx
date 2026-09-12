@@ -23,7 +23,7 @@ type Month = typeof MONTHS[number];
 
 interface MonthFilterProps {
   month: Month;
-  // eslint-disable-next-line no-unused-vars
+
   setMonth: (month: Month) => void;
 }
 

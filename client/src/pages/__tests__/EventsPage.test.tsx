@@ -775,7 +775,7 @@ describe('EventsPage', () => {
             });
 
             // Skeletons should be gone
-            const { container } = render(<EventsPage />);
+            render(<EventsPage />);
             await waitFor(() => {
                 expect(screen.getByText('$7,175.00')).toBeInTheDocument();
             });
