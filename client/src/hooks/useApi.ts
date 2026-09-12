@@ -243,7 +243,7 @@ export function useTags(): UseQueryResult<Tag[]> {
 }
 
 // Mutation Hooks
-export interface CreateEventData {
+interface CreateEventData {
   name: string;
   category: string;
   line_items: string[];

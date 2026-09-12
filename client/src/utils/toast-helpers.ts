@@ -2,15 +2,7 @@ import { AxiosError } from 'axios';
 import { toast } from 'sonner';
 import { TOAST_DURATION } from '@/constants/ui';
 
-interface ErrorToastOptions {
-  action?: {
-    label: string;
-    onClick: () => void;
-  };
-  duration?: number;
-}
-
-export const showErrorToast = (error: Error | unknown, title = "Error", options?: ErrorToastOptions) => {
+export const showErrorToast = (error: Error | unknown, title = "Error") => {
   let message: string;
 
   // Check if it's an axios error with a response
@@ -26,8 +18,7 @@ export const showErrorToast = (error: Error | unknown, title = "Error", options?
 
   toast.error(title, {
     description: message,
-    duration: options?.duration ?? TOAST_DURATION,
-    ...(options?.action ? { action: options.action } : {}),
+    duration: TOAST_DURATION,
   });
 };
 
