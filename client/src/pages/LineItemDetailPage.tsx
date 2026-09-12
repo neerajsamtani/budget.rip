@@ -9,11 +9,11 @@ import {
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
-    AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PageContainer } from "@/components/ui/layout";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -41,16 +41,13 @@ function DetailRow({ label, children }: { label: string; children: React.ReactNo
     );
 }
 
-function ActionButton({
-    children,
-    className,
-    disabled,
-    tooltip,
-    ...props
-}: React.ComponentProps<typeof Button> & { tooltip?: string }) {
+const ActionButton = React.forwardRef<
+    HTMLButtonElement,
+    React.ComponentProps<typeof Button> & { tooltip?: string }
+>(function ActionButton({ children, className, disabled, tooltip, ...props }, ref) {
     if (!disabled || !tooltip) {
         return (
-            <Button className={className} disabled={disabled} {...props}>
+            <Button ref={ref} className={className} disabled={disabled} {...props}>
                 {children}
             </Button>
         );
@@ -61,7 +58,7 @@ function ActionButton({
             <Tooltip>
                 <TooltipTrigger asChild>
                     <span className={`inline-flex ${className || ""}`}>
-                        <Button className="w-full" disabled={disabled} {...props}>
+                        <Button ref={ref} className="w-full" disabled={disabled} {...props}>
                             {children}
                         </Button>
                     </span>
@@ -72,7 +69,7 @@ function ActionButton({
             </Tooltip>
         </TooltipProvider>
     );
-}
+});
 
 function getSafeReturnTo(value: string | null) {
     if (!value || !value.startsWith("/") || value.startsWith("//")) return undefined;
@@ -262,55 +259,31 @@ export default function LineItemDetailPage() {
                             <Pencil className="h-4 w-4" />
                             Edit
                         </ActionButton>
-                        <div className="relative">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                aria-expanded={showMoreActions}
-                                aria-controls="line-item-more-actions"
-                                onClick={() => setShowMoreActions(prev => !prev)}
-                            >
-                                More actions
-                            </Button>
-                            {showMoreActions && (
-                                <div id="line-item-more-actions" role="menu" className="absolute right-0 z-10 mt-2 w-56 rounded-md border bg-white p-1 shadow-lg">
-                                    <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-                                        <AlertDialogTrigger asChild>
-                                            <ActionButton
-                                                variant="ghost"
-                                                size="sm"
-                                                role="menuitem"
-                                                disabled={!canDelete || deleteManualTransactionMutation.isPending}
-                                                tooltip={deleteTooltip}
-                                                aria-describedby={!canDelete ? "line-item-action-help" : undefined}
-                                                className="w-full justify-start text-semantic-error hover:text-semantic-error"
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                                Delete line item
-                                            </ActionButton>
-                                        </AlertDialogTrigger>
-                                        <AlertDialogContent>
-                                            <AlertDialogHeader>
-                                                <AlertDialogTitle>Delete {lineItem.description}?</AlertDialogTitle>
-                                                <AlertDialogDescription>
-                                                    This permanently deletes the manual transaction and its line item. This action cannot be undone.
-                                                </AlertDialogDescription>
-                                            </AlertDialogHeader>
-                                            <AlertDialogFooter>
-                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                <AlertDialogAction
-                                                    onClick={deleteLineItem}
-                                                    disabled={deleteManualTransactionMutation.isPending}
-                                                    className="bg-semantic-error text-white hover:bg-semantic-error-dark"
-                                                >
-                                                    {deleteManualTransactionMutation.isPending ? "Deleting..." : "Delete line item"}
-                                                </AlertDialogAction>
-                                            </AlertDialogFooter>
-                                        </AlertDialogContent>
-                                    </AlertDialog>
-                                </div>
-                            )}
-                        </div>
+                        <Popover open={showMoreActions} onOpenChange={setShowMoreActions}>
+                            <PopoverTrigger asChild>
+                                <Button variant="outline" size="sm">
+                                    More actions
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent align="end" role="menu" className="w-56 p-1">
+                                <ActionButton
+                                    variant="ghost"
+                                    size="sm"
+                                    role="menuitem"
+                                    disabled={!canDelete || deleteManualTransactionMutation.isPending}
+                                    tooltip={deleteTooltip}
+                                    aria-describedby={!canDelete ? "line-item-action-help" : undefined}
+                                    className="w-full justify-start text-semantic-error hover:text-semantic-error"
+                                    onClick={() => {
+                                        setShowMoreActions(false);
+                                        setIsDeleteDialogOpen(true);
+                                    }}
+                                >
+                                    <Trash2 className="h-4 w-4" />
+                                    Delete line item
+                                </ActionButton>
+                            </PopoverContent>
+                        </Popover>
                     </div>
                     {actionHelp && (
                         <p id="line-item-action-help" className="text-right text-sm text-muted-foreground">
@@ -318,6 +291,28 @@ export default function LineItemDetailPage() {
                         </p>
                     )}
                 </div>
+
+                {/* Rendered outside the popover so closing the menu does not unmount the dialog. */}
+                <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Delete {lineItem.description}?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                This permanently deletes the manual transaction and its line item. This action cannot be undone.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                                onClick={deleteLineItem}
+                                disabled={deleteManualTransactionMutation.isPending}
+                                className="bg-semantic-error text-white hover:bg-semantic-error-dark"
+                            >
+                                {deleteManualTransactionMutation.isPending ? "Deleting..." : "Delete line item"}
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
 
                 {isEditing ? (
                     <div className="rounded-xl border bg-white p-4 md:p-6">
