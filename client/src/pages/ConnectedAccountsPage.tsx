@@ -60,15 +60,16 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
         return `${ageInDays} days ago`
     }
 
-    const renderBalanceFreshness = (asOf?: number | null) => {
+    // The tables carry a "Last Updated" header; the mobile cards have none, so they label the date.
+    const renderBalanceFreshness = (asOf?: number | null, showLabel = false) => {
         if (asOf == null) {
-            return <span className="text-muted-foreground text-sm">Balance updated: Not available</span>
+            return <span className="text-muted-foreground text-sm">{showLabel ? "Balance updated: Not available" : "Not available"}</span>
         }
 
         const isOutdated = Date.now() - asOf * 1000 > BALANCE_OUTDATED_AFTER_DAYS * DAY_IN_MILLISECONDS
         return (
             <div className="space-y-0.5">
-                <div>Balance updated {formatDate(asOf)} ({formatAge(asOf)})</div>
+                <div>{showLabel ? "Balance updated " : ""}{formatDate(asOf)} ({formatAge(asOf)})</div>
                 {isOutdated && (
                     <div className="text-amber-700 text-xs">Balance may be outdated</div>
                 )}
@@ -342,7 +343,7 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
                             )}
                         </div>
                         <div className="text-xs text-muted-foreground mt-1">
-                            {renderBalanceFreshness(balanceAsOf)}
+                            {renderBalanceFreshness(balanceAsOf, true)}
                         </div>
                     </div>
                 </div>

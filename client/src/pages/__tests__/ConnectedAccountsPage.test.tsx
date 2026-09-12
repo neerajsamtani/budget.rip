@@ -201,7 +201,8 @@ describe('ConnectedAccountsPage', () => {
                 // Mobile and desktop layouts both render
                 expect(screen.getAllByText(/NewBank Checking 9999/).length).toBeGreaterThan(0);
                 expect(screen.getAllByText('Not available').length).toBeGreaterThanOrEqual(2);
-                expect(screen.getAllByText('Balance updated: Not available').length).toBeGreaterThanOrEqual(2);
+                // Only the mobile card labels the date; the table relies on its "Last Updated" header.
+                expect(screen.getAllByText('Balance updated: Not available')).toHaveLength(1);
             });
         });
     });
