@@ -19,6 +19,7 @@ describe('LineItem', () => {
             expect(screen.getByText('Test Store')).toBeInTheDocument();
             expect(screen.getByText('credit_card')).toBeInTheDocument();
             expect(screen.getByText('$50.00')).toBeInTheDocument();
+            expect(screen.queryByText('Out')).not.toBeInTheDocument();
         });
 
         it('checkbox is rendered when showCheckBox is true', () => {
@@ -281,6 +282,16 @@ describe('LineItem', () => {
             );
 
             expect(screen.getByText('$0.00')).toBeInTheDocument();
+            expect(screen.queryByText('Balanced')).not.toBeInTheDocument();
+        });
+
+        it('displays negative amounts as unsigned currency', () => {
+            render(
+                <table><tbody><LineItem lineItem={{ ...mockLineItem, amount: -50 }} /></tbody></table>
+            );
+
+            expect(screen.getByText('$50.00')).toBeInTheDocument();
+            expect(screen.queryByText('In')).not.toBeInTheDocument();
         });
 
         it('large amounts are displayed correctly', () => {

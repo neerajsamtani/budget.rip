@@ -31,12 +31,15 @@ export interface LineItemInterface {
 type Action =
     | { type: 'populate_line_items'; fetchedLineItems: LineItemInterface[] }
     | { type: 'toggle_line_item_select'; lineItemId: string }
+    | { type: 'clear_line_item_selection' }
     | { type: 'remove_line_items'; lineItemIds: string[] }
     | { type: 'dismiss_event_suggestion'; lineItemId: string };
 
 interface LineItemsContextValue {
     lineItems: LineItemInterface[];
     isPending: boolean;
+    error?: unknown;
+    refetch?: () => Promise<unknown>;
 }
 
 export const LineItemsContext = createContext<LineItemsContextValue>({ lineItems: [], isPending: true });
@@ -72,6 +75,9 @@ function lineItemsReducer(lineItems: LineItemInterface[], action: Action) {
                 }
             })
         }
+        case "clear_line_item_selection": {
+            return lineItems.map(lineItem => ({ ...lineItem, isSelected: false }));
+        }
         case "remove_line_items": {
             return lineItems.filter(lineItem => !action.lineItemIds.includes(lineItem.id))
         }
@@ -93,7 +99,7 @@ export function LineItemsProvider({ children }: { children: ReactNode }) {
     const [lineItems, lineItemsDispatch] = useReducer(lineItemsReducer, initialLineItems);
     const { isAuthenticated } = useAuth();
 
-    const { data: fetchedLineItems, isPending, error } = useLineItemsQuery({ onlyLineItemsToReview: true, enabled: isAuthenticated });
+    const { data: fetchedLineItems, isPending, error, refetch } = useLineItemsQuery({ onlyLineItemsToReview: true, enabled: isAuthenticated });
 
     useEffect(() => {
         if (fetchedLineItems) {
@@ -110,7 +116,7 @@ export function LineItemsProvider({ children }: { children: ReactNode }) {
         }
     }, [error])
 
-    const contextValue = useMemo(() => ({ lineItems, isPending }), [lineItems, isPending]);
+    const contextValue = useMemo(() => ({ lineItems, isPending, error, refetch }), [lineItems, isPending, error, refetch]);
 
     return (
         <LineItemsContext.Provider value={contextValue}>

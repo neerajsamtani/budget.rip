@@ -19,11 +19,8 @@ function TagsFilterControlledWrapper({ initialValue = '' }: { initialValue?: str
 }
 
 describe('TagsFilter', () => {
-    let rerender: (_ui: React.ReactElement) => void;
-
     function setup(initialValue = '') {
-        const { rerender: setRerender } = render(<TagsFilter tagFilter={initialValue} setTagFilter={jest.fn()} />);
-        rerender = setRerender;
+        render(<TagsFilter tagFilter={initialValue} setTagFilter={jest.fn()} />);
     }
 
     describe('Rendering', () => {

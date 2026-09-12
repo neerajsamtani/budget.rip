@@ -113,6 +113,7 @@ describe('CreateEventModal', () => {
         mockUseEvaluateEventHints.mockReturnValue({ data: null, isLoading: false, isError: false });
         mockDefaultNameCleanup.mockImplementation((str) => str);
         mockAxiosInstance.post.mockResolvedValue({ data: { name: 'Test Event', success: true } });
+        mockAxiosInstance.get.mockImplementation(async url => ({ data: { data: String(url).includes('api/line_items') ? mockLineItems : [] } }));
     });
 
     describe('Rendering', () => {
@@ -676,17 +677,14 @@ describe('CreateEventModal', () => {
 
             render(<CreateEventModal show={true} onHide={mockOnHide} />);
 
-            // Fill out form
-            const nameInput = screen.getAllByDisplayValue('')[0]; // First input is name
+            const nameInput = screen.getByPlaceholderText('Enter a descriptive name for this event');
             fireEvent.change(nameInput, { target: { value: 'Test Event' } });
 
             const categorySelect = screen.getByRole('combobox', { name: /category/i });
             await userEvent.click(categorySelect);
             await userEvent.click(screen.getByRole('option', { name: 'Dining' }));
 
-            // Submit form
-            const submitButton = screen.getByRole('button', { name: /create event/i });
-            await userEvent.click(submitButton);
+            await userEvent.click(screen.getByRole('button', { name: /create event/i }));
 
             await waitFor(() => {
                 expect(toast.error).toHaveBeenCalledWith("Error", {

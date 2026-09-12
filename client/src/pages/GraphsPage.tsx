@@ -2,7 +2,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Table2 } from "lucide-react";
 import { DateTime } from "luxon";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { buildChartConfig, filterByCategories, filterByYear, getAvailableYears, NON_SPENDING_CATEGORIES } from "../components/charts/chart-utils";
+import { buildChartConfig, filterByCategories, filterByYear, formatMonthYear, getAvailableYears, getLatestDate, NON_SPENDING_CATEGORIES, sumDisplayedAmounts } from "../components/charts/chart-utils";
 import CumulativeSpendingChart from "../components/charts/CumulativeSpendingChart";
 import SpendingDrillDown from "../components/charts/SpendingDrillDown";
 import SpendingTable from "../components/charts/SpendingTable";
@@ -11,6 +11,7 @@ import MultiSelectFilter from "../components/MultiSelectFilter";
 import { Button } from "../components/ui/button";
 import { PageContainer, PageHeader } from "../components/ui/layout";
 import { Body, H1 } from "../components/ui/typography";
+import { CurrencyFormatter } from "../utils/formatters";
 import YearFilter from "../components/YearFilter";
 import { useCategories, useEvents, useMonthlyBreakdown } from "../hooks/useApi";
 
@@ -24,14 +25,19 @@ export default function GraphsPage() {
   const availableYears = useMemo(() => getAvailableYears(breakdownData), [breakdownData]);
   const { data: categories = [] } = useCategories();
 
+  const categoryNames = useMemo(() => {
+    const dataNames = Object.keys(breakdownData).filter(category => Array.isArray(breakdownData[category]));
+    return categories.length > 0 ? categories.map(category => category.name) : dataNames;
+  }, [breakdownData, categories]);
+
   // Initialize selectedCategories once categories load — exclude Income and Investment by default
   const categoriesInitialized = useRef(false);
   useEffect(() => {
-    if (categories.length > 0 && !categoriesInitialized.current) {
+    if (categoryNames.length > 0 && !categoriesInitialized.current) {
       categoriesInitialized.current = true;
-      setSelectedCategories(categories.map(c => c.name).filter(n => !NON_SPENDING_CATEGORIES.includes(n)));
+      setSelectedCategories(categoryNames.filter(n => !NON_SPENDING_CATEGORIES.includes(n)));
     }
-  }, [categories]);
+  }, [categoryNames]);
 
   // Compute time range for events from selected year
   const { startTime, endTime } = useMemo(() => {
@@ -58,6 +64,14 @@ export default function GraphsPage() {
     () => filterByYear(categoryFilteredData, year),
     [categoryFilteredData, year]
   );
+
+  const hasRent = Array.isArray(breakdownData.Rent) && breakdownData.Rent.length > 0;
+  const isRentSelected = selectedCategories.includes('Rent');
+  const selectedYearTotal = useMemo(() => sumDisplayedAmounts(stackedData), [stackedData]);
+  const latestDate = useMemo(() => getLatestDate(stackedData), [stackedData]);
+  const categoryScope = selectedCategories.length === 0
+    ? 'No categories selected'
+    : `${selectedCategories.length} categor${selectedCategories.length === 1 ? 'y' : 'ies'} selected`;
 
   const chartConfig = useMemo(
     () => buildChartConfig(Object.keys(stackedData).filter(k => Array.isArray(stackedData[k]))),
@@ -102,11 +116,40 @@ export default function GraphsPage() {
             <YearFilter years={availableYears} year={year} setYear={setYear} />
             <MultiSelectFilter
               label="Category"
-              options={categories}
+              options={categoryNames.map(name => ({ id: name, name }))}
               selected={selectedCategories}
               onChange={setSelectedCategories}
             />
+            {hasRent && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSelectedCategories(prev => isRentSelected ? prev.filter(category => category !== 'Rent') : [...prev, 'Rent'])}
+                aria-pressed={!isRentSelected}
+              >
+                {isRentSelected ? 'Exclude rent' : 'Include rent'}
+              </Button>
+            )}
           </div>
+
+          <section aria-label="Chart summary" className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-xl border bg-white p-4 shadow-sm">
+              <p className="text-sm text-muted-foreground">{year} spending</p>
+              <p className="text-2xl font-semibold tabular-nums">
+                {selectedCategories.length > 0 && Object.keys(stackedData).length > 0
+                  ? CurrencyFormatter.format(selectedYearTotal)
+                  : 'No data'}
+              </p>
+              <p className="text-sm text-muted-foreground">{categoryScope}</p>
+            </div>
+            <div className="rounded-xl border bg-white p-4 shadow-sm">
+              <p className="text-sm text-muted-foreground">Latest available month in {year}</p>
+              <p className="text-2xl font-semibold tabular-nums">
+                {latestDate ? formatMonthYear(latestDate) : 'No data'}
+              </p>
+              <p className="text-sm text-muted-foreground">Monthly Spending period</p>
+            </div>
+          </section>
 
           {/* Stacked Spending */}
           <div className="bg-white rounded-xl border p-4 md:p-6 shadow-sm">
@@ -121,6 +164,9 @@ export default function GraphsPage() {
                 {viewMode === 'table' ? 'Hide table' : 'Show table'}
               </Button>
             </div>
+            <p className="mb-4 text-sm text-muted-foreground">
+              Monthly Spending uses the selected year and category scope: {categoryScope.toLowerCase()}.
+            </p>
             <StackedSpendingChart data={stackedData} chartConfig={chartConfig} />
             {viewMode === 'table' && (
               <SpendingTable data={stackedData} colorMap={colorMap} onCellClick={(cat, date) => setDrillDown({ category: cat, date })} />
@@ -136,7 +182,10 @@ export default function GraphsPage() {
 
           {/* Cumulative Spending (all years) */}
           <div className="bg-white rounded-xl border p-4 md:p-6 shadow-sm">
-            <h2 className="text-lg font-semibold mb-4">Cumulative Spending (Year over Year)</h2>
+            <h2 className="text-lg font-semibold mb-2">Cumulative Spending (Year over Year)</h2>
+            <p className="mb-4 text-sm text-muted-foreground">
+              Cumulative Spending compares every available year for {categoryScope.toLowerCase()}. Each line ends at that year’s latest available month, so incomplete years are not presented as complete.
+            </p>
             <CumulativeSpendingChart data={categoryFilteredData} />
           </div>
 

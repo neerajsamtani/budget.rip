@@ -20,7 +20,6 @@ export interface EventInterface {
 export function EventCard({ event }: { event: EventInterface }) {
     const readableDate = DateFormatter.format(event.date * 1000);
     const location = useLocation();
-    const amountStatus = event.amount > 0 ? 'warning' : 'success';
     const detailPath = `/events/${event.id}${location.search}`;
 
     return (
@@ -28,9 +27,7 @@ export function EventCard({ event }: { event: EventInterface }) {
             <div className="p-4 border-b last:border-b-0 hover:bg-gray-50 transition-colors">
                 <div className="flex justify-between items-start gap-2 mb-2">
                     <span className="text-sm text-muted-foreground">{readableDate}</span>
-                    <StatusBadge status={amountStatus}>
-                        {CurrencyFormatter.format(Math.abs(event.amount))}
-                    </StatusBadge>
+                    <StatusBadge status={event.amount > 0 ? "warning" : "success"}>{CurrencyFormatter.format(Math.abs(event.amount))}</StatusBadge>
                 </div>
                 <p className="font-medium text-foreground mb-2">{event.name}</p>
                 <div className="flex flex-wrap items-center gap-2">
@@ -55,7 +52,6 @@ export default function Event({ event }: { event: EventInterface }) {
     const readableDate = DateFormatter.format(event.date * 1000);
     const location = useLocation();
     const navigate = useNavigate();
-    const amountStatus = event.amount > 0 ? 'warning' : 'success';
     const detailPath = `/events/${event.id}${location.search}`;
 
     return (
@@ -70,17 +66,15 @@ export default function Event({ event }: { event: EventInterface }) {
                 }
             }}
         >
-            <TableCell className="text-sm text-foreground">{readableDate}</TableCell>
+            <TableCell className="w-[8.5rem] whitespace-nowrap text-sm text-foreground">{readableDate}</TableCell>
             <TableCell className="font-medium text-foreground">{event.name}</TableCell>
             <TableCell>
                 <Badge className="bg-muted text-foreground border hover:bg-muted">
                     {event.category}
                 </Badge>
             </TableCell>
-            <TableCell>
-                <StatusBadge status={amountStatus}>
-                    {CurrencyFormatter.format(Math.abs(event.amount))}
-                </StatusBadge>
+            <TableCell className="text-right">
+                <StatusBadge status={event.amount > 0 ? "warning" : "success"}>{CurrencyFormatter.format(Math.abs(event.amount))}</StatusBadge>
             </TableCell>
             <TableCell>
                 {event.tags && event.tags.length > 0 ? (

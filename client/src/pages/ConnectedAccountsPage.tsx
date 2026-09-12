@@ -15,20 +15,35 @@ import { Body, H1, H4 } from "../components/ui/typography";
 import { ConnectedAccount, StripeAccount, useAccountsAndBalances, useConnectedAccounts, useCreateFinancialConnectionsSession, useRefreshAccount, useRelinkAccount, useSubscribeToAccount } from "../hooks/useApi";
 import { CurrencyFormatter, DateFormatter } from "../utils/formatters";
 
+const BALANCE_OUTDATED_AFTER_DAYS = 7;
+const DAY_IN_MILLISECONDS = 24 * 60 * 60 * 1000;
+
 export default function ConnectedAccountsPage({ stripePromise }: { stripePromise: Promise<Stripe | null> }) {
     const [clientSecret, setClientSecret] = useState("");
     const [stripeAccounts, setStripeAccounts] = useState<FinancialConnectionsSession.Account[]>([])
     const [refreshingAccountId, setRefreshingAccountId] = useState<string | null>(null)
 
-    const { data: connectedAccounts = [], isLoading: isLoadingAccounts } = useConnectedAccounts()
-    const stripeConnectedAccounts = connectedAccounts.find(account => account.stripe)?.stripe ?? []
+    const {
+        data: connectedAccounts,
+        isLoading: isLoadingAccounts,
+        isError: isAccountsError,
+        refetch: refetchAccounts,
+    } = useConnectedAccounts()
+    const accounts = connectedAccounts ?? []
+    const stripeConnectedAccounts = accounts.find(account => account.stripe)?.stripe ?? []
     const activeStripeAccounts = stripeConnectedAccounts.filter(account => account.status === "active")
     const inactiveAccounts = stripeConnectedAccounts.filter(account => account.status === "inactive")
     const activeAccounts = [
-        ...connectedAccounts.filter(account => account.venmo?.length || account.splitwise?.length),
+        ...accounts.filter(account => account.venmo?.length || account.splitwise?.length),
         ...(activeStripeAccounts.length > 0 ? [{ stripe: activeStripeAccounts }] : []),
     ]
-    const { data: accountsAndBalances = {}, isLoading: isLoadingBalances } = useAccountsAndBalances()
+    const {
+        data: accountsAndBalances,
+        isLoading: isLoadingBalances,
+        isError: isBalancesError,
+        refetch: refetchBalances,
+    } = useAccountsAndBalances()
+    const balances = accountsAndBalances ?? {}
     const createSessionMutation = useCreateFinancialConnectionsSession()
     const subscribeToAccountMutation = useSubscribeToAccount()
     const relinkAccountMutation = useRelinkAccount()
@@ -38,13 +53,54 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
 
     const formatDate = (unixTime: number) => DateFormatter.format(new Date(unixTime * 1000))
 
-    let netWorth = 0;
-    // Only active accounts are included in the net worth calculation
-    Object.keys(accountsAndBalances).forEach(key => {
-        if (accountsAndBalances[key]["status"] === "active") {
-            netWorth += accountsAndBalances[key]["balance"]
+    const formatAge = (unixTime: number) => {
+        const ageInDays = Math.floor(Math.max(0, Date.now() - unixTime * 1000) / DAY_IN_MILLISECONDS)
+        if (ageInDays === 0) return "today"
+        if (ageInDays === 1) return "1 day ago"
+        return `${ageInDays} days ago`
+    }
+
+    // The tables carry a "Last Updated" header; the mobile cards have none, so they label the date.
+    const renderBalanceFreshness = (asOf?: number | null, showLabel = false) => {
+        if (asOf == null) {
+            return <span className="text-muted-foreground text-sm">{showLabel ? "Balance updated: Not available" : "Not available"}</span>
         }
+
+        const isOutdated = Date.now() - asOf * 1000 > BALANCE_OUTDATED_AFTER_DAYS * DAY_IN_MILLISECONDS
+        return (
+            <div className="space-y-0.5">
+                <div>{showLabel ? "Balance updated " : ""}{formatDate(asOf)} ({formatAge(asOf)})</div>
+                {isOutdated && (
+                    <div className="text-amber-700 text-xs">Balance may be outdated</div>
+                )}
+            </div>
+        )
+    }
+
+    const renderBalance = (balance?: number | null) => balance != null ? (
+        <StatusBadge status={balance >= 0 ? 'success' : 'error'}>
+            {CurrencyFormatter.format(balance)}
+        </StatusBadge>
+    ) : (
+        <span className="text-muted-foreground text-sm">Not available</span>
+    )
+
+    const activeBalanceEntries = Object.values(balances).filter(account => account.status === "active")
+    const hasMissingActiveBalance = activeBalanceEntries.some(account => (
+        typeof account.balance !== "number" || !Number.isFinite(account.balance)
+    )) || activeStripeAccounts.some(account => {
+        const balance = balances[account.id]?.balance
+        return typeof balance !== "number" || !Number.isFinite(balance)
     })
+    const hasNetWorth = accountsAndBalances !== undefined && !isLoadingBalances && !hasMissingActiveBalance
+    const netWorth = hasNetWorth
+        ? activeBalanceEntries.reduce((total, account) => total + account.balance, 0)
+        : null
+
+    const hasQueryError = isAccountsError || isBalancesError
+    const retryQueries = () => {
+        void Promise.all([refetchAccounts(), refetchBalances()])
+    }
 
     const createSession = () => {
         createSessionMutation.mutate(undefined, {
@@ -142,15 +198,16 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
                 return (
                     <TableRow key={`${accountKey}-${index}`}>
                         <TableCell>Venmo - {venmoUser}</TableCell>
-                        <TableCell></TableCell>
-                        <TableCell></TableCell>
-                        <TableCell></TableCell>
+                        <TableCell>Connected</TableCell>
+                        <TableCell>{renderBalance()}</TableCell>
+                        <TableCell>{renderBalanceFreshness()}</TableCell>
                         <TableCell>
                             <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => refreshAccount(accountKey, 'venmo')}
                                 disabled={refreshingAccountId === accountKey}
+                                aria-label={`Refresh Venmo - ${venmoUser} account data`}
                             >
                                 <RefreshCw className={`h-4 w-4 ${refreshingAccountId === accountKey ? 'animate-spin' : ''}`} />
                             </Button>
@@ -167,15 +224,16 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
                 return (
                     <TableRow key={`${accountKey}-${index}`}>
                         <TableCell>Splitwise - {splitwiseUser}</TableCell>
-                        <TableCell></TableCell>
-                        <TableCell></TableCell>
-                        <TableCell></TableCell>
+                        <TableCell>Connected</TableCell>
+                        <TableCell>{renderBalance()}</TableCell>
+                        <TableCell>{renderBalanceFreshness()}</TableCell>
                         <TableCell>
                             <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => refreshAccount(accountKey, 'splitwise')}
                                 disabled={refreshingAccountId === accountKey}
+                                aria-label={`Refresh Splitwise - ${splitwiseUser} account data`}
                             >
                                 <RefreshCw className={`h-4 w-4 ${refreshingAccountId === accountKey ? 'animate-spin' : ''}`} />
                             </Button>
@@ -191,12 +249,12 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
                 // Filter: only show active accounts OR inactive accounts that can be relinked
                 .filter((stripeAccount) => {
                     const { status } = stripeAccount;
-                    const canRelink = accountsAndBalances[stripeAccount.id]?.can_relink ?? false;
+                    const canRelink = balances[stripeAccount.id]?.can_relink ?? false;
                     return status === 'active' || (status === 'inactive' && canRelink);
                 })
                 .map((stripeAccount) => {
                     const { institution_name, display_name, last4, id, status } = stripeAccount;
-                    const canRelink = accountsAndBalances[id]?.can_relink ?? false;
+                    const canRelink = balances[id]?.can_relink ?? false;
                     return (
                         <TableRow key={`stripe-${id}`}>
                             <TableCell>
@@ -209,20 +267,10 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
                                 <TableCell><Button onClick={() => { relinkAccount(id) }} variant="secondary">Reactivate</Button></TableCell>
                                 : <TableCell>Active</TableCell>}
                             <TableCell>
-                                {accountsAndBalances[id]?.balance != null ? (
-                                    <StatusBadge status={accountsAndBalances[id]["balance"] >= 0 ? 'success' : 'error'}>
-                                        {CurrencyFormatter.format(accountsAndBalances[id]["balance"])}
-                                    </StatusBadge>
-                                ) : (
-                                    <span className="text-muted-foreground text-sm">—</span>
-                                )}
+                                {renderBalance(balances[id]?.balance)}
                             </TableCell>
                             <TableCell>
-                                {accountsAndBalances[id]?.as_of ? (
-                                    formatDate(accountsAndBalances[id]["as_of"])
-                                ) : (
-                                    <span className="text-muted-foreground text-sm">—</span>
-                                )}
+                                {renderBalanceFreshness(balances[id]?.as_of)}
                             </TableCell>
                             <TableCell>
                                 <Button
@@ -230,6 +278,7 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
                                     size="sm"
                                     onClick={() => refreshAccount(id, 'stripe')}
                                     disabled={refreshingAccountId === id || status === 'inactive'}
+                                    aria-label={`Refresh ${institution_name} ${display_name} ${last4} account data`}
                                 >
                                     <RefreshCw className={`h-4 w-4 ${refreshingAccountId === id ? 'animate-spin' : ''}`} />
                                 </Button>
@@ -243,7 +292,7 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
     };
 
     const renderStripeAccount = (stripeAccount: StripeAccount) => {
-        const canRelink = accountsAndBalances[stripeAccount.id]?.can_relink ?? false;
+        const canRelink = balances[stripeAccount.id]?.can_relink ?? false;
         return (
             <TableRow key={stripeAccount.id}>
                 <TableCell>
@@ -260,22 +309,18 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
                     )}
                 </TableCell>
                 <TableCell>
-                    {accountsAndBalances[stripeAccount.id]?.as_of ? (
-                        formatDate(accountsAndBalances[stripeAccount.id]["as_of"])
-                    ) : (
-                        <span className="text-muted-foreground text-sm">—</span>
-                    )}
+                    {renderBalanceFreshness(balances[stripeAccount.id]?.as_of)}
                 </TableCell>
             </TableRow>
         )
     }
 
     // Mobile card component for connected accounts
-    const AccountCard = ({ name, status, balance, lastUpdated, onRefresh, onRelink, isRefreshing, canRelink }: {
+    const AccountCard = ({ name, status, balance, balanceAsOf, onRefresh, onRelink, isRefreshing, canRelink }: {
         name: string;
         status?: 'active' | 'inactive';
         balance?: number | null;
-        lastUpdated?: string | null;
+        balanceAsOf?: number | null;
         onRefresh?: () => void;
         onRelink?: () => void;
         isRefreshing?: boolean;
@@ -286,23 +331,20 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
                 <div className="flex items-start gap-3 min-w-0 flex-1">
                     <div className="min-w-0 flex-1">
                         <p className="font-medium text-foreground truncate" title={name}>{name}</p>
-                        {(status || balance != null) && (
-                            <div className="flex flex-wrap items-center gap-2 mt-1">
-                                {status === 'inactive' && canRelink ? (
-                                    <Button onClick={onRelink} variant="secondary" size="sm">Reactivate</Button>
-                                ) : status && (
-                                    <span className="text-sm text-muted-foreground capitalize">{status}</span>
-                                )}
-                                {balance != null && (
-                                    <StatusBadge status={balance >= 0 ? 'success' : 'error'}>
-                                        {CurrencyFormatter.format(balance)}
-                                    </StatusBadge>
-                                )}
-                            </div>
-                        )}
-                        {lastUpdated && (
-                            <p className="text-xs text-muted-foreground mt-1">{lastUpdated}</p>
-                        )}
+                        <div className="flex flex-wrap items-center gap-2 mt-1">
+                            {status && (
+                                <span className="text-sm text-muted-foreground">
+                                    Connection: {status === 'active' ? 'Active' : 'Inactive'}
+                                </span>
+                            )}
+                            {renderBalance(balance)}
+                            {status === 'inactive' && canRelink && (
+                                <Button onClick={onRelink} variant="secondary" size="sm">Reactivate</Button>
+                            )}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                            {renderBalanceFreshness(balanceAsOf, true)}
+                        </div>
                     </div>
                 </div>
                 {onRefresh && (
@@ -312,6 +354,7 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
                         onClick={onRefresh}
                         disabled={isRefreshing || status === 'inactive'}
                         className="shrink-0"
+                        aria-label={`Refresh ${name} account data`}
                     >
                         <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
                     </Button>
@@ -353,19 +396,19 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
             return connectedAccount.stripe
                 .filter((stripeAccount) => {
                     const { status } = stripeAccount;
-                    const canRelink = accountsAndBalances[stripeAccount.id]?.can_relink ?? false;
+                    const canRelink = balances[stripeAccount.id]?.can_relink ?? false;
                     return status === 'active' || (status === 'inactive' && canRelink);
                 })
                 .map((stripeAccount) => {
                     const { institution_name, display_name, last4, id, status } = stripeAccount;
-                    const canRelink = accountsAndBalances[id]?.can_relink ?? false;
+                    const canRelink = balances[id]?.can_relink ?? false;
                     return (
                         <AccountCard
                             key={`stripe-${id}`}
                             name={`${institution_name} ${display_name} ${last4}`}
                             status={status}
-                            balance={accountsAndBalances[id]?.balance}
-                            lastUpdated={accountsAndBalances[id]?.as_of ? formatDate(accountsAndBalances[id]["as_of"]) : null}
+                            balance={balances[id]?.balance}
+                            balanceAsOf={balances[id]?.as_of}
                             onRefresh={() => refreshAccount(id, 'stripe')}
                             onRelink={() => relinkAccount(id)}
                             isRefreshing={refreshingAccountId === id}
@@ -379,13 +422,14 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
     };
 
     const renderInactiveAccountCard = (stripeAccount: StripeAccount) => {
-        const canRelink = accountsAndBalances[stripeAccount.id]?.can_relink ?? false;
+        const canRelink = balances[stripeAccount.id]?.can_relink ?? false;
         return (
             <AccountCard
                 key={stripeAccount.id}
                 name={`${stripeAccount.institution_name} ${stripeAccount.display_name} ${stripeAccount.last4}`}
                 status="inactive"
-                lastUpdated={accountsAndBalances[stripeAccount.id]?.as_of ? formatDate(accountsAndBalances[stripeAccount.id]["as_of"]) : null}
+                balance={balances[stripeAccount.id]?.balance}
+                balanceAsOf={balances[stripeAccount.id]?.as_of}
                 onRelink={canRelink ? () => relinkAccount(stripeAccount.id) : undefined}
                 canRelink={canRelink}
             />
@@ -400,6 +444,20 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
                     Manage your linked financial accounts and view balances
                 </Body>
             </PageHeader>
+
+            {hasQueryError && (
+                <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                    <p>
+                        {isAccountsError && isBalancesError
+                            ? "Connected accounts and balances could not be loaded."
+                            : isAccountsError
+                                ? "Connected accounts could not be loaded."
+                                : "Account balances could not be loaded."}
+                        {" "}Missing data is not included in net worth.
+                    </p>
+                    <Button variant="secondary" size="sm" onClick={retryQueries}>Retry</Button>
+                </div>
+            )}
 
             <div className="space-y-8">
                 <div className="space-y-4">
@@ -447,6 +505,10 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
                             <div className="flex justify-center py-8">
                                 <Spinner size="md" className="text-muted-foreground" />
                             </div>
+                        ) : isAccountsError ? (
+                            <Body className="text-center text-muted-foreground py-4">
+                                Account list unavailable
+                            </Body>
                         ) : activeAccounts.length > 0 ? (
                             <div className="rounded-xl bg-white shadow-sm border overflow-hidden">
                                 {activeAccounts.flatMap(renderConnectedAccountCards)}
@@ -477,6 +539,12 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
                                             <Spinner size="md" className="text-muted-foreground mx-auto" />
                                         </TableCell>
                                     </TableRow>
+                                ) : isAccountsError ? (
+                                    <TableRow>
+                                        <TableCell colSpan={5} className="text-center text-muted-foreground">
+                                            Account list unavailable
+                                        </TableCell>
+                                    </TableRow>
                                 ) : activeAccounts.length > 0 ? (
                                     activeAccounts.flatMap(renderConnectedAccount)
                                 ) : (
@@ -491,7 +559,16 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
                     </div>
 
                     <div className="bg-muted rounded-lg p-4 md:p-6">
-                        <H4>Net Worth: <StatusBadge status={netWorth >= 0 ? 'success' : 'error'}>{CurrencyFormatter.format(netWorth)}</StatusBadge></H4>
+                        <H4>
+                            Net Worth:{" "}
+                            {netWorth != null ? (
+                                <StatusBadge status={netWorth >= 0 ? 'success' : 'error'}>
+                                    {CurrencyFormatter.format(netWorth)}
+                                </StatusBadge>
+                            ) : (
+                                <span className="text-muted-foreground">Not available</span>
+                            )}
+                        </H4>
                     </div>
 
                     <div className="space-y-4">
@@ -503,6 +580,10 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
                                 <div className="flex justify-center py-8">
                                     <Spinner size="md" className="text-muted-foreground" />
                                 </div>
+                            ) : isAccountsError ? (
+                                <Body className="text-center text-muted-foreground py-4">
+                                    Account list unavailable
+                                </Body>
                             ) : inactiveAccounts.length > 0 ? (
                                 <div className="rounded-xl bg-white shadow-sm border overflow-hidden">
                                     {inactiveAccounts.map(renderInactiveAccountCard)}
@@ -529,6 +610,12 @@ export default function ConnectedAccountsPage({ stripePromise }: { stripePromise
                                         <TableRow>
                                             <TableCell colSpan={3} className="text-center py-8">
                                                 <Spinner size="md" className="text-muted-foreground mx-auto" />
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : isAccountsError ? (
+                                        <TableRow>
+                                            <TableCell colSpan={3} className="text-center text-muted-foreground">
+                                                Account list unavailable
                                             </TableCell>
                                         </TableRow>
                                     ) : inactiveAccounts.length > 0 ? (

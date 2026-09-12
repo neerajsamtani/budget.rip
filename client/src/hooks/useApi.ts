@@ -154,6 +154,15 @@ export interface ConnectedAccount {
   stripe?: StripeAccount[];
 }
 
+export interface AccountBalance {
+  balance: number | null;
+  as_of: number | null;
+  status: 'active' | 'inactive';
+  can_relink?: boolean;
+}
+
+export type AccountsAndBalances = Record<string, AccountBalance>;
+
 export function useConnectedAccounts(): UseQueryResult<ConnectedAccount[]> {
   return useQuery({
     queryKey: queryKeys.connectedAccounts(),
@@ -164,7 +173,7 @@ export function useConnectedAccounts(): UseQueryResult<ConnectedAccount[]> {
   });
 }
 
-export function useAccountsAndBalances(): UseQueryResult<unknown> {
+export function useAccountsAndBalances(): UseQueryResult<AccountsAndBalances> {
   return useQuery({
     queryKey: queryKeys.accountsAndBalances(),
     queryFn: async () => {
@@ -246,6 +255,14 @@ interface CreateEventData {
 export function useCreateEvent(): UseMutationResult<unknown, Error, CreateEventData> {
   const queryClient = useQueryClient();
 
+  interface CreateEventMutationContext {
+    optimisticRemovals: Array<[
+      readonly unknown[],
+      LineItemInterface[] | undefined,
+      LineItemInterface[],
+    ]>;
+  }
+
   return useMutation({
     mutationFn: async (eventData: CreateEventData) => {
       const response = await axiosInstance.post('api/events', eventData);
@@ -255,16 +272,26 @@ export function useCreateEvent(): UseMutationResult<unknown, Error, CreateEventD
       await queryClient.cancelQueries({ queryKey: ['lineItems'] });
       const previousLineItems = queryClient.getQueriesData<LineItemInterface[]>({ queryKey: ['lineItems'] });
       const reviewedIds = new Set(eventData.line_items);
+      const optimisticRemovals = previousLineItems.map(([queryKey, data]) => [
+        queryKey,
+        data,
+        data?.filter((lineItem) => reviewedIds.has(lineItem.id)) ?? [],
+      ] as [readonly unknown[], LineItemInterface[] | undefined, LineItemInterface[]]);
 
       queryClient.setQueriesData<LineItemInterface[]>({ queryKey: ['lineItems'] }, (old) =>
         old?.filter((lineItem) => !reviewedIds.has(lineItem.id))
       );
 
-      return { previousLineItems };
+      return { optimisticRemovals } satisfies CreateEventMutationContext;
     },
-    onError: (_error, _eventData, context) => {
-      context?.previousLineItems.forEach(([queryKey, data]) => {
-        queryClient.setQueryData(queryKey, data);
+    onError: (_error, _eventData, context: CreateEventMutationContext | undefined) => {
+      context?.optimisticRemovals.forEach(([queryKey, previousData, removedLineItems]) => {
+        queryClient.setQueryData<LineItemInterface[]>(queryKey, (currentData) => {
+          if (currentData === undefined) return previousData;
+
+          const currentIds = new Set(currentData.map((lineItem) => lineItem.id));
+          return [...currentData, ...removedLineItems.filter((lineItem) => !currentIds.has(lineItem.id))];
+        });
       });
     },
     onSuccess: () => {

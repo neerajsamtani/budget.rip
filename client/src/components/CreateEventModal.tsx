@@ -66,7 +66,7 @@ function CreateEventModalContent({
     setTags(tags.filter(tag => tag.id !== tagId));
   };
 
-  const disableSubmit = name.value === "" || category.value === "" || category.value === "All";
+  const disableSubmit = name.value === "" || category.value === "" || category.value === "All" || selectedLineItemIds.length === 0;
 
   const total = React.useMemo(() => {
     return calculateEventTotal(selectedLineItems, isDuplicateTransaction.value);

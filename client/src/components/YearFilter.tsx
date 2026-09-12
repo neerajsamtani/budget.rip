@@ -4,7 +4,7 @@ import React from 'react';
 interface YearFilterProps {
   years: string[];
   year: string;
-  // eslint-disable-next-line no-unused-vars
+
   setYear: (year: string) => void;
 }
 

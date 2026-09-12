@@ -40,6 +40,10 @@ const TestComponent = () => {
         });
     };
 
+    const handleClearSelection = () => {
+        dispatch({ type: 'clear_line_item_selection' });
+    };
+
     return (
         <div>
             <div data-testid="line-items-count">{lineItems.length}</div>
@@ -53,6 +57,7 @@ const TestComponent = () => {
             </div>
             <button onClick={handleToggle} data-testid="toggle-button">Toggle Item 1</button>
             <button onClick={handleRemove} data-testid="remove-button">Remove Items</button>
+            <button onClick={handleClearSelection} data-testid="clear-selection-button">Clear Selection</button>
             <button
                 onClick={() => queryClient.invalidateQueries({ queryKey: ['lineItems'] })}
                 data-testid="refetch-button"
@@ -209,6 +214,26 @@ describe('LineItemsContext', () => {
             await waitFor(() => {
                 expect(screen.getByTestId('line-item-1')).toHaveTextContent('Test transaction 1 - selected');
             });
+        });
+
+        it('clear_line_item_selection action clears every selected item', async () => {
+            await act(async () => {
+                renderWithProviders(
+                    <LineItemsProvider>
+                        <TestComponent />
+                    </LineItemsProvider>
+                );
+            });
+
+            await waitFor(() => {
+                expect(screen.getByTestId('line-items-count')).toHaveTextContent('2');
+            });
+            await userEvent.click(screen.getByTestId('toggle-button'));
+            expect(screen.getByTestId('line-item-1')).toHaveTextContent('selected');
+
+            await userEvent.click(screen.getByTestId('clear-selection-button'));
+            expect(screen.getByTestId('line-item-1')).toHaveTextContent('not selected');
+            expect(screen.getByTestId('line-item-2')).toHaveTextContent('not selected');
         });
 
         it('remove_line_items action is handled', async () => {
@@ -732,14 +757,15 @@ describe('LineItemsContext', () => {
             </LineItemsProvider>
         );
 
-        const selectFirstLineItem = async (user: ReturnType<typeof userEvent.setup>) => {
+        const selectFirstLineItem = async (user: typeof userEvent) => {
             const table = await screen.findByRole('table');
             await waitFor(() => expect(within(table).getAllByRole('checkbox')).toHaveLength(2));
             await user.click(within(table).getAllByRole('checkbox')[0]);
         };
 
-        const createSplitwiseExpense = async (user: ReturnType<typeof userEvent.setup>) => {
-            await user.click(screen.getByRole('button', { name: 'Create Splitwise Expense' }));
+        const createSplitwiseExpense = async (user: typeof userEvent) => {
+            await user.click(screen.getByRole('button', { name: /add transaction/i }));
+            await user.click(screen.getByRole('button', { name: /create splitwise expense/i }));
             const splitwiseDialog = await screen.findByRole('dialog');
             await within(splitwiseDialog).findByText('Alex');
             await user.click(within(splitwiseDialog).getAllByRole('checkbox')[0]);
@@ -756,14 +782,15 @@ describe('LineItemsContext', () => {
         };
 
         it('the refresh finishing does not reset the open Create Event modal', async () => {
-            const user = userEvent.setup();
+            const user = userEvent;
             renderReviewPage();
 
             await selectFirstLineItem(user);
             await createSplitwiseExpense(user);
 
-            await user.click(screen.getByRole('button', { name: /Create Event/ }));
+            await user.click(screen.getByRole('button', { name: /create event/i }));
             const eventDialog = await screen.findByRole('dialog');
+            await waitFor(() => expect(within(eventDialog).getByLabelText('Event Name')).toBeInTheDocument());
             await user.clear(within(eventDialog).getByLabelText('Event Name'));
             await user.type(within(eventDialog).getByLabelText('Event Name'), 'Dinner with Alex');
             await user.click(within(eventDialog).getByRole('combobox', { name: /category/i }));
@@ -781,7 +808,7 @@ describe('LineItemsContext', () => {
         });
 
         it('the refresh finishing keeps the line item selection', async () => {
-            const user = userEvent.setup();
+            const user = userEvent;
             renderReviewPage();
 
             await selectFirstLineItem(user);

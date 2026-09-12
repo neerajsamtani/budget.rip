@@ -1,8 +1,19 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PageContainer } from "@/components/ui/layout";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -30,16 +41,13 @@ function DetailRow({ label, children }: { label: string; children: React.ReactNo
     );
 }
 
-function ActionButton({
-    children,
-    className,
-    disabled,
-    tooltip,
-    ...props
-}: React.ComponentProps<typeof Button> & { tooltip?: string }) {
+const ActionButton = React.forwardRef<
+    HTMLButtonElement,
+    React.ComponentProps<typeof Button> & { tooltip?: string }
+>(function ActionButton({ children, className, disabled, tooltip, ...props }, ref) {
     if (!disabled || !tooltip) {
         return (
-            <Button className={className} disabled={disabled} {...props}>
+            <Button ref={ref} className={className} disabled={disabled} {...props}>
                 {children}
             </Button>
         );
@@ -50,7 +58,7 @@ function ActionButton({
             <Tooltip>
                 <TooltipTrigger asChild>
                     <span className={`inline-flex ${className || ""}`}>
-                        <Button className="w-full" disabled={disabled} {...props}>
+                        <Button ref={ref} className="w-full" disabled={disabled} {...props}>
                             {children}
                         </Button>
                     </span>
@@ -61,7 +69,7 @@ function ActionButton({
             </Tooltip>
         </TooltipProvider>
     );
-}
+});
 
 function getSafeReturnTo(value: string | null) {
     if (!value || !value.startsWith("/") || value.startsWith("//")) return undefined;
@@ -109,6 +117,9 @@ export default function LineItemDetailPage() {
     const [amount, setAmount] = useState("");
     const [paymentMethodId, setPaymentMethodId] = useState("");
     const [notes, setNotes] = useState("");
+    const [showMoreActions, setShowMoreActions] = useState(false);
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+    const [showTechnicalDetails, setShowTechnicalDetails] = useState(false);
 
     useEffect(() => {
         if (!lineItem) return;
@@ -161,6 +172,11 @@ export default function LineItemDetailPage() {
             : undefined;
     const canEdit = isManual;
     const canDelete = isManual && !isAssigned;
+    const actionHelp = !isManual
+        ? "Synced line items cannot be edited or deleted."
+        : isAssigned
+            ? "Remove this line item from its event before deleting it."
+            : undefined;
     const disableSave = !date || !description || !paymentMethodId || Number.isNaN(Number(amount));
 
     const cancelEditing = () => {
@@ -230,31 +246,73 @@ export default function LineItemDetailPage() {
                             )}
                         </div>
                     </div>
-                    <div className="flex w-full gap-2 sm:w-auto">
+                    <div className="flex w-full items-start justify-end gap-2 sm:w-auto">
                         <ActionButton
                             variant="secondary"
                             size="sm"
                             onClick={() => setIsEditing(true)}
                             disabled={!canEdit}
                             tooltip={editTooltip}
+                            aria-describedby={!canEdit ? "line-item-action-help" : undefined}
                             className="flex-1 sm:flex-none"
                         >
                             <Pencil className="h-4 w-4" />
                             Edit
                         </ActionButton>
-                        <ActionButton
-                            variant="destructive"
-                            size="sm"
-                            onClick={deleteLineItem}
-                            disabled={!canDelete || deleteManualTransactionMutation.isPending}
-                            tooltip={deleteTooltip}
-                            className="flex-1 sm:flex-none"
-                        >
-                            <Trash2 className="h-4 w-4" />
-                            Delete
-                        </ActionButton>
+                        <Popover open={showMoreActions} onOpenChange={setShowMoreActions}>
+                            <PopoverTrigger asChild>
+                                <Button variant="outline" size="sm">
+                                    More actions
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent align="end" role="menu" className="w-56 p-1">
+                                <ActionButton
+                                    variant="ghost"
+                                    size="sm"
+                                    role="menuitem"
+                                    disabled={!canDelete || deleteManualTransactionMutation.isPending}
+                                    tooltip={deleteTooltip}
+                                    aria-describedby={!canDelete ? "line-item-action-help" : undefined}
+                                    className="w-full justify-start text-semantic-error hover:text-semantic-error"
+                                    onClick={() => {
+                                        setShowMoreActions(false);
+                                        setIsDeleteDialogOpen(true);
+                                    }}
+                                >
+                                    <Trash2 className="h-4 w-4" />
+                                    Delete line item
+                                </ActionButton>
+                            </PopoverContent>
+                        </Popover>
                     </div>
+                    {actionHelp && (
+                        <p id="line-item-action-help" className="text-right text-sm text-muted-foreground">
+                            {actionHelp}
+                        </p>
+                    )}
                 </div>
+
+                {/* Rendered outside the popover so closing the menu does not unmount the dialog. */}
+                <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Delete {lineItem.description}?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                This permanently deletes the manual transaction and its line item. This action cannot be undone.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                                onClick={deleteLineItem}
+                                disabled={deleteManualTransactionMutation.isPending}
+                                className="bg-semantic-error text-white hover:bg-semantic-error-dark"
+                            >
+                                {deleteManualTransactionMutation.isPending ? "Deleting..." : "Delete line item"}
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
 
                 {isEditing ? (
                     <div className="rounded-xl border bg-white p-4 md:p-6">
@@ -319,6 +377,20 @@ export default function LineItemDetailPage() {
                                     <DetailRow label="Description">{lineItem.description}</DetailRow>
                                     <DetailRow label="Notes">{lineItem.notes || "-"}</DetailRow>
                                 </dl>
+                                <details className="mt-5 border-t pt-4" onToggle={(event) => setShowTechnicalDetails(event.currentTarget.open)}>
+                                    <summary className="cursor-pointer text-sm font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                                        Technical details
+                                    </summary>
+                                    {showTechnicalDetails && (
+                                        <dl className="mt-4 space-y-4">
+                                            <DetailRow label="Line item ID">{lineItem.id}</DetailRow>
+                                            <DetailRow label="Transaction ID">{lineItem.transaction_id || "-"}</DetailRow>
+                                            <DetailRow label="Payment method ID">{lineItem.payment_method_id || "-"}</DetailRow>
+                                            {lineItem.event_id && <DetailRow label="Event ID">{lineItem.event_id}</DetailRow>}
+                                            <DetailRow label="Source key">{lineItem.source || "-"}</DetailRow>
+                                        </dl>
+                                    )}
+                                </details>
                             </div>
                         </main>
 

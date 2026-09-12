@@ -9,7 +9,7 @@ import axiosInstance from "../utils/axiosInstance";
 import { showErrorToast, showSuccessToast } from "../utils/toast-helpers";
 
 export default function FinancialConnectionsForm({ fcsess_secret, setStripeAccounts }:
-  // eslint-disable-next-line no-unused-vars
+
   { fcsess_secret: string, setStripeAccounts: (accounts: FinancialConnectionsSession.Account[]) => void }) {
   const stripe = useStripe();
 

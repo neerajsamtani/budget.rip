@@ -389,6 +389,50 @@ describe('useApi hooks', () => {
                 })
             ).rejects.toThrow('Create failed');
         });
+
+        it('rolls back only each submission\'s optimistic records when requests overlap', async () => {
+            let rejectFirst!: (error: Error) => void;
+            let rejectSecond!: (error: Error) => void;
+            const firstRequest = new Promise((_resolve, reject) => { rejectFirst = reject; });
+            const secondRequest = new Promise((_resolve, reject) => { rejectSecond = reject; });
+            mockPost.mockReturnValueOnce(firstRequest).mockReturnValueOnce(secondRequest);
+
+            const queryClient = createTestQueryClient();
+            const lineItemsQueryKey = queryKeys.lineItems({ onlyLineItemsToReview: true });
+            queryClient.setQueryDefaults(['lineItems'], { gcTime: 60_000 });
+            queryClient.setQueryData(lineItemsQueryKey, [
+                { id: 'line-1' },
+                { id: 'line-2' },
+                { id: 'line-3' },
+            ]);
+            const wrapper = ({ children }: { children: React.ReactNode }) => (
+                <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+            );
+            const { result } = renderHook(() => useCreateEvent(), { wrapper });
+
+            let firstMutation!: Promise<unknown>;
+            let secondMutation!: Promise<unknown>;
+            await act(async () => {
+                firstMutation = result.current.mutateAsync({ name: 'First', category: 'Dining', line_items: ['line-1'] });
+                await Promise.resolve();
+                secondMutation = result.current.mutateAsync({ name: 'Second', category: 'Dining', line_items: ['line-2'] });
+                await Promise.resolve();
+            });
+
+            await waitFor(() => expect(mockPost).toHaveBeenCalledTimes(2));
+
+            await act(async () => {
+                rejectFirst(new Error('First failed'));
+                await expect(firstMutation).rejects.toThrow('First failed');
+            });
+            expect(queryClient.getQueryData<Array<{ id: string }>>(lineItemsQueryKey)?.map(lineItem => lineItem.id).sort()).toEqual(['line-1', 'line-3']);
+
+            await act(async () => {
+                rejectSecond(new Error('Second failed'));
+                await expect(secondMutation).rejects.toThrow('Second failed');
+            });
+            expect(queryClient.getQueryData<Array<{ id: string }>>(lineItemsQueryKey)?.map(lineItem => lineItem.id).sort()).toEqual(['line-1', 'line-2', 'line-3']);
+        });
     });
 
     describe('useCreateManualTransaction', () => {

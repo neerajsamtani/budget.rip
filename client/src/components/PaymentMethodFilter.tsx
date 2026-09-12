@@ -5,7 +5,7 @@ import { showErrorToast } from "../utils/toast-helpers";
 
 interface PaymentMethodFilterProps {
   paymentMethod: string,
-  // eslint-disable-next-line no-unused-vars
+
   setPaymentMethod: (paymentMethod: string) => void
 }
 

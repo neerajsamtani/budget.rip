@@ -116,6 +116,7 @@ const mockDispatch = jest.fn();
 describe('App', () => {
     beforeEach(() => {
         jest.clearAllMocks();
+        window.history.replaceState({}, '', '/');
         mockToaster.mockClear();
         process.env.VITE_API_ENDPOINT = 'http://localhost:5000/';
         process.env.VITE_STRIPE_PUBLIC_KEY = 'test_stripe_key';
@@ -224,6 +225,25 @@ describe('App', () => {
                 // When authenticated, we see Log Out button instead of Login link
                 expect(screen.getByRole('button', { name: /log out/i })).toBeInTheDocument();
             });
+        });
+
+        it('marks the current destination active while keeping detail sections active', async () => {
+            renderApp();
+
+            const reviewLink = await screen.findByRole('link', { name: 'Review' });
+            const eventsLink = screen.getByRole('link', { name: 'Events' });
+            const lineItemsLink = screen.getByRole('link', { name: 'Line Items' });
+
+            expect(reviewLink).toHaveAttribute('aria-current', 'page');
+            expect(eventsLink).not.toHaveAttribute('aria-current', 'page');
+
+            fireEvent.click(eventsLink);
+            expect(eventsLink).toHaveAttribute('aria-current', 'page');
+            expect(reviewLink).not.toHaveAttribute('aria-current', 'page');
+
+            fireEvent.click(lineItemsLink);
+            expect(lineItemsLink).toHaveAttribute('aria-current', 'page');
+            expect(eventsLink).not.toHaveAttribute('aria-current', 'page');
         });
     });
 

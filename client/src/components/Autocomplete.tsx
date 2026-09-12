@@ -14,7 +14,7 @@ export type Option = Record<"value" | "label", string> & Record<string, string>
 type AutoCompleteProps = {
   options: Option[]
   value?: Option
-  // eslint-disable-next-line no-unused-vars
+
   onValueChange?: (value: Option | undefined) => void
   isLoading?: boolean
   disabled?: boolean
