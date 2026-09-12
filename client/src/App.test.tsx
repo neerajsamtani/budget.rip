@@ -230,9 +230,9 @@ describe('App', () => {
         it('marks the current destination active while keeping detail sections active', async () => {
             renderApp();
 
-            const reviewLink = await screen.findByRole('link', { name: 'Review', exact: true });
-            const eventsLink = screen.getByRole('link', { name: 'Events', exact: true });
-            const lineItemsLink = screen.getByRole('link', { name: 'Line Items', exact: true });
+            const reviewLink = await screen.findByRole('link', { name: 'Review' });
+            const eventsLink = screen.getByRole('link', { name: 'Events' });
+            const lineItemsLink = screen.getByRole('link', { name: 'Line Items' });
 
             expect(reviewLink).toHaveAttribute('aria-current', 'page');
             expect(eventsLink).not.toHaveAttribute('aria-current', 'page');
