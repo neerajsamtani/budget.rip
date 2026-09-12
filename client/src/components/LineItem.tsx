@@ -21,7 +21,7 @@ interface LineItemProps {
 interface LineItemDisplayProps extends LineItemProps {
     isChecked: boolean;
     handleToggle: () => void;
-    amountStatus: 'success' | 'warning';
+    amountStatus?: 'success' | 'warning';
 }
 
 function LineItemActions({ detailPath, description }: { detailPath?: string; description: string }) {
@@ -52,29 +52,31 @@ function LineItemCard({ lineItem, showCheckBox, isChecked, handleToggle, amountS
 
     return (
         <div
-            className={`p-4 ${hasAttachedContent ? 'bg-muted/30' : 'border-b last:border-b-0'} ${isChecked ? 'bg-primary-light' : ''}`}
+            className={`p-3 ${hasAttachedContent ? 'bg-muted/30' : 'border-b last:border-b-0'} ${isChecked ? 'bg-primary-light' : ''}`}
         >
             <div className="flex items-start gap-3">
                 {showCheckBox && (
                     <div className="pt-1" onClick={(e) => e.stopPropagation()}>
-                        <Checkbox checked={isChecked} onCheckedChange={handleToggle} />
+                        <Checkbox
+                            checked={isChecked}
+                            onCheckedChange={handleToggle}
+                            aria-label={`Select ${lineItem.description || "transaction"}`}
+                        />
                     </div>
                 )}
                 <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-start gap-2 mb-2">
+                    <div className="flex justify-between items-start gap-2 mb-1">
                         <span className="text-sm text-muted-foreground">{readableDate}</span>
                         <div className="flex items-center gap-1">
-                            <StatusBadge status={amountStatus}>
-                                {CurrencyFormatter.format(Math.abs(lineItem.amount))}
-                            </StatusBadge>
+                            <StatusBadge status={amountStatus ?? (lineItem.amount < 0 ? "success" : "warning")}>{CurrencyFormatter.format(Math.abs(lineItem.amount))}</StatusBadge>
                             <LineItemActions detailPath={detailPath} description={lineItem.description} />
                         </div>
                     </div>
-                    <p className="font-medium text-foreground truncate" title={lineItem.description}>
+                    <p className="break-words font-medium text-foreground" title={lineItem.description}>
                         {lineItem.description}
                     </p>
                     <div className="flex gap-2 mt-1 text-sm text-muted-foreground items-center">
-                        <span>{lineItem.payment_method}</span>
+                        <span className="min-w-0 break-words">{lineItem.payment_method}</span>
                         {lineItem.is_manual && (
                             <TooltipProvider>
                                 <Tooltip>
@@ -113,10 +115,11 @@ function LineItemRow({ lineItem, showCheckBox, isChecked, handleToggle, amountSt
                     <Checkbox
                         checked={isChecked}
                         onCheckedChange={handleToggle}
+                        aria-label={`Select ${lineItem.description || "transaction"}`}
                     />
                 </TableCell>
             )}
-            <TableCell className="font-medium">
+            <TableCell className="w-[8.5rem] whitespace-nowrap font-medium">
                 {readableDate}
             </TableCell>
             <TableCell>
@@ -147,9 +150,7 @@ function LineItemRow({ lineItem, showCheckBox, isChecked, handleToggle, amountSt
                 </span>
             </TableCell>
             <TableCell className="text-right">
-                <StatusBadge status={amountStatus}>
-                    {CurrencyFormatter.format(Math.abs(lineItem.amount))}
-                </StatusBadge>
+                <StatusBadge status={amountStatus ?? (lineItem.amount < 0 ? "success" : "warning")}>{CurrencyFormatter.format(Math.abs(lineItem.amount))}</StatusBadge>
             </TableCell>
             {detailPath && (
                 <TableCell className="w-12 text-right">
@@ -161,9 +162,8 @@ function LineItemRow({ lineItem, showCheckBox, isChecked, handleToggle, amountSt
 }
 
 const LineItem = React.memo(function LineItem({ lineItem, showCheckBox, isChecked = false, onToggle, detailPath, hasAttachedContent }: LineItemProps) {
-    const amountStatus: 'success' | 'warning' = lineItem.amount < 0 ? 'success' : 'warning';
     const handleToggle = onToggle ? () => onToggle(lineItem.id) : () => {};
-    const props = { lineItem, showCheckBox, isChecked, handleToggle, amountStatus, detailPath, hasAttachedContent };
+    const props = { lineItem, showCheckBox, isChecked, handleToggle, detailPath, hasAttachedContent };
     return <LineItemRow {...props} />;
 });
 

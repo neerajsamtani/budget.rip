@@ -96,12 +96,13 @@ describe('ConnectedAccountsPage', () => {
         });
 
         it('handles API errors gracefully', async () => {
-            mockAxiosInstance.get.mockRejectedValueOnce(new Error('API Error'));
+            mockAxiosInstance.get.mockRejectedValue(new Error('API Error'));
             render(<ConnectedAccountsPage stripePromise={mockStripePromise} />);
-            // TanStack Query handles the error internally
             await waitFor(() => {
-                expect(mockAxiosInstance.get).toHaveBeenCalled();
+                expect(screen.getByRole('alert')).toHaveTextContent('could not be loaded');
             });
+            expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument();
+            expect(screen.queryByText('$0.00')).not.toBeInTheDocument();
         });
     });
 
@@ -123,6 +124,37 @@ describe('ConnectedAccountsPage', () => {
                 expect(screen.getAllByText('Active').length).toBeGreaterThan(0);
                 const balanceCells = screen.getAllByText('$1,000.00');
                 expect(balanceCells.length).toBeGreaterThanOrEqual(1);
+                expect(screen.getAllByText(/Balance updated Nov 14, 2023/).length).toBeGreaterThan(0);
+                expect(screen.getAllByText('Balance may be outdated').length).toBeGreaterThan(0);
+            });
+        });
+
+        it('shows a real zero balance as zero and does not mark a recent balance outdated', async () => {
+            const recentAccounts = [{
+                stripe: [{
+                    institution_name: 'RecentBank',
+                    display_name: 'Checking',
+                    last4: '0000',
+                    id: 'stripe-zero',
+                    status: 'active',
+                }],
+            }];
+            const recentAsOf = Math.floor(Date.now() / 1000);
+            mockAxiosInstance.get.mockImplementation((url: string) => {
+                if (url.includes('connected_accounts')) return Promise.resolve({ data: recentAccounts });
+                if (url.includes('accounts_and_balances')) {
+                    return Promise.resolve({
+                        data: { 'stripe-zero': { balance: 0, as_of: recentAsOf, status: 'active' } },
+                    });
+                }
+                return Promise.resolve({ data: {} });
+            });
+
+            render(<ConnectedAccountsPage stripePromise={mockStripePromise} />);
+            await waitFor(() => {
+                expect(screen.getAllByText('$0.00').length).toBeGreaterThan(0);
+                expect(screen.getAllByText(/Balance updated .* \(today\)/).length).toBeGreaterThan(0);
+                expect(screen.queryByText('Balance may be outdated')).not.toBeInTheDocument();
             });
         });
 
@@ -168,9 +200,8 @@ describe('ConnectedAccountsPage', () => {
             await waitFor(() => {
                 // Mobile and desktop layouts both render
                 expect(screen.getAllByText(/NewBank Checking 9999/).length).toBeGreaterThan(0);
-                // Should show em dash (—) in desktop table
-                const emDashes = screen.getAllByText('—');
-                expect(emDashes.length).toBeGreaterThanOrEqual(2);
+                expect(screen.getAllByText('Not available').length).toBeGreaterThanOrEqual(2);
+                expect(screen.getAllByText('Balance updated: Not available').length).toBeGreaterThanOrEqual(2);
             });
         });
     });
@@ -365,6 +396,15 @@ describe('ConnectedAccountsPage', () => {
             expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
             await waitFor(() => {
                 expect(screen.getAllByRole('table').length).toBeGreaterThanOrEqual(2);
+            });
+        });
+
+        it('labels refresh controls with the account name', async () => {
+            render(<ConnectedAccountsPage stripePromise={mockStripePromise} />);
+            await waitFor(() => {
+                expect(screen.getAllByRole('button', {
+                    name: 'Refresh Bank Checking 1234 account data',
+                }).length).toBeGreaterThanOrEqual(2);
             });
         });
     });

@@ -1,5 +1,16 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PageContainer } from "@/components/ui/layout";
@@ -109,6 +120,9 @@ export default function LineItemDetailPage() {
     const [amount, setAmount] = useState("");
     const [paymentMethodId, setPaymentMethodId] = useState("");
     const [notes, setNotes] = useState("");
+    const [showMoreActions, setShowMoreActions] = useState(false);
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+    const [showTechnicalDetails, setShowTechnicalDetails] = useState(false);
 
     useEffect(() => {
         if (!lineItem) return;
@@ -161,6 +175,11 @@ export default function LineItemDetailPage() {
             : undefined;
     const canEdit = isManual;
     const canDelete = isManual && !isAssigned;
+    const actionHelp = !isManual
+        ? "Synced line items cannot be edited or deleted."
+        : isAssigned
+            ? "Remove this line item from its event before deleting it."
+            : undefined;
     const disableSave = !date || !description || !paymentMethodId || Number.isNaN(Number(amount));
 
     const cancelEditing = () => {
@@ -230,30 +249,74 @@ export default function LineItemDetailPage() {
                             )}
                         </div>
                     </div>
-                    <div className="flex w-full gap-2 sm:w-auto">
+                    <div className="flex w-full items-start justify-end gap-2 sm:w-auto">
                         <ActionButton
                             variant="secondary"
                             size="sm"
                             onClick={() => setIsEditing(true)}
                             disabled={!canEdit}
                             tooltip={editTooltip}
+                            aria-describedby={!canEdit ? "line-item-action-help" : undefined}
                             className="flex-1 sm:flex-none"
                         >
                             <Pencil className="h-4 w-4" />
                             Edit
                         </ActionButton>
-                        <ActionButton
-                            variant="destructive"
-                            size="sm"
-                            onClick={deleteLineItem}
-                            disabled={!canDelete || deleteManualTransactionMutation.isPending}
-                            tooltip={deleteTooltip}
-                            className="flex-1 sm:flex-none"
-                        >
-                            <Trash2 className="h-4 w-4" />
-                            Delete
-                        </ActionButton>
+                        <div className="relative">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                aria-expanded={showMoreActions}
+                                aria-controls="line-item-more-actions"
+                                onClick={() => setShowMoreActions(prev => !prev)}
+                            >
+                                More actions
+                            </Button>
+                            {showMoreActions && (
+                                <div id="line-item-more-actions" role="menu" className="absolute right-0 z-10 mt-2 w-56 rounded-md border bg-white p-1 shadow-lg">
+                                    <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                                        <AlertDialogTrigger asChild>
+                                            <ActionButton
+                                                variant="ghost"
+                                                size="sm"
+                                                role="menuitem"
+                                                disabled={!canDelete || deleteManualTransactionMutation.isPending}
+                                                tooltip={deleteTooltip}
+                                                aria-describedby={!canDelete ? "line-item-action-help" : undefined}
+                                                className="w-full justify-start text-semantic-error hover:text-semantic-error"
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                                Delete line item
+                                            </ActionButton>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                                <AlertDialogTitle>Delete {lineItem.description}?</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                    This permanently deletes the manual transaction and its line item. This action cannot be undone.
+                                                </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                <AlertDialogAction
+                                                    onClick={deleteLineItem}
+                                                    disabled={deleteManualTransactionMutation.isPending}
+                                                    className="bg-semantic-error text-white hover:bg-semantic-error-dark"
+                                                >
+                                                    {deleteManualTransactionMutation.isPending ? "Deleting..." : "Delete line item"}
+                                                </AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
+                                </div>
+                            )}
+                        </div>
                     </div>
+                    {actionHelp && (
+                        <p id="line-item-action-help" className="text-right text-sm text-muted-foreground">
+                            {actionHelp}
+                        </p>
+                    )}
                 </div>
 
                 {isEditing ? (
@@ -319,6 +382,20 @@ export default function LineItemDetailPage() {
                                     <DetailRow label="Description">{lineItem.description}</DetailRow>
                                     <DetailRow label="Notes">{lineItem.notes || "-"}</DetailRow>
                                 </dl>
+                                <details className="mt-5 border-t pt-4" onToggle={(event) => setShowTechnicalDetails(event.currentTarget.open)}>
+                                    <summary className="cursor-pointer text-sm font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                                        Technical details
+                                    </summary>
+                                    {showTechnicalDetails && (
+                                        <dl className="mt-4 space-y-4">
+                                            <DetailRow label="Line item ID">{lineItem.id}</DetailRow>
+                                            <DetailRow label="Transaction ID">{lineItem.transaction_id || "-"}</DetailRow>
+                                            <DetailRow label="Payment method ID">{lineItem.payment_method_id || "-"}</DetailRow>
+                                            {lineItem.event_id && <DetailRow label="Event ID">{lineItem.event_id}</DetailRow>}
+                                            <DetailRow label="Source key">{lineItem.source || "-"}</DetailRow>
+                                        </dl>
+                                    )}
+                                </details>
                             </div>
                         </main>
 

@@ -4,6 +4,8 @@ import {
   formatMonthYear,
   getAvailableYears,
   getCategorySign,
+  getLatestDate,
+  sumDisplayedAmounts,
   toRowPerDate,
 } from '../charts/chart-utils';
 
@@ -60,8 +62,21 @@ describe('filterByCategories', () => {
     expect(Object.keys(result)).toEqual(['Dining', 'Travel']);
   });
 
-  it('empty array returns all categories unchanged', () => {
-    expect(filterByCategories(data, [])).toBe(data);
+  it('empty array returns no categories', () => {
+    expect(filterByCategories(data, [])).toEqual({});
+  });
+});
+
+describe('chart summaries', () => {
+  it('totals positive categories by magnitude and keeps negative categories signed', () => {
+    expect(sumDisplayedAmounts({
+      Dining: [{ date: '1-2024', amount: 100 }, { date: '2-2024', amount: -25 }],
+      Income: [{ date: '1-2024', amount: -500 }, { date: '2-2024', amount: -300 }],
+    })).toBe(-675);
+  });
+
+  it('returns the latest date chronologically', () => {
+    expect(getLatestDate({ Dining: [{ date: '11-2024', amount: 100 }, { date: '2-2025', amount: 50 }] })).toBe('2-2025');
   });
 });
 

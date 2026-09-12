@@ -90,16 +90,31 @@ export function filterByYear(data: MonthlyBreakdownData, year: string): MonthlyB
 // Categories excluded from spending charts — also used by EventsPage.calculateSpending
 export const NON_SPENDING_CATEGORIES = ['Income', 'Investment'];
 
-/** Filters MonthlyBreakdownData to only include the specified categories.
- *  If categories is empty, returns data unmodified. */
+/** Filters MonthlyBreakdownData to only include the specified categories. */
 export function filterByCategories(data: MonthlyBreakdownData, categories: string[]): MonthlyBreakdownData {
-  if (categories.length === 0) return data;
   const allowed = new Set(categories);
   const filtered: MonthlyBreakdownData = {};
   for (const [cat, entries] of Object.entries(data)) {
     if (allowed.has(cat)) filtered[cat] = entries;
   }
   return filtered;
+}
+
+/** Totals chart values using the same sign convention as the spending table. */
+export function sumDisplayedAmounts(data: MonthlyBreakdownData): number {
+  const categorySign = getCategorySign(data);
+  return Object.entries(data).reduce((total, [category, entries]) => {
+    if (!Array.isArray(entries)) return total;
+    return total + entries.reduce(
+      (categoryTotal, entry) => categoryTotal + (categorySign[category] === 'neg' ? entry.amount : Math.abs(entry.amount)),
+      0,
+    );
+  }, 0);
+}
+
+/** Returns the latest month represented in the data, using chronological ordering. */
+export function getLatestDate(data: MonthlyBreakdownData): string | undefined {
+  return toRowPerDate(data).at(-1)?.date as string | undefined;
 }
 
 /** Returns sorted unique years found in the data */

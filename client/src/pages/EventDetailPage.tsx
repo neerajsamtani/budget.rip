@@ -1,5 +1,16 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -107,6 +118,9 @@ export default function EventDetailPage() {
     const [overrideDate, setOverrideDate] = useState("");
     const [isDuplicateTransaction, setIsDuplicateTransaction] = useState(false);
     const [editingLineItemIds, setEditingLineItemIds] = useState<string[]>([]);
+    const [showMoreActions, setShowMoreActions] = useState(false);
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+    const [showTechnicalDetails, setShowTechnicalDetails] = useState(false);
 
     const deleteEventMutation = useDeleteEvent();
     const updateEventMutation = useUpdateEvent();
@@ -256,15 +270,52 @@ export default function EventDetailPage() {
                             ))}
                         </div>
                     </div>
-                    <div className="flex w-full gap-2 sm:w-auto">
+                    <div className="flex w-full items-start justify-end gap-2 sm:w-auto">
                         <Button variant="secondary" size="sm" onClick={() => setIsEditing(true)} className="flex-1 sm:flex-none">
                             <Pencil className="h-4 w-4" />
                             Edit
                         </Button>
-                        <Button variant="destructive" size="sm" onClick={deleteEvent} disabled={deleteEventMutation.isPending} className="flex-1 sm:flex-none">
-                            <Trash2 className="h-4 w-4" />
-                            Delete
-                        </Button>
+                        <div className="relative">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                aria-expanded={showMoreActions}
+                                aria-controls="event-more-actions"
+                                onClick={() => setShowMoreActions(prev => !prev)}
+                            >
+                                More actions
+                            </Button>
+                            {showMoreActions && (
+                                <div id="event-more-actions" role="menu" className="absolute right-0 z-10 mt-2 w-48 rounded-md border bg-white p-1 shadow-lg">
+                                    <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                                        <AlertDialogTrigger asChild>
+                                            <Button variant="ghost" size="sm" role="menuitem" className="w-full justify-start text-semantic-error hover:text-semantic-error">
+                                                <Trash2 className="h-4 w-4" />
+                                                Delete event
+                                            </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                                <AlertDialogTitle>Delete {event.name}?</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                    This removes the event and unlinks its line items. The linked line items remain available in Budgit.
+                                                </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                <AlertDialogAction
+                                                    onClick={deleteEvent}
+                                                    disabled={deleteEventMutation.isPending}
+                                                    className="bg-semantic-error text-white hover:bg-semantic-error-dark"
+                                                >
+                                                    {deleteEventMutation.isPending ? "Deleting..." : "Delete event"}
+                                                </AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
 
@@ -328,15 +379,24 @@ export default function EventDetailPage() {
                             <h2 className="text-xl font-semibold text-foreground">Details</h2>
                             <div className="rounded-xl border bg-white p-4 md:p-5">
                                 <dl className="space-y-4">
-                                    <DetailRow label="Event ID">{event.id}</DetailRow>
                                     <DetailRow label="Date">{DateFormatter.format(event.date * 1000)}</DetailRow>
-                                    <DetailRow label="Category">{event.category}</DetailRow>
-                                    <DetailRow label="Tags">{event.tags?.length ? event.tags.join(", ") : "-"}</DetailRow>
-                                    <DetailRow label="Duplicate transaction">{event.is_duplicate_transaction ? "Yes" : "No"}</DetailRow>
                                     <DetailRow label="Line items">{lineItemsForEvent.length}</DetailRow>
                                     <DetailRow label="Payment methods">{paymentMethods.length ? paymentMethods.join(", ") : "-"}</DetailRow>
                                     <DetailRow label="Responsible parties">{responsibleParties.length ? responsibleParties.join(", ") : "-"}</DetailRow>
                                 </dl>
+                                <details className="mt-5 border-t pt-4" onToggle={(event) => setShowTechnicalDetails(event.currentTarget.open)}>
+                                    <summary className="cursor-pointer text-sm font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                                        Technical details
+                                    </summary>
+                                    {showTechnicalDetails && (
+                                        <dl className="mt-4 space-y-4">
+                                            <DetailRow label="Event ID">{event.id}</DetailRow>
+                                            <DetailRow label="Category">{event.category}</DetailRow>
+                                            <DetailRow label="Tags">{event.tags?.length ? event.tags.join(", ") : "-"}</DetailRow>
+                                            <DetailRow label="Duplicate transaction">{event.is_duplicate_transaction ? "Yes" : "No"}</DetailRow>
+                                        </dl>
+                                    )}
+                                </details>
                             </div>
                         </aside>
                     </div>

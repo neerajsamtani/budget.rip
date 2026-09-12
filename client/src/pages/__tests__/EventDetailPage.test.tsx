@@ -1,5 +1,5 @@
 import { QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
@@ -115,9 +115,10 @@ describe('EventDetailPage', () => {
     it('renders the details rail from event and line item data', async () => {
         renderEventDetail();
 
-        await waitFor(() => expect(screen.getByText('Event ID')).toBeInTheDocument());
+        await waitFor(() => expect(screen.getByText('Technical details')).toBeInTheDocument());
+        await userEvent.click(screen.getByText('Technical details'));
 
-        expect(screen.getByText('event-1')).toBeInTheDocument();
+        await waitFor(() => expect(screen.getByText('event-1')).toBeInTheDocument());
         expect(screen.getAllByText('Dining').length).toBeGreaterThan(0);
         expect(screen.getAllByText('friends').length).toBeGreaterThan(0);
         expect(screen.getByText('Chase Card, Amex')).toBeInTheDocument();
@@ -158,11 +159,17 @@ describe('EventDetailPage', () => {
         expect(screen.getByTestId('location')).toHaveTextContent('/events/event-1?month=January&category=Dining');
     });
 
-    it('deletes the event and navigates back to the filtered list', async () => {
+    it('requires confirmation before deleting the event and navigates back to the filtered list', async () => {
         renderEventDetail();
 
-        await waitFor(() => expect(screen.getByRole('button', { name: /Delete/ })).toBeInTheDocument());
-        await userEvent.click(screen.getByRole('button', { name: /Delete/ }));
+        await waitFor(() => expect(screen.getByRole('button', { name: 'More actions' })).toBeInTheDocument());
+        await userEvent.click(screen.getByRole('button', { name: 'More actions' }));
+        await userEvent.click(screen.getByRole('menuitem', { name: 'Delete event' }));
+
+        expect(mockAxiosInstance.delete).not.toHaveBeenCalled();
+        const dialog = screen.getByRole('alertdialog');
+        expect(within(dialog).getByText(/unlinks its line items/i)).toBeInTheDocument();
+        await userEvent.click(within(dialog).getByRole('button', { name: 'Delete event' }));
 
         await waitFor(() => expect(mockAxiosInstance.delete).toHaveBeenCalledWith('api/events/event-1'));
         expect(screen.getByText('Events List')).toBeInTheDocument();

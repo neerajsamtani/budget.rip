@@ -34,24 +34,32 @@ export default function StackedSpendingChart({ data, chartConfig }: Props) {
 
   return (
     <div>
-      <ChartContainer config={chartConfig} className="aspect-auto h-[350px] md:h-[450px] w-full">
-        <BarChart data={rows}>
-          <CartesianGrid strokeDasharray="3 3" vertical={false} />
-          <XAxis dataKey="formattedDate" tickLine={false} axisLine={false} tickMargin={8} />
-          <YAxis tickLine={false} axisLine={false} tickFormatter={(v) => `$${v}`} />
-          <ChartTooltip content={<SpendingTooltipContent />} />
-          {categories.map((cat) => (
-            <Bar
-              key={cat}
-              dataKey={cat}
-              stackId={categorySign[cat] ?? 'pos'}
-              fill={chartConfig[cat]?.color}
-              hide={hiddenCategories.has(cat)}
-            />
-          ))}
-        </BarChart>
-      </ChartContainer>
-      <ChartLegend items={[...categories].reverse()} colorMap={colorMap} hiddenSet={hiddenCategories} onToggle={toggleCategory} />
+      {categories.length === 0 ? (
+        <p className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
+          No spending data for the selected categories and year.
+        </p>
+      ) : (
+        <>
+          <ChartContainer config={chartConfig} className="aspect-auto h-[350px] md:h-[450px] w-full">
+            <BarChart data={rows}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="formattedDate" tickLine={false} axisLine={false} tickMargin={8} />
+              <YAxis tickLine={false} axisLine={false} tickFormatter={(v) => `$${v}`} />
+              <ChartTooltip content={<SpendingTooltipContent />} />
+              {categories.map((cat) => (
+                <Bar
+                  key={cat}
+                  dataKey={cat}
+                  stackId={categorySign[cat] ?? 'pos'}
+                  fill={chartConfig[cat]?.color}
+                  hide={hiddenCategories.has(cat)}
+                />
+              ))}
+            </BarChart>
+          </ChartContainer>
+          <ChartLegend items={[...categories].reverse()} colorMap={colorMap} hiddenSet={hiddenCategories} onToggle={toggleCategory} />
+        </>
+      )}
     </div>
   );
 }

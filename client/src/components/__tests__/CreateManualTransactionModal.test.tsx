@@ -77,6 +77,7 @@ describe('CreateManualTransactionModal', () => {
             render(<CreateManualTransactionModal show={true} onHide={mockOnHide} />);
 
             expect(screen.getByText('Payment Method')).toBeInTheDocument();
+            expect(screen.getByText('Direction')).toBeInTheDocument();
             expect(screen.getByText('Date')).toBeInTheDocument();
             expect(screen.getByText('Person')).toBeInTheDocument();
             expect(screen.getByText('Description')).toBeInTheDocument();
@@ -192,6 +193,13 @@ describe('CreateManualTransactionModal', () => {
 
             expect(amountInput).toHaveValue(50);
         });
+
+        it('direction defaults to spent', () => {
+            render(<CreateManualTransactionModal show={true} onHide={mockOnHide} />);
+
+            expect(screen.getByRole('radio', { name: 'Spent' })).toBeChecked();
+            expect(screen.getByRole('radio', { name: 'Received' })).not.toBeChecked();
+        });
     });
 
     describe('Form Validation', () => {
@@ -206,6 +214,30 @@ describe('CreateManualTransactionModal', () => {
                 description: 'Please select a payment method',
                 duration: 3500,
             });
+            expect(mockMutate).not.toHaveBeenCalled();
+        });
+
+        it('rejects invalid or negative amounts', async () => {
+            const { toast } = require('sonner');
+            render(<CreateManualTransactionModal show={true} onHide={mockOnHide} />);
+
+            await userEvent.click(screen.getByRole('combobox'));
+            await userEvent.click(screen.getByRole('option', { name: 'Cash' }));
+            const amountInput = screen.getByLabelText('Amount');
+            fireEvent.change(amountInput, { target: { value: 'not-a-number' } });
+
+            await userEvent.click(screen.getByRole('button', { name: /create transaction/i }));
+
+            expect(toast.error).toHaveBeenCalledWith('Error', {
+                description: 'Please enter a valid nonnegative amount',
+                duration: 3500,
+            });
+            expect(mockMutate).not.toHaveBeenCalled();
+
+            fireEvent.change(amountInput, { target: { value: '-12.34' } });
+            await userEvent.click(screen.getByRole('button', { name: /create transaction/i }));
+
+            expect(toast.error).toHaveBeenCalledTimes(2);
             expect(mockMutate).not.toHaveBeenCalled();
         });
     });
@@ -233,6 +265,28 @@ describe('CreateManualTransactionModal', () => {
             const loadingButton = screen.getByRole('button', { name: /creating/i });
             expect(loadingButton).toBeDisabled();
         });
+
+        it.each([
+            ['Spent', 12.34],
+            ['Received', -12.34],
+        ])('submits %s amounts using the API sign convention', async (directionLabel, expectedAmount) => {
+            render(<CreateManualTransactionModal show={true} onHide={mockOnHide} />);
+
+            await userEvent.click(screen.getByRole('combobox'));
+            await userEvent.click(screen.getByRole('option', { name: 'Cash' }));
+            if (directionLabel === 'Received') {
+                await userEvent.click(screen.getByRole('radio', { name: 'Received' }));
+            }
+            const amountInput = screen.getByLabelText('Amount');
+            await userEvent.clear(amountInput);
+            await userEvent.type(amountInput, '12.34');
+            await userEvent.click(screen.getByRole('button', { name: /create transaction/i }));
+
+            expect(mockMutate.mock.calls[0][0]).toEqual(expect.objectContaining({
+                amount: expectedAmount,
+                payment_method_id: 'pm_cash',
+            }));
+        });
     });
 
     describe('Modal Closing', () => {
@@ -243,6 +297,18 @@ describe('CreateManualTransactionModal', () => {
             await userEvent.click(cancelButton);
 
             expect(mockOnHide).toHaveBeenCalled();
+        });
+
+        it('resets direction to spent when the modal is reopened', async () => {
+            const { rerender } = render(<CreateManualTransactionModal show={true} onHide={mockOnHide} />);
+
+            await userEvent.click(screen.getByRole('radio', { name: 'Received' }));
+            expect(screen.getByRole('radio', { name: 'Received' })).toBeChecked();
+
+            await userEvent.click(screen.getByRole('button', { name: /cancel/i }));
+            rerender(<CreateManualTransactionModal show={true} onHide={mockOnHide} />);
+
+            expect(screen.getByRole('radio', { name: 'Spent' })).toBeChecked();
         });
     });
 
@@ -258,6 +324,7 @@ describe('CreateManualTransactionModal', () => {
             render(<CreateManualTransactionModal show={true} onHide={mockOnHide} />);
 
             expect(screen.getByText('Payment Method')).toBeInTheDocument();
+            expect(screen.getByText('Direction')).toBeInTheDocument();
             expect(screen.getByText('Date')).toBeInTheDocument();
             expect(screen.getByText('Person')).toBeInTheDocument();
             expect(screen.getByText('Description')).toBeInTheDocument();
@@ -276,6 +343,9 @@ describe('CreateManualTransactionModal', () => {
 
             const amountInput = screen.getByLabelText('Amount');
             expect(amountInput).toHaveAttribute('placeholder', '0.00');
+            expect(amountInput).toHaveAttribute('inputmode', 'decimal');
+            expect(amountInput).toHaveAttribute('min', '0');
+            expect(screen.getByText('Enter the dollar amount without a sign.')).toBeInTheDocument();
         });
     });
 

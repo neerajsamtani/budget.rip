@@ -205,7 +205,7 @@ export default function EventsPage() {
                                 <TableHead>Date</TableHead>
                                 <TableHead>Name</TableHead>
                                 <TableHead>Category</TableHead>
-                                <TableHead>Amount</TableHead>
+                                <TableHead className="text-right">Amount</TableHead>
                                 <TableHead>Tags</TableHead>
                                 <TableHead>Actions</TableHead>
                             </TableRow>

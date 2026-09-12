@@ -7,6 +7,7 @@ import LineItemsToReviewPage from '../LineItemsToReviewPage';
 
 // Mock the context
 const mockDispatch = jest.fn();
+const mockRetry = jest.fn();
 const mockAcceptSuggestion = jest.fn();
 const mockRejectSuggestion = jest.fn();
 jest.mock('../../contexts/LineItemsContext', () => ({
@@ -14,6 +15,14 @@ jest.mock('../../contexts/LineItemsContext', () => ({
     useLineItemsDispatch: jest.fn(() => mockDispatch),
 }));
 jest.mock('../../hooks/useApi', () => ({
+    usePaymentMethods: () => ({
+        data: [
+            { id: 'pm-credit', name: 'credit_card', type: 'card', is_active: true },
+            { id: 'pm-cash', name: 'cash', type: 'cash', is_active: true },
+            { id: 'pm-debit', name: 'debit_card', type: 'card', is_active: true },
+        ],
+        error: null,
+    }),
     useAcceptEventSuggestion: () => ({
         mutateAsync: mockAcceptSuggestion,
         isPending: false,
@@ -168,6 +177,10 @@ const mockLineItemsWithSelection = [
     }
 ];
 
+async function openAddMenu() {
+    await userEvent.click(screen.getByRole('button', { name: /add transaction/i }));
+}
+
 describe('LineItemsToReviewPage', () => {
     beforeEach(() => {
         jest.clearAllMocks();
@@ -221,8 +234,9 @@ describe('LineItemsToReviewPage', () => {
             mockUseLineItems.mockReturnValue({ lineItems: [suggestedLineItem], isPending: false });
             render(<LineItemsToReviewPage />);
 
-            expect(screen.getAllByText('Create an event for this line item')).toHaveLength(2);
-            expect(screen.getAllByText('Category: Subscription')).toHaveLength(2);
+            expect(screen.getAllByLabelText(`Suggested event for ${suggestedLineItem.description}`)).toHaveLength(2);
+            expect(screen.getAllByText('Suggested event')).toHaveLength(2);
+            expect(screen.getAllByText('Subscription')).toHaveLength(2);
         });
     });
 
@@ -237,7 +251,7 @@ describe('LineItemsToReviewPage', () => {
 
             expect(screen.getByText('Select')).toBeInTheDocument();
             expect(screen.getByText('Date')).toBeInTheDocument();
-            expect(screen.getByText('Payment Method')).toBeInTheDocument();
+            expect(screen.getAllByText('Payment Method').length).toBeGreaterThan(0);
             expect(screen.getByText('Description')).toBeInTheDocument();
             expect(screen.getByText('Party')).toBeInTheDocument();
             expect(screen.getByText('Amount')).toBeInTheDocument();
@@ -266,8 +280,7 @@ describe('LineItemsToReviewPage', () => {
         it('renders action buttons in the navbar', () => {
             render(<LineItemsToReviewPage />);
 
-            expect(screen.getByRole('button', { name: /create manual transaction/i })).toBeInTheDocument();
-            expect(screen.getByRole('button', { name: /create splitwise expense/i })).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: /add transaction/i })).toBeInTheDocument();
             expect(screen.getByRole('button', { name: /create event/i })).toBeInTheDocument();
         });
 
@@ -290,8 +303,7 @@ describe('LineItemsToReviewPage', () => {
             render(<LineItemsToReviewPage />);
 
             expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
-            expect(screen.getByRole('button', { name: /create manual transaction/i })).toBeInTheDocument();
-            expect(screen.getByRole('button', { name: /create splitwise expense/i })).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: /add transaction/i })).toBeInTheDocument();
             expect(screen.getByRole('button', { name: /create event/i })).toBeInTheDocument();
         });
 
@@ -300,8 +312,7 @@ describe('LineItemsToReviewPage', () => {
             render(<LineItemsToReviewPage />);
 
             expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
-            expect(screen.getByRole('button', { name: /create manual transaction/i })).toBeInTheDocument();
-            expect(screen.getByRole('button', { name: /create splitwise expense/i })).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: /add transaction/i })).toBeInTheDocument();
             expect(screen.getByRole('button', { name: /create event/i })).toBeInTheDocument();
         });
     });
@@ -310,8 +321,8 @@ describe('LineItemsToReviewPage', () => {
         it('opens manual transaction modal when button is clicked', async () => {
             render(<LineItemsToReviewPage />);
 
-            const manualButton = screen.getByRole('button', { name: /create manual transaction/i });
-            await userEvent.click(manualButton);
+            await openAddMenu();
+            await userEvent.click(screen.getByRole('button', { name: /create manual transaction/i }));
 
             expect(screen.getByTestId('manual-transaction-modal')).toBeInTheDocument();
         });
@@ -330,8 +341,8 @@ describe('LineItemsToReviewPage', () => {
             mockUseLineItems.mockReturnValue({ lineItems: mockLineItemsWithSelection, isPending: false });
             render(<LineItemsToReviewPage />);
 
-            const splitwiseButton = screen.getByRole('button', { name: /create splitwise expense/i });
-            await userEvent.click(splitwiseButton);
+            await openAddMenu();
+            await userEvent.click(screen.getByRole('button', { name: /create splitwise expense/i }));
 
             expect(screen.getByTestId('splitwise-expense-modal')).toBeInTheDocument();
         });
@@ -340,8 +351,8 @@ describe('LineItemsToReviewPage', () => {
             render(<LineItemsToReviewPage />);
 
             // Open modal
-            const manualButton = screen.getByRole('button', { name: /create manual transaction/i });
-            await userEvent.click(manualButton);
+            await openAddMenu();
+            await userEvent.click(screen.getByRole('button', { name: /create manual transaction/i }));
             expect(screen.getByTestId('manual-transaction-modal')).toBeInTheDocument();
 
             // Close modal
@@ -371,11 +382,11 @@ describe('LineItemsToReviewPage', () => {
             mockUseLineItems.mockReturnValue({ lineItems: mockLineItemsWithSelection, isPending: false });
             render(<LineItemsToReviewPage />);
 
-            const manualButton = screen.getByRole('button', { name: /create manual transaction/i });
             const eventButton = screen.getByRole('button', { name: /create event/i });
 
             // Open manual transaction modal first
-            await userEvent.click(manualButton);
+            await openAddMenu();
+            await userEvent.click(screen.getByRole('button', { name: /create manual transaction/i }));
             expect(screen.getByTestId('manual-transaction-modal')).toBeInTheDocument();
             expect(screen.queryByTestId('event-modal')).not.toBeInTheDocument();
 
@@ -473,8 +484,8 @@ describe('LineItemsToReviewPage', () => {
             render(<LineItemsToReviewPage />);
 
             // Open manual transaction modal first
-            const manualButton = screen.getByRole('button', { name: /create manual transaction/i });
-            await userEvent.click(manualButton);
+            await openAddMenu();
+            await userEvent.click(screen.getByRole('button', { name: /create manual transaction/i }));
             expect(screen.getByTestId('manual-transaction-modal')).toBeInTheDocument();
 
             // Press Enter - should not open event modal
@@ -524,7 +535,7 @@ describe('LineItemsToReviewPage', () => {
         it('has proper button labels', () => {
             render(<LineItemsToReviewPage />);
 
-            expect(screen.getByRole('button', { name: /create manual transaction/i })).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: /add transaction/i })).toBeInTheDocument();
             expect(screen.getByRole('button', { name: /create event/i })).toBeInTheDocument();
         });
 
@@ -577,8 +588,8 @@ describe('LineItemsToReviewPage', () => {
         it('passes correct props to CreateManualTransactionModal', async () => {
             render(<LineItemsToReviewPage />);
 
-            const manualButton = screen.getByRole('button', { name: /create manual transaction/i });
-            await userEvent.click(manualButton);
+            await openAddMenu();
+            await userEvent.click(screen.getByRole('button', { name: /create manual transaction/i }));
 
             expect(screen.getByTestId('manual-transaction-modal')).toBeInTheDocument();
         });
@@ -603,9 +614,8 @@ describe('LineItemsToReviewPage', () => {
             expect(bottomContainer).toBeInTheDocument();
 
             // Verify buttons are present in the fixed bottom area
-            const manualButton = screen.getByRole('button', { name: /create manual transaction/i });
             const eventButton = screen.getByRole('button', { name: /create event/i });
-            expect(manualButton).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: /add transaction/i })).toBeInTheDocument();
             expect(eventButton).toBeInTheDocument();
         });
 
@@ -620,12 +630,11 @@ describe('LineItemsToReviewPage', () => {
         it('renders buttons with correct attributes', () => {
             render(<LineItemsToReviewPage />);
 
-            const manualButton = screen.getByRole('button', { name: /create manual transaction/i });
             const eventButton = screen.getByRole('button', { name: /create event/i });
 
-            expect(manualButton).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: /add transaction/i })).toBeInTheDocument();
             expect(eventButton).toBeInTheDocument();
-            expect(manualButton).toHaveAttribute('data-slot', 'button');
+            expect(screen.getByRole('button', { name: /add transaction/i })).toHaveAttribute('data-slot', 'popover-trigger');
             expect(eventButton).toHaveAttribute('data-slot', 'button');
         });
     });
@@ -729,8 +738,63 @@ describe('LineItemsToReviewPage', () => {
 
             const bottomContainer = document.querySelector('.fixed.bottom-0');
             expect(bottomContainer).toBeInTheDocument();
-            expect(screen.getByRole('button', { name: /create manual transaction/i })).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: /add transaction/i })).toBeInTheDocument();
             expect(screen.getByRole('button', { name: /create event/i })).toBeInTheDocument();
+        });
+    });
+
+    describe('Review filters and selection summary', () => {
+        it('combines search, payment method, and date filters without changing the queue count', async () => {
+            const filteredItems = [
+                { ...mockLineItems[0], description: 'Coffee shop', responsible_party: 'Alex', date: 1640995200 },
+                { ...mockLineItems[1], description: 'Coffee shop', responsible_party: 'Sam', date: 1641081600 },
+            ];
+            mockUseLineItems.mockReturnValue({ lineItems: filteredItems, isPending: false });
+            render(<LineItemsToReviewPage />);
+
+            await userEvent.type(screen.getByRole('searchbox', { name: /search review transactions/i }), 'coffee');
+            await userEvent.click(screen.getByRole('combobox'));
+            await userEvent.click(screen.getByRole('option', { name: 'credit_card' }));
+            fireEvent.change(screen.getByLabelText('Start date'), { target: { value: '2022-01-01' } });
+            fireEvent.change(screen.getByLabelText('End date'), { target: { value: '2022-01-01' } });
+
+            expect(screen.getByText(/to review/)).toHaveTextContent('1 of 2');
+            expect(screen.getByTestId('line-item-1')).toBeInTheDocument();
+            expect(screen.queryByTestId('line-item-2')).not.toBeInTheDocument();
+        });
+
+        it('keeps hidden selections in the total and clears every selection explicitly', async () => {
+            mockUseLineItems.mockReturnValue({ lineItems: mockLineItemsWithSelection, isPending: false });
+            render(<LineItemsToReviewPage />);
+
+            await userEvent.type(screen.getByRole('searchbox', { name: /search review transactions/i }), 'Store 2');
+
+            expect(screen.getByText(/to review/)).toHaveTextContent('1 of 3');
+            expect(screen.getByText('1 selected')).toBeInTheDocument();
+            expect(screen.getByText('1 selected hidden by filters')).toBeInTheDocument();
+
+            await userEvent.click(screen.getByRole('button', { name: /clear selection/i }));
+            expect(mockDispatch).toHaveBeenCalledWith({ type: 'clear_line_item_selection' });
+        });
+
+        it('shows a distinct empty state and clear filters action for unmatched filters', async () => {
+            render(<LineItemsToReviewPage />);
+
+            await userEvent.type(screen.getByRole('searchbox', { name: /search review transactions/i }), 'does not exist');
+
+            expect(screen.getAllByText('No matching transactions').length).toBeGreaterThan(0);
+            expect(screen.getAllByRole('button', { name: /clear filters/i }).length).toBeGreaterThan(0);
+            expect(screen.queryByText('All caught up')).not.toBeInTheDocument();
+        });
+
+        it('keeps load failures separate from empty states and retries the review query', async () => {
+            mockUseLineItems.mockReturnValue({ lineItems: [], isPending: false, error: new Error('offline'), refetch: mockRetry });
+            render(<LineItemsToReviewPage />);
+
+            expect(screen.getByRole('alert')).toHaveTextContent('could not be loaded');
+            expect(screen.queryByText('All caught up')).not.toBeInTheDocument();
+            await userEvent.click(screen.getByRole('button', { name: 'Retry' }));
+            expect(mockRetry).toHaveBeenCalledTimes(1);
         });
     });
 
@@ -779,7 +843,7 @@ describe('LineItemsToReviewPage', () => {
             render(<LineItemsToReviewPage />);
 
             // Should show message in both mobile and desktop layouts
-            const messages = screen.getAllByText('No line items to review');
+            const messages = screen.getAllByText('All caught up');
             expect(messages.length).toBeGreaterThan(0);
         });
     });

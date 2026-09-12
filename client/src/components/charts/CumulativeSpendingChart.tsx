@@ -56,28 +56,36 @@ export default function CumulativeSpendingChart({ data }: Props) {
 
   return (
     <div>
-      <ChartContainer config={chartConfig} className="aspect-auto h-[350px] md:h-[450px] w-full">
-        <LineChart data={rows}>
-          <CartesianGrid strokeDasharray="3 3" vertical={false} />
-          <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} />
-          <YAxis tickLine={false} axisLine={false} tickFormatter={(v) => `$${v}`} />
-          <ChartTooltip content={<SpendingTooltipContent showTotal={false} />} />
-          {years.map((year) => (
-            <Line
-              key={year}
-              type="monotone"
-              dataKey={year}
-              stroke={chartConfig[year]?.color}
-              strokeWidth={year === currentYear ? 3 : 1.5}
-              strokeDasharray={year === currentYear ? undefined : '5 5'}
-              dot={false}
-              hide={hiddenYears.has(year)}
-              connectNulls
-            />
-          ))}
-        </LineChart>
-      </ChartContainer>
-      <ChartLegend items={years} colorMap={colorMap} hiddenSet={hiddenYears} onToggle={toggleYear} />
+      {years.length === 0 ? (
+        <p className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
+          No cumulative data for the selected categories.
+        </p>
+      ) : (
+        <>
+          <ChartContainer config={chartConfig} className="aspect-auto h-[350px] md:h-[450px] w-full">
+            <LineChart data={rows}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} />
+              <YAxis tickLine={false} axisLine={false} tickFormatter={(v) => `$${v}`} />
+              <ChartTooltip content={<SpendingTooltipContent showTotal={false} />} />
+              {years.map((year) => (
+                <Line
+                  key={year}
+                  type="monotone"
+                  dataKey={year}
+                  stroke={chartConfig[year]?.color}
+                  strokeWidth={year === currentYear ? 3 : 1.5}
+                  strokeDasharray={year === currentYear ? undefined : '5 5'}
+                  dot={false}
+                  hide={hiddenYears.has(year)}
+                  connectNulls
+                />
+              ))}
+            </LineChart>
+          </ChartContainer>
+          <ChartLegend items={years} colorMap={colorMap} hiddenSet={hiddenYears} onToggle={toggleYear} />
+        </>
+      )}
     </div>
   );
 }

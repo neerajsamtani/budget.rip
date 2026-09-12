@@ -7,7 +7,7 @@ import { loadStripe } from "@stripe/stripe-js";
 import { MenuIcon } from "lucide-react";
 import React, { Suspense, useState } from "react";
 import {
-  Link, Route,
+  Link, NavLink, Route,
   BrowserRouter as Router,
   Routes
 } from "react-router-dom";
@@ -26,6 +26,12 @@ const LineItemsPage = React.lazy(() => import("./pages/LineItemsPage"));
 const LoginPage = React.lazy(() => import("./pages/LoginPage"));
 const SettingsPage = React.lazy(() => import("./pages/SettingsPage"));
 import { showErrorToast, showSuccessToast } from "./utils/toast-helpers";
+
+const navLinkClass = ({ isActive }: { isActive: boolean }) =>
+  `text-foreground hover:text-primary px-2 xl:px-3 py-2 no-underline font-body font-medium transition-colors duration-150 text-sm xl:text-base whitespace-nowrap rounded-md ${isActive ? "bg-primary/10 text-primary font-semibold ring-1 ring-primary/30" : ""}`;
+
+const mobileNavLinkClass = ({ isActive }: { isActive: boolean }) =>
+  `text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150 rounded-md hover:bg-muted ${isActive ? "bg-primary/10 text-primary font-semibold ring-1 ring-primary/30" : ""}`;
 
 // Make sure to call loadStripe outside of a component's render to avoid
 // recreating the Stripe object on every render.
@@ -76,42 +82,28 @@ export default function App() {
             <div className="hidden lg:flex items-center space-x-2 xl:space-x-4">
               {isAuthenticated && (
                 <div className="flex space-x-1">
-                  <Link
-                    className="text-foreground hover:text-primary px-2 xl:px-3 py-2 no-underline font-body font-medium transition-colors duration-150 text-sm xl:text-base whitespace-nowrap"
+                  <NavLink
+                    className={navLinkClass}
                     to="/"
+                    end
                   >
                     Review
-                  </Link>
-                  <Link
-                    className="text-foreground hover:text-primary px-2 xl:px-3 py-2 no-underline font-body font-medium transition-colors duration-150 text-sm xl:text-base whitespace-nowrap"
-                    to="/events"
-                  >
+                  </NavLink>
+                  <NavLink className={navLinkClass} to="/events">
                     Events
-                  </Link>
-                  <Link
-                    className="text-foreground hover:text-primary px-2 xl:px-3 py-2 no-underline font-body font-medium transition-colors duration-150 text-sm xl:text-base whitespace-nowrap"
-                    to="/line_items"
-                  >
+                  </NavLink>
+                  <NavLink className={navLinkClass} to="/line_items">
                     Line Items
-                  </Link>
-                  <Link
-                    className="text-foreground hover:text-primary px-2 xl:px-3 py-2 no-underline font-body font-medium transition-colors duration-150 text-sm xl:text-base whitespace-nowrap"
-                    to="/connected_accounts"
-                  >
+                  </NavLink>
+                  <NavLink className={navLinkClass} to="/connected_accounts" end>
                     Connected Accounts
-                  </Link>
-                  <Link
-                    className="text-foreground hover:text-primary px-2 xl:px-3 py-2 no-underline font-body font-medium transition-colors duration-150 text-sm xl:text-base whitespace-nowrap"
-                    to="/graphs"
-                  >
+                  </NavLink>
+                  <NavLink className={navLinkClass} to="/graphs" end>
                     Graphs
-                  </Link>
-                  <Link
-                    className="text-foreground hover:text-primary px-2 xl:px-3 py-2 no-underline font-body font-medium transition-colors duration-150 text-sm xl:text-base whitespace-nowrap"
-                    to="/settings"
-                  >
+                  </NavLink>
+                  <NavLink className={navLinkClass} to="/settings" end>
                     Settings
-                  </Link>
+                  </NavLink>
                   <button
                     className="text-foreground hover:text-primary px-2 xl:px-3 py-2 no-underline font-body font-medium transition-colors duration-150 cursor-pointer text-sm xl:text-base whitespace-nowrap"
                     onClick={() => logout()}
@@ -145,48 +137,44 @@ export default function App() {
                   <nav className="flex flex-col gap-4">
                     {isAuthenticated ? (
                       <>
-                        <Link
-                          className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150 rounded-md hover:bg-muted"
+                        <NavLink
+                          className={mobileNavLinkClass}
                           to="/"
+                          end
                           onClick={() => setMobileMenuOpen(false)}
                         >
                           Review
-                        </Link>
-                        <Link
-                          className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150 rounded-md hover:bg-muted"
+                        </NavLink>
+                        <NavLink className={mobileNavLinkClass}
                           to="/events"
                           onClick={() => setMobileMenuOpen(false)}
                         >
                           Events
-                        </Link>
-                        <Link
-                          className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150 rounded-md hover:bg-muted"
+                        </NavLink>
+                        <NavLink className={mobileNavLinkClass}
                           to="/line_items"
                           onClick={() => setMobileMenuOpen(false)}
                         >
                           Line Items
-                        </Link>
-                        <Link
-                          className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150 rounded-md hover:bg-muted"
+                        </NavLink>
+                        <NavLink className={mobileNavLinkClass}
                           to="/connected_accounts"
                           onClick={() => setMobileMenuOpen(false)}
                         >
                           Connected Accounts
-                        </Link>
-                        <Link
-                          className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150 rounded-md hover:bg-muted"
+                        </NavLink>
+                        <NavLink className={mobileNavLinkClass}
                           to="/graphs"
                           onClick={() => setMobileMenuOpen(false)}
                         >
                           Graphs
-                        </Link>
-                        <Link
-                          className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150 rounded-md hover:bg-muted"
+                        </NavLink>
+                        <NavLink className={mobileNavLinkClass}
                           to="/settings"
                           onClick={() => setMobileMenuOpen(false)}
                         >
                           Settings
-                        </Link>
+                        </NavLink>
                         <button
                           className="text-foreground hover:text-primary px-3 py-2 no-underline font-body font-medium transition-colors duration-150 rounded-md hover:bg-muted text-left cursor-pointer"
                           onClick={() => {

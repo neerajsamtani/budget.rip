@@ -102,6 +102,14 @@ const mockDispatch = jest.fn();
 
 const mockDefaultNameCleanup = defaultNameCleanup as jest.MockedFunction<typeof defaultNameCleanup>;
 
+function StatefulEventModal() {
+    const [show, setShow] = React.useState(true);
+    return <>
+        <button onClick={() => setShow(true)}>Open new event</button>
+        <CreateEventModal show={show} onHide={() => setShow(false)} />
+    </>;
+}
+
 describe('CreateEventModal', () => {
     const mockOnHide = jest.fn();
 
@@ -113,6 +121,7 @@ describe('CreateEventModal', () => {
         mockUseEvaluateEventHints.mockReturnValue({ data: null, isLoading: false, isError: false });
         mockDefaultNameCleanup.mockImplementation((str) => str);
         mockAxiosInstance.post.mockResolvedValue({ data: { name: 'Test Event', success: true } });
+        mockAxiosInstance.get.mockImplementation(async url => ({ data: { data: String(url).includes('api/line_items') ? mockLineItems : [] } }));
     });
 
     describe('Rendering', () => {
@@ -670,30 +679,148 @@ describe('CreateEventModal', () => {
             });
         });
 
-        it('API error is handled gracefully', async () => {
+        it('failed submissions preserve the exact draft for explicit recovery', async () => {
             const { toast } = require('sonner');
-            mockAxiosInstance.post.mockRejectedValue(new Error('API Error'));
+            mockAxiosInstance.post
+                .mockRejectedValueOnce(new Error('API Error'))
+                .mockResolvedValueOnce({ data: { name: 'Test Event', success: true } });
 
-            render(<CreateEventModal show={true} onHide={mockOnHide} />);
+            render(<StatefulEventModal />);
 
-            // Fill out form
-            const nameInput = screen.getAllByDisplayValue('')[0]; // First input is name
+            const nameInput = screen.getByPlaceholderText('Enter a descriptive name for this event');
             fireEvent.change(nameInput, { target: { value: 'Test Event' } });
 
             const categorySelect = screen.getByRole('combobox', { name: /category/i });
             await userEvent.click(categorySelect);
             await userEvent.click(screen.getByRole('option', { name: 'Dining' }));
 
-            // Submit form
-            const submitButton = screen.getByRole('button', { name: /create event/i });
-            await userEvent.click(submitButton);
+            fireEvent.change(screen.getByLabelText('Override Date (optional)'), { target: { value: '2024-01-15' } });
+            await userEvent.click(screen.getByRole('checkbox'));
+
+            const tagInput = screen.getByPlaceholderText('Type a tag and press Enter to add');
+            fireEvent.change(tagInput, { target: { value: 'important' } });
+            fireEvent.keyDown(tagInput, { key: 'Enter', code: 'Enter' });
+            await waitFor(() => expect(screen.getByText('important')).toBeInTheDocument());
+
+            await userEvent.click(screen.getByRole('button', { name: /create event/i }));
 
             await waitFor(() => {
-                expect(toast.error).toHaveBeenCalledWith("Error", {
+                expect(toast.error).toHaveBeenCalledWith("Event could not be saved", expect.objectContaining({
                     description: "API Error",
-                    duration: 3500,
-                });
+                    duration: Infinity,
+                    action: expect.objectContaining({ label: "Reopen draft" }),
+                }));
             });
+
+            expect(mockAxiosInstance.post).toHaveBeenCalledTimes(1);
+            const failureToast = toast.error.mock.calls[0][1];
+            await act(async () => failureToast.action.onClick());
+
+            await waitFor(() => {
+                expect(screen.getByDisplayValue('Test Event')).toBeInTheDocument();
+                expect(screen.getByDisplayValue('2024-01-15')).toBeInTheDocument();
+                expect(screen.getByRole('checkbox')).toBeChecked();
+                expect(screen.getByText('important')).toBeInTheDocument();
+            });
+            expect(mockAxiosInstance.post).toHaveBeenCalledTimes(1);
+
+            await userEvent.click(screen.getByRole('button', { name: /create event/i }));
+            await waitFor(() => expect(mockAxiosInstance.post).toHaveBeenCalledWith(
+                expect.stringContaining('api/events'),
+                {
+                    name: 'Test Event',
+                    category: 'Dining',
+                    date: '2024-01-15',
+                    line_items: ['1', '2'],
+                    is_duplicate_transaction: true,
+                    tags: ['important'],
+                },
+            ));
+        });
+
+        it('a failed reconciliation keeps resubmission disabled and preserves edits across retry', async () => {
+            const { toast } = require('sonner');
+            mockAxiosInstance.post.mockRejectedValueOnce(new Error('Unknown save status'));
+            render(<StatefulEventModal />);
+            await userEvent.click(screen.getByRole('combobox', { name: /category/i }));
+            await userEvent.click(screen.getByRole('option', { name: 'Dining' }));
+            await userEvent.click(screen.getByRole('button', { name: /create event/i }));
+            await waitFor(() => expect(toast.error).toHaveBeenCalled());
+            mockAxiosInstance.get.mockRejectedValue(new Error('Offline'));
+            await act(async () => toast.error.mock.calls[0][1].action.onClick());
+            await screen.findByText('The draft could not be reconciled with the current review list.');
+            expect(screen.getByRole('button', { name: /create event/i })).toBeDisabled();
+            fireEvent.change(screen.getByLabelText('Event Name'), { target: { value: 'Edited recovery' } });
+            mockAxiosInstance.get.mockResolvedValue({ data: { data: mockLineItems } });
+            await userEvent.click(screen.getByRole('button', { name: 'Check again' }));
+            await waitFor(() => expect(screen.getByRole('button', { name: /create event/i })).toBeEnabled());
+            expect(screen.getByDisplayValue('Edited recovery')).toBeInTheDocument();
+            expect(mockAxiosInstance.post).toHaveBeenCalledTimes(1);
+        });
+
+        it('recovery waits until a newer open draft is closed', async () => {
+            const { toast } = require('sonner');
+            mockAxiosInstance.post.mockRejectedValueOnce(new Error('Save failed'));
+            render(<StatefulEventModal />);
+            fireEvent.change(screen.getByLabelText('Event Name'), { target: { value: 'Original failed draft' } });
+            await userEvent.click(screen.getByRole('combobox', { name: /category/i }));
+            await userEvent.click(screen.getByRole('option', { name: 'Dining' }));
+            await userEvent.click(screen.getByRole('button', { name: /create event/i }));
+            await waitFor(() => expect(toast.error).toHaveBeenCalled());
+            const reopen = toast.error.mock.calls[0][1].action.onClick;
+            await userEvent.click(screen.getByRole('button', { name: 'Open new event' }));
+            fireEvent.change(screen.getByLabelText('Event Name'), { target: { value: 'New work in progress' } });
+            await act(async () => reopen());
+            expect(screen.getByDisplayValue('New work in progress')).toBeInTheDocument();
+            expect(toast.error).toHaveBeenLastCalledWith('Draft recovery deferred', expect.anything());
+            await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+            await act(async () => reopen());
+            expect(await screen.findByDisplayValue('Original failed draft')).toBeInTheDocument();
+            expect(mockAxiosInstance.post).toHaveBeenCalledTimes(1);
+        });
+
+        it('blocks resubmission until unavailable draft transactions are reconciled', async () => {
+            const { toast } = require('sonner');
+            mockAxiosInstance.post
+                .mockRejectedValueOnce(new Error('Request status is unknown'))
+                .mockResolvedValueOnce({ data: { name: 'Recovered Event', success: true } });
+
+            render(<StatefulEventModal />);
+            fireEvent.change(screen.getByPlaceholderText('Enter a descriptive name for this event'), {
+                target: { value: 'Recoverable Event' },
+            });
+            const categorySelect = screen.getByRole('combobox', { name: /category/i });
+            await userEvent.click(categorySelect);
+            await userEvent.click(screen.getByRole('option', { name: 'Dining' }));
+            await userEvent.click(screen.getByRole('button', { name: /create event/i }));
+
+            await waitFor(() => expect(toast.error).toHaveBeenCalledWith(
+                'Event could not be saved',
+                expect.objectContaining({ description: 'Request status is unknown' }),
+            ));
+
+            mockUseLineItems.mockReturnValue({
+                lineItems: mockLineItems.filter(lineItem => lineItem.id !== '2'),
+                isPending: false,
+            });
+            mockAxiosInstance.get.mockImplementation(async url => ({ data: { data: String(url).includes('api/line_items') ? mockLineItems.filter(item => item.id !== '2') : [] } }));
+            const failureToast = toast.error.mock.calls[0][1];
+            await act(async () => failureToast.action.onClick());
+
+            await waitFor(() => {
+                expect(screen.getByRole('alert')).toHaveTextContent('no longer available for review');
+                expect(screen.getByRole('button', { name: /create event/i })).toBeDisabled();
+            });
+            expect(mockAxiosInstance.post).toHaveBeenCalledTimes(1);
+
+            await userEvent.click(screen.getByRole('button', { name: /continue with available transactions/i }));
+            await waitFor(() => expect(screen.getByRole('button', { name: /create event/i })).toBeEnabled());
+            await userEvent.click(screen.getByRole('button', { name: /create event/i }));
+
+            await waitFor(() => expect(mockAxiosInstance.post).toHaveBeenCalledWith(
+                expect.stringContaining('api/events'),
+                expect.objectContaining({ line_items: ['1'] }),
+            ));
         });
     });
 

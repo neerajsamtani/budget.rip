@@ -37,11 +37,14 @@ export default function SpendingTable({ data, colorMap, onCellClick }: Props) {
     return entry?.amount ?? null;
   };
 
+  const displayValue = (category: string, value: number) =>
+    categorySign[category] === 'neg' ? value : Math.abs(value);
+
   const rowTotal = (category: string) =>
-    months.reduce((sum, date) => sum + (getCellValue(category, date) ?? 0), 0);
+    months.reduce((sum, date) => sum + displayValue(category, getCellValue(category, date) ?? 0), 0);
 
   const colTotal = (date: string) =>
-    categories.reduce((sum, cat) => sum + (getCellValue(cat, date) ?? 0), 0);
+    categories.reduce((sum, cat) => sum + displayValue(cat, getCellValue(cat, date) ?? 0), 0);
 
   const grandTotal = categories.reduce((sum, cat) => sum + rowTotal(cat), 0);
 
@@ -62,7 +65,13 @@ export default function SpendingTable({ data, colorMap, onCellClick }: Props) {
           </tr>
         </thead>
         <tbody className="[&_tr:last-child]:border-0">
-          {categories.map((category) => {
+          {categories.length === 0 ? (
+            <tr>
+              <td colSpan={months.length + 2} className="px-3 py-8 text-center text-muted-foreground">
+                No spending data for the selected categories and year.
+              </td>
+            </tr>
+          ) : categories.map((category) => {
             const color = colorMap[category] ?? '';
             const total = rowTotal(category);
             return (
@@ -85,7 +94,7 @@ export default function SpendingTable({ data, colorMap, onCellClick }: Props) {
                       className={hasValue ? CLICKABLE_CELL : EMPTY_CELL}
                       onClick={hasValue ? () => onCellClick(category, date) : undefined}
                     >
-                      {hasValue ? <span className="underline">{CurrencyFormatter.format(categorySign[category] === 'neg' ? val! : Math.abs(val!))}</span> : '—'}
+                      {hasValue ? <span className="underline">{CurrencyFormatter.format(displayValue(category, val!))}</span> : '—'}
                     </td>
                   );
                 })}
@@ -93,7 +102,7 @@ export default function SpendingTable({ data, colorMap, onCellClick }: Props) {
                   className={total !== 0 ? `${CLICKABLE_CELL} font-medium` : `${EMPTY_CELL} font-medium`}
                   onClick={total !== 0 ? () => onCellClick(category, 'all') : undefined}
                 >
-                  {total !== 0 ? <span className="underline">{CurrencyFormatter.format(categorySign[category] === 'neg' ? total : Math.abs(total))}</span> : '—'}
+                  {total !== 0 ? <span className="underline">{CurrencyFormatter.format(total)}</span> : '—'}
                 </td>
               </tr>
             );

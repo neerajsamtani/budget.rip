@@ -1,4 +1,5 @@
 import React from 'react';
+import userEvent from '@testing-library/user-event';
 import { mockAxiosInstance, render, screen, waitFor } from '../../utils/test-utils';
 import GraphsPage from '../GraphsPage';
 
@@ -240,5 +241,38 @@ describe('GraphsPage', () => {
         await waitFor(() => {
             expect(screen.getByText('Monthly Spending by Category')).toBeInTheDocument();
         });
+    });
+
+    it('excludes and restores rent without changing the other selected categories', async () => {
+        mockAxiosInstance.get.mockImplementation((url: string) => {
+            if (url === 'api/monthly_breakdown') {
+                return Promise.resolve({
+                    data: {
+                        Dining: [{ amount: 50, date: '1-2026' }],
+                        Rent: [{ amount: 100, date: '1-2026' }],
+                    },
+                });
+            }
+            if (url === 'api/categories') {
+                return Promise.resolve({ data: { data: [{ id: '1', name: 'Dining' }, { id: '2', name: 'Rent' }] } });
+            }
+            if (url === 'api/events') {
+                return Promise.resolve({ data: { data: [] } });
+            }
+            return Promise.resolve({ data: {} });
+        });
+
+        render(<GraphsPage />);
+
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Exclude rent' })).toBeInTheDocument());
+        expect(screen.getByText('$150.00')).toBeInTheDocument();
+
+        await userEvent.click(screen.getByRole('button', { name: 'Exclude rent' }));
+        expect(screen.getByRole('button', { name: 'Include rent' })).toBeInTheDocument();
+        expect(screen.getByText('$50.00')).toBeInTheDocument();
+
+        await userEvent.click(screen.getByRole('button', { name: 'Include rent' }));
+        expect(screen.getByRole('button', { name: 'Exclude rent' })).toBeInTheDocument();
+        expect(screen.getByText('$150.00')).toBeInTheDocument();
     });
 });
