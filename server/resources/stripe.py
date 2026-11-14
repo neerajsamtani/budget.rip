@@ -380,9 +380,11 @@ def stripe_to_line_items() -> None:
 
         enrichments = stripe_transaction.get("enrichments") or {}
         merchant = enrichments.get("merchant") or {}
+        merchant_name = merchant.get("name")
+
         responsible_party = stripe_transaction["description"]
-        if merchant.get("confidence_level") in ("high", "very_high"):
-            responsible_party = merchant.get("name") or responsible_party
+        if merchant_name and merchant.get("confidence_level") in ("high", "very_high"):
+            responsible_party = merchant_name
         line_item = LineItem(
             stripe_transaction["transacted_at"],
             responsible_party,
