@@ -21,6 +21,7 @@ GATED_USERS = ["neerajjsamtani@gmail.com"]
 USER_FIRST_NAME = "Neeraj"
 PARTIES_TO_IGNORE = ["Pink Palace Babes", "Nyusha", "John Jonah"]
 STRIPE_API_KEY = os.getenv("STRIPE_LIVE_API_SECRET_KEY")
+STRIPE_API_VERSION = "2026-10-28.preview; financial_connections_transaction_enrichments_preview=v1"
 STRIPE_CUSTOMER_ID = os.getenv("STRIPE_CUSTOMER_ID")
 DATABASE_HOST = os.getenv("DATABASE_HOST")
 DATABASE_PORT = os.getenv("DATABASE_PORT", "5432")

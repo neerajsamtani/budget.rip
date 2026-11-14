@@ -7,6 +7,7 @@ from constants import (
     SPLITWISE_CONSUMER_KEY,
     SPLITWISE_CONSUMER_SECRET,
     STRIPE_API_KEY,
+    STRIPE_API_VERSION,
     VENMO_ACCESS_TOKEN,
 )
 
@@ -22,3 +23,5 @@ def get_venmo_client():
 
 splitwise_client = Splitwise(SPLITWISE_CONSUMER_KEY, SPLITWISE_CONSUMER_SECRET, api_key=SPLITWISE_API_KEY)
 stripe.api_key = STRIPE_API_KEY
+stripe.api_version = STRIPE_API_VERSION
+stripe_client = stripe.StripeClient(api_key=STRIPE_API_KEY, stripe_version=STRIPE_API_VERSION)

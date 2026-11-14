@@ -1,8 +1,13 @@
+import json
+from urllib.parse import urlparse
+
 import pytest
 import stripe
 
-from queries import get_all_bank_accounts
-from resources.stripe import refresh_stripe, stripe_to_line_items
+from clients import stripe_client
+from constants import STRIPE_API_KEY, STRIPE_API_VERSION
+from queries import get_all_bank_accounts, get_transactions
+from resources.stripe import refresh_stripe, refresh_transactions, stripe_to_line_items
 
 
 @pytest.fixture
@@ -70,6 +75,48 @@ def mock_bank_account():
     }
 
 
+class TestStripeConfiguration:
+    def test_all_sdk_requests_use_the_shared_version_and_key(self, mocker):
+        http_client = mocker.Mock(spec=stripe.HTTPClient)
+        http_client.name = "test"
+        mocker.patch("stripe._api_requestor._APIRequestor._get_http_client", return_value=http_client)
+
+        def respond(method, url, headers, post_data=None, **kwargs):
+            path = urlparse(url).path
+            if path.endswith(("/transactions", "/inferred_balances")):
+                body = {"object": "list", "data": [], "has_more": False, "url": path}
+            elif "/customers" in path:
+                body = {"id": "cus_test123", "object": "customer"}
+            elif "/sessions" in path:
+                body = {"id": "fcsess_test123", "object": "financial_connections.session", "client_secret": "fake_secret"}
+            else:
+                body = {"id": "fca_test123", "object": "financial_connections.account"}
+            return json.dumps(body), 200, {}
+
+        http_client.request_with_retries.side_effect = respond
+
+        stripe.Customer.retrieve("cus_test123")
+        stripe.Customer.create(email="test@example.com", name="Test")
+        session_params = {
+            "account_holder": {"type": "customer", "customer": "cus_test123"},
+            "permissions": ["transactions", "balances"],
+            "manual_entry": {"mode": "disabled"},
+            "filters": {"require_payment_method_support": "none"},
+        }
+        stripe.financial_connections.Session.create(**session_params)
+        stripe.financial_connections.Session.create(**session_params, relink_options={"authorization": "fcauth_test123"})
+        stripe.financial_connections.Session.retrieve("fcsess_test123")
+        stripe.financial_connections.Account.retrieve("fca_test123")
+        stripe.financial_connections.Account.subscribe("fca_test123", features=["transactions", "inferred_balances"])
+        stripe.financial_connections.Transaction.list(account="fca_test123", limit=100)
+        stripe_client.v1.financial_connections.accounts.inferred_balances.list(account="fca_test123", params={"limit": 1})
+
+        assert http_client.request_with_retries.call_count == 9
+        for call in http_client.request_with_retries.call_args_list:
+            assert call.args[2]["Stripe-Version"] == STRIPE_API_VERSION
+            assert call.args[2]["Authorization"] == f"Bearer {STRIPE_API_KEY}"
+
+
 class TestStripeAPI:
     def test_refresh_stripe_syncs_accounts_and_transactions(self, test_client, jwt_token, flask_app, mocker):
         """Stripe refresh syncs accounts and transactions"""
@@ -92,7 +139,8 @@ class TestStripeAPI:
         response = test_client.get("/api/refresh/stripe")
         assert response.status_code == 401
 
-    def test_create_fc_session_returns_client_secret(self, test_client, jwt_token, flask_app, mocker):
+    @pytest.mark.parametrize("relink_auth", [None, "fcauth_test123"])
+    def test_create_fc_session_returns_client_secret(self, test_client, jwt_token, flask_app, mocker, relink_auth):
         """Creating financial connections session returns client secret"""
         mocker.patch("resources.stripe.STRIPE_API_KEY", "test_api_key")
         mocker.patch("resources.stripe.STRIPE_CUSTOMER_ID", "test_customer_id")
@@ -112,8 +160,17 @@ class TestStripeAPI:
             mock_session.__getitem__.return_value = "fcsess_test123_secret"
             mock_session_create.return_value = mock_session
 
+            endpoint = "/api/create-fc-session"
+            if relink_auth:
+                endpoint = "/api/relink_account/fca_test123"
+                mocker.patch(
+                    "resources.stripe.stripe.financial_connections.Account.retrieve",
+                    return_value={"authorization": relink_auth},
+                )
+                mocker.patch("resources.stripe.check_can_relink", return_value=True)
+
             response = test_client.post(
-                "/api/create-fc-session",
+                endpoint,
                 headers={"Authorization": "Bearer " + jwt_token},
             )
 
@@ -121,6 +178,15 @@ class TestStripeAPI:
             data = response.get_json()
             assert "clientSecret" in data
             assert data["clientSecret"] == "fcsess_test123_secret"
+            expected_params = {
+                "account_holder": {"type": "customer", "customer": "cus_test123"},
+                "permissions": ["transactions", "balances"],
+                "manual_entry": {"mode": "disabled"},
+                "filters": {"require_payment_method_support": "none"},
+            }
+            if relink_auth:
+                expected_params["relink_options"] = {"authorization": relink_auth}
+            mock_session_create.assert_called_once_with(**expected_params)
 
     def test_missing_customer_creates_new_customer(self, test_client, jwt_token, flask_app, mocker):
         """Missing customer triggers new customer creation"""
@@ -393,6 +459,48 @@ class TestStripeAPI:
 
 
 class TestStripeFunctions:
+    def test_refresh_transactions_retains_classifications_on_existing_transactions(self, flask_app, mocker):
+        mocker.patch("resources.stripe.refresh_account_balances")
+        mock_list = mocker.patch("resources.stripe.stripe.financial_connections.Transaction.list")
+        transaction = {
+            "id": "fctxn_classified",
+            "account": "fca_test123",
+            "amount": -5000,
+            "description": "Tax refund",
+            "status": "posted",
+            "transacted_at": 1673778600,
+        }
+        classifications = [
+            {
+                "type": "money_movement",
+                "money_movement": {
+                    "confidence_level": "high",
+                    "detailed_label": "inbound_tax_refund",
+                    "primary_label": "inbound",
+                },
+            }
+        ]
+        original_version = stripe.api_version
+        mock_list.return_value = mocker.Mock(
+            data=[stripe.StripeObject.construct_from(transaction, "test_api_key")], has_more=False
+        )
+        refresh_transactions("fca_test123")
+
+        transaction["classifications"] = classifications
+        mock_list.return_value = mocker.Mock(
+            data=[stripe.StripeObject.construct_from(transaction, "test_api_key")], has_more=False
+        )
+        refresh_transactions("fca_test123")
+
+        stored = get_transactions("stripe_api", None)
+        assert len(stored) == 1
+        assert stored[0]["source_id"] == "fctxn_classified"
+        assert stored[0]["classifications"] == classifications
+        assert stripe.api_version == original_version
+        assert mock_list.call_count == 2
+        for call in mock_list.call_args_list:
+            assert call.kwargs == {"account": "fca_test123", "limit": 100}
+
     def test_refresh_stripe_syncs_each_account(self, flask_app, mocker):
         """Refresh stripe syncs each stored bank account"""
         with flask_app.app_context():
@@ -436,7 +544,25 @@ class TestStripeFunctions:
             mock_refresh_transactions.assert_not_called()
             mock_convert.assert_called_once()
 
-    def test_stripe_transactions_convert_to_line_items(self, flask_app, mock_stripe_transaction, mocker):
+    @pytest.mark.parametrize(
+        ("enrichments", "expected_party"),
+        [
+            (None, "Test transaction"),
+            ({}, "Test transaction"),
+            ({"merchant": None}, "Test transaction"),
+            ({"merchant": {"name": ""}}, "Test transaction"),
+            ({"merchant": {"name": "Example Merchant"}}, "Test transaction"),
+            ({"merchant": {"name": "Example Merchant", "confidence_level": "low"}}, "Test transaction"),
+            ({"merchant": {"name": "Example Merchant", "confidence_level": "medium"}}, "Test transaction"),
+            ({"merchant": {"name": "Example Merchant", "confidence_level": "high"}}, "Example Merchant"),
+            ({"merchant": {"name": "Example Merchant", "confidence_level": "very_high"}}, "Example Merchant"),
+            ({"merchant": {"name": "", "confidence_level": "high"}}, "Test transaction"),
+            ({"merchant": {"name": None, "confidence_level": "very_high"}}, "Test transaction"),
+        ],
+    )
+    def test_stripe_transactions_convert_to_line_items(
+        self, flask_app, mock_stripe_transaction, mocker, enrichments, expected_party
+    ):
         """Stripe transactions convert to line items with amounts in dollars"""
         with flask_app.app_context():
             # Insert test data
@@ -473,6 +599,19 @@ class TestStripeFunctions:
                 line_item = line_items[0]
                 assert line_item.id.startswith("li_")
                 assert line_item.responsible_party == "Test transaction"
+                assert line_item.description == "Test transaction"
+                assert line_item.amount == 50.0
+                original_id = line_item.id
+
+            test_transaction["enrichments"] = enrichments
+            with SessionLocal.begin() as db:
+                bulk_upsert_transactions(db, [test_transaction], source="stripe_api")
+            stripe_to_line_items()
+
+            with SessionLocal.begin() as db:
+                line_item = db.query(LineItem).one()
+                assert line_item.id == original_id
+                assert line_item.responsible_party == expected_party
                 assert line_item.description == "Test transaction"
                 assert line_item.amount == 50.0
 
@@ -602,6 +741,11 @@ class TestCheckCanRelink:
             result = check_can_relink(account)
 
             assert result is True
+            mock_requests_get.assert_called_once_with(
+                "https://api.stripe.com/v1/financial_connections/authorizations/fcauth_test123",
+                headers={"Stripe-Version": STRIPE_API_VERSION},
+                auth=(STRIPE_API_KEY, ""),
+            )
 
     def test_account_closed_at_bank_returns_false(self, flask_app, mocker):
         """Account closed at bank cannot be relinked"""
