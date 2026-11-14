@@ -12,30 +12,29 @@ A simple personal budgeting app.
 
 ## Setting up the client
 
-1. Build the server
+1. Configure `server/.env` using `server/.env.example`, including PostgreSQL and Stripe credentials.
+
+2. Install and run the shared backend from the repository root:
 
 ~~~
-pip3 install -r requirements.txt
+cd server
+uv sync
+uv run alembic upgrade head
+uv run python application.py
 ~~~
 
-2. Run the server
+3. In another terminal, install and run the client from the repository root:
 
 ~~~
-export FLASK_APP=server.py
-python3 -m flask run --port=4242
-~~~
-
-3. Build the client app
-
-~~~
+cd client
 npm install
-~~~
-
-4. Run the client app
-
-~~~
 npm start
 ~~~
+
+4. Open [http://dev.localhost:5173/](http://dev.localhost:5173/).
+
+Stripe API configuration is shared by the backend in `server/clients.py`, using
+the single `STRIPE_API_VERSION` constant in `server/constants.py`.
 
 TODO:
 - Deploy Online
@@ -62,5 +61,3 @@ LOGIN
 - Ensure CSRF Protection in server/application.py
     - Cookie should have samesite and httponly
 - Frontend should have a context provider that provides info for the current user
-
-5. Go to [http://localhost:3000/](http://localhost:3000/)

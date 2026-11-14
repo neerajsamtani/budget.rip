@@ -6,7 +6,15 @@ import stripe
 from flask import Blueprint, Response, jsonify, request
 from flask_jwt_extended import get_current_user, jwt_required
 
-from constants import BATCH_SIZE, STRIPE_API_KEY, STRIPE_CUSTOMER_EMAIL, STRIPE_CUSTOMER_ID, STRIPE_CUSTOMER_NAME
+from clients import stripe_client
+from constants import (
+    BATCH_SIZE,
+    STRIPE_API_KEY,
+    STRIPE_API_VERSION,
+    STRIPE_CUSTOMER_EMAIL,
+    STRIPE_CUSTOMER_ID,
+    STRIPE_CUSTOMER_NAME,
+)
 from helpers import cents_to_dollars, flip_amount
 from models.database import SessionLocal
 from queries import (
@@ -30,11 +38,6 @@ if STRIPE_API_KEY is None:
 if STRIPE_CUSTOMER_ID is None:
     raise Exception("Stripe Customer ID is not set")
 
-stripe.api_version = "2022-08-01; financial_connections_transactions_beta=v1; financial_connections_relink_api_beta=v1"
-
-# Initialize StripeClient for service-based API access
-stripe_client = stripe.StripeClient(api_key=STRIPE_API_KEY)
-
 
 def check_can_relink(account: stripe.financial_connections.Account) -> bool:
     """Check if inactive account can be relinked. Active accounts return False (don't need relink)."""
@@ -49,7 +52,7 @@ def check_can_relink(account: stripe.financial_connections.Account) -> bool:
 
             response = requests.get(
                 f"https://api.stripe.com/v1/financial_connections/authorizations/{auth_id}",
-                headers={"Stripe-Version": "2022-08-01; financial_connections_relink_api_beta=v1"},
+                headers={"Stripe-Version": STRIPE_API_VERSION},
                 auth=(STRIPE_API_KEY, ""),
             )
             authorization = response.json()
@@ -155,6 +158,8 @@ def create_fc_session_api(
         session_params: Dict[str, Any] = {
             "account_holder": {"type": "customer", "customer": customer["id"]},
             "permissions": ["transactions", "balances"],
+            "manual_entry": {"mode": "disabled"},
+            "filters": {"require_payment_method_support": "none"},
         }
 
         if relink_auth:
@@ -293,8 +298,6 @@ def refresh_transactions(account_id: str) -> None:
     has_more: bool = True
     starting_after = ""
     all_transactions: List[Dict[str, Any]] = []
-    stripe.api_key = STRIPE_API_KEY
-    stripe.api_version = "2022-08-01; financial_connections_transactions_beta=v1"
 
     while has_more:
         transactions_list_params = {
@@ -375,9 +378,14 @@ def stripe_to_line_items() -> None:
         else:
             payment_method = "Stripe"
 
+        enrichments = stripe_transaction.get("enrichments") or {}
+        merchant = enrichments.get("merchant") or {}
+        responsible_party = stripe_transaction["description"]
+        if merchant.get("confidence_level") in ("high", "very_high"):
+            responsible_party = merchant.get("name") or responsible_party
         line_item = LineItem(
             stripe_transaction["transacted_at"],
-            stripe_transaction["description"],
+            responsible_party,
             payment_method,
             stripe_transaction["description"],
             flip_amount(stripe_transaction["amount"]) / 100,
