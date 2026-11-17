@@ -21,7 +21,8 @@ import { useAcceptEventSuggestion, useCategories, useRejectEventSuggestion } fro
 import { formatSuggestionSource } from "../utils/stringHelpers";
 import { showErrorToast, showSuccessToast } from "../utils/toast-helpers";
 
-function EventSuggestionReview({ lineItem, mobile = false }: { lineItem: LineItemInterface; mobile?: boolean }) {
+// Memoized because each category picker renders every category, even closed; re-rendering them all made selection lag.
+const EventSuggestionReview = React.memo(function EventSuggestionReview({ lineItem, mobile = false }: { lineItem: LineItemInterface; mobile?: boolean }) {
     const suggestion = lineItem.event_suggestion;
     const [name, setName] = useState(suggestion?.name ?? "");
     const [categoryId, setCategoryId] = useState(suggestion?.category_id ?? "");
@@ -117,7 +118,7 @@ function EventSuggestionReview({ lineItem, mobile = false }: { lineItem: LineIte
             <TableCell colSpan={7} className="px-3 py-2 md:px-4">{content}</TableCell>
         </TableRow>
     );
-}
+});
 
 const MobileLineItemCard = React.memo(function MobileLineItemCard({ lineItem, isChecked, onToggle }: { lineItem: LineItemInterface; isChecked: boolean; onToggle: (lineItemId: string) => void }) {
     const amountStatus: 'success' | 'warning' = lineItem.amount < 0 ? 'success' : 'warning';

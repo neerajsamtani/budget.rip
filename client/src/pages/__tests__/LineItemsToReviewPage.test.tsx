@@ -227,6 +227,17 @@ describe('LineItemsToReviewPage', () => {
             },
         };
 
+        it('suggestions are not re-rendered when another transaction is selected', () => {
+            mockUseLineItems.mockReturnValue({ lineItems: [suggestedLineItem, mockLineItems[1]], isPending: false });
+            const { rerender } = render(<LineItemsToReviewPage />);
+            mockUseCategories.mockClear();
+
+            mockUseLineItems.mockReturnValue({ lineItems: [suggestedLineItem, { ...mockLineItems[1], isSelected: true }], isPending: false });
+            rerender(<LineItemsToReviewPage />);
+
+            expect(mockUseCategories).not.toHaveBeenCalled();
+        });
+
         it('accepts a suggestion with an edited event title', async () => {
             mockAcceptSuggestion.mockResolvedValue({ name: 'Monthly Spotify' });
             mockUseLineItems.mockReturnValue({ lineItems: [suggestedLineItem], isPending: false });
