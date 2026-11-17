@@ -1,13 +1,14 @@
-"""Materialize event-hint matches for unreviewed line items."""
+"""Materialize event prefills for unreviewed line items."""
 
 import logging
 
 from sqlalchemy import and_
-from sqlalchemy.orm import joinedload
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import joinedload, selectinload
 
 from models.database import SessionLocal
-from models.sql_models import Category, EventHint, EventLineItem, EventSuggestion, LineItem, User
-from utils.cel_evaluator import evaluate_hints
+from models.sql_models import EventLineItem, EventSuggestion, LineItem, User
+from utils.category_suggestions import load_prefill_rules, suggest_prefill
 from utils.id_generator import generate_id
 
 logger = logging.getLogger(__name__)
@@ -21,25 +22,10 @@ def generate_event_suggestions(user_id: str | None = None) -> int:
         user_ids = [user_id] if user_id else [row.id for row in db.query(User.id).all()]
 
         for current_user_id in user_ids:
-            hints = (
-                db.query(EventHint)
-                .options(joinedload(EventHint.prefill_category))
-                .join(Category, EventHint.prefill_category_id == Category.id)
-                .filter(
-                    EventHint.user_id == current_user_id,
-                    Category.user_id == current_user_id,
-                    EventHint.is_active == True,  # noqa: E712
-                    EventHint.prefill_category_id.is_not(None),
-                )
-                .order_by(EventHint.display_order)
-                .all()
-            )
-            if not hints:
-                continue
-
+            rules = load_prefill_rules(db, current_user_id)
             line_items = (
                 db.query(LineItem)
-                .options(joinedload(LineItem.payment_method))
+                .options(joinedload(LineItem.payment_method), joinedload(LineItem.transaction), selectinload(LineItem.events))
                 .outerjoin(EventLineItem, EventLineItem.line_item_id == LineItem.id)
                 .outerjoin(
                     EventSuggestion,
@@ -52,46 +38,40 @@ def generate_event_suggestions(user_id: str | None = None) -> int:
                 .all()
             )
 
-            hint_dicts = [
-                {
-                    "id": hint.id,
-                    "name": hint.name,
-                    "cel_expression": hint.cel_expression,
-                    "prefill_name": hint.prefill_name,
-                    "prefill_category": hint.prefill_category.name,
-                    "is_active": hint.is_active,
-                }
-                for hint in hints
-            ]
-            hints_by_id = {hint.id: hint for hint in hints}
-
             for line_item in line_items:
-                suggestion = evaluate_hints(
-                    hint_dicts,
-                    [
-                        {
-                            "description": line_item.description or "",
-                            "amount": float(line_item.amount or 0),
-                            "payment_method": line_item.payment_method.name if line_item.payment_method else "",
-                            "responsible_party": line_item.responsible_party or "",
-                        }
-                    ],
-                )
-                if not suggestion:
+                prefill = suggest_prefill(rules, [line_item])
+                if not prefill or not prefill["category_id"]:
                     continue
 
-                matched_hint = hints_by_id[suggestion["matched_hint_id"]]
-                db.add(
-                    EventSuggestion(
-                        id=generate_id("es"),
-                        user_id=current_user_id,
-                        line_item_id=line_item.id,
-                        event_hint_id=matched_hint.id,
-                        suggested_name=matched_hint.prefill_name,
-                        category_id=matched_hint.prefill_category_id,
-                    )
+                suggestion = EventSuggestion(
+                    id=generate_id("es"),
+                    user_id=current_user_id,
+                    line_item_id=line_item.id,
+                    event_hint_id=prefill["matched_hint_id"],
+                    suggested_name=prefill["name"],
+                    category_id=prefill["category_id"],
+                    source=prefill["source"],
+                    source_metadata=prefill["source_metadata"],
                 )
-                created_count += 1
+                if insert_unless_already_suggested(db, suggestion):
+                    created_count += 1
 
     logger.info("Created %s event suggestions", created_count)
     return created_count
+
+
+def insert_unless_already_suggested(db, suggestion: EventSuggestion) -> bool:
+    """Insert in a savepoint so a concurrent refresh that suggested the same user/item first doesn't abort the batch."""
+    try:
+        with db.begin_nested():
+            db.add(suggestion)
+    except IntegrityError:
+        already_suggested = (
+            db.query(EventSuggestion.id)
+            .filter(EventSuggestion.user_id == suggestion.user_id, EventSuggestion.line_item_id == suggestion.line_item_id)
+            .first()
+        )
+        if not already_suggested:
+            raise
+        return False
+    return True

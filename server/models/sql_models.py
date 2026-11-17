@@ -273,6 +273,8 @@ class EventSuggestion(Base):
     event_hint_id = Column(String(255), ForeignKey("event_hints.id", ondelete="SET NULL"), nullable=True)
     suggested_name = Column(String(255), nullable=False)
     category_id = Column(String(255), ForeignKey("categories.id", ondelete="SET NULL"), nullable=True)
+    source = Column(String(64), nullable=False, default="event_hint", server_default="event_hint")
+    source_metadata = Column(JSON().with_variant(JSONB, "postgresql"), nullable=True)
     rejected_at = Column(TIMESTAMP(timezone=True), nullable=True)
     created_at = Column(TIMESTAMP(timezone=True), default=lambda: datetime.now(UTC))
     updated_at = Column(

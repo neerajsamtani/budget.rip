@@ -567,14 +567,15 @@ export interface EventHintSuggestion {
 interface AcceptEventSuggestionData {
   suggestionId: string;
   name: string;
+  categoryId?: string;
 }
 
 export function useAcceptEventSuggestion(): UseMutationResult<EventInterface, Error, AcceptEventSuggestionData> {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ suggestionId, name }: AcceptEventSuggestionData) => {
-      const response = await axiosInstance.post(`api/event-suggestions/${suggestionId}/accept`, { name });
+    mutationFn: async ({ suggestionId, name, categoryId }: AcceptEventSuggestionData) => {
+      const response = await axiosInstance.post(`api/event-suggestions/${suggestionId}/accept`, { name, category_id: categoryId });
       return response.data as EventInterface;
     },
     onSuccess: () => {

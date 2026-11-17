@@ -1,10 +1,47 @@
-"""Read-only event prefill shared by the modal's evaluate endpoint."""
+"""Read-only event prefill shared by the modal's evaluate endpoint and refresh-time suggestions."""
+
+from dataclasses import dataclass
 
 from sqlalchemy.orm import joinedload, selectinload
 
 from models.sql_models import Category, EventHint, EventSuggestion, LineItem
 from utils.cel_evaluator import evaluate_hints
 from utils.stripe_category_mapping import ACCEPTED_CONFIDENCE_LEVELS, map_stripe_category
+
+
+@dataclass
+class PrefillRules:
+    """One user's hints and categories, loaded once so many items can be resolved without more queries."""
+
+    hints_by_id: dict[str, EventHint]
+    hint_dicts: list[dict]
+    categories_by_name: dict[str, Category]
+
+
+def load_prefill_rules(db, user_id: str) -> PrefillRules:
+    hints = (
+        db.query(EventHint)
+        .options(joinedload(EventHint.prefill_category))
+        .filter(EventHint.user_id == user_id, EventHint.is_active.is_(True))
+        .order_by(EventHint.display_order)
+        .all()
+    )
+    return PrefillRules(
+        hints_by_id={hint.id: hint for hint in hints},
+        hint_dicts=[
+            {
+                "id": hint.id,
+                "name": hint.name,
+                "cel_expression": hint.cel_expression,
+                "prefill_name": hint.prefill_name,
+                "prefill_category": hint.prefill_category.name
+                if hint.prefill_category and hint.prefill_category.user_id == user_id
+                else None,
+            }
+            for hint in hints
+        ],
+        categories_by_name={c.name: c for c in db.query(Category).filter(Category.user_id == user_id).all()},
+    )
 
 
 def resolve_event_prefill(db, user_id: str, line_item_ids: list[str]) -> dict | None:
@@ -20,29 +57,26 @@ def resolve_event_prefill(db, user_id: str, line_item_ids: list[str]) -> dict | 
     items_by_id = {item.id: item for item in loaded_items}
     if len(items_by_id) != len(requested_ids):
         return None
+    # A dismissed suggestion means the user rejected that item's prefill, so it can't vouch for the group.
+    stripe_vetoed = (
+        db.query(EventSuggestion.id)
+        .filter(
+            EventSuggestion.user_id == user_id,
+            EventSuggestion.line_item_id.in_(requested_ids),
+            EventSuggestion.rejected_at.is_not(None),
+        )
+        .first()
+        is not None
+    )
     # Selection order decides the default title, matching the client's first-item fallback.
     items = [items_by_id[item_id] for item_id in requested_ids]
-    hints = (
-        db.query(EventHint)
-        .options(joinedload(EventHint.prefill_category))
-        .filter(EventHint.user_id == user_id, EventHint.is_active.is_(True))
-        .order_by(EventHint.display_order)
-        .all()
-    )
-    hint_dicts = [
-        {
-            "id": hint.id,
-            "name": hint.name,
-            "cel_expression": hint.cel_expression,
-            "prefill_name": hint.prefill_name,
-            "prefill_category": hint.prefill_category.name
-            if hint.prefill_category and hint.prefill_category.user_id == user_id
-            else None,
-        }
-        for hint in hints
-    ]
+    return suggest_prefill(load_prefill_rules(db, user_id), items, stripe_vetoed=stripe_vetoed)
+
+
+def suggest_prefill(rules: PrefillRules, items: list[LineItem], stripe_vetoed: bool = False) -> dict | None:
+    """Resolve from preloaded rules and items; issues no queries when transaction, payment method and events are loaded."""
     hint_suggestion = evaluate_hints(
-        hint_dicts,
+        rules.hint_dicts,
         [
             {
                 "description": item.description or "",
@@ -54,7 +88,7 @@ def resolve_event_prefill(db, user_id: str, line_item_ids: list[str]) -> dict | 
         ],
     )
     if hint_suggestion:
-        matched_hint = next(hint for hint in hints if hint.id == hint_suggestion["matched_hint_id"])
+        matched_hint = rules.hints_by_id[hint_suggestion["matched_hint_id"]]
         hint_suggestion.update(
             category_id=matched_hint.prefill_category_id if hint_suggestion["category"] else None,
             source="event_hint",
@@ -63,7 +97,7 @@ def resolve_event_prefill(db, user_id: str, line_item_ids: list[str]) -> dict | 
     if hint_suggestion and hint_suggestion["category"]:
         return hint_suggestion
 
-    stripe_suggestion = _unanimous_stripe_category(db, user_id, items)
+    stripe_suggestion = None if stripe_vetoed else _unanimous_stripe_category(rules, items)
     if not stripe_suggestion:
         return hint_suggestion
     category, metadata = stripe_suggestion
@@ -84,26 +118,14 @@ def resolve_event_prefill(db, user_id: str, line_item_ids: list[str]) -> dict | 
     }
 
 
-def _unanimous_stripe_category(db, user_id: str, items: list[LineItem]) -> tuple[Category, dict] | None:
+def _unanimous_stripe_category(rules: PrefillRules, items: list[LineItem]) -> tuple[Category, dict] | None:
     """Every item must independently map to the same category; one abstention or conflict vetoes the group."""
     if any(item.amount <= 0 or item.transaction.source != "stripe_api" or item.events for item in items):
         return None
     candidates = [map_stripe_category(item.transaction.source_data) for item in items]
     if not all(candidates) or len({c["category"] for c in candidates}) != 1:
         return None
-    # A dismissed suggestion means the user rejected that item's prefill, so it can't vouch for the group.
-    rejected = (
-        db.query(EventSuggestion.id)
-        .filter(
-            EventSuggestion.user_id == user_id,
-            EventSuggestion.line_item_id.in_([item.id for item in items]),
-            EventSuggestion.rejected_at.is_not(None),
-        )
-        .first()
-    )
-    if rejected:
-        return None
-    category = db.query(Category).filter(Category.user_id == user_id, Category.name == candidates[0]["category"]).first()
+    category = rules.categories_by_name.get(candidates[0]["category"])
     if not category:
         return None
     evidence = [c["source_metadata"] for c in candidates]
