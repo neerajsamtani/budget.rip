@@ -2,7 +2,7 @@ import { fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { useLineItems } from '../../contexts/LineItemsContext';
-import { render, screen, waitFor } from '../../utils/test-utils';
+import { render, screen, setViewportWidth, waitFor } from '../../utils/test-utils';
 import LineItemsToReviewPage from '../LineItemsToReviewPage';
 
 // Mock the context
@@ -188,10 +188,6 @@ const mockLineItemsWithSelection = [
     }
 ];
 
-function setViewportWidth(width: number) {
-    Object.defineProperty(window, 'innerWidth', { configurable: true, value: width });
-}
-
 async function openAddMenu() {
     await userEvent.click(screen.getByRole('button', { name: /add transaction/i }));
 }
@@ -231,17 +227,6 @@ describe('LineItemsToReviewPage', () => {
                 source_metadata: { mapping_version: 1, primary_label: 'food_and_drink', detailed_label: 'groceries', confidence_level: 'high' },
             },
         };
-
-        it('suggestions are not re-rendered when another transaction is selected', () => {
-            mockUseLineItems.mockReturnValue({ lineItems: [suggestedLineItem, mockLineItems[1]], isPending: false });
-            const { rerender } = render(<LineItemsToReviewPage />);
-            mockUseCategories.mockClear();
-
-            mockUseLineItems.mockReturnValue({ lineItems: [suggestedLineItem, { ...mockLineItems[1], isSelected: true }], isPending: false });
-            rerender(<LineItemsToReviewPage />);
-
-            expect(mockUseCategories).not.toHaveBeenCalled();
-        });
 
         it('accepts a suggestion with an edited event title', async () => {
             mockAcceptSuggestion.mockResolvedValue({ name: 'Monthly Spotify' });
@@ -880,7 +865,8 @@ describe('LineItemsToReviewPage', () => {
             await userEvent.type(screen.getByRole('searchbox', { name: /search review transactions/i }), 'does not exist');
 
             expect(screen.getByText('No matching transactions')).toBeInTheDocument();
-            expect(screen.getAllByRole('button', { name: /clear filters/i }).length).toBeGreaterThan(0);
+            // One in the filter panel, one in the empty state.
+            expect(screen.getAllByRole('button', { name: /clear filters/i })).toHaveLength(2);
             expect(screen.queryByText('All caught up')).not.toBeInTheDocument();
         });
 

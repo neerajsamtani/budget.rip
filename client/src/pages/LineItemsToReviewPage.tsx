@@ -15,18 +15,19 @@ import CreateSplitwiseExpenseModal from "../components/CreateSplitwiseExpenseMod
 import LineItem, { LineItemCard } from "../components/LineItem";
 import PaymentMethodFilter from "../components/PaymentMethodFilter";
 import { PageContainer, PageHeader } from "../components/ui/layout";
-import { useIsMobile } from "../components/ui/responsive-dialog";
 import { Body, H1 } from "../components/ui/typography";
 import { LineItemInterface, useLineItems, useLineItemsDispatch } from "../contexts/LineItemsContext";
 import { useAcceptEventSuggestion, useCategories, useRejectEventSuggestion } from "../hooks/useApi";
+import { useMediaQuery } from "../hooks/useMediaQuery";
 import { formatSuggestionSource } from "../utils/stringHelpers";
 import { showErrorToast, showSuccessToast } from "../utils/toast-helpers";
 
-// Memoized because each category picker renders every category, even closed; re-rendering them all made selection lag.
+// Memoized so toggling one row's selection doesn't re-render every suggestion.
 const EventSuggestionReview = React.memo(function EventSuggestionReview({ lineItem, mobile = false }: { lineItem: LineItemInterface; mobile?: boolean }) {
     const suggestion = lineItem.event_suggestion;
     const [name, setName] = useState(suggestion?.name ?? "");
     const [categoryId, setCategoryId] = useState(suggestion?.category_id ?? "");
+    const [pickerOpen, setPickerOpen] = useState(false);
     const reasonId = useId();
     const { data: categories = [], isPending: categoriesPending, isError: categoriesError } = useCategories();
     const acceptSuggestion = useAcceptEventSuggestion();
@@ -77,19 +78,24 @@ const EventSuggestionReview = React.memo(function EventSuggestionReview({ lineIt
                 }}
                 className={`h-9 min-w-0 bg-white ${mobile ? "basis-full" : "flex-1"}`}
             />
-            <Select value={categoryId} onValueChange={setCategoryId} disabled={isPending}>
+            <Select value={categoryId} onValueChange={setCategoryId} open={pickerOpen} onOpenChange={setPickerOpen} disabled={isPending}>
                 <SelectTrigger
                     aria-label={`Suggested category for ${lineItem.description}`}
                     aria-describedby={reasonId}
                     className={`h-9 bg-white ${mobile ? "min-w-0 flex-1" : "w-44 shrink-0"}`}
                 >
-                    <SelectValue placeholder="Choose a category" />
+                    <SelectValue placeholder="Choose a category">{categoryOptions.find(category => category.id === categoryId)?.name}</SelectValue>
                 </SelectTrigger>
                 <SelectContent className="bg-white border">
-                    {categoryStatus && <SelectItem value="__category_status" disabled>{categoryStatus}</SelectItem>}
-                    {categoryOptions.map(category => (
-                        <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
-                    ))}
+                    {/* A closed Select still renders its items, so mount them only while open; SelectValue labels the trigger. */}
+                    {pickerOpen && (
+                        <>
+                            {categoryStatus && <SelectItem value="__category_status" disabled>{categoryStatus}</SelectItem>}
+                            {categoryOptions.map(category => (
+                                <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
+                            ))}
+                        </>
+                    )}
                 </SelectContent>
             </Select>
             <div className="ml-auto flex shrink-0 gap-2">
@@ -151,7 +157,7 @@ export default function LineItemsToReviewPage() {
     const { lineItems, isPending, error, refetch } = useLineItems();
     const lineItemsDispatch = useLineItemsDispatch();
     // Render one layout, not both hidden by CSS: each suggestion's category picker is costly to render.
-    const showTable = !useIsMobile(1280); // Tailwind's xl breakpoint
+    const showTable = useMediaQuery("(width >= 80rem)"); // Tailwind's xl breakpoint, as the page's xl: classes use it
     const allLineItems = lineItems ?? [];
     const selectedLineItems = allLineItems.filter(lineItem => lineItem.isSelected);
     const total = selectedLineItems.reduce((prev, cur) => prev + cur.amount, 0);
@@ -174,9 +180,8 @@ export default function LineItemsToReviewPage() {
         });
     }, [allLineItems, endDate, paymentMethod, search, startDate]);
 
-    const hiddenSelectionCount = selectedLineItems.filter(
-        lineItem => !visibleLineItems.some(visibleLineItem => visibleLineItem.id === lineItem.id)
-    ).length;
+    const visibleIds = new Set(visibleLineItems.map(lineItem => lineItem.id));
+    const hiddenSelectionCount = selectedLineItems.filter(lineItem => !visibleIds.has(lineItem.id)).length;
 
     const handleToggle = useCallback((lineItemId: string) => {
         lineItemsDispatch({ type: "toggle_line_item_select", lineItemId });

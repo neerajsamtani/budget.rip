@@ -2,7 +2,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
-import { mockAxiosInstance, render, screen, waitFor, within } from '../../utils/test-utils';
+import { mockAxiosInstance, render, screen, setViewportWidth, waitFor, within } from '../../utils/test-utils';
+import * as api from '../../hooks/useApi';
 import LineItemsToReviewPage from '../../pages/LineItemsToReviewPage';
 import { LineItemInterface, LineItemsProvider, useLineItems, useLineItemsDispatch } from '../LineItemsContext';
 import { AuthProvider } from '../AuthContext';
@@ -712,7 +713,7 @@ describe('LineItemsContext', () => {
             serverLineItems = mockLineItems;
             finishSplitwiseRefresh = () => { };
             // These tests select rows in the desktop table, which only renders at the xl breakpoint.
-            Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1280 });
+            setViewportWidth(1280);
 
             mockAxiosInstance.get.mockImplementation((url: string) => {
                 switch (url) {
@@ -821,6 +822,51 @@ describe('LineItemsContext', () => {
             expect(checkboxes[0]).toBeChecked();
             expect(checkboxes[1]).not.toBeChecked();
             expect(checkboxes[2]).not.toBeChecked();
+        });
+    });
+
+    describe('Suggestions On The Review Page', () => {
+        const suggestedLineItem: LineItemInterface = {
+            ...mockLineItems[0],
+            event_suggestion: {
+                id: 'es_1', name: 'Dinner', category_id: 'cat_dining', category: 'Dining',
+                matched_hint_name: null, source: 'stripe_personal_finance', source_metadata: null,
+            },
+        };
+
+        beforeEach(() => {
+            setViewportWidth(1280);
+            mockAxiosInstance.get.mockImplementation((url: string) => {
+                switch (url) {
+                    case 'api/auth/me':
+                        return Promise.resolve({ data: { id: 'user_123', email: 'test@example.com', first_name: 'Test', last_name: 'User' } });
+                    case 'api/line_items':
+                        return Promise.resolve({ data: { data: [suggestedLineItem, mockLineItems[1]] } });
+                    case 'api/categories':
+                        return Promise.resolve({ data: { data: [{ id: 'cat_dining', name: 'Dining' }] } });
+                    default:
+                        return Promise.reject(new Error(`Unexpected GET ${url}`));
+                }
+            });
+        });
+
+        it('selecting or clearing other transactions does not re-render a suggestion', async () => {
+            const user = userEvent.setup();
+            const useCategories = jest.spyOn(api, 'useCategories');
+            renderWithProviders(
+                <LineItemsProvider>
+                    <LineItemsToReviewPage />
+                </LineItemsProvider>
+            );
+            const categoryPicker = await screen.findByRole('combobox', { name: /suggested category/i });
+            await waitFor(() => expect(categoryPicker).toHaveTextContent('Dining'));
+            useCategories.mockClear();
+
+            await user.click(within(screen.getByRole('table')).getAllByRole('checkbox')[1]);
+            await user.click(screen.getByRole('button', { name: 'Clear selection' }));
+
+            expect(useCategories).not.toHaveBeenCalled();
+            useCategories.mockRestore();
         });
     });
 });

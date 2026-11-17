@@ -6,6 +6,7 @@ from sqlalchemy import event
 
 from helpers import default_name_cleanup
 from models.sql_models import Category, EventHint, LineItem, PaymentMethod, Transaction, User
+from utils.category_suggestions import resolve_event_prefill
 from utils.cel_evaluator import CELEvaluator, evaluate_hints
 
 
@@ -609,9 +610,8 @@ def assert_no_writes():
     assert writes == []
 
 
-def test_evaluate_queries_items_hints_and_categories_once_each(test_client, jwt_token, stripe_group, sample_hints):
-    from models.database import engine
-
+def test_prefill_queries_items_hints_and_categories_once_each(pg_session, stripe_group, sample_hints):
+    engine = pg_session.get_bind()
     statements = []
 
     def record(conn, cursor, statement, parameters, context, executemany):
@@ -619,11 +619,11 @@ def test_evaluate_queries_items_hints_and_categories_once_each(test_client, jwt_
 
     event.listen(engine, "before_cursor_execute", record)
     try:
-        evaluate_prefill(test_client, jwt_token, ["li_1", "li_2"])
+        resolve_event_prefill(pg_session, "user_id", ["li_1", "li_2"])
     finally:
         event.remove(engine, "before_cursor_execute", record)
-    # The JWT user lookup, then line items (with their reviewed/dismissed flags), hints, and categories.
-    assert len(statements) == 4
+    # Line items (with their reviewed/dismissed flags), hints, and categories.
+    assert len(statements) == 3
 
 
 def test_stripe_prefill_without_hints_is_user_owned_and_read_only(pg_session, test_client, jwt_token, stripe_item):

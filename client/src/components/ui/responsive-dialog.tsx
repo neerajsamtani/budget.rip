@@ -1,22 +1,13 @@
 import * as React from "react"
-import { createContext, useContext, useEffect, useState } from "react"
+import { createContext, useContext } from "react"
+import { useMediaQuery } from "@/hooks/useMediaQuery"
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "./dialog"
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from "./sheet"
 
 const MobileContext = createContext(false)
 
-function useIsMobile(breakpoint = 768) {
-  // Read the width up front so the first render already picks the right layout.
-  const [isMobile, setIsMobile] = useState(() => window.innerWidth < breakpoint)
-
-  useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < breakpoint)
-    checkMobile()
-    window.addEventListener("resize", checkMobile)
-    return () => window.removeEventListener("resize", checkMobile)
-  }, [breakpoint])
-
-  return isMobile
+function useIsMobile() {
+  return useMediaQuery("(width < 768px)")
 }
 
 interface ResponsiveDialogProps {
