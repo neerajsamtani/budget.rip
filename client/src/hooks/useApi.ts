@@ -556,6 +556,9 @@ export interface EventHintSuggestion {
     primary_label?: string;
     detailed_label?: string | null;
     confidence_level?: string;
+    // Group suggestions: unique selected items and the distinct labels that agreed.
+    selected_count?: number;
+    labels?: { primary_label: string; detailed_label: string | null }[];
     name_hint_id?: string;
     name_hint_name?: string;
   };

@@ -21,7 +21,10 @@ function formatCategorySuggestionNote(suggestion?: EventHintSuggestion | null): 
   if (!suggestion?.source || !suggestion.category) return undefined;
 
   let detail = suggestion.matched_hint_name || 'Event hint';
-  if (suggestion.source === 'stripe_personal_finance') {
+  const groupSize = suggestion.source_metadata?.selected_count;
+  if (suggestion.source === 'stripe_personal_finance' && groupSize) {
+    detail = `Stripe category for all ${groupSize} transactions`;
+  } else if (suggestion.source === 'stripe_personal_finance') {
     const label = suggestion.source_metadata?.detailed_label || suggestion.source_metadata?.primary_label || 'Stripe';
     detail = label.replaceAll('_', ' ').replace(/^./, char => char.toUpperCase());
   }

@@ -6,6 +6,8 @@ see tests/fixtures/stripe_personal_finance_evidence.json.
 
 MAPPING_VERSION = 1
 
+ACCEPTED_CONFIDENCE_LEVELS = ("high", "very_high")  # weakest first
+
 # Only mapped pairs are listed; all other pairs abstain.
 CATEGORY_BY_PAIR = {
     ("entertainment", "casinos_and_gambling"): "Entertainment",
@@ -85,7 +87,7 @@ def map_stripe_category(source_data: object) -> dict | None:
     confidence = labels.get("confidence_level")
     primary = labels.get("primary_label")
     detailed = labels.get("detailed_label")
-    if confidence not in ("high", "very_high") or not isinstance(primary, str):
+    if confidence not in ACCEPTED_CONFIDENCE_LEVELS or not isinstance(primary, str):
         return None
     if detailed is None:
         category = PRIMARY_FALLBACKS.get(primary)
