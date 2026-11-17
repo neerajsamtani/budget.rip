@@ -124,6 +124,7 @@ class TestStripeAPI:
         mocker.patch("resources.stripe.STRIPE_CUSTOMER_ID", "test_customer_id")
 
         mock_refresh = mocker.patch("resources.stripe.refresh_stripe")
+        mock_convert = mocker.patch("resources.stripe.stripe_to_line_items")
 
         response = test_client.get(
             "/api/refresh/stripe",
@@ -133,6 +134,7 @@ class TestStripeAPI:
         assert response.status_code == 200
         assert response.get_data(as_text=True).strip() == '"Refreshed Stripe Connection"'
         mock_refresh.assert_called_once()
+        mock_convert.assert_called_once_with()
 
     def test_refresh_stripe_requires_authentication(self, test_client):
         """Stripe refresh endpoint requires authentication"""
@@ -459,6 +461,40 @@ class TestStripeAPI:
 
 
 class TestStripeFunctions:
+    @pytest.mark.parametrize("full_refresh", [False, True])
+    def test_refresh_fetches_each_balance_and_normalizes_stripe_once(
+        self, flask_app, test_client, jwt_token, mocker, full_refresh
+    ):
+        accounts = [{"id": "fca_first"}, {"id": "fca_second"}]
+        mocker.patch("resources.stripe.get_all_bank_accounts", return_value=accounts)
+        mocker.patch("resources.stripe.refresh_account")
+        mocker.patch(
+            "resources.stripe.stripe.financial_connections.Transaction.list",
+            return_value=mocker.Mock(data=[], has_more=False),
+        )
+        balances = mocker.patch("resources.stripe.refresh_account_balances")
+        convert = mocker.patch("resources.stripe.stripe_to_line_items")
+
+        if full_refresh:
+            from application import create_consistent_line_items, refresh_all
+
+            mocker.patch("application.refresh_splitwise")
+            mocker.patch("application.refresh_venmo")
+            mocker.patch("application.splitwise_to_line_items")
+            mocker.patch("application.venmo_to_line_items")
+            mocker.patch("application.stripe_to_line_items", convert)
+            refresh_all()
+            create_consistent_line_items()
+        else:
+            response = test_client.get("/api/refresh/stripe", headers={"Authorization": "Bearer " + jwt_token})
+            assert response.status_code == 200
+
+        assert balances.call_args_list == [
+            mocker.call(account_ids=["fca_first"]),
+            mocker.call(account_ids=["fca_second"]),
+        ]
+        convert.assert_called_once_with()
+
     def test_refresh_transactions_retains_classifications_on_existing_transactions(self, flask_app, mocker):
         mocker.patch("resources.stripe.refresh_account_balances")
         mock_list = mocker.patch("resources.stripe.stripe.financial_connections.Transaction.list")
@@ -527,10 +563,10 @@ class TestStripeFunctions:
             # Verify all functions were called
             mock_refresh_account.assert_called_once_with("fca_test123")
             mock_refresh_transactions.assert_called_once_with("fca_test123")
-            mock_convert.assert_called_once()
+            mock_convert.assert_not_called()
 
-    def test_no_accounts_skips_sync_but_converts_line_items(self, flask_app, mocker):
-        """No accounts skips sync but still converts existing transactions"""
+    def test_no_accounts_skips_sync_and_conversion(self, flask_app, mocker):
+        """No accounts skips sync and leaves conversion to the caller"""
         with flask_app.app_context():
             mock_refresh_account = mocker.patch("resources.stripe.refresh_account")
             mock_refresh_transactions = mocker.patch("resources.stripe.refresh_transactions")
@@ -542,7 +578,7 @@ class TestStripeFunctions:
             # Verify no refresh calls were made
             mock_refresh_account.assert_not_called()
             mock_refresh_transactions.assert_not_called()
-            mock_convert.assert_called_once()
+            mock_convert.assert_not_called()
 
     @pytest.mark.parametrize(
         ("enrichments", "expected_party"),

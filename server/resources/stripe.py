@@ -139,6 +139,7 @@ def refresh_account_balances(account_ids: Optional[List[str]] = None) -> int:
 @jwt_required()
 def refresh_stripe_api() -> tuple[Response, int]:
     refresh_stripe()
+    stripe_to_line_items()
     generate_event_suggestions(get_current_user()["id"])
     return jsonify("Refreshed Stripe Connection"), 200
 
@@ -348,9 +349,6 @@ def refresh_stripe() -> None:
     for account in bank_accounts:
         refresh_account(account["id"])
         refresh_transactions(account["id"])
-    stripe_to_line_items()
-    # Best-effort: refresh balances for all accounts after transactions updated
-    refresh_account_balances()
 
 
 def stripe_to_line_items() -> None:
