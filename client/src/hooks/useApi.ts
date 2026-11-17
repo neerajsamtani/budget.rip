@@ -547,8 +547,18 @@ export interface EventHint {
 export interface EventHintSuggestion {
   name: string;
   category: string | null;
-  matched_hint_id: string;
-  matched_hint_name: string;
+  matched_hint_id: string | null;
+  matched_hint_name: string | null;
+  category_id?: string | null;
+  source?: 'event_hint' | 'stripe_personal_finance';
+  source_metadata?: {
+    mapping_version?: number;
+    primary_label?: string;
+    detailed_label?: string | null;
+    confidence_level?: string;
+    name_hint_id?: string;
+    name_hint_name?: string;
+  };
 }
 
 interface AcceptEventSuggestionData {

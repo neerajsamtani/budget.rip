@@ -555,3 +555,171 @@ class TestCategoriesAPI:
         for cat in data["data"]:
             assert "id" in cat
             assert "name" in cat
+
+
+@pytest.fixture
+def stripe_item(pg_session, sample_line_items):
+    item = sample_line_items[0]
+    item.transaction.source = "stripe_api"
+    item.transaction.source_data = {
+        "description": "Untouched bank description",
+        "classifications": [
+            {
+                "type": "personal_finance",
+                "personal_finance": {
+                    "primary_label": "food_and_drink",
+                    "detailed_label": "groceries",
+                    "confidence_level": "high",
+                },
+            }
+        ],
+    }
+    item.responsible_party = "  Grocery Store  "
+    pg_session.commit()
+    return item
+
+
+def evaluate_prefill(test_client, jwt_token, ids):
+    response = test_client.post(
+        "/api/event-hints/evaluate", json={"line_item_ids": ids}, headers={"Authorization": f"Bearer {jwt_token}"}
+    )
+    assert response.status_code == 200
+    return response.get_json()["data"]["suggestion"]
+
+
+def test_stripe_prefill_without_hints_is_user_owned_and_read_only(pg_session, test_client, jwt_token, stripe_item):
+    from sqlalchemy import event
+
+    category = pg_session.query(Category).filter_by(user_id="user_id", name="Groceries").one()
+    writes = []
+
+    def record_writes(conn, cursor, statement, parameters, context, executemany):
+        if statement.lstrip().split()[0].upper() in ("INSERT", "UPDATE", "DELETE"):
+            writes.append(statement)
+
+    event.listen(pg_session.bind, "before_cursor_execute", record_writes)
+    try:
+        result = evaluate_prefill(test_client, jwt_token, [stripe_item.id, stripe_item.id])
+    finally:
+        event.remove(pg_session.bind, "before_cursor_execute", record_writes)
+    assert result == {
+        "name": "Grocery Store",
+        "category": "Groceries",
+        "category_id": category.id,
+        "source": "stripe_personal_finance",
+        "matched_hint_id": None,
+        "matched_hint_name": None,
+        "source_metadata": {
+            "mapping_version": 1,
+            "primary_label": "food_and_drink",
+            "detailed_label": "groceries",
+            "confidence_level": "high",
+        },
+    }
+    assert writes == []
+    pg_session.refresh(stripe_item)
+    assert stripe_item.description == "Spotify Premium Monthly"
+    assert stripe_item.transaction.source_data["description"] == "Untouched bank description"
+
+
+@pytest.mark.parametrize("categorized", [True, False])
+def test_winning_hint_keeps_title_and_category_precedence(
+    pg_session, test_client, jwt_token, stripe_item, sample_hints, categorized
+):
+    hint = pg_session.query(EventHint).filter(EventHint.prefill_name == "Spotify").one()
+    if not categorized:
+        hint.prefill_category_id = None
+        pg_session.commit()
+    result = evaluate_prefill(test_client, jwt_token, [stripe_item.id])
+    assert result["name"] == "Spotify"
+    assert result["category"] == ("Subscription" if categorized else "Groceries")
+    assert result["source"] == ("event_hint" if categorized else "stripe_personal_finance")
+    assert result["matched_hint_id"] == hint.id
+    if not categorized:
+        assert result["source_metadata"]["name_hint_id"] == hint.id
+
+
+@pytest.mark.parametrize(
+    "reason",
+    [
+        "missing_id",
+        "multi_item",
+        "non_stripe",
+        "inflow",
+        "zero",
+        "missing_category",
+        "foreign_category",
+        "dismissed",
+        "reviewed",
+    ],
+)
+def test_ineligible_items_do_not_receive_stripe_prefill(pg_session, test_client, jwt_token, stripe_item, reason):
+    from models.sql_models import Event, EventLineItem, EventSuggestion, User
+
+    ids = [stripe_item.id]
+    if reason == "missing_id":
+        ids.append("li_missing")
+    elif reason == "multi_item":
+        ids.append("li_2")
+    elif reason == "non_stripe":
+        stripe_item.transaction.source = "manual"
+    elif reason in ("inflow", "zero"):
+        stripe_item.amount = -1 if reason == "inflow" else 0
+    elif reason in ("missing_category", "foreign_category"):
+        category = pg_session.query(Category).filter_by(user_id="user_id", name="Groceries").one()
+        if reason == "missing_category":
+            pg_session.delete(category)
+        else:
+            pg_session.add(
+                User(id="other_user", first_name="Other", last_name="User", email="other@example.com", password_hash="x")
+            )
+            pg_session.flush()
+            category.user_id = "other_user"
+    elif reason == "dismissed":
+        pg_session.add(
+            EventSuggestion(
+                id="es_dismissed",
+                user_id="user_id",
+                line_item_id=stripe_item.id,
+                suggested_name="Old",
+                rejected_at=datetime.now(UTC),
+            )
+        )
+    else:
+        category = pg_session.query(Category).filter_by(user_id="user_id", name="Groceries").one()
+        pg_session.add(Event(id="evt_reviewed", date=datetime.now(UTC), description="Reviewed", category_id=category.id))
+        pg_session.flush()
+        pg_session.add(EventLineItem(id="eli_reviewed", event_id="evt_reviewed", line_item_id=stripe_item.id))
+    pg_session.commit()
+    assert evaluate_prefill(test_client, jwt_token, ids) is None
+
+
+@pytest.mark.parametrize(
+    "party,description,expected", [("  ", "  Raw description  ", "Raw description"), ("X" * 300, "Raw", "X" * 255)]
+)
+def test_stripe_prefill_title_is_trimmed_and_capped(
+    pg_session, test_client, jwt_token, stripe_item, party, description, expected
+):
+    stripe_item.responsible_party = party
+    stripe_item.description = description
+    pg_session.commit()
+    assert evaluate_prefill(test_client, jwt_token, [stripe_item.id])["name"] == expected
+
+
+def test_another_users_dismissal_does_not_hide_prefill(pg_session, test_client, jwt_token, stripe_item):
+    from models.sql_models import EventSuggestion
+
+    other = User(id="other_user", first_name="Other", last_name="User", email="other@example.com", password_hash="x")
+    pg_session.add(other)
+    pg_session.flush()
+    pg_session.add(
+        EventSuggestion(
+            id="es_other", user_id=other.id, line_item_id=stripe_item.id, suggested_name="Old", rejected_at=datetime.now(UTC)
+        )
+    )
+    pg_session.commit()
+    assert evaluate_prefill(test_client, jwt_token, [stripe_item.id])["category"] == "Groceries"
+
+
+def test_missing_requested_item_prevents_even_a_matching_hint(test_client, jwt_token, sample_line_items, sample_hints):
+    assert evaluate_prefill(test_client, jwt_token, ["li_1", "li_missing"]) is None

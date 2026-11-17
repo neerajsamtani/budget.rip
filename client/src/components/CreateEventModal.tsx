@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import React, { useEffect, useState } from 'react';
 import { Body } from "../components/ui/typography";
 import { LineItemInterface, useLineItems, useLineItemsDispatch } from "../contexts/LineItemsContext";
-import { useCategories, useCreateEvent, useEvaluateEventHints, useTags } from '../hooks/useApi';
+import { EventHintSuggestion, useCategories, useCreateEvent, useEvaluateEventHints, useTags } from '../hooks/useApi';
 import { useField } from '../hooks/useField';
 import { calculateEventTotal } from '../utils/eventHelpers';
 import { CurrencyFormatter } from '../utils/formatters';
@@ -20,6 +20,7 @@ import { Spinner } from './ui/spinner';
 interface CreateEventModalContentProps {
   initialName: string;
   initialCategory: string;
+  initialSuggestion?: EventHintSuggestion | null;
   selectedLineItems: LineItemInterface[];
   selectedLineItemIds: string[];
   onClose: () => void;
@@ -33,6 +34,7 @@ interface CreateEventModalContentProps {
 function CreateEventModalContent({
   initialName,
   initialCategory,
+  initialSuggestion,
   selectedLineItems,
   selectedLineItemIds,
   onClose,
@@ -48,6 +50,8 @@ function CreateEventModalContent({
   const date = useField<string>("date", "");
   const isDuplicateTransaction = useField<boolean>("checkbox", false);
   const [tags, setTags] = useState<Tag[]>([]);
+  // Keep the explanation tied to the prefill the user started editing.
+  const [suggestion] = useState(initialSuggestion);
 
   const { data: existingTags, isLoading: isLoadingTags } = useTags();
   const { data: categories = [], isLoading: isLoadingCategories, isError: isCategoriesError } = useCategories();
@@ -110,6 +114,13 @@ function CreateEventModalContent({
     return (
       <>
         <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-1 pt-4 pb-4 -mx-1">
+          {suggestion?.source && (
+            <Body className="text-sm text-muted-foreground">
+              {suggestion.source === 'stripe_personal_finance'
+                ? `Category suggested by Stripe: ${(suggestion.source_metadata?.detailed_label || suggestion.source_metadata?.primary_label || 'personal finance').replaceAll('_', ' ')}. Review or edit before creating the event.`
+                : `Suggested by event hint${suggestion.matched_hint_name ? ` “${suggestion.matched_hint_name}”` : ''}. Review or edit before creating the event.`}
+            </Body>
+          )}
           <div className="space-y-3">
             <Label htmlFor="event-name" className="text-sm font-medium text-foreground">
               Event Name
@@ -221,7 +232,7 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
   // Fetch prefill suggestion from server when line items are selected
   const { data: prefillSuggestion, isLoading: isLoadingHints, isError: isHintsError } = useEvaluateEventHints(
     selectedLineItemIds,
-    selectedLineItemIds.length > 0
+    show && selectedLineItemIds.length > 0
   );
 
   // Show error toast when hints fail to load
@@ -273,6 +284,7 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
         key={formKey}
         initialName={initialValues.name}
         initialCategory={initialValues.category}
+        initialSuggestion={prefillSuggestion}
         selectedLineItems={selectedLineItems}
         selectedLineItemIds={selectedLineItemIds}
         onClose={onHide}
