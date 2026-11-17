@@ -52,6 +52,15 @@ function CreateEventModalContent({
   const [tags, setTags] = useState<Tag[]>([]);
   // Keep the explanation tied to the prefill the user started editing.
   const [suggestion] = useState(initialSuggestion);
+  const suggestionDetail = suggestion?.source === 'stripe_personal_finance'
+    ? (suggestion.source_metadata?.detailed_label || suggestion.source_metadata?.primary_label || 'Stripe')
+      .replaceAll('_', ' ').replace(/^./, char => char.toUpperCase())
+    : suggestion?.matched_hint_name || 'Event hint';
+  const suggestionReason = suggestion?.category?.toLowerCase() === suggestionDetail.toLowerCase()
+    ? '' : ` · ${suggestionDetail}`;
+  const categorySuggestionNote = suggestion?.source && suggestion.category
+    ? `Suggested: ${suggestion.category}${suggestionReason}`
+    : undefined;
 
   const { data: existingTags, isLoading: isLoadingTags } = useTags();
   const { data: categories = [], isLoading: isLoadingCategories, isError: isCategoriesError } = useCategories();
@@ -114,13 +123,6 @@ function CreateEventModalContent({
     return (
       <>
         <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-1 pt-4 pb-4 -mx-1">
-          {suggestion?.source && (
-            <Body className="text-sm text-muted-foreground">
-              {suggestion.source === 'stripe_personal_finance'
-                ? `Category suggested by Stripe: ${(suggestion.source_metadata?.detailed_label || suggestion.source_metadata?.primary_label || 'personal finance').replaceAll('_', ' ')}. Review or edit before creating the event.`
-                : `Suggested by event hint${suggestion.matched_hint_name ? ` “${suggestion.matched_hint_name}”` : ''}. Review or edit before creating the event.`}
-            </Body>
-          )}
           <div className="space-y-3">
             <Label htmlFor="event-name" className="text-sm font-medium text-foreground">
               Event Name
@@ -142,7 +144,11 @@ function CreateEventModalContent({
               Category
             </Label>
             <Select value={category.value} onValueChange={(value) => category.setCustomValue(value)}>
-              <SelectTrigger className="w-full" aria-labelledby="category-label">
+              <SelectTrigger
+                className="w-full"
+                aria-labelledby="category-label"
+                aria-describedby={categorySuggestionNote ? 'category-suggestion-note' : undefined}
+              >
                 <SelectValue placeholder="Select a category" />
               </SelectTrigger>
               <SelectContent className="bg-white border">
@@ -153,6 +159,11 @@ function CreateEventModalContent({
                 ))}
               </SelectContent>
             </Select>
+            {categorySuggestionNote && (
+              <p id="category-suggestion-note" className="font-body text-xs text-muted-foreground">
+                {categorySuggestionNote}
+              </p>
+            )}
           </div>
 
           <TagsField

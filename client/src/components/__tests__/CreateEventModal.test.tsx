@@ -124,7 +124,7 @@ describe('CreateEventModal', () => {
             source_metadata: { detailed_label: 'groceries', confidence_level: 'high' },
         }, isLoading: false, isError: false });
         render(<CreateEventModal show={true} onHide={mockOnHide} />);
-        expect(screen.getByText(/Category suggested by Stripe: groceries/)).toBeInTheDocument();
+        expect(screen.getByRole('combobox', { name: /category/i })).toHaveAccessibleDescription('Suggested: Groceries');
         expect(screen.getByLabelText('Event Name')).toHaveValue('Grocery Store');
         expect(screen.getByRole('combobox', { name: /category/i })).toHaveTextContent('Groceries');
         expect(mockAxiosInstance.post).not.toHaveBeenCalled();
@@ -140,8 +140,8 @@ describe('CreateEventModal', () => {
 
     it('background refetch preserves edited fields and the original explanation', async () => {
         mockUseEvaluateEventHints.mockReturnValue({ data: {
-            name: 'Store', category: 'Groceries', source: 'stripe_personal_finance',
-            source_metadata: { detailed_label: 'groceries' },
+            name: 'Store', category: 'Entertainment', source: 'stripe_personal_finance',
+            source_metadata: { detailed_label: 'video_games' },
         }, isLoading: false, isError: false });
         const { rerender } = render(<CreateEventModal show={true} onHide={mockOnHide} />);
         await userEvent.clear(screen.getByLabelText('Event Name'));
@@ -154,7 +154,7 @@ describe('CreateEventModal', () => {
         rerender(<CreateEventModal show={true} onHide={mockOnHide} />);
         expect(screen.getByLabelText('Event Name')).toHaveValue('Edited name');
         expect(screen.getByRole('combobox', { name: /category/i })).toHaveTextContent('Dining');
-        expect(screen.getByText(/Category suggested by Stripe: groceries/)).toBeInTheDocument();
+        expect(screen.getByRole('combobox', { name: /category/i })).toHaveAccessibleDescription('Suggested: Entertainment · Video games');
     });
 
     describe('Rendering', () => {
