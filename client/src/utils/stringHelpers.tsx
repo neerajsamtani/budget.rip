@@ -36,3 +36,21 @@ function titleCase(str: string) {
 export default function defaultNameCleanup(str: string) {
     return titleCase(removePrefixes(str))
 }
+
+interface SuggestionEvidence {
+    source?: string | null;
+    matched_hint_name?: string | null;
+    source_metadata?: { primary_label?: string; detailed_label?: string | null; selected_count?: number } | null;
+}
+
+/** Why a category was suggested, worded the same in the create-event modal and the review list. */
+export function formatSuggestionSource(suggestion: SuggestionEvidence): string {
+    if (suggestion.source !== 'stripe_personal_finance') {
+        return suggestion.matched_hint_name ? `Hint: ${suggestion.matched_hint_name}` : 'Event hint';
+    }
+    const metadata = suggestion.source_metadata;
+    if (metadata?.selected_count) return `Stripe: all ${metadata.selected_count} transactions`;
+    // Prefer the detailed label, humanized: "fast_food" → "Fast food".
+    const label = metadata?.detailed_label || metadata?.primary_label;
+    return label ? `Stripe: ${label.replaceAll('_', ' ').replace(/^./, char => char.toUpperCase())}` : 'Stripe';
+}

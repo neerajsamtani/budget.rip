@@ -31,7 +31,18 @@ jest.mock('../../hooks/useApi', () => ({
         mutateAsync: mockRejectSuggestion,
         isPending: false,
     }),
+    useCategories: () => mockUseCategories(),
 }));
+const mockCategories = {
+    data: [
+        { id: 'cat_dining', name: 'Dining' },
+        { id: 'cat_groceries', name: 'Groceries' },
+        { id: 'cat_subscription', name: 'Subscription' },
+    ],
+    isPending: false,
+    isError: false,
+};
+const mockUseCategories = jest.fn(() => mockCategories);
 
 // Mock the components
 jest.mock('../../components/CreateManualTransactionModal', () => {
@@ -186,6 +197,7 @@ describe('LineItemsToReviewPage', () => {
         jest.clearAllMocks();
         mockAcceptSuggestion.mockResolvedValue({ name: 'Spotify' });
         mockRejectSuggestion.mockResolvedValue(undefined);
+        mockUseCategories.mockReturnValue(mockCategories);
         mockUseLineItems.mockReturnValue({ lineItems: mockLineItems, isPending: false });
     });
 
@@ -198,6 +210,20 @@ describe('LineItemsToReviewPage', () => {
                 category_id: 'cat_subscription',
                 category: 'Subscription',
                 matched_hint_name: 'Spotify purchases',
+                source: 'event_hint' as const,
+                source_metadata: null,
+            },
+        };
+        const stripeLineItem = {
+            ...mockLineItems[0],
+            event_suggestion: {
+                id: 'es_2',
+                name: 'Whole Foods',
+                category_id: 'cat_groceries',
+                category: 'Groceries',
+                matched_hint_name: null,
+                source: 'stripe_personal_finance' as const,
+                source_metadata: { mapping_version: 1, primary_label: 'food_and_drink', detailed_label: 'groceries', confidence_level: 'high' },
             },
         };
 
@@ -212,7 +238,7 @@ describe('LineItemsToReviewPage', () => {
             await userEvent.click(screen.getAllByRole('button', { name: /create event from/i })[1]);
 
             await waitFor(() => {
-                expect(mockAcceptSuggestion).toHaveBeenCalledWith({ suggestionId: 'es_1', name: 'Monthly Spotify' });
+                expect(mockAcceptSuggestion).toHaveBeenCalledWith({ suggestionId: 'es_1', name: 'Monthly Spotify', categoryId: 'cat_subscription' });
                 expect(mockDispatch).toHaveBeenCalledWith({ type: 'remove_line_items', lineItemIds: ['1'] });
             });
         });
@@ -236,7 +262,71 @@ describe('LineItemsToReviewPage', () => {
 
             expect(screen.getAllByLabelText(`Suggested event for ${suggestedLineItem.description}`)).toHaveLength(2);
             expect(screen.getAllByText('Suggested event')).toHaveLength(2);
-            expect(screen.getAllByText('Subscription')).toHaveLength(2);
+            const categorySelects = screen.getAllByRole('combobox', { name: `Suggested category for ${suggestedLineItem.description}` });
+            expect(categorySelects).toHaveLength(2);
+            categorySelects.forEach(select => {
+                expect(select).toHaveTextContent('Subscription');
+                expect(select).toHaveAccessibleDescription('Hint: Spotify purchases');
+            });
+        });
+
+        it('explains that Stripe suggested the category', () => {
+            mockUseLineItems.mockReturnValue({ lineItems: [stripeLineItem], isPending: false });
+            render(<LineItemsToReviewPage />);
+
+            screen.getAllByRole('combobox', { name: /suggested category/i }).forEach(select => {
+                expect(select).toHaveTextContent('Groceries');
+                expect(select).toHaveAccessibleDescription('Stripe: Groceries');
+            });
+        });
+
+        it('a suggestion whose category was deleted needs a category before it can be accepted', async () => {
+            const uncategorized = { ...stripeLineItem, event_suggestion: { ...stripeLineItem.event_suggestion, category_id: null, category: null } };
+            mockUseLineItems.mockReturnValue({ lineItems: [uncategorized], isPending: false });
+            render(<LineItemsToReviewPage />);
+
+            const createButton = screen.getAllByRole('button', { name: /create event from/i })[1];
+            expect(screen.getAllByRole('combobox', { name: /suggested category/i })[1]).toHaveTextContent('Choose a category');
+            expect(createButton).toBeDisabled();
+
+            await userEvent.click(screen.getAllByRole('combobox', { name: /suggested category/i })[1]);
+            await userEvent.click(screen.getByRole('option', { name: 'Groceries' }));
+            expect(createButton).toBeEnabled();
+        });
+
+        it('the suggested category is shown while categories are still loading', () => {
+            mockUseCategories.mockReturnValue({ data: undefined, isPending: true, isError: false } as never);
+            mockUseLineItems.mockReturnValue({ lineItems: [stripeLineItem], isPending: false });
+            render(<LineItemsToReviewPage />);
+
+            expect(screen.getAllByRole('combobox', { name: /suggested category/i })[1]).toHaveTextContent('Groceries');
+        });
+
+        it('the category picker says when categories could not be loaded', async () => {
+            mockUseCategories.mockReturnValue({ data: undefined, isPending: false, isError: true } as never);
+            mockUseLineItems.mockReturnValue({ lineItems: [stripeLineItem], isPending: false });
+            render(<LineItemsToReviewPage />);
+
+            expect(screen.getAllByRole('combobox', { name: /suggested category/i })[1]).toHaveTextContent('Groceries');
+            await userEvent.click(screen.getAllByRole('combobox', { name: /suggested category/i })[1]);
+
+            expect(screen.getByRole('option', { name: "Categories couldn't be loaded" })).toHaveAttribute('aria-disabled', 'true');
+        });
+
+        it('accepts a suggestion with a corrected category', async () => {
+            mockAcceptSuggestion.mockResolvedValue({ name: 'Whole Foods' });
+            mockUseLineItems.mockReturnValue({ lineItems: [stripeLineItem], isPending: false });
+            render(<LineItemsToReviewPage />);
+
+            await userEvent.click(screen.getAllByRole('combobox', { name: /suggested category/i })[1]);
+            await userEvent.click(screen.getByRole('option', { name: 'Dining' }));
+            expect(screen.getAllByRole('combobox', { name: /suggested category/i })[1]).toHaveTextContent('Dining');
+            await userEvent.click(screen.getAllByRole('button', { name: /create event from/i })[1]);
+
+            await waitFor(() => {
+                expect(mockAcceptSuggestion).toHaveBeenCalledWith({ suggestionId: 'es_2', name: 'Whole Foods', categoryId: 'cat_dining' });
+                expect(mockDispatch).toHaveBeenCalledWith({ type: 'remove_line_items', lineItemIds: ['1'] });
+            });
         });
     });
 

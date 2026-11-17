@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy import func
+from sqlalchemy import and_, func
 from sqlalchemy.orm import joinedload, subqueryload
 
 from serializers import serialize_datetime, serialize_event, serialize_line_item, serialize_transaction_source, serialize_user
@@ -112,12 +112,21 @@ def get_all_line_items(
                     EventSuggestion.id,
                     EventSuggestion.line_item_id,
                     EventSuggestion.suggested_name,
-                    EventSuggestion.category_id,
+                    Category.id.label("category_id"),
+                    EventSuggestion.source,
+                    EventSuggestion.source_metadata,
                     Category.name.label("category"),
                     EventHint.name.label("matched_hint_name"),
                 )
-                .join(Category, EventSuggestion.category_id == Category.id)
-                .outerjoin(EventHint, EventSuggestion.event_hint_id == EventHint.id)
+                # Outer join so a suggestion whose category was deleted stays visible and can be corrected.
+                .outerjoin(
+                    Category,
+                    and_(EventSuggestion.category_id == Category.id, Category.user_id == suggestion_user_id),
+                )
+                .outerjoin(
+                    EventHint,
+                    and_(EventSuggestion.event_hint_id == EventHint.id, EventHint.user_id == suggestion_user_id),
+                )
                 .filter(
                     EventSuggestion.user_id == suggestion_user_id,
                     EventSuggestion.rejected_at.is_(None),
@@ -132,6 +141,8 @@ def get_all_line_items(
                     "category_id": row.category_id,
                     "category": row.category,
                     "matched_hint_name": row.matched_hint_name,
+                    "source": row.source,
+                    "source_metadata": row.source_metadata,
                 }
                 for row in suggestions
             }

@@ -1,4 +1,4 @@
-"""Materialize event-hint matches for unreviewed line items."""
+"""Materialize event prefills for unreviewed line items."""
 
 import logging
 
@@ -6,8 +6,8 @@ from sqlalchemy import and_
 from sqlalchemy.orm import joinedload
 
 from models.database import SessionLocal
-from models.sql_models import Category, EventHint, EventLineItem, EventSuggestion, LineItem, User
-from utils.cel_evaluator import evaluate_hints
+from models.sql_models import EventLineItem, EventSuggestion, LineItem, Transaction, User
+from utils.category_suggestions import load_prefill_rules, suggest_prefill
 from utils.id_generator import generate_id
 
 logger = logging.getLogger(__name__)
@@ -21,25 +21,10 @@ def generate_event_suggestions(user_id: str | None = None) -> int:
         user_ids = [user_id] if user_id else [row.id for row in db.query(User.id).all()]
 
         for current_user_id in user_ids:
-            hints = (
-                db.query(EventHint)
-                .options(joinedload(EventHint.prefill_category))
-                .join(Category, EventHint.prefill_category_id == Category.id)
-                .filter(
-                    EventHint.user_id == current_user_id,
-                    Category.user_id == current_user_id,
-                    EventHint.is_active == True,  # noqa: E712
-                    EventHint.prefill_category_id.is_not(None),
-                )
-                .order_by(EventHint.display_order)
-                .all()
-            )
-            if not hints:
-                continue
-
-            line_items = (
+            rules = load_prefill_rules(db, current_user_id)
+            line_items_query = (
                 db.query(LineItem)
-                .options(joinedload(LineItem.payment_method))
+                .options(joinedload(LineItem.payment_method), joinedload(LineItem.transaction))
                 .outerjoin(EventLineItem, EventLineItem.line_item_id == LineItem.id)
                 .outerjoin(
                     EventSuggestion,
@@ -49,46 +34,28 @@ def generate_event_suggestions(user_id: str | None = None) -> int:
                     ),
                 )
                 .filter(EventLineItem.id.is_(None), EventSuggestion.id.is_(None))
-                .all()
             )
-
-            hint_dicts = [
-                {
-                    "id": hint.id,
-                    "name": hint.name,
-                    "cel_expression": hint.cel_expression,
-                    "prefill_name": hint.prefill_name,
-                    "prefill_category": hint.prefill_category.name,
-                    "is_active": hint.is_active,
-                }
-                for hint in hints
-            ]
-            hints_by_id = {hint.id: hint for hint in hints}
-
-            for line_item in line_items:
-                suggestion = evaluate_hints(
-                    hint_dicts,
-                    [
-                        {
-                            "description": line_item.description or "",
-                            "amount": float(line_item.amount or 0),
-                            "payment_method": line_item.payment_method.name if line_item.payment_method else "",
-                            "responsible_party": line_item.responsible_party or "",
-                        }
-                    ],
+            if not rules.categorized_hints:
+                # Name-only hints can't supply a category, so only a Stripe expense can produce a suggestion.
+                line_items_query = line_items_query.join(Transaction, LineItem.transaction_id == Transaction.id).filter(
+                    Transaction.source == "stripe_api", LineItem.amount > 0
                 )
-                if not suggestion:
+
+            for line_item in line_items_query.all():
+                prefill = suggest_prefill(rules, [line_item])
+                if not prefill or not prefill["category_id"]:
                     continue
 
-                matched_hint = hints_by_id[suggestion["matched_hint_id"]]
                 db.add(
                     EventSuggestion(
                         id=generate_id("es"),
                         user_id=current_user_id,
                         line_item_id=line_item.id,
-                        event_hint_id=matched_hint.id,
-                        suggested_name=matched_hint.prefill_name,
-                        category_id=matched_hint.prefill_category_id,
+                        event_hint_id=prefill["matched_hint_id"],
+                        suggested_name=prefill["name"],
+                        category_id=prefill["category_id"],
+                        source=prefill["source"],
+                        source_metadata=prefill["source_metadata"],
                     )
                 )
                 created_count += 1

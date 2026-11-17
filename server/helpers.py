@@ -124,3 +124,14 @@ def hash_password(password: str) -> str:
 
 def check_password(password_hash: str, password: str) -> bool:
     return check_password_hash(password_hash, password)
+
+
+def default_name_cleanup(name: str) -> str:
+    """Mirror of the client's defaultNameCleanup, so a server-suggested title matches the modal's default."""
+    # Prefixes inserted by payment processors such as Square and Toast.
+    for prefix in ("SQ *", "TST* ", "TST*", "SP ", "DD *DOORDASH "):
+        if name.startswith(prefix):
+            name = name[len(prefix) :]
+            break
+    words = re.sub(r"[^a-z0-9&\-\s]", "", name.strip().lower()).split(" ")
+    return " ".join(word.capitalize() if word.isalnum() else word for word in words)

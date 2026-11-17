@@ -1,13 +1,13 @@
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { CurrencyFormatter } from "@/utils/formatters";
 import { DateTime } from "luxon";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useId, useMemo, useState } from "react";
 import { ChevronDown, ChevronUp, CornerDownRight, Filter, Plus } from "lucide-react";
 import CreateEventModal from "../components/CreateEventModal";
 import CreateManualTransactionModal from "../components/CreateManualTransactionModal";
@@ -17,21 +17,31 @@ import PaymentMethodFilter from "../components/PaymentMethodFilter";
 import { PageContainer, PageHeader } from "../components/ui/layout";
 import { Body, H1 } from "../components/ui/typography";
 import { LineItemInterface, useLineItems, useLineItemsDispatch } from "../contexts/LineItemsContext";
-import { useAcceptEventSuggestion, useRejectEventSuggestion } from "../hooks/useApi";
+import { useAcceptEventSuggestion, useCategories, useRejectEventSuggestion } from "../hooks/useApi";
+import { formatSuggestionSource } from "../utils/stringHelpers";
 import { showErrorToast, showSuccessToast } from "../utils/toast-helpers";
 
 function EventSuggestionReview({ lineItem, mobile = false }: { lineItem: LineItemInterface; mobile?: boolean }) {
     const suggestion = lineItem.event_suggestion;
     const [name, setName] = useState(suggestion?.name ?? "");
+    const [categoryId, setCategoryId] = useState(suggestion?.category_id ?? "");
+    const reasonId = useId();
+    const { data: categories = [], isPending: categoriesPending, isError: categoriesError } = useCategories();
     const acceptSuggestion = useAcceptEventSuggestion();
     const rejectSuggestion = useRejectEventSuggestion();
     const lineItemsDispatch = useLineItemsDispatch();
 
     if (!suggestion) return null;
+    const canAccept = Boolean(name.trim() && categoryId);
+    // Until categories arrive, offer the suggested one so the trigger still shows it.
+    const categoryOptions = categories.length > 0 || !suggestion.category_id
+        ? categories
+        : [{ id: suggestion.category_id, name: suggestion.category ?? "" }];
+    const categoryStatus = categoriesError ? "Categories couldn't be loaded" : categoriesPending ? "Loading categories…" : undefined;
 
     const accept = async () => {
         try {
-            const event = await acceptSuggestion.mutateAsync({ suggestionId: suggestion.id, name: name.trim() });
+            const event = await acceptSuggestion.mutateAsync({ suggestionId: suggestion.id, name: name.trim(), categoryId });
             lineItemsDispatch({ type: "remove_line_items", lineItemIds: [lineItem.id] });
             showSuccessToast(event.name, "Created Event");
         } catch (error) {
@@ -51,28 +61,41 @@ function EventSuggestionReview({ lineItem, mobile = false }: { lineItem: LineIte
     const isPending = acceptSuggestion.isPending || rejectSuggestion.isPending;
     const content = (
         <div className="flex flex-wrap items-center gap-2 border-l-2 border-primary/30 pl-2 xl:flex-nowrap" aria-label={`Suggested event for ${lineItem.description}`}>
-            <span className={`flex shrink-0 items-center gap-1.5 text-xs font-medium text-primary ${mobile ? "basis-full" : ""}`}>
-                <CornerDownRight className="h-4 w-4" aria-hidden="true" />
-                Suggested event
+            <span className={`flex shrink-0 items-center gap-1.5 text-xs ${mobile ? "basis-full" : ""}`}>
+                <CornerDownRight className="h-4 w-4 text-primary" aria-hidden="true" />
+                <span className="font-medium text-primary">Suggested event</span>
+                <span id={reasonId} className="max-w-48 truncate text-muted-foreground">{formatSuggestionSource(suggestion)}</span>
             </span>
             <Input
                 aria-label={`Suggested event title for ${lineItem.description}`}
                 value={name}
                 onChange={event => setName(event.target.value)}
                 onKeyDown={event => {
-                    if (event.key === "Enter" && name.trim() && !isPending) void accept();
+                    if (event.key === "Enter" && canAccept && !isPending) void accept();
                 }}
                 className={`h-9 min-w-0 bg-white ${mobile ? "basis-full" : "flex-1"}`}
             />
-            <Badge className="max-w-full whitespace-normal bg-white text-foreground border hover:bg-white">
-                {suggestion.category}
-            </Badge>
+            <Select value={categoryId} onValueChange={setCategoryId} disabled={isPending}>
+                <SelectTrigger
+                    aria-label={`Suggested category for ${lineItem.description}`}
+                    aria-describedby={reasonId}
+                    className={`h-9 bg-white ${mobile ? "min-w-0 flex-1" : "w-44 shrink-0"}`}
+                >
+                    <SelectValue placeholder="Choose a category" />
+                </SelectTrigger>
+                <SelectContent className="bg-white border">
+                    {categoryStatus && <SelectItem value="__category_status" disabled>{categoryStatus}</SelectItem>}
+                    {categoryOptions.map(category => (
+                        <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
             <div className="ml-auto flex shrink-0 gap-2">
                 <Button
                     aria-label={`Create event from ${lineItem.description}`}
                     size="sm"
                     onClick={() => void accept()}
-                    disabled={!name.trim() || isPending}
+                    disabled={!canAccept || isPending}
                 >
                     {acceptSuggestion.isPending ? <Spinner size="sm" /> : "Create event"}
                 </Button>

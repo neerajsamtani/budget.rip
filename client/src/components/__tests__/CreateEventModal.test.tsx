@@ -10,6 +10,7 @@ import CreateEventModal from '../CreateEventModal';
 jest.mock('../../utils/stringHelpers', () => ({
     __esModule: true,
     default: jest.fn((str) => str), // just return the string as-is
+    formatSuggestionSource: jest.requireActual('../../utils/stringHelpers').formatSuggestionSource,
 }));
 
 // Mock Sonner toast with all methods
@@ -124,7 +125,7 @@ describe('CreateEventModal', () => {
             source_metadata: { detailed_label: 'groceries', confidence_level: 'high' },
         }, isLoading: false, isError: false });
         render(<CreateEventModal show={true} onHide={mockOnHide} />);
-        expect(screen.getByRole('combobox', { name: /category/i })).toHaveAccessibleDescription('Suggested: Groceries');
+        expect(screen.getByRole('combobox', { name: /category/i })).toHaveAccessibleDescription('Suggested: Groceries · Stripe: Groceries');
         expect(screen.getByLabelText('Event Name')).toHaveValue('Grocery Store');
         expect(screen.getByRole('combobox', { name: /category/i })).toHaveTextContent('Groceries');
         expect(mockAxiosInstance.post).not.toHaveBeenCalled();
@@ -154,7 +155,7 @@ describe('CreateEventModal', () => {
         rerender(<CreateEventModal show={true} onHide={mockOnHide} />);
         expect(screen.getByLabelText('Event Name')).toHaveValue('Edited name');
         expect(screen.getByRole('combobox', { name: /category/i })).toHaveTextContent('Dining');
-        expect(screen.getByRole('combobox', { name: /category/i })).toHaveAccessibleDescription('Suggested: Entertainment · Video games');
+        expect(screen.getByRole('combobox', { name: /category/i })).toHaveAccessibleDescription('Suggested: Entertainment · Stripe: Video games');
     });
 
     it('group Stripe prefill explains the shared category and submits every selected item as one event', async () => {
@@ -172,7 +173,7 @@ describe('CreateEventModal', () => {
         render(<CreateEventModal show={true} onHide={mockOnHide} />);
         expect(mockUseEvaluateEventHints).toHaveBeenCalledWith(['1', '2'], true);
         expect(screen.getByRole('combobox', { name: /category/i }))
-            .toHaveAccessibleDescription('Suggested: Rent · Stripe category for all 2 transactions');
+            .toHaveAccessibleDescription('Suggested: Rent · Stripe: all 2 transactions');
         expect(screen.getByLabelText('Event Name')).toHaveValue('Test Store 1');
         await userEvent.clear(screen.getByLabelText('Event Name'));
         await userEvent.type(screen.getByLabelText('Event Name'), 'November housing');

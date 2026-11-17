@@ -1,5 +1,5 @@
 import React, { createContext, ReactNode, useContext, useEffect, useMemo, useReducer } from 'react';
-import { useLineItems as useLineItemsQuery } from '../hooks/useApi';
+import { EventHintSuggestion, useLineItems as useLineItemsQuery } from '../hooks/useApi';
 import { showErrorToast } from '../utils/toast-helpers';
 import { useAuth } from './AuthContext';
 
@@ -22,9 +22,12 @@ export interface LineItemInterface {
     event_suggestion?: {
         id: string;
         name: string;
-        category_id: string;
-        category: string;
+        // Null when the suggested category was deleted; the user must pick another before accepting.
+        category_id: string | null;
+        category: string | null;
         matched_hint_name: string | null;
+        source: NonNullable<EventHintSuggestion['source']>;
+        source_metadata: EventHintSuggestion['source_metadata'] | null;
     } | null;
 }
 

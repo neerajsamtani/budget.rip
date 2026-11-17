@@ -1,4 +1,4 @@
-import defaultNameCleanup from '../stringHelpers';
+import defaultNameCleanup, { formatSuggestionSource } from '../stringHelpers';
 
 describe('String Helpers', () => {
     describe('defaultNameCleanup', () => {
@@ -104,5 +104,26 @@ describe('String Helpers', () => {
             expect(defaultNameCleanup('TEST_STORE')).toBe('Teststore');
             expect(defaultNameCleanup('TEST__STORE')).toBe('Teststore');
         });
+    });
+});
+
+describe('formatSuggestionSource', () => {
+    const stripe = (source_metadata: object) => ({ source: 'stripe_personal_finance', matched_hint_name: null, source_metadata });
+
+    it('a Stripe suggestion names its humanized detailed label', () => {
+        expect(formatSuggestionSource(stripe({ primary_label: 'food_and_drink', detailed_label: 'fast_food' }))).toBe('Stripe: Fast food');
+    });
+
+    it('a Stripe suggestion without a detailed label names its primary label', () => {
+        expect(formatSuggestionSource(stripe({ primary_label: 'rent_and_utilities', detailed_label: null }))).toBe('Stripe: Rent and utilities');
+    });
+
+    it('a Stripe group suggestion names how many transactions agreed', () => {
+        expect(formatSuggestionSource(stripe({ selected_count: 3 }))).toBe('Stripe: all 3 transactions');
+    });
+
+    it('a hint suggestion names its hint', () => {
+        expect(formatSuggestionSource({ source: 'event_hint', matched_hint_name: 'Spotify purchases' })).toBe('Hint: Spotify purchases');
+        expect(formatSuggestionSource({ source: 'event_hint', matched_hint_name: null })).toBe('Event hint');
     });
 });

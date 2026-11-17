@@ -594,7 +594,7 @@ describe('useApi hooks', () => {
     });
 
     describe('event suggestion mutations', () => {
-        it('accepts a suggestion with the edited name and invalidates event data', async () => {
+        it('accepts a suggestion with the edited name and category and invalidates event data', async () => {
             mockPost.mockResolvedValue({ data: { id: 'evt-1', name: 'Edited title' } });
             const queryClient = createTestQueryClient();
             const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
@@ -604,10 +604,10 @@ describe('useApi hooks', () => {
             const { result } = renderHook(() => useAcceptEventSuggestion(), { wrapper });
 
             await act(async () => {
-                await result.current.mutateAsync({ suggestionId: 'es-1', name: 'Edited title' });
+                await result.current.mutateAsync({ suggestionId: 'es-1', name: 'Edited title', categoryId: 'cat_dining' });
             });
 
-            expect(mockPost).toHaveBeenCalledWith('api/event-suggestions/es-1/accept', { name: 'Edited title' });
+            expect(mockPost).toHaveBeenCalledWith('api/event-suggestions/es-1/accept', { name: 'Edited title', category_id: 'cat_dining' });
             expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['events'] });
             expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['lineItems'] });
             expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['monthlyBreakdown'] });
