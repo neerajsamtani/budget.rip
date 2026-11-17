@@ -67,7 +67,13 @@ def generate_event_suggestions(user_id: str | None = None) -> int:
 
 
 def insert_unless_already_suggested(db, suggestion: EventSuggestion) -> bool:
-    """Insert in a savepoint so a concurrent refresh that suggested the same user/item first doesn't abort the batch."""
+    """Insert one suggestion; return False if another refresh already suggested this user/line item.
+
+    Two refreshes can run at once and both try to suggest the same line item. The second insert
+    violates the unique (user_id, line_item_id) constraint, and in PostgreSQL that error would abort
+    the whole refresh transaction. A savepoint rolls back only this insert, so the rest of the batch
+    is kept. Any other integrity error is a real bug and is re-raised.
+    """
     try:
         with db.begin_nested():
             db.add(suggestion)
