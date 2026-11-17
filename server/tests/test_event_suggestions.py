@@ -282,7 +282,50 @@ def test_another_users_category_is_not_exposed_in_review_list(pg_session, test_c
     )
     pg_session.commit()
 
-    assert review_suggestions(test_client, jwt_token)[line_item.id] is None
+    suggestion = review_suggestions(test_client, jwt_token)[line_item.id]
+    assert (suggestion["category_id"], suggestion["category"]) == (None, None)
+
+
+def test_suggestion_whose_category_was_deleted_stays_listed_without_a_category(pg_session, test_client, jwt_token):
+    line_item, subscription = create_matching_line_item_and_hint(pg_session)
+    generate_event_suggestions("user_id")
+    pg_session.query(EventSuggestion).update({"category_id": None})
+    pg_session.commit()
+
+    suggestion = review_suggestions(test_client, jwt_token)[line_item.id]
+    assert (suggestion["name"], suggestion["category_id"], suggestion["category"]) == ("Spotify", None, None)
+
+
+def test_name_only_hint_does_not_shadow_later_categorized_hint(pg_session):
+    _, subscription = create_matching_line_item_and_hint(pg_session)
+    pg_session.add(
+        EventHint(
+            id="eh_name_only",
+            user_id="user_id",
+            name="Spotify name",
+            cel_expression='description.contains("Spotify")',
+            prefill_name="Music",
+            display_order=-1,
+            is_active=True,
+        )
+    )
+    pg_session.commit()
+
+    assert generate_event_suggestions("user_id") == 1
+
+    suggestion = pg_session.query(EventSuggestion).one()
+    assert (suggestion.event_hint_id, suggestion.suggested_name, suggestion.category_id) == (
+        "eh_suggestion",
+        "Spotify",
+        subscription.id,
+    )
+
+
+def test_users_without_hints_skip_hint_evaluation(pg_session, mocker, stripe_line_item):
+    evaluate = mocker.patch("utils.category_suggestions.evaluate_hints")
+
+    assert generate_event_suggestions("user_id") == 1
+    evaluate.assert_not_called()
 
 
 def test_accepting_with_corrected_category_creates_event_in_that_category(
@@ -320,6 +363,15 @@ def test_accepting_with_unowned_category_is_rejected_without_consuming_suggestio
     assert response.get_json()["error"] == "Category not found"
     assert pg_session.query(EventSuggestion).count() == 1
     assert pg_session.query(Event).count() == 0
+
+
+def test_empty_category_override_keeps_the_suggested_category(pg_session, test_client, jwt_token, stripe_line_item):
+    generate_event_suggestions("user_id")
+
+    response = accept(test_client, jwt_token, pg_session.query(EventSuggestion).one().id, {"category_id": ""})
+
+    assert response.status_code == 201
+    assert response.get_json()["category"] == "Groceries"
 
 
 def test_unavailable_stored_category_requires_a_correction(pg_session, test_client, jwt_token, stripe_line_item):

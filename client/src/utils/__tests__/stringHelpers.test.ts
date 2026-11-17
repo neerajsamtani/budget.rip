@@ -1,4 +1,4 @@
-import defaultNameCleanup from '../stringHelpers';
+import defaultNameCleanup, { formatStripeLabel } from '../stringHelpers';
 
 describe('String Helpers', () => {
     describe('defaultNameCleanup', () => {
@@ -104,5 +104,19 @@ describe('String Helpers', () => {
             expect(defaultNameCleanup('TEST_STORE')).toBe('Teststore');
             expect(defaultNameCleanup('TEST__STORE')).toBe('Teststore');
         });
+    });
+});
+
+describe('formatStripeLabel', () => {
+    it('the detailed label is preferred and humanized', () => {
+        expect(formatStripeLabel({ primary_label: 'food_and_drink', detailed_label: 'fast_food' })).toBe('Fast food');
+    });
+
+    it('the primary label is used when there is no detailed label', () => {
+        expect(formatStripeLabel({ primary_label: 'rent_and_utilities', detailed_label: null })).toBe('Rent and utilities');
+    });
+
+    it('missing evidence yields undefined', () => {
+        expect(formatStripeLabel(null)).toBeUndefined();
     });
 });

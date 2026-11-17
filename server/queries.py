@@ -112,13 +112,14 @@ def get_all_line_items(
                     EventSuggestion.id,
                     EventSuggestion.line_item_id,
                     EventSuggestion.suggested_name,
-                    EventSuggestion.category_id,
+                    Category.id.label("category_id"),
                     EventSuggestion.source,
                     EventSuggestion.source_metadata,
                     Category.name.label("category"),
                     EventHint.name.label("matched_hint_name"),
                 )
-                .join(
+                # Outer join so a suggestion whose category was deleted stays visible and can be corrected.
+                .outerjoin(
                     Category,
                     and_(EventSuggestion.category_id == Category.id, Category.user_id == suggestion_user_id),
                 )

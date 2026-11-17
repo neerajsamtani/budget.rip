@@ -39,7 +39,7 @@ def accept_event_suggestion(suggestion_id: str) -> tuple[Response, int]:
         if not name:
             return jsonify({"error": "Event name is required"}), 400
         category = suggestion.category
-        if data.get("category_id") is not None:
+        if data.get("category_id"):
             category = db.query(Category).filter(Category.id == str(data["category_id"]), Category.user_id == user_id).first()
             if not category:
                 return jsonify({"error": "Category not found"}), 400

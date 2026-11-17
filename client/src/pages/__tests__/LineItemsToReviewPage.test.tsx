@@ -31,14 +31,18 @@ jest.mock('../../hooks/useApi', () => ({
         mutateAsync: mockRejectSuggestion,
         isPending: false,
     }),
-    useCategories: () => ({
-        data: [
-            { id: 'cat_dining', name: 'Dining' },
-            { id: 'cat_groceries', name: 'Groceries' },
-            { id: 'cat_subscription', name: 'Subscription' },
-        ],
-    }),
+    useCategories: () => mockUseCategories(),
 }));
+const mockCategories = {
+    data: [
+        { id: 'cat_dining', name: 'Dining' },
+        { id: 'cat_groceries', name: 'Groceries' },
+        { id: 'cat_subscription', name: 'Subscription' },
+    ],
+    isPending: false,
+    isError: false,
+};
+const mockUseCategories = jest.fn(() => mockCategories);
 
 // Mock the components
 jest.mock('../../components/CreateManualTransactionModal', () => {
@@ -193,6 +197,7 @@ describe('LineItemsToReviewPage', () => {
         jest.clearAllMocks();
         mockAcceptSuggestion.mockResolvedValue({ name: 'Spotify' });
         mockRejectSuggestion.mockResolvedValue(undefined);
+        mockUseCategories.mockReturnValue(mockCategories);
         mockUseLineItems.mockReturnValue({ lineItems: mockLineItems, isPending: false });
     });
 
@@ -273,6 +278,48 @@ describe('LineItemsToReviewPage', () => {
                 expect(select).toHaveTextContent('Groceries');
                 expect(select).toHaveAccessibleDescription('Stripe: Groceries');
             });
+        });
+
+        it('title and category edits are shared by the mobile and desktop layouts', async () => {
+            mockUseLineItems.mockReturnValue({ lineItems: [stripeLineItem], isPending: false });
+            render(<LineItemsToReviewPage />);
+
+            const titleInputs = screen.getAllByRole('textbox', { name: /suggested event title/i });
+            await userEvent.clear(titleInputs[1]);
+            await userEvent.type(titleInputs[1], 'Weekly shop');
+            await userEvent.click(screen.getAllByRole('combobox', { name: /suggested category/i })[1]);
+            await userEvent.click(screen.getByRole('option', { name: 'Dining' }));
+
+            expect(screen.getAllByRole('textbox', { name: /suggested event title/i })[0]).toHaveValue('Weekly shop');
+            expect(screen.getAllByRole('combobox', { name: /suggested category/i })[0]).toHaveTextContent('Dining');
+            await userEvent.click(screen.getAllByRole('button', { name: /create event from/i })[0]);
+            await waitFor(() => {
+                expect(mockAcceptSuggestion).toHaveBeenCalledWith({ suggestionId: 'es_2', name: 'Weekly shop', categoryId: 'cat_dining' });
+            });
+        });
+
+        it('a suggestion whose category was deleted needs a category before it can be accepted', async () => {
+            const uncategorized = { ...stripeLineItem, event_suggestion: { ...stripeLineItem.event_suggestion, category_id: null, category: null } };
+            mockUseLineItems.mockReturnValue({ lineItems: [uncategorized], isPending: false });
+            render(<LineItemsToReviewPage />);
+
+            const createButton = screen.getAllByRole('button', { name: /create event from/i })[1];
+            expect(screen.getAllByRole('combobox', { name: /suggested category/i })[1]).toHaveTextContent('Choose a category');
+            expect(createButton).toBeDisabled();
+
+            await userEvent.click(screen.getAllByRole('combobox', { name: /suggested category/i })[1]);
+            await userEvent.click(screen.getByRole('option', { name: 'Groceries' }));
+            expect(createButton).toBeEnabled();
+        });
+
+        it('the category picker says when categories could not be loaded', async () => {
+            mockUseCategories.mockReturnValue({ data: undefined, isPending: false, isError: true } as never);
+            mockUseLineItems.mockReturnValue({ lineItems: [stripeLineItem], isPending: false });
+            render(<LineItemsToReviewPage />);
+
+            await userEvent.click(screen.getAllByRole('combobox', { name: /suggested category/i })[1]);
+
+            expect(screen.getByRole('option', { name: "Categories couldn't be loaded" })).toHaveAttribute('aria-disabled', 'true');
         });
 
         it('accepts a suggestion with a corrected category', async () => {

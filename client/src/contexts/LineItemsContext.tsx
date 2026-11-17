@@ -22,8 +22,9 @@ export interface LineItemInterface {
     event_suggestion?: {
         id: string;
         name: string;
-        category_id: string;
-        category: string;
+        // Null when the suggested category was deleted; the user must pick another before accepting.
+        category_id: string | null;
+        category: string | null;
         matched_hint_name: string | null;
         source: NonNullable<EventHintSuggestion['source']>;
         source_metadata: EventHintSuggestion['source_metadata'] | null;

@@ -36,3 +36,9 @@ function titleCase(str: string) {
 export default function defaultNameCleanup(str: string) {
     return titleCase(removePrefixes(str))
 }
+
+/** Human-readable Stripe classification, preferring the detailed label (e.g. "fast_food" → "Fast food"). */
+export function formatStripeLabel(metadata?: { primary_label?: string; detailed_label?: string | null } | null): string | undefined {
+    const label = metadata?.detailed_label || metadata?.primary_label;
+    return label?.replaceAll('_', ' ').replace(/^./, char => char.toUpperCase());
+}

@@ -11,9 +11,8 @@ from utils.stripe_category_mapping import ACCEPTED_CONFIDENCE_LEVELS, map_stripe
 
 @dataclass
 class PrefillRules:
-    """One user's hints and categories, loaded once so many items can be resolved without more queries."""
+    """One user's hints and categories as plain data, so many items can be resolved without more queries."""
 
-    hints_by_id: dict[str, EventHint]
     hint_dicts: list[dict]
     categories_by_name: dict[str, Category]
 
@@ -27,16 +26,17 @@ def load_prefill_rules(db, user_id: str) -> PrefillRules:
         .all()
     )
     return PrefillRules(
-        hints_by_id={hint.id: hint for hint in hints},
         hint_dicts=[
             {
                 "id": hint.id,
                 "name": hint.name,
                 "cel_expression": hint.cel_expression,
                 "prefill_name": hint.prefill_name,
-                "prefill_category": hint.prefill_category.name
-                if hint.prefill_category and hint.prefill_category.user_id == user_id
-                else None,
+                **(
+                    {"prefill_category": hint.prefill_category.name, "prefill_category_id": hint.prefill_category_id}
+                    if hint.prefill_category and hint.prefill_category.user_id == user_id
+                    else {"prefill_category": None, "prefill_category_id": None}
+                ),
             }
             for hint in hints
         ],
@@ -75,22 +75,26 @@ def resolve_event_prefill(db, user_id: str, line_item_ids: list[str]) -> dict | 
 
 def suggest_prefill(rules: PrefillRules, items: list[LineItem], stripe_vetoed: bool = False) -> dict | None:
     """Resolve from preloaded rules and items; issues no queries when transaction, payment method and events are loaded."""
-    hint_suggestion = evaluate_hints(
-        rules.hint_dicts,
-        [
-            {
-                "description": item.description or "",
-                "amount": float(item.amount),
-                "responsible_party": item.responsible_party or "",
-                "payment_method": item.payment_method.name if item.payment_method else "",
-            }
-            for item in items
-        ],
+    hint_suggestion = (
+        evaluate_hints(
+            rules.hint_dicts,
+            [
+                {
+                    "description": item.description or "",
+                    "amount": float(item.amount),
+                    "responsible_party": item.responsible_party or "",
+                    "payment_method": item.payment_method.name if item.payment_method else "",
+                }
+                for item in items
+            ],
+        )
+        if rules.hint_dicts
+        else None
     )
     if hint_suggestion:
-        matched_hint = rules.hints_by_id[hint_suggestion["matched_hint_id"]]
+        matched_hint = next(hint for hint in rules.hint_dicts if hint["id"] == hint_suggestion["matched_hint_id"])
         hint_suggestion.update(
-            category_id=matched_hint.prefill_category_id if hint_suggestion["category"] else None,
+            category_id=matched_hint["prefill_category_id"],
             source="event_hint",
             source_metadata={},
         )

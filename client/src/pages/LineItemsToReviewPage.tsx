@@ -18,29 +18,40 @@ import { PageContainer, PageHeader } from "../components/ui/layout";
 import { Body, H1 } from "../components/ui/typography";
 import { LineItemInterface, useLineItems, useLineItemsDispatch } from "../contexts/LineItemsContext";
 import { useAcceptEventSuggestion, useCategories, useRejectEventSuggestion } from "../hooks/useApi";
+import { formatStripeLabel } from "../utils/stringHelpers";
 import { showErrorToast, showSuccessToast } from "../utils/toast-helpers";
 
 type EventSuggestion = NonNullable<LineItemInterface["event_suggestion"]>;
+interface SuggestionDraft { name: string; categoryId: string }
 
 function suggestionReason(suggestion: EventSuggestion): string {
     if (suggestion.source === "stripe_personal_finance") {
-        const label = suggestion.source_metadata?.detailed_label || suggestion.source_metadata?.primary_label;
-        return label ? `Stripe: ${label.replaceAll("_", " ").replace(/^./, char => char.toUpperCase())}` : "Stripe";
+        const label = formatStripeLabel(suggestion.source_metadata);
+        return label ? `Stripe: ${label}` : "Stripe";
     }
     return suggestion.matched_hint_name ? `Hint: ${suggestion.matched_hint_name}` : "Event hint";
 }
 
-function EventSuggestionReview({ lineItem, mobile = false }: { lineItem: LineItemInterface; mobile?: boolean }) {
+// The mobile and desktop layouts both mount a review for each suggestion, so the page owns the draft they share.
+function EventSuggestionReview({ lineItem, draft, onDraftChange, mobile = false }: {
+    lineItem: LineItemInterface;
+    draft?: SuggestionDraft;
+    onDraftChange: (suggestionId: string, draft: SuggestionDraft) => void;
+    mobile?: boolean;
+}) {
     const suggestion = lineItem.event_suggestion;
-    const [name, setName] = useState(suggestion?.name ?? "");
-    const [categoryId, setCategoryId] = useState(suggestion?.category_id ?? "");
     const reasonId = useId();
-    const { data: categories = [] } = useCategories();
+    const { data: categories = [], isPending: categoriesPending, isError: categoriesError } = useCategories();
     const acceptSuggestion = useAcceptEventSuggestion();
     const rejectSuggestion = useRejectEventSuggestion();
     const lineItemsDispatch = useLineItemsDispatch();
 
     if (!suggestion) return null;
+    const { name, categoryId } = draft ?? { name: suggestion.name, categoryId: suggestion.category_id ?? "" };
+    const setName = (value: string) => onDraftChange(suggestion.id, { name: value, categoryId });
+    const setCategoryId = (value: string) => onDraftChange(suggestion.id, { name, categoryId: value });
+    const canAccept = Boolean(name.trim() && categoryId);
+    const categoryStatus = categoriesError ? "Categories couldn't be loaded" : categoriesPending ? "Loading categories…" : undefined;
 
     const accept = async () => {
         try {
@@ -74,7 +85,7 @@ function EventSuggestionReview({ lineItem, mobile = false }: { lineItem: LineIte
                 value={name}
                 onChange={event => setName(event.target.value)}
                 onKeyDown={event => {
-                    if (event.key === "Enter" && name.trim() && !isPending) void accept();
+                    if (event.key === "Enter" && canAccept && !isPending) void accept();
                 }}
                 className={`h-9 min-w-0 bg-white ${mobile ? "basis-full" : "flex-1"}`}
             />
@@ -84,9 +95,10 @@ function EventSuggestionReview({ lineItem, mobile = false }: { lineItem: LineIte
                     aria-describedby={reasonId}
                     className={`h-9 bg-white ${mobile ? "min-w-0 flex-1" : "w-44 shrink-0"}`}
                 >
-                    <SelectValue placeholder={suggestion.category} />
+                    <SelectValue placeholder={suggestion.category ?? "Choose a category"} />
                 </SelectTrigger>
                 <SelectContent className="bg-white border">
+                    {categoryStatus && <SelectItem value="__category_status" disabled>{categoryStatus}</SelectItem>}
                     {categories.map(category => (
                         <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
                     ))}
@@ -97,7 +109,7 @@ function EventSuggestionReview({ lineItem, mobile = false }: { lineItem: LineIte
                     aria-label={`Create event from ${lineItem.description}`}
                     size="sm"
                     onClick={() => void accept()}
-                    disabled={!name.trim() || isPending}
+                    disabled={!canAccept || isPending}
                 >
                     {acceptSuggestion.isPending ? <Spinner size="sm" /> : "Create event"}
                 </Button>
@@ -150,6 +162,10 @@ export default function LineItemsToReviewPage() {
     const [endDate, setEndDate] = useState("");
     const { lineItems, isPending, error, refetch } = useLineItems();
     const lineItemsDispatch = useLineItemsDispatch();
+    const [suggestionDrafts, setSuggestionDrafts] = useState<Record<string, SuggestionDraft>>({});
+    const updateSuggestionDraft = useCallback((suggestionId: string, draft: SuggestionDraft) => {
+        setSuggestionDrafts(drafts => ({ ...drafts, [suggestionId]: draft }));
+    }, []);
     const allLineItems = lineItems ?? [];
     const selectedLineItems = allLineItems.filter(lineItem => lineItem.isSelected);
     const total = selectedLineItems.reduce((prev, cur) => prev + cur.amount, 0);
@@ -306,7 +322,13 @@ export default function LineItemsToReviewPage() {
                                 />
                                 {lineItem.event_suggestion && (
                                     <div className="border-t border-primary/15 px-3 py-2">
-                                        <EventSuggestionReview key={lineItem.event_suggestion.id} lineItem={lineItem} mobile />
+                                        <EventSuggestionReview
+                                            key={lineItem.event_suggestion.id}
+                                            lineItem={lineItem}
+                                            draft={suggestionDrafts[lineItem.event_suggestion.id]}
+                                            onDraftChange={updateSuggestionDraft}
+                                            mobile
+                                        />
                                     </div>
                                 )}
                             </div>
@@ -365,7 +387,12 @@ export default function LineItemsToReviewPage() {
                                             hasAttachedContent={!!lineItem.event_suggestion}
                                         />
                                         {lineItem.event_suggestion && (
-                                            <EventSuggestionReview key={lineItem.event_suggestion.id} lineItem={lineItem} />
+                                            <EventSuggestionReview
+                                                key={lineItem.event_suggestion.id}
+                                                lineItem={lineItem}
+                                                draft={suggestionDrafts[lineItem.event_suggestion.id]}
+                                                onDraftChange={updateSuggestionDraft}
+                                            />
                                         )}
                                     </React.Fragment>
                                 ))

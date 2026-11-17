@@ -10,6 +10,7 @@ import CreateEventModal from '../CreateEventModal';
 jest.mock('../../utils/stringHelpers', () => ({
     __esModule: true,
     default: jest.fn((str) => str), // just return the string as-is
+    formatStripeLabel: jest.requireActual('../../utils/stringHelpers').formatStripeLabel,
 }));
 
 // Mock Sonner toast with all methods

@@ -11,7 +11,7 @@ import { EventHintSuggestion, useCategories, useCreateEvent, useEvaluateEventHin
 import { useField } from '../hooks/useField';
 import { calculateEventTotal } from '../utils/eventHelpers';
 import { CurrencyFormatter } from '../utils/formatters';
-import defaultNameCleanup from '../utils/stringHelpers';
+import defaultNameCleanup, { formatStripeLabel } from '../utils/stringHelpers';
 import { showErrorToast, showSuccessToast } from '../utils/toast-helpers';
 import { Option } from './Autocomplete';
 import { Tag, TagsField } from './TagsField';
@@ -25,8 +25,7 @@ function formatCategorySuggestionNote(suggestion?: EventHintSuggestion | null): 
   if (suggestion.source === 'stripe_personal_finance' && groupSize) {
     detail = `Stripe category for all ${groupSize} transactions`;
   } else if (suggestion.source === 'stripe_personal_finance') {
-    const label = suggestion.source_metadata?.detailed_label || suggestion.source_metadata?.primary_label || 'Stripe';
-    detail = label.replaceAll('_', ' ').replace(/^./, char => char.toUpperCase());
+    detail = formatStripeLabel(suggestion.source_metadata) ?? 'Stripe';
   }
 
   const note = `Suggested: ${suggestion.category}`;
