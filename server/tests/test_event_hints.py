@@ -1,6 +1,8 @@
+from contextlib import contextmanager
 from datetime import UTC, datetime
 
 import pytest
+from sqlalchemy import event
 
 from models.sql_models import Category, EventHint, LineItem, PaymentMethod, Transaction, User
 from utils.cel_evaluator import CELEvaluator, evaluate_hints
@@ -587,21 +589,29 @@ def evaluate_prefill(test_client, jwt_token, ids):
     return response.get_json()["data"]["suggestion"]
 
 
-def test_stripe_prefill_without_hints_is_user_owned_and_read_only(pg_session, test_client, jwt_token, stripe_item):
-    from sqlalchemy import event
+@contextmanager
+def assert_no_writes():
+    # Listen on the app's engine: requests use it, not the pg_session test engine.
+    from models.database import engine
 
-    category = pg_session.query(Category).filter_by(user_id="user_id", name="Groceries").one()
     writes = []
 
     def record_writes(conn, cursor, statement, parameters, context, executemany):
         if statement.lstrip().split()[0].upper() in ("INSERT", "UPDATE", "DELETE"):
             writes.append(statement)
 
-    event.listen(pg_session.bind, "before_cursor_execute", record_writes)
+    event.listen(engine, "before_cursor_execute", record_writes)
     try:
-        result = evaluate_prefill(test_client, jwt_token, [stripe_item.id, stripe_item.id])
+        yield
     finally:
-        event.remove(pg_session.bind, "before_cursor_execute", record_writes)
+        event.remove(engine, "before_cursor_execute", record_writes)
+    assert writes == []
+
+
+def test_stripe_prefill_without_hints_is_user_owned_and_read_only(pg_session, test_client, jwt_token, stripe_item):
+    category = pg_session.query(Category).filter_by(user_id="user_id", name="Groceries").one()
+    with assert_no_writes():
+        result = evaluate_prefill(test_client, jwt_token, [stripe_item.id, stripe_item.id])
     assert result == {
         "name": "Grocery Store",
         "category": "Groceries",
@@ -616,7 +626,6 @@ def test_stripe_prefill_without_hints_is_user_owned_and_read_only(pg_session, te
             "confidence_level": "high",
         },
     }
-    assert writes == []
     pg_session.refresh(stripe_item)
     assert stripe_item.description == "Spotify Premium Monthly"
     assert stripe_item.transaction.source_data["description"] == "Untouched bank description"
@@ -637,61 +646,6 @@ def test_winning_hint_keeps_title_and_category_precedence(
     assert result["matched_hint_id"] == hint.id
     if not categorized:
         assert result["source_metadata"]["name_hint_id"] == hint.id
-
-
-@pytest.mark.parametrize(
-    "reason",
-    [
-        "missing_id",
-        "mixed_group",
-        "non_stripe",
-        "inflow",
-        "zero",
-        "missing_category",
-        "foreign_category",
-        "dismissed",
-        "reviewed",
-    ],
-)
-def test_ineligible_items_do_not_receive_stripe_prefill(pg_session, test_client, jwt_token, stripe_item, reason):
-    from models.sql_models import Event, EventLineItem, EventSuggestion, User
-
-    ids = [stripe_item.id]
-    if reason == "missing_id":
-        ids.append("li_missing")
-    elif reason == "mixed_group":
-        ids.append("li_2")
-    elif reason == "non_stripe":
-        stripe_item.transaction.source = "manual"
-    elif reason in ("inflow", "zero"):
-        stripe_item.amount = -1 if reason == "inflow" else 0
-    elif reason in ("missing_category", "foreign_category"):
-        category = pg_session.query(Category).filter_by(user_id="user_id", name="Groceries").one()
-        if reason == "missing_category":
-            pg_session.delete(category)
-        else:
-            pg_session.add(
-                User(id="other_user", first_name="Other", last_name="User", email="other@example.com", password_hash="x")
-            )
-            pg_session.flush()
-            category.user_id = "other_user"
-    elif reason == "dismissed":
-        pg_session.add(
-            EventSuggestion(
-                id="es_dismissed",
-                user_id="user_id",
-                line_item_id=stripe_item.id,
-                suggested_name="Old",
-                rejected_at=datetime.now(UTC),
-            )
-        )
-    else:
-        category = pg_session.query(Category).filter_by(user_id="user_id", name="Groceries").one()
-        pg_session.add(Event(id="evt_reviewed", date=datetime.now(UTC), description="Reviewed", category_id=category.id))
-        pg_session.flush()
-        pg_session.add(EventLineItem(id="eli_reviewed", event_id="evt_reviewed", line_item_id=stripe_item.id))
-    pg_session.commit()
-    assert evaluate_prefill(test_client, jwt_token, ids) is None
 
 
 @pytest.mark.parametrize(
@@ -749,25 +703,14 @@ def stripe_group(pg_session, sample_line_items):
     return sample_line_items
 
 
-def test_group_with_agreeing_labels_gets_combined_stripe_prefill_without_writes(
+def test_agreeing_group_gets_stripe_category_titled_by_first_selected_item_without_writes(
     pg_session, test_client, jwt_token, stripe_group
 ):
-    from sqlalchemy import event
-
-    writes = []
-
-    def record_writes(conn, cursor, statement, parameters, context, executemany):
-        if statement.lstrip().split()[0].upper() in ("INSERT", "UPDATE", "DELETE"):
-            writes.append(statement)
-
-    event.listen(pg_session.bind, "before_cursor_execute", record_writes)
-    try:
+    with assert_no_writes():
         result = evaluate_prefill(test_client, jwt_token, ["li_2", "li_1", "li_2"])
         reordered = evaluate_prefill(test_client, jwt_token, ["li_1", "li_2"])
-    finally:
-        event.remove(pg_session.bind, "before_cursor_execute", record_writes)
     assert result == {
-        "name": "Combined transactions",
+        "name": "Venmo Transfer",
         "category": "Dining",
         "category_id": "cat_dining",
         "source": "stripe_personal_finance",
@@ -783,8 +726,7 @@ def test_group_with_agreeing_labels_gets_combined_stripe_prefill_without_writes(
             "confidence_level": "high",
         },
     }
-    assert reordered == result
-    assert writes == []
+    assert reordered == {**result, "name": "Spotify Premium Monthly"}
 
 
 def test_rent_and_utilities_agree_on_rent_with_weakest_confidence(pg_session, test_client, jwt_token, stripe_group):
@@ -818,15 +760,28 @@ def test_conflicting_categories_get_no_stripe_prefill_regardless_of_amounts(
     assert evaluate_prefill(test_client, jwt_token, ["li_1", "li_2"]) is None
 
 
+@pytest.mark.parametrize("selection", [["li_2"], ["li_1", "li_2"]], ids=["single", "group"])
 @pytest.mark.parametrize(
     "reason",
-    ["missing_id", "non_stripe", "inflow", "zero", "low_confidence", "skipped_label", "malformed", "dismissed", "reviewed"],
+    [
+        "missing_id",
+        "non_stripe",
+        "inflow",
+        "zero",
+        "low_confidence",
+        "skipped_label",
+        "malformed",
+        "missing_category",
+        "foreign_category",
+        "dismissed",
+        "reviewed",
+    ],
 )
-def test_one_ineligible_member_prevents_group_stripe_prefill(pg_session, test_client, jwt_token, stripe_group, reason):
+def test_one_ineligible_item_prevents_stripe_prefill(pg_session, test_client, jwt_token, stripe_group, selection, reason):
     from models.sql_models import Event, EventLineItem, EventSuggestion
 
     li_2 = stripe_group[1]
-    ids = ["li_1", "li_2"]
+    ids = [*selection]
     if reason == "missing_id":
         ids.append("li_missing")
     elif reason == "non_stripe":
@@ -839,6 +794,14 @@ def test_one_ineligible_member_prevents_group_stripe_prefill(pg_session, test_cl
         classify(li_2, "food_and_drink", "unknown_food_label")
     elif reason == "malformed":
         li_2.transaction.source_data = {"classifications": "food"}
+    elif reason == "missing_category":
+        pg_session.delete(pg_session.get(Category, "cat_dining"))
+    elif reason == "foreign_category":
+        pg_session.add(
+            User(id="other_user", first_name="Other", last_name="User", email="other@example.com", password_hash="x")
+        )
+        pg_session.flush()
+        pg_session.get(Category, "cat_dining").user_id = "other_user"
     elif reason == "dismissed":
         pg_session.add(
             EventSuggestion(
@@ -916,10 +879,8 @@ def test_confirming_group_prefill_creates_one_event_and_clears_member_suggestion
         headers={"Authorization": f"Bearer {jwt_token}"},
     )
     assert response.status_code == 201
-    event = pg_session.query(Event).one()
-    assert (event.description, event.category_id) == ("Combined transactions", "cat_dining")
-    assert sorted(link.line_item_id for link in pg_session.query(EventLineItem).filter_by(event_id=event.id)) == [
-        "li_1",
-        "li_2",
-    ]
+    created = pg_session.query(Event).one()
+    assert (created.description, created.category_id) == ("Spotify Premium Monthly", "cat_dining")
+    linked_ids = sorted(link.line_item_id for link in pg_session.query(EventLineItem).filter_by(event_id=created.id))
+    assert linked_ids == ["li_1", "li_2"]
     assert pg_session.query(EventSuggestion).count() == 0

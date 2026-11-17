@@ -1,24 +1,27 @@
 """Read-only event prefill shared by the modal's evaluate endpoint."""
 
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, selectinload
 
 from models.sql_models import Category, EventHint, EventSuggestion, LineItem
 from utils.cel_evaluator import evaluate_hints
-from utils.stripe_category_mapping import map_stripe_category
+from utils.stripe_category_mapping import ACCEPTED_CONFIDENCE_LEVELS, map_stripe_category
 
 
 def resolve_event_prefill(db, user_id: str, line_item_ids: list[str]) -> dict | None:
-    requested_ids = set(line_item_ids)
+    requested_ids = list(dict.fromkeys(line_item_ids))
     if not requested_ids:
         return None
-    items = (
+    loaded_items = (
         db.query(LineItem)
-        .options(joinedload(LineItem.transaction), joinedload(LineItem.payment_method))
+        .options(joinedload(LineItem.transaction), joinedload(LineItem.payment_method), selectinload(LineItem.events))
         .filter(LineItem.id.in_(requested_ids))
         .all()
     )
-    if {item.id for item in items} != requested_ids:
+    items_by_id = {item.id: item for item in loaded_items}
+    if len(items_by_id) != len(requested_ids):
         return None
+    # Selection order decides the default title, matching the client's first-item fallback.
+    items = [items_by_id[item_id] for item_id in requested_ids]
     hints = (
         db.query(EventHint)
         .options(joinedload(EventHint.prefill_category))
@@ -68,8 +71,6 @@ def resolve_event_prefill(db, user_id: str, line_item_ids: list[str]) -> dict | 
         metadata["name_hint_id"] = hint_suggestion["matched_hint_id"]
         metadata["name_hint_name"] = hint_suggestion["matched_hint_name"]
         name = hint_suggestion["name"]
-    elif len(items) > 1:
-        name = "Combined transactions"
     else:
         name = ((items[0].responsible_party or "").strip() or items[0].description.strip())[:255]
     return {
@@ -87,6 +88,10 @@ def _unanimous_stripe_category(db, user_id: str, items: list[LineItem]) -> tuple
     """Every item must independently map to the same category; one abstention or conflict vetoes the group."""
     if any(item.amount <= 0 or item.transaction.source != "stripe_api" or item.events for item in items):
         return None
+    candidates = [map_stripe_category(item.transaction.source_data) for item in items]
+    if not all(candidates) or len({c["category"] for c in candidates}) != 1:
+        return None
+    # A dismissed suggestion means the user rejected that item's prefill, so it can't vouch for the group.
     rejected = (
         db.query(EventSuggestion.id)
         .filter(
@@ -97,9 +102,6 @@ def _unanimous_stripe_category(db, user_id: str, items: list[LineItem]) -> tuple
         .first()
     )
     if rejected:
-        return None
-    candidates = [map_stripe_category(item.transaction.source_data) for item in items]
-    if not all(candidates) or len({c["category"] for c in candidates}) != 1:
         return None
     category = db.query(Category).filter(Category.user_id == user_id, Category.name == candidates[0]["category"]).first()
     if not category:
@@ -113,5 +115,5 @@ def _unanimous_stripe_category(db, user_id: str, items: list[LineItem]) -> tuple
         "selected_count": len(items),
         "labels": [{"primary_label": primary, "detailed_label": detailed} for primary, detailed in pairs],
         # The group is only as trustworthy as its least confident member.
-        "confidence_level": "high" if any(e["confidence_level"] == "high" for e in evidence) else "very_high",
+        "confidence_level": min((e["confidence_level"] for e in evidence), key=ACCEPTED_CONFIDENCE_LEVELS.index),
     }

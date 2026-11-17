@@ -159,7 +159,7 @@ describe('CreateEventModal', () => {
 
     it('group Stripe prefill explains the shared category and submits every selected item as one event', async () => {
         mockUseEvaluateEventHints.mockReturnValue({ data: {
-            name: 'Combined transactions', category: 'Rent', category_id: 'cat_rent',
+            name: 'Test Store 1', category: 'Rent', category_id: 'cat_rent',
             source: 'stripe_personal_finance', matched_hint_id: null, matched_hint_name: null,
             source_metadata: {
                 mapping_version: 1, selected_count: 2, confidence_level: 'high',
@@ -173,7 +173,7 @@ describe('CreateEventModal', () => {
         expect(mockUseEvaluateEventHints).toHaveBeenCalledWith(['1', '2'], true);
         expect(screen.getByRole('combobox', { name: /category/i }))
             .toHaveAccessibleDescription('Suggested: Rent · Stripe category for all 2 transactions');
-        expect(screen.getByLabelText('Event Name')).toHaveValue('Combined transactions');
+        expect(screen.getByLabelText('Event Name')).toHaveValue('Test Store 1');
         await userEvent.clear(screen.getByLabelText('Event Name'));
         await userEvent.type(screen.getByLabelText('Event Name'), 'November housing');
         await userEvent.click(screen.getByRole('button', { name: /create event/i }));
@@ -184,7 +184,7 @@ describe('CreateEventModal', () => {
 
     it('changing the selection replaces a group prefill with the new selection\'s result', async () => {
         mockUseEvaluateEventHints.mockReturnValue({ data: {
-            name: 'Combined transactions', category: 'Dining', source: 'stripe_personal_finance',
+            name: 'Test Store 1', category: 'Dining', source: 'stripe_personal_finance',
             source_metadata: { selected_count: 2 },
         }, isLoading: false, isError: false });
         const { rerender } = render(<CreateEventModal show={true} onHide={mockOnHide} />);

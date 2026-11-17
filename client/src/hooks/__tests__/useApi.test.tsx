@@ -756,7 +756,7 @@ describe('event prefill requests', () => {
 
     it('group evidence is requested for the whole selection and passed through unchanged', async () => {
         const suggestion = {
-            name: 'Combined transactions', category: 'Dining', category_id: 'cat_dining',
+            name: 'Coffee Shop', category: 'Dining', category_id: 'cat_dining',
             source: 'stripe_personal_finance', matched_hint_id: null, matched_hint_name: null,
             source_metadata: {
                 mapping_version: 1, selected_count: 2, confidence_level: 'high',
