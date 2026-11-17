@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 import pytest
 from sqlalchemy import event
 
+from helpers import default_name_cleanup
 from models.sql_models import Category, EventHint, LineItem, PaymentMethod, Transaction, User
 from utils.cel_evaluator import CELEvaluator, evaluate_hints
 
@@ -649,7 +650,12 @@ def test_winning_hint_keeps_title_and_category_precedence(
 
 
 @pytest.mark.parametrize(
-    "party,description,expected", [("  ", "  Raw description  ", "Raw description"), ("X" * 300, "Raw", "X" * 255)]
+    "party,description,expected",
+    [
+        ("  ", "  Raw description  ", "Raw Description"),
+        (None, "SQ *BLUE BOTTLE COFFEE", "Blue Bottle Coffee"),
+        ("X" * 300, "Raw", "X" * 255),
+    ],
 )
 def test_stripe_prefill_title_is_trimmed_and_capped(
     pg_session, test_client, jwt_token, stripe_item, party, description, expected
@@ -658,6 +664,50 @@ def test_stripe_prefill_title_is_trimmed_and_capped(
     stripe_item.description = description
     pg_session.commit()
     assert evaluate_prefill(test_client, jwt_token, [stripe_item.id])["name"] == expected
+
+
+@pytest.mark.parametrize(
+    "raw,expected",
+    [
+        ("SQ *TEST STORE", "Test Store"),
+        ("TST* joe's diner", "Joes Diner"),
+        ("DD *DOORDASH thai-house", "thai-house"),
+        ("AT&T  bill", "at&t  Bill"),
+        ("", ""),
+    ],
+)
+def test_default_name_cleanup_matches_the_client_cleanup(raw, expected):
+    assert default_name_cleanup(raw) == expected
+
+
+def test_categorized_hint_beats_an_earlier_name_only_hint(pg_session, test_client, jwt_token, sample_hints, sample_line_items):
+    pg_session.add(
+        EventHint(
+            id="eh_name_first",
+            user_id="user_id",
+            name="Spotify title",
+            cel_expression='description.contains("Spotify")',
+            prefill_name="Music",
+            display_order=-1,
+        )
+    )
+    pg_session.commit()
+    result = evaluate_prefill(test_client, jwt_token, ["li_1"])
+    assert (result["name"], result["category"], result["source"]) == ("Spotify", "Subscription", "event_hint")
+
+
+def test_dismissed_hint_suggestion_does_not_prefill_the_modal(
+    pg_session, test_client, jwt_token, sample_hints, sample_line_items
+):
+    from models.sql_models import EventSuggestion
+
+    pg_session.add(
+        EventSuggestion(
+            id="es_dismissed", user_id="user_id", line_item_id="li_1", suggested_name="Spotify", rejected_at=datetime.now(UTC)
+        )
+    )
+    pg_session.commit()
+    assert evaluate_prefill(test_client, jwt_token, ["li_1"]) is None
 
 
 def test_another_users_dismissal_does_not_hide_prefill(pg_session, test_client, jwt_token, stripe_item):

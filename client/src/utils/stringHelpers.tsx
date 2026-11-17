@@ -37,8 +37,20 @@ export default function defaultNameCleanup(str: string) {
     return titleCase(removePrefixes(str))
 }
 
-/** Human-readable Stripe classification, preferring the detailed label (e.g. "fast_food" → "Fast food"). */
-export function formatStripeLabel(metadata?: { primary_label?: string; detailed_label?: string | null } | null): string | undefined {
+interface SuggestionEvidence {
+    source?: string | null;
+    matched_hint_name?: string | null;
+    source_metadata?: { primary_label?: string; detailed_label?: string | null; selected_count?: number } | null;
+}
+
+/** Why a category was suggested, worded the same in the create-event modal and the review list. */
+export function formatSuggestionSource(suggestion: SuggestionEvidence): string {
+    if (suggestion.source !== 'stripe_personal_finance') {
+        return suggestion.matched_hint_name ? `Hint: ${suggestion.matched_hint_name}` : 'Event hint';
+    }
+    const metadata = suggestion.source_metadata;
+    if (metadata?.selected_count) return `Stripe: all ${metadata.selected_count} transactions`;
+    // Prefer the detailed label, humanized: "fast_food" → "Fast food".
     const label = metadata?.detailed_label || metadata?.primary_label;
-    return label?.replaceAll('_', ' ').replace(/^./, char => char.toUpperCase());
+    return label ? `Stripe: ${label.replaceAll('_', ' ').replace(/^./, char => char.toUpperCase())}` : 'Stripe';
 }

@@ -423,3 +423,11 @@ def test_other_integrity_failures_propagate(pg_session, stripe_line_item):
         insert_unless_already_suggested(
             pg_session, EventSuggestion(id="es_taken", user_id="user_id", line_item_id=other_item.id, suggested_name="B")
         )
+
+
+def test_users_with_only_name_only_hints_skip_non_stripe_items(pg_session, mocker):
+    create_matching_line_item_and_hint(pg_session, category=False)
+    evaluate = mocker.patch("utils.category_suggestions.evaluate_hints")
+
+    assert generate_event_suggestions("user_id") == 0
+    evaluate.assert_not_called()

@@ -312,11 +312,20 @@ describe('LineItemsToReviewPage', () => {
             expect(createButton).toBeEnabled();
         });
 
+        it('the suggested category is shown while categories are still loading', () => {
+            mockUseCategories.mockReturnValue({ data: undefined, isPending: true, isError: false } as never);
+            mockUseLineItems.mockReturnValue({ lineItems: [stripeLineItem], isPending: false });
+            render(<LineItemsToReviewPage />);
+
+            expect(screen.getAllByRole('combobox', { name: /suggested category/i })[1]).toHaveTextContent('Groceries');
+        });
+
         it('the category picker says when categories could not be loaded', async () => {
             mockUseCategories.mockReturnValue({ data: undefined, isPending: false, isError: true } as never);
             mockUseLineItems.mockReturnValue({ lineItems: [stripeLineItem], isPending: false });
             render(<LineItemsToReviewPage />);
 
+            expect(screen.getAllByRole('combobox', { name: /suggested category/i })[1]).toHaveTextContent('Groceries');
             await userEvent.click(screen.getAllByRole('combobox', { name: /suggested category/i })[1]);
 
             expect(screen.getByRole('option', { name: "Categories couldn't be loaded" })).toHaveAttribute('aria-disabled', 'true');

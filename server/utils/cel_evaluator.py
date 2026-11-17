@@ -332,7 +332,7 @@ def evaluate_hints(hints: list[dict], line_items: list[dict]) -> dict | None:
         line_items: List of line item dicts with 'description', 'amount', 'payment_method', etc.
 
     Returns:
-        Dict with 'name', 'category', 'matched_hint_id', 'matched_hint_name' or None.
+        Dict with 'name', 'category', 'category_id', 'matched_hint_id', 'matched_hint_name' or None.
     """
 
     # Use one timeout for the full hint scan instead of one executor per hint.
@@ -347,6 +347,7 @@ def evaluate_hints(hints: list[dict], line_items: list[dict]) -> dict | None:
                     return {
                         "name": hint["prefill_name"],
                         "category": hint.get("prefill_category"),
+                        "category_id": hint.get("prefill_category_id"),
                         "matched_hint_id": hint.get("id"),
                         "matched_hint_name": hint.get("name"),
                     }

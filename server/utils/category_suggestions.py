@@ -1,9 +1,15 @@
-"""Read-only event prefill shared by the modal's evaluate endpoint and refresh-time suggestions."""
+"""Read-only event prefill shared by the modal's evaluate endpoint and refresh-time suggestions.
+
+Precedence: the first matching hint that sets a category wins outright. Otherwise a confident,
+unanimous Stripe category is used, titled by the first matching name-only hint if any. Otherwise
+a matching name-only hint still supplies a title without a category.
+"""
 
 from dataclasses import dataclass
 
 from sqlalchemy.orm import joinedload, selectinload
 
+from helpers import default_name_cleanup
 from models.sql_models import Category, EventHint, EventSuggestion, LineItem
 from utils.cel_evaluator import evaluate_hints
 from utils.stripe_category_mapping import ACCEPTED_CONFIDENCE_LEVELS, map_stripe_category
@@ -13,7 +19,8 @@ from utils.stripe_category_mapping import ACCEPTED_CONFIDENCE_LEVELS, map_stripe
 class PrefillRules:
     """One user's hints and categories as plain data, so many items can be resolved without more queries."""
 
-    hint_dicts: list[dict]
+    categorized_hints: list[dict]
+    name_only_hints: list[dict]
     categories_by_name: dict[str, Category]
 
 
@@ -25,23 +32,23 @@ def load_prefill_rules(db, user_id: str) -> PrefillRules:
         .order_by(EventHint.display_order)
         .all()
     )
-    return PrefillRules(
-        hint_dicts=[
-            {
-                "id": hint.id,
-                "name": hint.name,
-                "cel_expression": hint.cel_expression,
-                "prefill_name": hint.prefill_name,
-                **(
-                    {"prefill_category": hint.prefill_category.name, "prefill_category_id": hint.prefill_category_id}
-                    if hint.prefill_category and hint.prefill_category.user_id == user_id
-                    else {"prefill_category": None, "prefill_category_id": None}
-                ),
-            }
-            for hint in hints
-        ],
+    rules = PrefillRules(
+        categorized_hints=[],
+        name_only_hints=[],
         categories_by_name={c.name: c for c in db.query(Category).filter(Category.user_id == user_id).all()},
     )
+    for hint in hints:
+        category = hint.prefill_category if hint.prefill_category and hint.prefill_category.user_id == user_id else None
+        hint_dict = {
+            "id": hint.id,
+            "name": hint.name,
+            "cel_expression": hint.cel_expression,
+            "prefill_name": hint.prefill_name,
+            "prefill_category": category.name if category else None,
+            "prefill_category_id": category.id if category else None,
+        }
+        (rules.categorized_hints if category else rules.name_only_hints).append(hint_dict)
+    return rules
 
 
 def resolve_event_prefill(db, user_id: str, line_item_ids: list[str]) -> dict | None:
@@ -57,8 +64,8 @@ def resolve_event_prefill(db, user_id: str, line_item_ids: list[str]) -> dict | 
     items_by_id = {item.id: item for item in loaded_items}
     if len(items_by_id) != len(requested_ids):
         return None
-    # A dismissed suggestion means the user rejected that item's prefill, so it can't vouch for the group.
-    stripe_vetoed = (
+    # The user rejected a suggestion for one of these items, so don't offer it again in the modal.
+    has_dismissed_item = (
         db.query(EventSuggestion.id)
         .filter(
             EventSuggestion.user_id == user_id,
@@ -66,65 +73,58 @@ def resolve_event_prefill(db, user_id: str, line_item_ids: list[str]) -> dict | 
             EventSuggestion.rejected_at.is_not(None),
         )
         .first()
-        is not None
     )
+    if has_dismissed_item:
+        return None
     # Selection order decides the default title, matching the client's first-item fallback.
     items = [items_by_id[item_id] for item_id in requested_ids]
-    return suggest_prefill(load_prefill_rules(db, user_id), items, stripe_vetoed=stripe_vetoed)
+    # Reviewed items already have a category through their event, so Stripe shouldn't suggest another.
+    is_reviewed = any(item.events for item in items)
+    return suggest_prefill(load_prefill_rules(db, user_id), items, allow_stripe=not is_reviewed)
 
 
-def suggest_prefill(rules: PrefillRules, items: list[LineItem], stripe_vetoed: bool = False) -> dict | None:
-    """Resolve from preloaded rules and items; issues no queries when transaction, payment method and events are loaded."""
-    hint_suggestion = (
-        evaluate_hints(
-            rules.hint_dicts,
-            [
-                {
-                    "description": item.description or "",
-                    "amount": float(item.amount),
-                    "responsible_party": item.responsible_party or "",
-                    "payment_method": item.payment_method.name if item.payment_method else "",
-                }
-                for item in items
-            ],
-        )
-        if rules.hint_dicts
-        else None
-    )
-    if hint_suggestion:
-        matched_hint = next(hint for hint in rules.hint_dicts if hint["id"] == hint_suggestion["matched_hint_id"])
-        hint_suggestion.update(
-            category_id=matched_hint["prefill_category_id"],
-            source="event_hint",
-            source_metadata={},
-        )
-    if hint_suggestion and hint_suggestion["category"]:
-        return hint_suggestion
+def suggest_prefill(rules: PrefillRules, items: list[LineItem], allow_stripe: bool = True) -> dict | None:
+    """Resolve from preloaded rules; issues no queries when each item's transaction and payment method are loaded."""
+    hint_inputs = [
+        {
+            "description": item.description or "",
+            "amount": float(item.amount),
+            "responsible_party": item.responsible_party or "",
+            "payment_method": item.payment_method.name if item.payment_method else "",
+        }
+        for item in items
+    ]
+    categorized = evaluate_hints(rules.categorized_hints, hint_inputs) if rules.categorized_hints else None
+    if categorized:
+        return {**categorized, "source": "event_hint", "source_metadata": {}}
 
-    stripe_suggestion = None if stripe_vetoed else _unanimous_stripe_category(rules, items)
+    name_hint = evaluate_hints(rules.name_only_hints, hint_inputs) if rules.name_only_hints else None
+    stripe_suggestion = _unanimous_stripe_category(rules, items) if allow_stripe else None
     if not stripe_suggestion:
-        return hint_suggestion
+        return {**name_hint, "source": "event_hint", "source_metadata": {}} if name_hint else None
+
     category, metadata = stripe_suggestion
-    if hint_suggestion:
-        metadata["name_hint_id"] = hint_suggestion["matched_hint_id"]
-        metadata["name_hint_name"] = hint_suggestion["matched_hint_name"]
-        name = hint_suggestion["name"]
+    if name_hint:
+        metadata["name_hint_id"] = name_hint["matched_hint_id"]
+        metadata["name_hint_name"] = name_hint["matched_hint_name"]
+        name = name_hint["name"]
     else:
-        name = ((items[0].responsible_party or "").strip() or items[0].description.strip())[:255]
+        # A merchant name is already clean; a raw bank description gets the modal's default cleanup.
+        name = ((items[0].responsible_party or "").strip() or default_name_cleanup(items[0].description))[:255]
     return {
         "name": name,
         "category": category.name,
         "category_id": category.id,
         "source": "stripe_personal_finance",
         "source_metadata": metadata,
-        "matched_hint_id": hint_suggestion["matched_hint_id"] if hint_suggestion else None,
-        "matched_hint_name": hint_suggestion["matched_hint_name"] if hint_suggestion else None,
+        "matched_hint_id": name_hint["matched_hint_id"] if name_hint else None,
+        "matched_hint_name": name_hint["matched_hint_name"] if name_hint else None,
     }
 
 
 def _unanimous_stripe_category(rules: PrefillRules, items: list[LineItem]) -> tuple[Category, dict] | None:
     """Every item must independently map to the same category; one abstention or conflict vetoes the group."""
-    if any(item.amount <= 0 or item.transaction.source != "stripe_api" or item.events for item in items):
+    if any(item.amount <= 0 or item.transaction.source != "stripe_api" for item in items):
         return None
     candidates = [map_stripe_category(item.transaction.source_data) for item in items]
     if not all(candidates) or len({c["category"] for c in candidates}) != 1:

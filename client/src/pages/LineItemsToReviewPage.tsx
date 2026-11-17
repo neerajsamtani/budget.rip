@@ -18,19 +18,10 @@ import { PageContainer, PageHeader } from "../components/ui/layout";
 import { Body, H1 } from "../components/ui/typography";
 import { LineItemInterface, useLineItems, useLineItemsDispatch } from "../contexts/LineItemsContext";
 import { useAcceptEventSuggestion, useCategories, useRejectEventSuggestion } from "../hooks/useApi";
-import { formatStripeLabel } from "../utils/stringHelpers";
+import { formatSuggestionSource } from "../utils/stringHelpers";
 import { showErrorToast, showSuccessToast } from "../utils/toast-helpers";
 
-type EventSuggestion = NonNullable<LineItemInterface["event_suggestion"]>;
 interface SuggestionDraft { name: string; categoryId: string }
-
-function suggestionReason(suggestion: EventSuggestion): string {
-    if (suggestion.source === "stripe_personal_finance") {
-        const label = formatStripeLabel(suggestion.source_metadata);
-        return label ? `Stripe: ${label}` : "Stripe";
-    }
-    return suggestion.matched_hint_name ? `Hint: ${suggestion.matched_hint_name}` : "Event hint";
-}
 
 // The mobile and desktop layouts both mount a review for each suggestion, so the page owns the draft they share.
 function EventSuggestionReview({ lineItem, draft, onDraftChange, mobile = false }: {
@@ -51,6 +42,10 @@ function EventSuggestionReview({ lineItem, draft, onDraftChange, mobile = false 
     const setName = (value: string) => onDraftChange(suggestion.id, { name: value, categoryId });
     const setCategoryId = (value: string) => onDraftChange(suggestion.id, { name, categoryId: value });
     const canAccept = Boolean(name.trim() && categoryId);
+    // Until categories arrive, offer the suggested one so the trigger still shows it.
+    const categoryOptions = categories.length > 0 || !suggestion.category_id
+        ? categories
+        : [{ id: suggestion.category_id, name: suggestion.category ?? "" }];
     const categoryStatus = categoriesError ? "Categories couldn't be loaded" : categoriesPending ? "Loading categories…" : undefined;
 
     const accept = async () => {
@@ -78,7 +73,7 @@ function EventSuggestionReview({ lineItem, draft, onDraftChange, mobile = false 
             <span className={`flex shrink-0 items-center gap-1.5 text-xs ${mobile ? "basis-full" : ""}`}>
                 <CornerDownRight className="h-4 w-4 text-primary" aria-hidden="true" />
                 <span className="font-medium text-primary">Suggested event</span>
-                <span id={reasonId} className="max-w-48 truncate text-muted-foreground">{suggestionReason(suggestion)}</span>
+                <span id={reasonId} className="max-w-48 truncate text-muted-foreground">{formatSuggestionSource(suggestion)}</span>
             </span>
             <Input
                 aria-label={`Suggested event title for ${lineItem.description}`}
@@ -95,11 +90,11 @@ function EventSuggestionReview({ lineItem, draft, onDraftChange, mobile = false 
                     aria-describedby={reasonId}
                     className={`h-9 bg-white ${mobile ? "min-w-0 flex-1" : "w-44 shrink-0"}`}
                 >
-                    <SelectValue placeholder={suggestion.category ?? "Choose a category"} />
+                    <SelectValue placeholder="Choose a category" />
                 </SelectTrigger>
                 <SelectContent className="bg-white border">
                     {categoryStatus && <SelectItem value="__category_status" disabled>{categoryStatus}</SelectItem>}
-                    {categories.map(category => (
+                    {categoryOptions.map(category => (
                         <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
                     ))}
                 </SelectContent>

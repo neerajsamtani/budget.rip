@@ -1,11 +1,10 @@
 """Materialize event prefills for unreviewed line items."""
 
 import logging
-from dataclasses import replace
 
 from sqlalchemy import and_
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import joinedload, selectinload
+from sqlalchemy.orm import joinedload
 
 from models.database import SessionLocal
 from models.sql_models import EventLineItem, EventSuggestion, LineItem, Transaction, User
@@ -26,11 +25,9 @@ def generate_event_suggestions(user_id: str | None = None) -> int:
             rules = load_prefill_rules(db, current_user_id)
             if not rules.categories_by_name:
                 continue
-            # Refresh suggestions need a category, so a name-only hint must not shadow a later categorized one.
-            categorized_rules = replace(rules, hint_dicts=[h for h in rules.hint_dicts if h["prefill_category_id"]])
             line_items_query = (
                 db.query(LineItem)
-                .options(joinedload(LineItem.payment_method), joinedload(LineItem.transaction), selectinload(LineItem.events))
+                .options(joinedload(LineItem.payment_method), joinedload(LineItem.transaction))
                 .outerjoin(EventLineItem, EventLineItem.line_item_id == LineItem.id)
                 .outerjoin(
                     EventSuggestion,
@@ -41,16 +38,14 @@ def generate_event_suggestions(user_id: str | None = None) -> int:
                 )
                 .filter(EventLineItem.id.is_(None), EventSuggestion.id.is_(None))
             )
-            if not rules.hint_dicts:
-                # Without hints only a Stripe expense can produce a suggestion.
+            if not rules.categorized_hints:
+                # Name-only hints can't supply a category, so only a Stripe expense can produce a suggestion.
                 line_items_query = line_items_query.join(Transaction, LineItem.transaction_id == Transaction.id).filter(
                     Transaction.source == "stripe_api", LineItem.amount > 0
                 )
 
             for line_item in line_items_query.all():
                 prefill = suggest_prefill(rules, [line_item])
-                if (not prefill or not prefill["category_id"]) and len(categorized_rules.hint_dicts) < len(rules.hint_dicts):
-                    prefill = suggest_prefill(categorized_rules, [line_item])
                 if not prefill or not prefill["category_id"]:
                     continue
 
