@@ -188,6 +188,10 @@ const mockLineItemsWithSelection = [
     }
 ];
 
+function setViewportWidth(width: number) {
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: width });
+}
+
 async function openAddMenu() {
     await userEvent.click(screen.getByRole('button', { name: /add transaction/i }));
 }
@@ -199,6 +203,7 @@ describe('LineItemsToReviewPage', () => {
         mockRejectSuggestion.mockResolvedValue(undefined);
         mockUseCategories.mockReturnValue(mockCategories);
         mockUseLineItems.mockReturnValue({ lineItems: mockLineItems, isPending: false });
+        setViewportWidth(1280);
     });
 
     describe('Event suggestions', () => {
@@ -243,10 +248,10 @@ describe('LineItemsToReviewPage', () => {
             mockUseLineItems.mockReturnValue({ lineItems: [suggestedLineItem], isPending: false });
             render(<LineItemsToReviewPage />);
 
-            const titleInputs = screen.getAllByRole('textbox', { name: /suggested event title/i });
-            await userEvent.clear(titleInputs[1]);
-            await userEvent.type(titleInputs[1], 'Monthly Spotify');
-            await userEvent.click(screen.getAllByRole('button', { name: /create event from/i })[1]);
+            const titleInput = screen.getByRole('textbox', { name: /suggested event title/i });
+            await userEvent.clear(titleInput);
+            await userEvent.type(titleInput, 'Monthly Spotify');
+            await userEvent.click(screen.getByRole('button', { name: /create event from/i }));
 
             await waitFor(() => {
                 expect(mockAcceptSuggestion).toHaveBeenCalledWith({ suggestionId: 'es_1', name: 'Monthly Spotify', categoryId: 'cat_subscription' });
@@ -258,7 +263,7 @@ describe('LineItemsToReviewPage', () => {
             mockUseLineItems.mockReturnValue({ lineItems: [suggestedLineItem], isPending: false });
             render(<LineItemsToReviewPage />);
 
-            await userEvent.click(screen.getAllByRole('button', { name: /dismiss suggestion/i })[1]);
+            await userEvent.click(screen.getByRole('button', { name: /dismiss suggestion/i }));
 
             await waitFor(() => {
                 expect(mockRejectSuggestion).toHaveBeenCalledWith('es_1');
@@ -271,24 +276,19 @@ describe('LineItemsToReviewPage', () => {
             mockUseLineItems.mockReturnValue({ lineItems: [suggestedLineItem], isPending: false });
             render(<LineItemsToReviewPage />);
 
-            expect(screen.getAllByLabelText(`Suggested event for ${suggestedLineItem.description}`)).toHaveLength(2);
-            expect(screen.getAllByText('Suggested event')).toHaveLength(2);
-            const categorySelects = screen.getAllByRole('combobox', { name: `Suggested category for ${suggestedLineItem.description}` });
-            expect(categorySelects).toHaveLength(2);
-            categorySelects.forEach(select => {
-                expect(select).toHaveTextContent('Subscription');
-                expect(select).toHaveAccessibleDescription('Hint: Spotify purchases');
-            });
+            expect(screen.getByLabelText(`Suggested event for ${suggestedLineItem.description}`)).toHaveTextContent('Suggested event');
+            const categorySelect = screen.getByRole('combobox', { name: `Suggested category for ${suggestedLineItem.description}` });
+            expect(categorySelect).toHaveTextContent('Subscription');
+            expect(categorySelect).toHaveAccessibleDescription('Hint: Spotify purchases');
         });
 
         it('explains that Stripe suggested the category', () => {
             mockUseLineItems.mockReturnValue({ lineItems: [stripeLineItem], isPending: false });
             render(<LineItemsToReviewPage />);
 
-            screen.getAllByRole('combobox', { name: /suggested category/i }).forEach(select => {
-                expect(select).toHaveTextContent('Groceries');
-                expect(select).toHaveAccessibleDescription('Stripe: Groceries');
-            });
+            const categorySelect = screen.getByRole('combobox', { name: /suggested category/i });
+            expect(categorySelect).toHaveTextContent('Groceries');
+            expect(categorySelect).toHaveAccessibleDescription('Stripe: Groceries');
         });
 
         it('a suggestion whose category was deleted needs a category before it can be accepted', async () => {
@@ -296,11 +296,11 @@ describe('LineItemsToReviewPage', () => {
             mockUseLineItems.mockReturnValue({ lineItems: [uncategorized], isPending: false });
             render(<LineItemsToReviewPage />);
 
-            const createButton = screen.getAllByRole('button', { name: /create event from/i })[1];
-            expect(screen.getAllByRole('combobox', { name: /suggested category/i })[1]).toHaveTextContent('Choose a category');
+            const createButton = screen.getByRole('button', { name: /create event from/i });
+            expect(screen.getByRole('combobox', { name: /suggested category/i })).toHaveTextContent('Choose a category');
             expect(createButton).toBeDisabled();
 
-            await userEvent.click(screen.getAllByRole('combobox', { name: /suggested category/i })[1]);
+            await userEvent.click(screen.getByRole('combobox', { name: /suggested category/i }));
             await userEvent.click(screen.getByRole('option', { name: 'Groceries' }));
             expect(createButton).toBeEnabled();
         });
@@ -310,7 +310,7 @@ describe('LineItemsToReviewPage', () => {
             mockUseLineItems.mockReturnValue({ lineItems: [stripeLineItem], isPending: false });
             render(<LineItemsToReviewPage />);
 
-            expect(screen.getAllByRole('combobox', { name: /suggested category/i })[1]).toHaveTextContent('Groceries');
+            expect(screen.getByRole('combobox', { name: /suggested category/i })).toHaveTextContent('Groceries');
         });
 
         it('the category picker says when categories could not be loaded', async () => {
@@ -318,8 +318,8 @@ describe('LineItemsToReviewPage', () => {
             mockUseLineItems.mockReturnValue({ lineItems: [stripeLineItem], isPending: false });
             render(<LineItemsToReviewPage />);
 
-            expect(screen.getAllByRole('combobox', { name: /suggested category/i })[1]).toHaveTextContent('Groceries');
-            await userEvent.click(screen.getAllByRole('combobox', { name: /suggested category/i })[1]);
+            expect(screen.getByRole('combobox', { name: /suggested category/i })).toHaveTextContent('Groceries');
+            await userEvent.click(screen.getByRole('combobox', { name: /suggested category/i }));
 
             expect(screen.getByRole('option', { name: "Categories couldn't be loaded" })).toHaveAttribute('aria-disabled', 'true');
         });
@@ -329,10 +329,10 @@ describe('LineItemsToReviewPage', () => {
             mockUseLineItems.mockReturnValue({ lineItems: [stripeLineItem], isPending: false });
             render(<LineItemsToReviewPage />);
 
-            await userEvent.click(screen.getAllByRole('combobox', { name: /suggested category/i })[1]);
+            await userEvent.click(screen.getByRole('combobox', { name: /suggested category/i }));
             await userEvent.click(screen.getByRole('option', { name: 'Dining' }));
-            expect(screen.getAllByRole('combobox', { name: /suggested category/i })[1]).toHaveTextContent('Dining');
-            await userEvent.click(screen.getAllByRole('button', { name: /create event from/i })[1]);
+            expect(screen.getByRole('combobox', { name: /suggested category/i })).toHaveTextContent('Dining');
+            await userEvent.click(screen.getByRole('button', { name: /create event from/i }));
 
             await waitFor(() => {
                 expect(mockAcceptSuggestion).toHaveBeenCalledWith({ suggestionId: 'es_2', name: 'Whole Foods', categoryId: 'cat_dining' });
@@ -664,14 +664,6 @@ describe('LineItemsToReviewPage', () => {
             tableRows.forEach(item => {
                 expect(item).toHaveTextContent('Checkbox');
             });
-
-            // Check mobile cards also exist (line-item-card-1, etc.) - 3 items
-            const cards = [
-                screen.getByTestId('line-item-card-1'),
-                screen.getByTestId('line-item-card-2'),
-                screen.getByTestId('line-item-card-3'),
-            ];
-            expect(cards).toHaveLength(3);
         });
 
         it('dispatch is called with toggle action when a line item is clicked', async () => {
@@ -768,9 +760,7 @@ describe('LineItemsToReviewPage', () => {
 
             render(<LineItemsToReviewPage />);
 
-            // Both table and card render the amount, use getAllByText
-            const amounts = screen.getAllByText('$999999.99');
-            expect(amounts.length).toBeGreaterThanOrEqual(1);
+            expect(screen.getByText('$999999.99')).toBeInTheDocument();
         });
 
         it('handles zero amounts correctly', () => {
@@ -784,14 +774,13 @@ describe('LineItemsToReviewPage', () => {
 
             render(<LineItemsToReviewPage />);
 
-            // Both table and card render the amount, use getAllByText
-            const amounts = screen.getAllByText('$0.00');
-            expect(amounts.length).toBeGreaterThanOrEqual(1);
+            expect(screen.getByText('$0.00')).toBeInTheDocument();
         });
     });
 
     describe('Responsive Layout', () => {
         it('renders mobile card layout', () => {
+            setViewportWidth(1279);
             render(<LineItemsToReviewPage />);
 
             // Mobile card layout should render line item cards
@@ -803,21 +792,28 @@ describe('LineItemsToReviewPage', () => {
         it('renders desktop table layout', () => {
             render(<LineItemsToReviewPage />);
 
-            // Desktop table should also render (hidden via CSS)
             expect(screen.getByRole('table')).toBeInTheDocument();
             const rowgroups = screen.getAllByRole('rowgroup');
             expect(rowgroups).toHaveLength(2); // thead and tbody
         });
 
-        it('renders both mobile and desktop layouts simultaneously', () => {
+        it('wide screens render only the table', () => {
             render(<LineItemsToReviewPage />);
 
-            // Both layouts should be in the DOM (CSS controls visibility)
-            expect(screen.getByTestId('line-item-card-1')).toBeInTheDocument();
             expect(screen.getByTestId('line-item-1')).toBeInTheDocument();
+            expect(screen.queryByTestId('line-item-card-1')).not.toBeInTheDocument();
+        });
+
+        it('screens narrower than the xl breakpoint render only cards', () => {
+            setViewportWidth(1279);
+            render(<LineItemsToReviewPage />);
+
+            expect(screen.getByTestId('line-item-card-1')).toBeInTheDocument();
+            expect(screen.queryByRole('table')).not.toBeInTheDocument();
         });
 
         it('mobile cards show correct data', () => {
+            setViewportWidth(1279);
             render(<LineItemsToReviewPage />);
 
             const mobileCard = screen.getByTestId('line-item-card-1');
@@ -883,7 +879,7 @@ describe('LineItemsToReviewPage', () => {
 
             await userEvent.type(screen.getByRole('searchbox', { name: /search review transactions/i }), 'does not exist');
 
-            expect(screen.getAllByText('No matching transactions').length).toBeGreaterThan(0);
+            expect(screen.getByText('No matching transactions')).toBeInTheDocument();
             expect(screen.getAllByRole('button', { name: /clear filters/i }).length).toBeGreaterThan(0);
             expect(screen.queryByText('All caught up')).not.toBeInTheDocument();
         });
@@ -943,9 +939,7 @@ describe('LineItemsToReviewPage', () => {
 
             render(<LineItemsToReviewPage />);
 
-            // Should show message in both mobile and desktop layouts
-            const messages = screen.getAllByText('All caught up');
-            expect(messages.length).toBeGreaterThan(0);
+            expect(screen.getByText('All caught up')).toBeInTheDocument();
         });
     });
 });

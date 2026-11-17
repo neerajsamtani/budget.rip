@@ -711,6 +711,8 @@ describe('LineItemsContext', () => {
         beforeEach(() => {
             serverLineItems = mockLineItems;
             finishSplitwiseRefresh = () => { };
+            // These tests select rows in the desktop table, which only renders at the xl breakpoint.
+            Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1280 });
 
             mockAxiosInstance.get.mockImplementation((url: string) => {
                 switch (url) {

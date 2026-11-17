@@ -5,15 +5,16 @@ import { Sheet, SheetContent, SheetTitle, SheetDescription } from "./sheet"
 
 const MobileContext = createContext(false)
 
-function useIsMobile() {
-  const [isMobile, setIsMobile] = useState(false)
+function useIsMobile(breakpoint = 768) {
+  // Read the width up front so the first render already picks the right layout.
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < breakpoint)
 
   useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768)
+    const checkMobile = () => setIsMobile(window.innerWidth < breakpoint)
     checkMobile()
     window.addEventListener("resize", checkMobile)
     return () => window.removeEventListener("resize", checkMobile)
-  }, [])
+  }, [breakpoint])
 
   return isMobile
 }

@@ -15,6 +15,7 @@ import CreateSplitwiseExpenseModal from "../components/CreateSplitwiseExpenseMod
 import LineItem, { LineItemCard } from "../components/LineItem";
 import PaymentMethodFilter from "../components/PaymentMethodFilter";
 import { PageContainer, PageHeader } from "../components/ui/layout";
+import { useIsMobile } from "../components/ui/responsive-dialog";
 import { Body, H1 } from "../components/ui/typography";
 import { LineItemInterface, useLineItems, useLineItemsDispatch } from "../contexts/LineItemsContext";
 import { useAcceptEventSuggestion, useCategories, useRejectEventSuggestion } from "../hooks/useApi";
@@ -149,6 +150,8 @@ export default function LineItemsToReviewPage() {
     const [endDate, setEndDate] = useState("");
     const { lineItems, isPending, error, refetch } = useLineItems();
     const lineItemsDispatch = useLineItemsDispatch();
+    // Render one layout, not both hidden by CSS: each suggestion's category picker is costly to render.
+    const showTable = !useIsMobile(1280); // Tailwind's xl breakpoint
     const allLineItems = lineItems ?? [];
     const selectedLineItems = allLineItems.filter(lineItem => lineItem.isSelected);
     const total = selectedLineItems.reduce((prev, cur) => prev + cur.amount, 0);
@@ -284,53 +287,53 @@ export default function LineItemsToReviewPage() {
                     </div>
                 )}
 
-                {/* Mobile card layout */}
-                <div className="xl:hidden rounded-xl bg-white shadow-sm border overflow-hidden">
-                    {isPending ? (
-                        <div className="flex justify-center py-8">
-                            <Spinner size="md" className="text-muted-foreground" />
-                        </div>
-                    ) : error ? (
-                        <div className="p-4 text-center text-semantic-error">Unable to display review transactions.</div>
-                    ) : visibleLineItems.length > 0 ? (
-                        visibleLineItems.map(lineItem => (
-                            <div
-                                key={lineItem.id}
-                                className={lineItem.event_suggestion ? "m-2 overflow-hidden rounded-lg border border-primary/20 bg-muted/30" : undefined}
-                            >
-                                <MobileLineItemCard
-                                    lineItem={lineItem}
-                                    isChecked={!!lineItem.isSelected}
-                                    onToggle={handleToggle}
-                                />
-                                {lineItem.event_suggestion && (
-                                    <div className="border-t border-primary/15 px-3 py-2">
-                                        <EventSuggestionReview key={lineItem.event_suggestion.id} lineItem={lineItem} mobile />
-                                    </div>
-                                )}
+                {!showTable && (
+                    <div className="rounded-xl bg-white shadow-sm border overflow-hidden">
+                        {isPending ? (
+                            <div className="flex justify-center py-8">
+                                <Spinner size="md" className="text-muted-foreground" />
                             </div>
-                        ))
-                    ) : allLineItems.length > 0 && hasFilters ? (
-                        <div className="space-y-3 p-4 text-center text-muted-foreground">
-                            <p>No matching transactions</p>
-                            <Button type="button" variant="secondary" size="sm" onClick={() => {
-                                setSearch("");
-                                setPaymentMethod("All");
-                                setStartDate("");
-                                setEndDate("");
-                            }}>Clear filters</Button>
-                        </div>
-                    ) : allLineItems.length === 0 ? (
-                        <div className="p-4 text-center text-muted-foreground">All caught up</div>
-                    ) : (
-                        <div className="p-4 text-center text-muted-foreground">
-                            No matching transactions
-                        </div>
-                    )}
-                </div>
+                        ) : error ? (
+                            <div className="p-4 text-center text-semantic-error">Unable to display review transactions.</div>
+                        ) : visibleLineItems.length > 0 ? (
+                            visibleLineItems.map(lineItem => (
+                                <div
+                                    key={lineItem.id}
+                                    className={lineItem.event_suggestion ? "m-2 overflow-hidden rounded-lg border border-primary/20 bg-muted/30" : undefined}
+                                >
+                                    <MobileLineItemCard
+                                        lineItem={lineItem}
+                                        isChecked={!!lineItem.isSelected}
+                                        onToggle={handleToggle}
+                                    />
+                                    {lineItem.event_suggestion && (
+                                        <div className="border-t border-primary/15 px-3 py-2">
+                                            <EventSuggestionReview key={lineItem.event_suggestion.id} lineItem={lineItem} mobile />
+                                        </div>
+                                    )}
+                                </div>
+                            ))
+                        ) : allLineItems.length > 0 && hasFilters ? (
+                            <div className="space-y-3 p-4 text-center text-muted-foreground">
+                                <p>No matching transactions</p>
+                                <Button type="button" variant="secondary" size="sm" onClick={() => {
+                                    setSearch("");
+                                    setPaymentMethod("All");
+                                    setStartDate("");
+                                    setEndDate("");
+                                }}>Clear filters</Button>
+                            </div>
+                        ) : allLineItems.length === 0 ? (
+                            <div className="p-4 text-center text-muted-foreground">All caught up</div>
+                        ) : (
+                            <div className="p-4 text-center text-muted-foreground">
+                                No matching transactions
+                            </div>
+                        )}
+                    </div>
+                )}
 
-                {/* Desktop table layout */}
-                <div className="hidden xl:block">
+                {showTable && (
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -385,7 +388,7 @@ export default function LineItemsToReviewPage() {
                             )}
                         </TableBody>
                     </Table>
-                </div>
+                )}
             </div>
 
             <CreateManualTransactionModal
