@@ -1,7 +1,6 @@
 from datetime import UTC, datetime
 
 import pytest
-from sqlalchemy.exc import IntegrityError
 
 from models.sql_models import (
     Category,
@@ -14,7 +13,7 @@ from models.sql_models import (
     Transaction,
     User,
 )
-from utils.event_suggestions import generate_event_suggestions, insert_unless_already_suggested
+from utils.event_suggestions import generate_event_suggestions
 
 
 def create_matching_line_item_and_hint(pg_session, *, category: bool = True):
@@ -388,41 +387,6 @@ def test_unavailable_stored_category_requires_a_correction(pg_session, test_clie
     assert missing.get_json()["error"] == "Suggested category is no longer available"
     assert corrected.status_code == 201
     assert corrected.get_json()["category"] == "Dining"
-
-
-def test_concurrently_inserted_suggestion_is_skipped(pg_session, stripe_line_item):
-    pg_session.add(
-        EventSuggestion(id="es_winner", user_id="user_id", line_item_id=stripe_line_item.id, suggested_name="Winner")
-    )
-    pg_session.flush()
-
-    loser = EventSuggestion(id="es_loser", user_id="user_id", line_item_id=stripe_line_item.id, suggested_name="Loser")
-    assert insert_unless_already_suggested(pg_session, loser) is False
-
-    assert [s.id for s in pg_session.query(EventSuggestion).all()] == ["es_winner"]
-
-
-def test_other_integrity_failures_propagate(pg_session, stripe_line_item):
-    pg_session.add(EventSuggestion(id="es_taken", user_id="user_id", line_item_id=stripe_line_item.id, suggested_name="A"))
-    pg_session.flush()
-    other_transaction = Transaction(
-        id="txn_other", source="manual", source_id="other", source_data={}, transaction_date=datetime.now(UTC)
-    )
-    other_item = LineItem(
-        id="li_other",
-        transaction_id=other_transaction.id,
-        date=datetime.now(UTC),
-        description="Other",
-        amount=1,
-        payment_method_id=stripe_line_item.payment_method_id,
-    )
-    pg_session.add_all([other_transaction, other_item])
-    pg_session.flush()
-
-    with pytest.raises(IntegrityError):
-        insert_unless_already_suggested(
-            pg_session, EventSuggestion(id="es_taken", user_id="user_id", line_item_id=other_item.id, suggested_name="B")
-        )
 
 
 def test_users_with_only_name_only_hints_skip_non_stripe_items(pg_session, mocker):

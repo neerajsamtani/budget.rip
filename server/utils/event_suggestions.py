@@ -3,7 +3,6 @@
 import logging
 
 from sqlalchemy import and_
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import joinedload
 
 from models.database import SessionLocal
@@ -49,41 +48,19 @@ def generate_event_suggestions(user_id: str | None = None) -> int:
                 if not prefill or not prefill["category_id"]:
                     continue
 
-                suggestion = EventSuggestion(
-                    id=generate_id("es"),
-                    user_id=current_user_id,
-                    line_item_id=line_item.id,
-                    event_hint_id=prefill["matched_hint_id"],
-                    suggested_name=prefill["name"],
-                    category_id=prefill["category_id"],
-                    source=prefill["source"],
-                    source_metadata=prefill["source_metadata"],
+                db.add(
+                    EventSuggestion(
+                        id=generate_id("es"),
+                        user_id=current_user_id,
+                        line_item_id=line_item.id,
+                        event_hint_id=prefill["matched_hint_id"],
+                        suggested_name=prefill["name"],
+                        category_id=prefill["category_id"],
+                        source=prefill["source"],
+                        source_metadata=prefill["source_metadata"],
+                    )
                 )
-                if insert_unless_already_suggested(db, suggestion):
-                    created_count += 1
+                created_count += 1
 
     logger.info("Created %s event suggestions", created_count)
     return created_count
-
-
-def insert_unless_already_suggested(db, suggestion: EventSuggestion) -> bool:
-    """Insert one suggestion; return False if another refresh already suggested this user/line item.
-
-    Two refreshes can run at once and both try to suggest the same line item. The second insert
-    violates the unique (user_id, line_item_id) constraint, and in PostgreSQL that error would abort
-    the whole refresh transaction. A savepoint rolls back only this insert, so the rest of the batch
-    is kept. Any other integrity error is a real bug and is re-raised.
-    """
-    try:
-        with db.begin_nested():
-            db.add(suggestion)
-    except IntegrityError:
-        already_suggested = (
-            db.query(EventSuggestion.id)
-            .filter(EventSuggestion.user_id == suggestion.user_id, EventSuggestion.line_item_id == suggestion.line_item_id)
-            .first()
-        )
-        if not already_suggested:
-            raise
-        return False
-    return True
