@@ -157,6 +157,49 @@ describe('CreateEventModal', () => {
         expect(screen.getByRole('combobox', { name: /category/i })).toHaveAccessibleDescription('Suggested: Entertainment · Video games');
     });
 
+    it('group Stripe prefill explains the shared category and submits every selected item as one event', async () => {
+        mockUseEvaluateEventHints.mockReturnValue({ data: {
+            name: 'Combined transactions', category: 'Rent', category_id: 'cat_rent',
+            source: 'stripe_personal_finance', matched_hint_id: null, matched_hint_name: null,
+            source_metadata: {
+                mapping_version: 1, selected_count: 2, confidence_level: 'high',
+                labels: [
+                    { primary_label: 'rent_and_utilities', detailed_label: 'internet_and_cable' },
+                    { primary_label: 'rent_and_utilities', detailed_label: 'rent' },
+                ],
+            },
+        }, isLoading: false, isError: false });
+        render(<CreateEventModal show={true} onHide={mockOnHide} />);
+        expect(mockUseEvaluateEventHints).toHaveBeenCalledWith(['1', '2'], true);
+        expect(screen.getByRole('combobox', { name: /category/i }))
+            .toHaveAccessibleDescription('Suggested: Rent · Stripe category for all 2 transactions');
+        expect(screen.getByLabelText('Event Name')).toHaveValue('Combined transactions');
+        await userEvent.clear(screen.getByLabelText('Event Name'));
+        await userEvent.type(screen.getByLabelText('Event Name'), 'November housing');
+        await userEvent.click(screen.getByRole('button', { name: /create event/i }));
+        await waitFor(() => expect(mockAxiosInstance.post).toHaveBeenCalledWith('api/events', expect.objectContaining({
+            name: 'November housing', category: 'Rent', line_items: ['1', '2'],
+        })));
+    });
+
+    it('changing the selection replaces a group prefill with the new selection\'s result', async () => {
+        mockUseEvaluateEventHints.mockReturnValue({ data: {
+            name: 'Combined transactions', category: 'Dining', source: 'stripe_personal_finance',
+            source_metadata: { selected_count: 2 },
+        }, isLoading: false, isError: false });
+        const { rerender } = render(<CreateEventModal show={true} onHide={mockOnHide} />);
+        await userEvent.type(screen.getByLabelText('Event Name'), ' edited');
+        mockUseLineItems.mockReturnValue({
+            lineItems: mockLineItems.map(item => ({ ...item, isSelected: item.id !== '2' })), isPending: false,
+        });
+        mockUseEvaluateEventHints.mockReturnValue({ data: null, isLoading: false, isError: false });
+        rerender(<CreateEventModal show={true} onHide={mockOnHide} />);
+        expect(mockUseEvaluateEventHints).toHaveBeenLastCalledWith(['1', '3'], true);
+        expect(screen.getByLabelText('Event Name')).toHaveValue('Test transaction 1');
+        expect(screen.getByRole('combobox', { name: /category/i })).not.toHaveAccessibleDescription();
+        expect(screen.getByRole('combobox', { name: /category/i })).toHaveTextContent('Select a category');
+    });
+
     describe('Rendering', () => {
         it('modal is rendered when show is true', () => {
             render(<CreateEventModal show={true} onHide={mockOnHide} />);

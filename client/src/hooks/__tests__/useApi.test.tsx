@@ -754,6 +754,24 @@ describe('event prefill requests', () => {
         expect(mockPost).toHaveBeenCalledWith('api/event-hints/evaluate', { line_item_ids: ['li_one'] });
     });
 
+    it('group evidence is requested for the whole selection and passed through unchanged', async () => {
+        const suggestion = {
+            name: 'Combined transactions', category: 'Dining', category_id: 'cat_dining',
+            source: 'stripe_personal_finance', matched_hint_id: null, matched_hint_name: null,
+            source_metadata: {
+                mapping_version: 1, selected_count: 2, confidence_level: 'high',
+                labels: [
+                    { primary_label: 'food_and_drink', detailed_label: 'coffee' },
+                    { primary_label: 'food_and_drink', detailed_label: 'restaurants' },
+                ],
+            },
+        };
+        mockPost.mockResolvedValue({ data: { data: { suggestion } } });
+        const { result } = renderHook(() => useEvaluateEventHints(['li_coffee', 'li_dinner']), { wrapper: createWrapper() });
+        await waitFor(() => expect(result.current.data).toEqual(suggestion));
+        expect(mockPost).toHaveBeenCalledWith('api/event-hints/evaluate', { line_item_ids: ['li_coffee', 'li_dinner'] });
+    });
+
     it('a late response for an old selection cannot prefill the current selection', async () => {
         let finishOld!: (value: unknown) => void;
         mockPost.mockImplementation((_url, body) => body.line_item_ids[0] === 'li_old'
