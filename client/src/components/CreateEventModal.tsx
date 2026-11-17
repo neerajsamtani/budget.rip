@@ -17,11 +17,6 @@ import { Option } from './Autocomplete';
 import { Tag, TagsField } from './TagsField';
 import { Spinner } from './ui/spinner';
 
-function formatCategorySuggestionNote(suggestion?: EventHintSuggestion | null): string | undefined {
-  if (!suggestion?.source || !suggestion.category) return undefined;
-  return `Suggested: ${suggestion.category} · ${formatSuggestionSource(suggestion)}`;
-}
-
 interface CreateEventModalContentProps {
   initialName: string;
   initialCategory: string;
@@ -57,7 +52,9 @@ function CreateEventModalContent({
   const [tags, setTags] = useState<Tag[]>([]);
   // Keep the explanation tied to the prefill the user started editing.
   const [suggestion] = useState(initialSuggestion);
-  const categorySuggestionNote = formatCategorySuggestionNote(suggestion);
+  const categorySuggestionNote = suggestion?.source && suggestion.category
+    ? `Suggested: ${suggestion.category} · ${formatSuggestionSource(suggestion)}`
+    : undefined;
 
   const { data: existingTags, isLoading: isLoadingTags } = useTags();
   const { data: categories = [], isLoading: isLoadingCategories, isError: isCategoriesError } = useCategories();

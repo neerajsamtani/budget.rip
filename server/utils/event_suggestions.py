@@ -22,8 +22,6 @@ def generate_event_suggestions(user_id: str | None = None) -> int:
 
         for current_user_id in user_ids:
             rules = load_prefill_rules(db, current_user_id)
-            if not rules.categories_by_name:
-                continue
             line_items_query = (
                 db.query(LineItem)
                 .options(joinedload(LineItem.payment_method), joinedload(LineItem.transaction))
