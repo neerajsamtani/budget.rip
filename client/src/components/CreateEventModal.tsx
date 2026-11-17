@@ -17,6 +17,20 @@ import { Option } from './Autocomplete';
 import { Tag, TagsField } from './TagsField';
 import { Spinner } from './ui/spinner';
 
+function formatCategorySuggestionNote(suggestion?: EventHintSuggestion | null): string | undefined {
+  if (!suggestion?.source || !suggestion.category) return undefined;
+
+  let detail = suggestion.matched_hint_name || 'Event hint';
+  if (suggestion.source === 'stripe_personal_finance') {
+    const label = suggestion.source_metadata?.detailed_label || suggestion.source_metadata?.primary_label || 'Stripe';
+    detail = label.replaceAll('_', ' ').replace(/^./, char => char.toUpperCase());
+  }
+
+  const note = `Suggested: ${suggestion.category}`;
+  if (suggestion.category.toLowerCase() === detail.toLowerCase()) return note;
+  return `${note} · ${detail}`;
+}
+
 interface CreateEventModalContentProps {
   initialName: string;
   initialCategory: string;
@@ -52,15 +66,7 @@ function CreateEventModalContent({
   const [tags, setTags] = useState<Tag[]>([]);
   // Keep the explanation tied to the prefill the user started editing.
   const [suggestion] = useState(initialSuggestion);
-  const suggestionDetail = suggestion?.source === 'stripe_personal_finance'
-    ? (suggestion.source_metadata?.detailed_label || suggestion.source_metadata?.primary_label || 'Stripe')
-      .replaceAll('_', ' ').replace(/^./, char => char.toUpperCase())
-    : suggestion?.matched_hint_name || 'Event hint';
-  const suggestionReason = suggestion?.category?.toLowerCase() === suggestionDetail.toLowerCase()
-    ? '' : ` · ${suggestionDetail}`;
-  const categorySuggestionNote = suggestion?.source && suggestion.category
-    ? `Suggested: ${suggestion.category}${suggestionReason}`
-    : undefined;
+  const categorySuggestionNote = formatCategorySuggestionNote(suggestion);
 
   const { data: existingTags, isLoading: isLoadingTags } = useTags();
   const { data: categories = [], isLoading: isLoadingCategories, isError: isCategoriesError } = useCategories();

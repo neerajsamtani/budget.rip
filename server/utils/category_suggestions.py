@@ -38,7 +38,7 @@ def resolve_event_prefill(db, user_id: str, line_item_ids: list[str]) -> dict | 
         }
         for hint in hints
     ]
-    suggestion = evaluate_hints(
+    hint_suggestion = evaluate_hints(
         hint_dicts,
         [
             {
@@ -50,19 +50,19 @@ def resolve_event_prefill(db, user_id: str, line_item_ids: list[str]) -> dict | 
             for item in items
         ],
     )
-    if suggestion:
-        winner = next(h for h in hints if h.id == suggestion["matched_hint_id"])
-        suggestion.update(
-            category_id=winner.prefill_category_id if suggestion["category"] else None,
+    if hint_suggestion:
+        matched_hint = next(hint for hint in hints if hint.id == hint_suggestion["matched_hint_id"])
+        hint_suggestion.update(
+            category_id=matched_hint.prefill_category_id if hint_suggestion["category"] else None,
             source="event_hint",
             source_metadata={},
         )
-    if len(requested_ids) > 1 or (suggestion and suggestion["category"]):
-        return suggestion
+    if len(requested_ids) > 1 or (hint_suggestion and hint_suggestion["category"]):
+        return hint_suggestion
 
     item = items[0]
     if item.amount <= 0 or item.transaction.source != "stripe_api" or item.events:
-        return suggestion
+        return hint_suggestion
     rejected = (
         db.query(EventSuggestion.id)
         .filter(
@@ -73,25 +73,25 @@ def resolve_event_prefill(db, user_id: str, line_item_ids: list[str]) -> dict | 
         .first()
     )
     if rejected:
-        return suggestion
-    candidate = map_stripe_category(item.transaction.source_data)
-    if not candidate:
-        return suggestion
-    category = db.query(Category).filter(Category.user_id == user_id, Category.name == candidate["category"]).first()
+        return hint_suggestion
+    stripe_candidate = map_stripe_category(item.transaction.source_data)
+    if not stripe_candidate:
+        return hint_suggestion
+    category = db.query(Category).filter(Category.user_id == user_id, Category.name == stripe_candidate["category"]).first()
     if not category:
-        return suggestion
-    metadata = candidate["source_metadata"]
-    if suggestion:
-        metadata["name_hint_id"] = suggestion["matched_hint_id"]
-        metadata["name_hint_name"] = suggestion["matched_hint_name"]
+        return hint_suggestion
+    metadata = stripe_candidate["source_metadata"]
+    if hint_suggestion:
+        metadata["name_hint_id"] = hint_suggestion["matched_hint_id"]
+        metadata["name_hint_name"] = hint_suggestion["matched_hint_name"]
+    default_name = (item.responsible_party or "").strip() or item.description.strip()
+    name = hint_suggestion["name"] if hint_suggestion else default_name[:255]
     return {
-        "name": suggestion["name"]
-        if suggestion
-        else (item.responsible_party or "").strip()[:255] or item.description.strip()[:255],
+        "name": name,
         "category": category.name,
         "category_id": category.id,
         "source": "stripe_personal_finance",
         "source_metadata": metadata,
-        "matched_hint_id": suggestion["matched_hint_id"] if suggestion else None,
-        "matched_hint_name": suggestion["matched_hint_name"] if suggestion else None,
+        "matched_hint_id": hint_suggestion["matched_hint_id"] if hint_suggestion else None,
+        "matched_hint_name": hint_suggestion["matched_hint_name"] if hint_suggestion else None,
     }
