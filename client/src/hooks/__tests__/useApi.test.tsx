@@ -705,6 +705,43 @@ describe('useApi hooks', () => {
 
 
 describe('event prefill requests', () => {
+    it('dismissing a suggestion clears the closed modal prefill before it reopens', async () => {
+        const suggestion = {
+            name: 'Store', category: 'Groceries', source: 'stripe_personal_finance',
+            matched_hint_id: 'eh_name_only', matched_hint_name: 'Store title',
+        };
+        let dismissed = false;
+        let finishReevaluation!: () => void;
+        mockPost.mockImplementation((url: string) => {
+            if (url === 'api/event-suggestions/es_existing/reject') {
+                dismissed = true;
+                return Promise.resolve({});
+            }
+            if (dismissed) {
+                return new Promise(resolve => {
+                    finishReevaluation = () => resolve({ data: { data: { suggestion: null } } });
+                });
+            }
+            return Promise.resolve({ data: { data: { suggestion } } });
+        });
+        const { result, rerender } = renderHook(({ open }) => ({
+            prefill: useEvaluateEventHints(['li_one'], open),
+            reject: useRejectEventSuggestion(),
+        }), { wrapper: createWrapper(), initialProps: { open: true } });
+        await waitFor(() => expect(result.current.prefill.data).toEqual(suggestion));
+        rerender({ open: false });
+
+        await act(async () => { await result.current.reject.mutateAsync('es_existing'); });
+        await waitFor(() => expect(result.current.prefill.data).toBeUndefined());
+
+        rerender({ open: true });
+        expect(result.current.prefill.isLoading).toBe(true);
+        expect(result.current.prefill.data).toBeUndefined();
+        await act(async () => { finishReevaluation(); });
+        await waitFor(() => expect(result.current.prefill.isSuccess).toBe(true));
+        expect(result.current.prefill.data).toBeNull();
+    });
+
     it('Stripe evidence passes through without converting the category name to an ID', async () => {
         const suggestion = {
             name: 'Store', category: 'Groceries', category_id: 'cat_groceries',

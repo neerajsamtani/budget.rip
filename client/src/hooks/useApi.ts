@@ -591,6 +591,8 @@ export function useRejectEventSuggestion(): UseMutationResult<void, Error, strin
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['lineItems'] });
+      // A reopened modal must wait for fresh evidence instead of using a dismissed prefill.
+      queryClient.resetQueries({ queryKey: ['eventHintSuggestion'] });
     },
   });
 }

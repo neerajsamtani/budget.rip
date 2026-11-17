@@ -6,7 +6,7 @@ Prepared 2026-11-15 against `974b2c0`. No application code has changed. Start wi
 
 | Plan | What users get | Dependencies | Effort | Status |
 | --- | --- | --- | --- | --- |
-| [002](002-single-transaction-prefill.md) | Editable Stripe category prefill and explanation for one transaction in the existing modal | None; PR #147 is present | S–M | BLOCKED — implemented in `3f5a563`; read-only API shape verified; 507 server/92 targeted client tests, lint, typecheck and build pass. Full client suite: 729 pass/1 pre-existing FinancialConnectionsForm failure, reproduced on original HEAD. See 002 handoff; next slice 003. |
+| [002](002-single-transaction-prefill.md) | Editable Stripe category prefill and explanation for one transaction in the existing modal | None; PR #147 is present | S–M | BLOCKED — implemented in `3f5a563`; read-only API shape verified; 507 server/93 targeted client tests, lint, typecheck and build pass. Full client suite: 730 pass/1 pre-existing FinancialConnectionsForm failure, reproduced on original HEAD. Dismissal cache review finding fixed with a reopen regression. See 002 handoff; next slice 003. |
 | [003](003-multi-transaction-prefill.md) | One suggested category for a selected group when every mapped category agrees | 002 | S | TODO |
 | [004](004-inline-category-review.md) | Stripe suggestions after refresh with inline title/category editing, accept and dismiss | 003 | M | TODO |
 | [005](005-custom-category-mappings.md) | Inspect/map/skip every known label; custom categories and renaming work reliably | 004 | M | TODO |

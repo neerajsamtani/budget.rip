@@ -100,3 +100,10 @@ Verified:
 - `git diff --check`: passed. No migration is required.
 
 The plans were ignored local files in another worktree and were copied here for this handoff. The exact mapping inventory is independently captured under server test fixtures; runtime never reads plans. Later work should resolve the existing client test blocker before marking this release DONE. The next feature slice is 003 (multi-transaction prefill); it was not implemented.
+
+
+### Review follow-up — dismissal cache
+
+Resolved the review finding by resetting `eventHintSuggestion` queries after successful dismissal. Clearing cached data is necessary: invalidation alone retains stale data, which a reopened form would use before a background response arrives. Added a regression covering initial Stripe prefill, closing the modal, dismissing an existing suggestion, reopening while reevaluation is pending, and receiving no Stripe category.
+
+Verification: 93 affected client tests pass; typecheck and production build (`--configLoader runner`) pass; full client suite has 730 passing tests and the same pre-existing FinancialConnectionsForm failure. No server behavior changed.
