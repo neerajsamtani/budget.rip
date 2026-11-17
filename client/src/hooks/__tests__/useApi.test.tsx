@@ -28,6 +28,7 @@ import {
     useCreateSplitwiseExpense,
     useDeleteEvent,
     useDeleteManualTransaction,
+    useEvaluateEventHints,
     useEvent,
     useEventLineItems,
     useLineItem,
@@ -699,5 +700,78 @@ describe('useApi hooks', () => {
 
             expect(mockPost).toHaveBeenCalledWith('api/auth/logout');
         });
+    });
+});
+
+
+describe('event prefill requests', () => {
+    it('dismissing a suggestion clears the closed modal prefill before it reopens', async () => {
+        const suggestion = {
+            name: 'Store', category: 'Groceries', source: 'stripe_personal_finance',
+            matched_hint_id: 'eh_name_only', matched_hint_name: 'Store title',
+        };
+        let dismissed = false;
+        let finishReevaluation!: () => void;
+        mockPost.mockImplementation((url: string) => {
+            if (url === 'api/event-suggestions/es_existing/reject') {
+                dismissed = true;
+                return Promise.resolve({});
+            }
+            if (dismissed) {
+                return new Promise(resolve => {
+                    finishReevaluation = () => resolve({ data: { data: { suggestion: null } } });
+                });
+            }
+            return Promise.resolve({ data: { data: { suggestion } } });
+        });
+        const { result, rerender } = renderHook(({ open }) => ({
+            prefill: useEvaluateEventHints(['li_one'], open),
+            reject: useRejectEventSuggestion(),
+        }), { wrapper: createWrapper(), initialProps: { open: true } });
+        await waitFor(() => expect(result.current.prefill.data).toEqual(suggestion));
+        rerender({ open: false });
+
+        await act(async () => { await result.current.reject.mutateAsync('es_existing'); });
+        await waitFor(() => expect(result.current.prefill.data).toBeUndefined());
+
+        rerender({ open: true });
+        expect(result.current.prefill.isLoading).toBe(true);
+        expect(result.current.prefill.data).toBeUndefined();
+        await act(async () => { finishReevaluation(); });
+        await waitFor(() => expect(result.current.prefill.isSuccess).toBe(true));
+        expect(result.current.prefill.data).toBeNull();
+    });
+
+    it('Stripe evidence passes through without converting the category name to an ID', async () => {
+        const suggestion = {
+            name: 'Store', category: 'Groceries', category_id: 'cat_groceries',
+            source: 'stripe_personal_finance', matched_hint_id: null, matched_hint_name: null,
+            source_metadata: { primary_label: 'food_and_drink', detailed_label: 'groceries', confidence_level: 'high', mapping_version: 1 },
+        };
+        mockPost.mockResolvedValue({ data: { data: { suggestion } } });
+        const { result } = renderHook(() => useEvaluateEventHints(['li_one']), { wrapper: createWrapper() });
+        await waitFor(() => expect(result.current.data).toEqual(suggestion));
+        expect(mockPost).toHaveBeenCalledWith('api/event-hints/evaluate', { line_item_ids: ['li_one'] });
+    });
+
+    it('a late response for an old selection cannot prefill the current selection', async () => {
+        let finishOld!: (value: unknown) => void;
+        mockPost.mockImplementation((_url, body) => body.line_item_ids[0] === 'li_old'
+            ? new Promise(resolve => { finishOld = resolve; })
+            : Promise.resolve({ data: { data: { suggestion: null } } }));
+        const { result, rerender } = renderHook(({ ids }) => useEvaluateEventHints(ids), {
+            wrapper: createWrapper(), initialProps: { ids: ['li_old'] },
+        });
+        rerender({ ids: ['li_new'] });
+        await waitFor(() => expect(result.current.isSuccess).toBe(true));
+        await act(async () => finishOld({ data: { data: { suggestion: { name: 'Old', category: 'Rent' } } } }));
+        expect(result.current.data).toBeNull();
+    });
+
+    it('request failure is exposed without a suggestion', async () => {
+        mockPost.mockRejectedValue(new Error('Unavailable'));
+        const { result } = renderHook(() => useEvaluateEventHints(['li_failure']), { wrapper: createWrapper() });
+        await waitFor(() => expect(result.current.isError).toBe(true));
+        expect(result.current.data).toBeUndefined();
     });
 });

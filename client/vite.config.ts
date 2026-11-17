@@ -43,6 +43,8 @@ export default defineConfig({
     }
   },
   server: {
-    host: 'dev.localhost'
+    host: 'dev.localhost',
+    port: 5173,
+    strictPort: true
   }
 })

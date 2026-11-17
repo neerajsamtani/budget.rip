@@ -1,0 +1,8 @@
+{
+  "type": "personal_finance",
+  "personal_finance": {
+    "confidence_level": "low",
+    "detailed_label": "other_income",
+    "primary_label": "income"
+  }
+}

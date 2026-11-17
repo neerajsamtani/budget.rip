@@ -194,7 +194,7 @@ External API data follows this flow:
 
 ### Client (.env)
 - `VITE_STRIPE_PUBLIC_KEY` - Stripe publishable key
-- API calls default to relative URLs (proxied in dev)
+- `VITE_API_ENDPOINT` - Backend base URL, including trailing slash (local: `http://dev.localhost:4242/`)
 
 ### Server (.env)
 - PostgreSQL connection (individual components to avoid URL encoding issues):
@@ -244,6 +244,14 @@ Assert the exact value, not just the key's presence. Prefer `assert data["error"
 ## Development Workflow
 
 ### Local Development Setup
+For a new checkout or worktree, use Node.js 22 and install the `uv` CLI, then run from the repository root:
+```bash
+ENV_SOURCE="/absolute/path/to/configured/budgit" bash scripts/setup.sh
+```
+The script copies missing `server/.env` and `client/.env` from the configured checkout with private permissions, preserving existing configuration, then installs each checkout's dependencies from the lockfiles (`npm ci --legacy-peer-deps`, `uv sync --locked`). Environment files remain Git-ignored. Without a configured checkout, copy both `.env.example` files to `.env` in their respective directories and fill in your local credentials first; `ENV_SOURCE` is unnecessary when configuration already exists. The client requires `VITE_API_ENDPOINT` to reach the backend and `VITE_STRIPE_PUBLIC_KEY` for bank connections. The script does not run database migrations or refresh financial data. It works from any terminal or editor; a worktree setup hook can invoke the same command.
+
+Open the client at `http://dev.localhost:5173/`, matching the server's default CORS origin. Vite fails if port 5173 is occupied instead of silently switching to an origin the backend rejects. Stop an existing dev server before starting another; using a different hostname or port requires a matching entry in the backend's `CORS_ALLOWED_ORIGINS` and a backend restart.
+
 1. **Database**:
    - PostgreSQL required (set `DATABASE_HOST`, `DATABASE_USERNAME`, `DATABASE_PASSWORD`, `DATABASE_NAME`)
    - Run Alembic migrations: `cd server && uv run alembic upgrade head`

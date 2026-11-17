@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import React, { useEffect, useState } from 'react';
 import { Body } from "../components/ui/typography";
 import { LineItemInterface, useLineItems, useLineItemsDispatch } from "../contexts/LineItemsContext";
-import { useCategories, useCreateEvent, useEvaluateEventHints, useTags } from '../hooks/useApi';
+import { EventHintSuggestion, useCategories, useCreateEvent, useEvaluateEventHints, useTags } from '../hooks/useApi';
 import { useField } from '../hooks/useField';
 import { calculateEventTotal } from '../utils/eventHelpers';
 import { CurrencyFormatter } from '../utils/formatters';
@@ -17,9 +17,24 @@ import { Option } from './Autocomplete';
 import { Tag, TagsField } from './TagsField';
 import { Spinner } from './ui/spinner';
 
+function formatCategorySuggestionNote(suggestion?: EventHintSuggestion | null): string | undefined {
+  if (!suggestion?.source || !suggestion.category) return undefined;
+
+  let detail = suggestion.matched_hint_name || 'Event hint';
+  if (suggestion.source === 'stripe_personal_finance') {
+    const label = suggestion.source_metadata?.detailed_label || suggestion.source_metadata?.primary_label || 'Stripe';
+    detail = label.replaceAll('_', ' ').replace(/^./, char => char.toUpperCase());
+  }
+
+  const note = `Suggested: ${suggestion.category}`;
+  if (suggestion.category.toLowerCase() === detail.toLowerCase()) return note;
+  return `${note} · ${detail}`;
+}
+
 interface CreateEventModalContentProps {
   initialName: string;
   initialCategory: string;
+  initialSuggestion?: EventHintSuggestion | null;
   selectedLineItems: LineItemInterface[];
   selectedLineItemIds: string[];
   onClose: () => void;
@@ -33,6 +48,7 @@ interface CreateEventModalContentProps {
 function CreateEventModalContent({
   initialName,
   initialCategory,
+  initialSuggestion,
   selectedLineItems,
   selectedLineItemIds,
   onClose,
@@ -48,6 +64,9 @@ function CreateEventModalContent({
   const date = useField<string>("date", "");
   const isDuplicateTransaction = useField<boolean>("checkbox", false);
   const [tags, setTags] = useState<Tag[]>([]);
+  // Keep the explanation tied to the prefill the user started editing.
+  const [suggestion] = useState(initialSuggestion);
+  const categorySuggestionNote = formatCategorySuggestionNote(suggestion);
 
   const { data: existingTags, isLoading: isLoadingTags } = useTags();
   const { data: categories = [], isLoading: isLoadingCategories, isError: isCategoriesError } = useCategories();
@@ -131,7 +150,11 @@ function CreateEventModalContent({
               Category
             </Label>
             <Select value={category.value} onValueChange={(value) => category.setCustomValue(value)}>
-              <SelectTrigger className="w-full" aria-labelledby="category-label">
+              <SelectTrigger
+                className="w-full"
+                aria-labelledby="category-label"
+                aria-describedby={categorySuggestionNote ? 'category-suggestion-note' : undefined}
+              >
                 <SelectValue placeholder="Select a category" />
               </SelectTrigger>
               <SelectContent className="bg-white border">
@@ -142,6 +165,11 @@ function CreateEventModalContent({
                 ))}
               </SelectContent>
             </Select>
+            {categorySuggestionNote && (
+              <p id="category-suggestion-note" className="font-body text-xs text-muted-foreground">
+                {categorySuggestionNote}
+              </p>
+            )}
           </div>
 
           <TagsField
@@ -221,7 +249,7 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
   // Fetch prefill suggestion from server when line items are selected
   const { data: prefillSuggestion, isLoading: isLoadingHints, isError: isHintsError } = useEvaluateEventHints(
     selectedLineItemIds,
-    selectedLineItemIds.length > 0
+    show && selectedLineItemIds.length > 0
   );
 
   // Show error toast when hints fail to load
@@ -273,6 +301,7 @@ export default function CreateEventModal({ show, onHide }: { show: boolean, onHi
         key={formKey}
         initialName={initialValues.name}
         initialCategory={initialValues.category}
+        initialSuggestion={prefillSuggestion}
         selectedLineItems={selectedLineItems}
         selectedLineItemIds={selectedLineItemIds}
         onClose={onHide}

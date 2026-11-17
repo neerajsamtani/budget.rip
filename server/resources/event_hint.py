@@ -14,8 +14,9 @@ from sqlalchemy import func
 from sqlalchemy.orm import joinedload
 
 from models.database import SessionLocal
-from models.sql_models import Category, EventHint, LineItem, PaymentMethod
-from utils.cel_evaluator import CELEvaluator, evaluate_hints
+from models.sql_models import Category, EventHint
+from utils.category_suggestions import resolve_event_prefill
+from utils.cel_evaluator import CELEvaluator
 from utils.id_generator import generate_id
 
 logger = logging.getLogger(__name__)
@@ -238,64 +239,7 @@ def evaluate_event_hints() -> tuple[Response, int]:
         return jsonify({"data": {"suggestion": None}}), 200
 
     with SessionLocal.begin() as db:
-        line_items = (
-            db.query(
-                LineItem.description,
-                LineItem.amount,
-                LineItem.responsible_party,
-                PaymentMethod.name.label("payment_method"),
-            )
-            .join(PaymentMethod, LineItem.payment_method_id == PaymentMethod.id)
-            .filter(LineItem.id.in_(line_item_ids))
-            .all()
-        )
-
-        if not line_items:
-            return jsonify({"data": {"suggestion": None}}), 200
-
-        hints = (
-            db.query(
-                EventHint.id,
-                EventHint.name,
-                EventHint.cel_expression,
-                EventHint.prefill_name,
-                EventHint.display_order,
-                EventHint.is_active,
-                Category.name.label("prefill_category"),
-            )
-            .outerjoin(Category, EventHint.prefill_category_id == Category.id)
-            .filter(EventHint.user_id == user_id, EventHint.is_active == True)  # noqa: E712
-            .order_by(EventHint.display_order)
-            .all()
-        )
-
-        if not hints:
-            return jsonify({"data": {"suggestion": None}}), 200
-
-        line_item_dicts = [
-            {
-                "description": row.description or "",
-                "amount": float(row.amount) if row.amount else 0.0,
-                "payment_method": row.payment_method or "",
-                "responsible_party": row.responsible_party or "",
-            }
-            for row in line_items
-        ]
-        hint_dicts = [
-            {
-                "id": row.id,
-                "name": row.name,
-                "cel_expression": row.cel_expression,
-                "prefill_name": row.prefill_name,
-                "prefill_category": row.prefill_category,
-                "display_order": row.display_order,
-                "is_active": row.is_active,
-            }
-            for row in hints
-        ]
-
-        # Evaluate hints
-        suggestion = evaluate_hints(hint_dicts, line_item_dicts)
+        suggestion = resolve_event_prefill(db, user_id, line_item_ids)
 
         return jsonify({"data": {"suggestion": suggestion}}), 200
 

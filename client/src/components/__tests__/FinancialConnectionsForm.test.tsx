@@ -180,6 +180,7 @@ describe('FinancialConnectionsForm', () => {
             await userEvent.click(button);
 
             expect(button).toBeDisabled();
+            await waitFor(() => expect(button).not.toBeDisabled());
         });
     });
 
@@ -203,6 +204,7 @@ describe('FinancialConnectionsForm', () => {
             await userEvent.click(button);
 
             expect(document.querySelector('.animate-spin')).toBeInTheDocument();
+            await waitFor(() => expect(button).not.toBeDisabled());
         });
 
         it('spinner is hidden after loading completes', async () => {
@@ -397,8 +399,7 @@ describe('FinancialConnectionsForm', () => {
             const button = screen.getByRole('button', { name: /connect your bank/i });
             await userEvent.click(button);
 
-            // Wait a bit to ensure the promise resolution is handled
-            await new Promise(resolve => setTimeout(resolve, 100));
+            await waitFor(() => expect(button).not.toBeDisabled());
 
             expect(mockSetStripeAccounts).not.toHaveBeenCalled();
         });
@@ -477,6 +478,7 @@ describe('FinancialConnectionsForm', () => {
 
             const spinner = document.querySelector('.animate-spin');
             expect(spinner).toBeInTheDocument();
+            await waitFor(() => expect(button).not.toBeDisabled());
         });
     });
 
@@ -526,7 +528,7 @@ describe('FinancialConnectionsForm', () => {
 
             // Wait for loading to complete
             await waitFor(() => {
-                expect(screen.queryByTestId('spinner')).not.toBeInTheDocument();
+                expect(button).not.toBeDisabled();
             });
         });
     });

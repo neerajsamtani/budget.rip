@@ -116,6 +116,47 @@ describe('CreateEventModal', () => {
         mockAxiosInstance.get.mockImplementation(async url => ({ data: { data: String(url).includes('api/line_items') ? mockLineItems : [] } }));
     });
 
+    it('Stripe prefill explains the category and submits only after explicit confirmation', async () => {
+        mockUseLineItems.mockReturnValue({ lineItems: [mockLineItems[0]], isPending: false });
+        mockUseEvaluateEventHints.mockReturnValue({ data: {
+            name: 'Grocery Store', category: 'Groceries', category_id: 'cat_groceries',
+            source: 'stripe_personal_finance', matched_hint_id: null, matched_hint_name: null,
+            source_metadata: { detailed_label: 'groceries', confidence_level: 'high' },
+        }, isLoading: false, isError: false });
+        render(<CreateEventModal show={true} onHide={mockOnHide} />);
+        expect(screen.getByRole('combobox', { name: /category/i })).toHaveAccessibleDescription('Suggested: Groceries');
+        expect(screen.getByLabelText('Event Name')).toHaveValue('Grocery Store');
+        expect(screen.getByRole('combobox', { name: /category/i })).toHaveTextContent('Groceries');
+        expect(mockAxiosInstance.post).not.toHaveBeenCalled();
+        await userEvent.clear(screen.getByLabelText('Event Name'));
+        await userEvent.type(screen.getByLabelText('Event Name'), 'My groceries');
+        await userEvent.click(screen.getByRole('combobox', { name: /category/i }));
+        await userEvent.click(screen.getByRole('option', { name: 'Dining' }));
+        await userEvent.click(screen.getByRole('button', { name: /create event/i }));
+        await waitFor(() => expect(mockAxiosInstance.post).toHaveBeenCalledWith('api/events', expect.objectContaining({
+            name: 'My groceries', category: 'Dining', line_items: ['1'],
+        })));
+    });
+
+    it('background refetch preserves edited fields and the original explanation', async () => {
+        mockUseEvaluateEventHints.mockReturnValue({ data: {
+            name: 'Store', category: 'Entertainment', source: 'stripe_personal_finance',
+            source_metadata: { detailed_label: 'video_games' },
+        }, isLoading: false, isError: false });
+        const { rerender } = render(<CreateEventModal show={true} onHide={mockOnHide} />);
+        await userEvent.clear(screen.getByLabelText('Event Name'));
+        await userEvent.type(screen.getByLabelText('Event Name'), 'Edited name');
+        await userEvent.click(screen.getByRole('combobox', { name: /category/i }));
+        await userEvent.click(screen.getByRole('option', { name: 'Dining' }));
+        mockUseEvaluateEventHints.mockReturnValue({ data: {
+            name: 'Changed hint', category: 'Rent', source: 'event_hint', matched_hint_name: 'New rule',
+        }, isLoading: false, isError: false });
+        rerender(<CreateEventModal show={true} onHide={mockOnHide} />);
+        expect(screen.getByLabelText('Event Name')).toHaveValue('Edited name');
+        expect(screen.getByRole('combobox', { name: /category/i })).toHaveTextContent('Dining');
+        expect(screen.getByRole('combobox', { name: /category/i })).toHaveAccessibleDescription('Suggested: Entertainment · Video games');
+    });
+
     describe('Rendering', () => {
         it('modal is rendered when show is true', () => {
             render(<CreateEventModal show={true} onHide={mockOnHide} />);
