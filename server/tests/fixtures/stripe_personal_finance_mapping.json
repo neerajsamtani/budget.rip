@@ -2,8 +2,6 @@
   "mapping_version": 1,
   "classification_type": "personal_finance",
   "taxonomy_source": "https://docs.stripe.com/financial-connections/transactions#personal-finance-taxonomy",
-  "taxonomy_provenance": "Full table pasted by the user during plan review on 2026-11-14; available public/browser views omit this preview section.",
-  "scope": "Expense outflows only; existing categorized hints win. Null category_name explicitly means no Stripe suggestion.",
   "primary_only_fallbacks": {
     "entertainment": "Entertainment",
     "general_merchandise": "Shopping",
@@ -11,774 +9,135 @@
     "travel": "Travel",
     "rent_and_utilities": "Rent"
   },
+  "taxonomy_provenance": "User-provided inventory, 2026-11-14; 50 mapped and 78 skipped pairs.",
   "rules": [
-    {
-      "primary_label": "bank_fees",
-      "detailed_label": "atm_fees",
-      "category_name": null,
-      "reason": "No matching default category for bank fees."
-    },
-    {
-      "primary_label": "bank_fees",
-      "detailed_label": "cash_advance_fees",
-      "category_name": null,
-      "reason": "No matching default category for bank fees."
-    },
-    {
-      "primary_label": "bank_fees",
-      "detailed_label": "foreign_transaction_fees",
-      "category_name": null,
-      "reason": "No matching default category for bank fees."
-    },
-    {
-      "primary_label": "bank_fees",
-      "detailed_label": "insufficient_funds_fees",
-      "category_name": null,
-      "reason": "No matching default category for bank fees."
-    },
-    {
-      "primary_label": "bank_fees",
-      "detailed_label": "interest_charge",
-      "category_name": null,
-      "reason": "No matching default category for bank fees."
-    },
-    {
-      "primary_label": "bank_fees",
-      "detailed_label": "late_fees",
-      "category_name": null,
-      "reason": "No matching default category for bank fees."
-    },
-    {
-      "primary_label": "bank_fees",
-      "detailed_label": "overdraft_fees",
-      "category_name": null,
-      "reason": "No matching default category for bank fees."
-    },
-    {
-      "primary_label": "bank_fees",
-      "detailed_label": "other_bank_fees",
-      "category_name": null,
-      "reason": "No matching default category for bank fees."
-    },
-    {
-      "primary_label": "entertainment",
-      "detailed_label": "casinos_and_gambling",
-      "category_name": "Entertainment",
-      "reason": "Map the published personal-finance label to the existing Budgit category."
-    },
-    {
-      "primary_label": "entertainment",
-      "detailed_label": "live_events_and_attractions",
-      "category_name": "Entertainment",
-      "reason": "Map the published personal-finance label to the existing Budgit category."
-    },
-    {
-      "primary_label": "entertainment",
-      "detailed_label": "music_and_audio",
-      "category_name": "Entertainment",
-      "reason": "Map the published personal-finance label to the existing Budgit category."
-    },
-    {
-      "primary_label": "entertainment",
-      "detailed_label": "tv_and_movies",
-      "category_name": "Entertainment",
-      "reason": "Map the published personal-finance label to the existing Budgit category."
-    },
-    {
-      "primary_label": "entertainment",
-      "detailed_label": "video_games",
-      "category_name": "Entertainment",
-      "reason": "Map the published personal-finance label to the existing Budgit category."
-    },
-    {
-      "primary_label": "entertainment",
-      "detailed_label": "other_entertainment",
-      "category_name": "Entertainment",
-      "reason": "Map the published personal-finance label to the existing Budgit category."
-    },
-    {
-      "primary_label": "food_and_drink",
-      "detailed_label": "beer_wine_and_liquor",
-      "category_name": "Alcohol",
-      "reason": "Map the published personal-finance label to the existing Budgit category."
-    },
-    {
-      "primary_label": "food_and_drink",
-      "detailed_label": "coffee",
-      "category_name": "Dining",
-      "reason": "Map the published personal-finance label to the existing Budgit category."
-    },
-    {
-      "primary_label": "food_and_drink",
-      "detailed_label": "fast_food",
-      "category_name": "Dining",
-      "reason": "Map the published personal-finance label to the existing Budgit category."
-    },
-    {
-      "primary_label": "food_and_drink",
-      "detailed_label": "groceries",
-      "category_name": "Groceries",
-      "reason": "Map the published personal-finance label to the existing Budgit category."
-    },
-    {
-      "primary_label": "food_and_drink",
-      "detailed_label": "restaurants",
-      "category_name": "Dining",
-      "reason": "Map the published personal-finance label to the existing Budgit category."
-    },
-    {
-      "primary_label": "food_and_drink",
-      "detailed_label": "vending_machines",
-      "category_name": "Dining",
-      "reason": "Map the published personal-finance label to the existing Budgit category."
-    },
-    {
-      "primary_label": "food_and_drink",
-      "detailed_label": "other_food_and_drink",
-      "category_name": "Dining",
-      "reason": "Map the published personal-finance label to the existing Budgit category."
-    },
-    {
-      "primary_label": "general_merchandise",
-      "detailed_label": "books_and_periodicals",
-      "category_name": "Shopping",
-      "reason": "Retail goods, including hobby supplies, remain Shopping; do not infer an activity category."
-    },
-    {
-      "primary_label": "general_merchandise",
-      "detailed_label": "clothing_and_accessories",
-      "category_name": "Shopping",
-      "reason": "Retail goods, including hobby supplies, remain Shopping; do not infer an activity category."
-    },
-    {
-      "primary_label": "general_merchandise",
-      "detailed_label": "convenience_stores",
-      "category_name": "Shopping",
-      "reason": "Retail goods, including hobby supplies, remain Shopping; do not infer an activity category."
-    },
-    {
-      "primary_label": "general_merchandise",
-      "detailed_label": "department_stores",
-      "category_name": "Shopping",
-      "reason": "Retail goods, including hobby supplies, remain Shopping; do not infer an activity category."
-    },
-    {
-      "primary_label": "general_merchandise",
-      "detailed_label": "discount_stores",
-      "category_name": "Shopping",
-      "reason": "Retail goods, including hobby supplies, remain Shopping; do not infer an activity category."
-    },
-    {
-      "primary_label": "general_merchandise",
-      "detailed_label": "electronics",
-      "category_name": "Shopping",
-      "reason": "Retail goods, including hobby supplies, remain Shopping; do not infer an activity category."
-    },
-    {
-      "primary_label": "general_merchandise",
-      "detailed_label": "gifts_and_novelties",
-      "category_name": "Shopping",
-      "reason": "Retail goods, including hobby supplies, remain Shopping; do not infer an activity category."
-    },
-    {
-      "primary_label": "general_merchandise",
-      "detailed_label": "office_supplies",
-      "category_name": "Shopping",
-      "reason": "Retail goods, including hobby supplies, remain Shopping; do not infer an activity category."
-    },
-    {
-      "primary_label": "general_merchandise",
-      "detailed_label": "online_marketplaces",
-      "category_name": "Shopping",
-      "reason": "Retail goods, including hobby supplies, remain Shopping; do not infer an activity category."
-    },
-    {
-      "primary_label": "general_merchandise",
-      "detailed_label": "pet_supplies",
-      "category_name": "Shopping",
-      "reason": "Retail goods, including hobby supplies, remain Shopping; do not infer an activity category."
-    },
-    {
-      "primary_label": "general_merchandise",
-      "detailed_label": "sporting_goods",
-      "category_name": "Shopping",
-      "reason": "Retail goods, including hobby supplies, remain Shopping; do not infer an activity category."
-    },
-    {
-      "primary_label": "general_merchandise",
-      "detailed_label": "superstores",
-      "category_name": "Shopping",
-      "reason": "Retail goods, including hobby supplies, remain Shopping; do not infer an activity category."
-    },
-    {
-      "primary_label": "general_merchandise",
-      "detailed_label": "tobacco_and_vape",
-      "category_name": "Shopping",
-      "reason": "Retail goods, including hobby supplies, remain Shopping; do not infer an activity category."
-    },
-    {
-      "primary_label": "general_merchandise",
-      "detailed_label": "other_general_merchandise",
-      "category_name": "Shopping",
-      "reason": "Retail goods, including hobby supplies, remain Shopping; do not infer an activity category."
-    },
-    {
-      "primary_label": "general_services",
-      "detailed_label": "accounting_and_financial_planning",
-      "category_name": null,
-      "reason": "No matching default category for these services."
-    },
-    {
-      "primary_label": "general_services",
-      "detailed_label": "automotive_services",
-      "category_name": null,
-      "reason": "No matching default category for these services."
-    },
-    {
-      "primary_label": "general_services",
-      "detailed_label": "childcare",
-      "category_name": null,
-      "reason": "No matching default category for these services."
-    },
-    {
-      "primary_label": "general_services",
-      "detailed_label": "consulting_and_legal",
-      "category_name": null,
-      "reason": "No matching default category for these services."
-    },
-    {
-      "primary_label": "general_services",
-      "detailed_label": "education",
-      "category_name": null,
-      "reason": "No matching default category for these services."
-    },
-    {
-      "primary_label": "general_services",
-      "detailed_label": "insurance",
-      "category_name": null,
-      "reason": "No matching default category for these services."
-    },
-    {
-      "primary_label": "general_services",
-      "detailed_label": "postage_and_shipping",
-      "category_name": null,
-      "reason": "No matching default category for these services."
-    },
-    {
-      "primary_label": "general_services",
-      "detailed_label": "storage",
-      "category_name": null,
-      "reason": "No matching default category for these services."
-    },
-    {
-      "primary_label": "general_services",
-      "detailed_label": "other_general_services",
-      "category_name": null,
-      "reason": "No matching default category for these services."
-    },
-    {
-      "primary_label": "government_and_non_profit",
-      "detailed_label": "donations",
-      "category_name": null,
-      "reason": "No matching default category for taxes or donations."
-    },
-    {
-      "primary_label": "government_and_non_profit",
-      "detailed_label": "government_departments_and_agencies",
-      "category_name": null,
-      "reason": "No matching default category for taxes or donations."
-    },
-    {
-      "primary_label": "government_and_non_profit",
-      "detailed_label": "tax_payment",
-      "category_name": null,
-      "reason": "No matching default category for taxes or donations."
-    },
-    {
-      "primary_label": "government_and_non_profit",
-      "detailed_label": "other_government_and_non_profit",
-      "category_name": null,
-      "reason": "No matching default category for taxes or donations."
-    },
-    {
-      "primary_label": "home_improvement",
-      "detailed_label": "furniture",
-      "category_name": "Shopping",
-      "reason": "Map the published personal-finance label to the existing Budgit category."
-    },
-    {
-      "primary_label": "home_improvement",
-      "detailed_label": "hardware",
-      "category_name": "Shopping",
-      "reason": "Map the published personal-finance label to the existing Budgit category."
-    },
-    {
-      "primary_label": "home_improvement",
-      "detailed_label": "home_repair_and_maintenance",
-      "category_name": null,
-      "reason": "No matching default category for home services; do not classify repairs/security as retail."
-    },
-    {
-      "primary_label": "home_improvement",
-      "detailed_label": "home_security",
-      "category_name": null,
-      "reason": "No matching default category for home services; do not classify repairs/security as retail."
-    },
-    {
-      "primary_label": "home_improvement",
-      "detailed_label": "other_home_improvement",
-      "category_name": null,
-      "reason": "No matching default category for home services; do not classify repairs/security as retail."
-    },
-    {
-      "primary_label": "income",
-      "detailed_label": "child_support_income",
-      "category_name": null,
-      "reason": "Financial-flow mapping is deferred; v1 generates Stripe fallback only for expense outflows."
-    },
-    {
-      "primary_label": "income",
-      "detailed_label": "contractor_income",
-      "category_name": null,
-      "reason": "Financial-flow mapping is deferred; v1 generates Stripe fallback only for expense outflows."
-    },
-    {
-      "primary_label": "income",
-      "detailed_label": "dividends",
-      "category_name": null,
-      "reason": "Financial-flow mapping is deferred; v1 generates Stripe fallback only for expense outflows."
-    },
-    {
-      "primary_label": "income",
-      "detailed_label": "gig_economy_income",
-      "category_name": null,
-      "reason": "Financial-flow mapping is deferred; v1 generates Stripe fallback only for expense outflows."
-    },
-    {
-      "primary_label": "income",
-      "detailed_label": "interest_earned",
-      "category_name": null,
-      "reason": "Financial-flow mapping is deferred; v1 generates Stripe fallback only for expense outflows."
-    },
-    {
-      "primary_label": "income",
-      "detailed_label": "long_term_disability_income",
-      "category_name": null,
-      "reason": "Financial-flow mapping is deferred; v1 generates Stripe fallback only for expense outflows."
-    },
-    {
-      "primary_label": "income",
-      "detailed_label": "military_income",
-      "category_name": null,
-      "reason": "Financial-flow mapping is deferred; v1 generates Stripe fallback only for expense outflows."
-    },
-    {
-      "primary_label": "income",
-      "detailed_label": "rental_income",
-      "category_name": null,
-      "reason": "Financial-flow mapping is deferred; v1 generates Stripe fallback only for expense outflows."
-    },
-    {
-      "primary_label": "income",
-      "detailed_label": "retirement_and_pension_income",
-      "category_name": null,
-      "reason": "Financial-flow mapping is deferred; v1 generates Stripe fallback only for expense outflows."
-    },
-    {
-      "primary_label": "income",
-      "detailed_label": "salary",
-      "category_name": null,
-      "reason": "Financial-flow mapping is deferred; v1 generates Stripe fallback only for expense outflows."
-    },
-    {
-      "primary_label": "income",
-      "detailed_label": "tax_refund",
-      "category_name": null,
-      "reason": "Financial-flow mapping is deferred; v1 generates Stripe fallback only for expense outflows."
-    },
-    {
-      "primary_label": "income",
-      "detailed_label": "unemployment_income",
-      "category_name": null,
-      "reason": "Financial-flow mapping is deferred; v1 generates Stripe fallback only for expense outflows."
-    },
-    {
-      "primary_label": "income",
-      "detailed_label": "other_income",
-      "category_name": null,
-      "reason": "Financial-flow mapping is deferred; v1 generates Stripe fallback only for expense outflows."
-    },
-    {
-      "primary_label": "loan_disbursements",
-      "detailed_label": "auto_loan_disbursement",
-      "category_name": null,
-      "reason": "Borrowed funds are not income; no matching default category."
-    },
-    {
-      "primary_label": "loan_disbursements",
-      "detailed_label": "cash_advances",
-      "category_name": null,
-      "reason": "Borrowed funds are not income; no matching default category."
-    },
-    {
-      "primary_label": "loan_disbursements",
-      "detailed_label": "earned_wage_access",
-      "category_name": null,
-      "reason": "Borrowed funds are not income; no matching default category."
-    },
-    {
-      "primary_label": "loan_disbursements",
-      "detailed_label": "mortgage_disbursement",
-      "category_name": null,
-      "reason": "Borrowed funds are not income; no matching default category."
-    },
-    {
-      "primary_label": "loan_disbursements",
-      "detailed_label": "personal_loan_disbursement",
-      "category_name": null,
-      "reason": "Borrowed funds are not income; no matching default category."
-    },
-    {
-      "primary_label": "loan_disbursements",
-      "detailed_label": "student_loan_disbursement",
-      "category_name": null,
-      "reason": "Borrowed funds are not income; no matching default category."
-    },
-    {
-      "primary_label": "loan_disbursements",
-      "detailed_label": "other_loan_disbursements",
-      "category_name": null,
-      "reason": "Borrowed funds are not income; no matching default category."
-    },
-    {
-      "primary_label": "loan_payments",
-      "detailed_label": "buy_now_pay_later_payment",
-      "category_name": null,
-      "reason": "Debt payment semantics need separate policy; do not infer rent, spending, or transfer."
-    },
-    {
-      "primary_label": "loan_payments",
-      "detailed_label": "car_loan_payment",
-      "category_name": null,
-      "reason": "Debt payment semantics need separate policy; do not infer rent, spending, or transfer."
-    },
-    {
-      "primary_label": "loan_payments",
-      "detailed_label": "cash_advance_repayment",
-      "category_name": null,
-      "reason": "Debt payment semantics need separate policy; do not infer rent, spending, or transfer."
-    },
-    {
-      "primary_label": "loan_payments",
-      "detailed_label": "credit_card_payment",
-      "category_name": null,
-      "reason": "Debt payment semantics need separate policy; do not infer rent, spending, or transfer."
-    },
-    {
-      "primary_label": "loan_payments",
-      "detailed_label": "earned_wage_access_repayment",
-      "category_name": null,
-      "reason": "Debt payment semantics need separate policy; do not infer rent, spending, or transfer."
-    },
-    {
-      "primary_label": "loan_payments",
-      "detailed_label": "mortgage_payment",
-      "category_name": null,
-      "reason": "Debt payment semantics need separate policy; do not infer rent, spending, or transfer."
-    },
-    {
-      "primary_label": "loan_payments",
-      "detailed_label": "personal_loan_payment",
-      "category_name": null,
-      "reason": "Debt payment semantics need separate policy; do not infer rent, spending, or transfer."
-    },
-    {
-      "primary_label": "loan_payments",
-      "detailed_label": "student_loan_payment",
-      "category_name": null,
-      "reason": "Debt payment semantics need separate policy; do not infer rent, spending, or transfer."
-    },
-    {
-      "primary_label": "loan_payments",
-      "detailed_label": "other_loan_payments",
-      "category_name": null,
-      "reason": "Debt payment semantics need separate policy; do not infer rent, spending, or transfer."
-    },
-    {
-      "primary_label": "medical",
-      "detailed_label": "dental_care",
-      "category_name": "Medical",
-      "reason": "Map the published personal-finance label to the existing Budgit category."
-    },
-    {
-      "primary_label": "medical",
-      "detailed_label": "eye_care",
-      "category_name": "Medical",
-      "reason": "Map the published personal-finance label to the existing Budgit category."
-    },
-    {
-      "primary_label": "medical",
-      "detailed_label": "nursing_care",
-      "category_name": "Medical",
-      "reason": "Map the published personal-finance label to the existing Budgit category."
-    },
-    {
-      "primary_label": "medical",
-      "detailed_label": "pharmacies_and_supplements",
-      "category_name": "Medical",
-      "reason": "Map the published personal-finance label to the existing Budgit category."
-    },
-    {
-      "primary_label": "medical",
-      "detailed_label": "primary_care",
-      "category_name": "Medical",
-      "reason": "Map the published personal-finance label to the existing Budgit category."
-    },
-    {
-      "primary_label": "medical",
-      "detailed_label": "veterinary_services",
-      "category_name": "Medical",
-      "reason": "Map the published personal-finance label to the existing Budgit category."
-    },
-    {
-      "primary_label": "medical",
-      "detailed_label": "other_medical",
-      "category_name": "Medical",
-      "reason": "Map the published personal-finance label to the existing Budgit category."
-    },
-    {
-      "primary_label": "personal_care",
-      "detailed_label": "gyms_and_fitness_centers",
-      "category_name": null,
-      "reason": "No matching default category; fitness alone does not establish Hobbies or Subscription."
-    },
-    {
-      "primary_label": "personal_care",
-      "detailed_label": "hair_and_beauty",
-      "category_name": null,
-      "reason": "No matching default category; fitness alone does not establish Hobbies or Subscription."
-    },
-    {
-      "primary_label": "personal_care",
-      "detailed_label": "laundry_and_dry_cleaning",
-      "category_name": null,
-      "reason": "No matching default category; fitness alone does not establish Hobbies or Subscription."
-    },
-    {
-      "primary_label": "personal_care",
-      "detailed_label": "other_personal_care",
-      "category_name": null,
-      "reason": "No matching default category; fitness alone does not establish Hobbies or Subscription."
-    },
-    {
-      "primary_label": "rent_and_utilities",
-      "detailed_label": "gas_and_electricity",
-      "category_name": "Rent",
-      "reason": "Budgit groups rent and all household utilities under Rent, per user preference."
-    },
-    {
-      "primary_label": "rent_and_utilities",
-      "detailed_label": "internet_and_cable",
-      "category_name": "Rent",
-      "reason": "Budgit groups rent and all household utilities under Rent, per user preference."
-    },
-    {
-      "primary_label": "rent_and_utilities",
-      "detailed_label": "rent",
-      "category_name": "Rent",
-      "reason": "Budgit groups rent and all household utilities under Rent, per user preference."
-    },
-    {
-      "primary_label": "rent_and_utilities",
-      "detailed_label": "sewer_and_waste_services",
-      "category_name": "Rent",
-      "reason": "Budgit groups rent and all household utilities under Rent, per user preference."
-    },
-    {
-      "primary_label": "rent_and_utilities",
-      "detailed_label": "telephone",
-      "category_name": "Rent",
-      "reason": "Budgit groups rent and all household utilities under Rent, per user preference."
-    },
-    {
-      "primary_label": "rent_and_utilities",
-      "detailed_label": "water_utility",
-      "category_name": "Rent",
-      "reason": "Budgit groups rent and all household utilities under Rent, per user preference."
-    },
-    {
-      "primary_label": "rent_and_utilities",
-      "detailed_label": "other_rent_and_utilities",
-      "category_name": "Rent",
-      "reason": "Budgit groups rent and all household utilities under Rent, per user preference."
-    },
-    {
-      "primary_label": "transfer_in",
-      "detailed_label": "account_transfer_in",
-      "category_name": null,
-      "reason": "Transfer pairing and financial-flow categorization are deferred."
-    },
-    {
-      "primary_label": "transfer_in",
-      "detailed_label": "deposit",
-      "category_name": null,
-      "reason": "Transfer pairing and financial-flow categorization are deferred."
-    },
-    {
-      "primary_label": "transfer_in",
-      "detailed_label": "investment_and_retirement_funds_transfer_in",
-      "category_name": null,
-      "reason": "Transfer pairing and financial-flow categorization are deferred."
-    },
-    {
-      "primary_label": "transfer_in",
-      "detailed_label": "savings_transfer_in",
-      "category_name": null,
-      "reason": "Transfer pairing and financial-flow categorization are deferred."
-    },
-    {
-      "primary_label": "transfer_in",
-      "detailed_label": "transfer_in_from_apps",
-      "category_name": null,
-      "reason": "Transfer pairing and financial-flow categorization are deferred."
-    },
-    {
-      "primary_label": "transfer_in",
-      "detailed_label": "wire_transfer_in",
-      "category_name": null,
-      "reason": "Transfer pairing and financial-flow categorization are deferred."
-    },
-    {
-      "primary_label": "transfer_in",
-      "detailed_label": "other_transfer_in",
-      "category_name": null,
-      "reason": "Transfer pairing and financial-flow categorization are deferred."
-    },
-    {
-      "primary_label": "transfer_out",
-      "detailed_label": "account_transfer_out",
-      "category_name": null,
-      "reason": "Transfers, investments, and cash movement need separate policy; never treat as Shopping."
-    },
-    {
-      "primary_label": "transfer_out",
-      "detailed_label": "crypto_transfer_out",
-      "category_name": null,
-      "reason": "Transfers, investments, and cash movement need separate policy; never treat as Shopping."
-    },
-    {
-      "primary_label": "transfer_out",
-      "detailed_label": "investment_and_retirement_funds_transfer_out",
-      "category_name": null,
-      "reason": "Transfers, investments, and cash movement need separate policy; never treat as Shopping."
-    },
-    {
-      "primary_label": "transfer_out",
-      "detailed_label": "savings_transfer_out",
-      "category_name": null,
-      "reason": "Transfers, investments, and cash movement need separate policy; never treat as Shopping."
-    },
-    {
-      "primary_label": "transfer_out",
-      "detailed_label": "transfer_out_to_apps",
-      "category_name": null,
-      "reason": "Transfers, investments, and cash movement need separate policy; never treat as Shopping."
-    },
-    {
-      "primary_label": "transfer_out",
-      "detailed_label": "wire_transfer_out",
-      "category_name": null,
-      "reason": "Transfers, investments, and cash movement need separate policy; never treat as Shopping."
-    },
-    {
-      "primary_label": "transfer_out",
-      "detailed_label": "withdrawal",
-      "category_name": null,
-      "reason": "Transfers, investments, and cash movement need separate policy; never treat as Shopping."
-    },
-    {
-      "primary_label": "transfer_out",
-      "detailed_label": "other_transfer_out",
-      "category_name": null,
-      "reason": "Transfers, investments, and cash movement need separate policy; never treat as Shopping."
-    },
-    {
-      "primary_label": "transportation",
-      "detailed_label": "bike_and_scooter_rentals",
-      "category_name": "Transit",
-      "reason": "Map the published personal-finance label to the existing Budgit category."
-    },
-    {
-      "primary_label": "transportation",
-      "detailed_label": "gas",
-      "category_name": null,
-      "reason": "Transit mapping is limited to rides/transit/rentals; no matching default category for car operating costs."
-    },
-    {
-      "primary_label": "transportation",
-      "detailed_label": "parking",
-      "category_name": null,
-      "reason": "Transit mapping is limited to rides/transit/rentals; no matching default category for car operating costs."
-    },
-    {
-      "primary_label": "transportation",
-      "detailed_label": "public_transportation",
-      "category_name": "Transit",
-      "reason": "Map the published personal-finance label to the existing Budgit category."
-    },
-    {
-      "primary_label": "transportation",
-      "detailed_label": "taxis_and_rideshares",
-      "category_name": "Transit",
-      "reason": "Map the published personal-finance label to the existing Budgit category."
-    },
-    {
-      "primary_label": "transportation",
-      "detailed_label": "tolls",
-      "category_name": null,
-      "reason": "Transit mapping is limited to rides/transit/rentals; no matching default category for car operating costs."
-    },
-    {
-      "primary_label": "transportation",
-      "detailed_label": "other_transportation",
-      "category_name": null,
-      "reason": "Transit mapping is limited to rides/transit/rentals; no matching default category for car operating costs."
-    },
-    {
-      "primary_label": "travel",
-      "detailed_label": "flights",
-      "category_name": "Travel",
-      "reason": "Map the published personal-finance label to the existing Budgit category."
-    },
-    {
-      "primary_label": "travel",
-      "detailed_label": "lodging",
-      "category_name": "Travel",
-      "reason": "Map the published personal-finance label to the existing Budgit category."
-    },
-    {
-      "primary_label": "travel",
-      "detailed_label": "rental_cars",
-      "category_name": "Travel",
-      "reason": "Map the published personal-finance label to the existing Budgit category."
-    },
-    {
-      "primary_label": "travel",
-      "detailed_label": "other_travel",
-      "category_name": "Travel",
-      "reason": "Map the published personal-finance label to the existing Budgit category."
-    },
-    {
-      "primary_label": "other",
-      "detailed_label": "other",
-      "category_name": null,
-      "reason": "Unclassified spending has no reliable category."
-    },
-    {
-      "primary_label": "unknown",
-      "detailed_label": "unknown",
-      "category_name": null,
-      "reason": "Unclassified spending has no reliable category."
-    }
+    {"primary_label": "bank_fees", "detailed_label": "atm_fees", "category_name": null},
+    {"primary_label": "bank_fees", "detailed_label": "cash_advance_fees", "category_name": null},
+    {"primary_label": "bank_fees", "detailed_label": "foreign_transaction_fees", "category_name": null},
+    {"primary_label": "bank_fees", "detailed_label": "insufficient_funds_fees", "category_name": null},
+    {"primary_label": "bank_fees", "detailed_label": "interest_charge", "category_name": null},
+    {"primary_label": "bank_fees", "detailed_label": "late_fees", "category_name": null},
+    {"primary_label": "bank_fees", "detailed_label": "overdraft_fees", "category_name": null},
+    {"primary_label": "bank_fees", "detailed_label": "other_bank_fees", "category_name": null},
+    {"primary_label": "entertainment", "detailed_label": "casinos_and_gambling", "category_name": "Entertainment"},
+    {"primary_label": "entertainment", "detailed_label": "live_events_and_attractions", "category_name": "Entertainment"},
+    {"primary_label": "entertainment", "detailed_label": "music_and_audio", "category_name": "Entertainment"},
+    {"primary_label": "entertainment", "detailed_label": "tv_and_movies", "category_name": "Entertainment"},
+    {"primary_label": "entertainment", "detailed_label": "video_games", "category_name": "Entertainment"},
+    {"primary_label": "entertainment", "detailed_label": "other_entertainment", "category_name": "Entertainment"},
+    {"primary_label": "food_and_drink", "detailed_label": "beer_wine_and_liquor", "category_name": "Alcohol"},
+    {"primary_label": "food_and_drink", "detailed_label": "coffee", "category_name": "Dining"},
+    {"primary_label": "food_and_drink", "detailed_label": "fast_food", "category_name": "Dining"},
+    {"primary_label": "food_and_drink", "detailed_label": "groceries", "category_name": "Groceries"},
+    {"primary_label": "food_and_drink", "detailed_label": "restaurants", "category_name": "Dining"},
+    {"primary_label": "food_and_drink", "detailed_label": "vending_machines", "category_name": "Dining"},
+    {"primary_label": "food_and_drink", "detailed_label": "other_food_and_drink", "category_name": "Dining"},
+    {"primary_label": "general_merchandise", "detailed_label": "books_and_periodicals", "category_name": "Shopping"},
+    {"primary_label": "general_merchandise", "detailed_label": "clothing_and_accessories", "category_name": "Shopping"},
+    {"primary_label": "general_merchandise", "detailed_label": "convenience_stores", "category_name": "Shopping"},
+    {"primary_label": "general_merchandise", "detailed_label": "department_stores", "category_name": "Shopping"},
+    {"primary_label": "general_merchandise", "detailed_label": "discount_stores", "category_name": "Shopping"},
+    {"primary_label": "general_merchandise", "detailed_label": "electronics", "category_name": "Shopping"},
+    {"primary_label": "general_merchandise", "detailed_label": "gifts_and_novelties", "category_name": "Shopping"},
+    {"primary_label": "general_merchandise", "detailed_label": "office_supplies", "category_name": "Shopping"},
+    {"primary_label": "general_merchandise", "detailed_label": "online_marketplaces", "category_name": "Shopping"},
+    {"primary_label": "general_merchandise", "detailed_label": "pet_supplies", "category_name": "Shopping"},
+    {"primary_label": "general_merchandise", "detailed_label": "sporting_goods", "category_name": "Shopping"},
+    {"primary_label": "general_merchandise", "detailed_label": "superstores", "category_name": "Shopping"},
+    {"primary_label": "general_merchandise", "detailed_label": "tobacco_and_vape", "category_name": "Shopping"},
+    {"primary_label": "general_merchandise", "detailed_label": "other_general_merchandise", "category_name": "Shopping"},
+    {"primary_label": "general_services", "detailed_label": "accounting_and_financial_planning", "category_name": null},
+    {"primary_label": "general_services", "detailed_label": "automotive_services", "category_name": null},
+    {"primary_label": "general_services", "detailed_label": "childcare", "category_name": null},
+    {"primary_label": "general_services", "detailed_label": "consulting_and_legal", "category_name": null},
+    {"primary_label": "general_services", "detailed_label": "education", "category_name": null},
+    {"primary_label": "general_services", "detailed_label": "insurance", "category_name": null},
+    {"primary_label": "general_services", "detailed_label": "postage_and_shipping", "category_name": null},
+    {"primary_label": "general_services", "detailed_label": "storage", "category_name": null},
+    {"primary_label": "general_services", "detailed_label": "other_general_services", "category_name": null},
+    {"primary_label": "government_and_non_profit", "detailed_label": "donations", "category_name": null},
+    {"primary_label": "government_and_non_profit", "detailed_label": "government_departments_and_agencies", "category_name": null},
+    {"primary_label": "government_and_non_profit", "detailed_label": "tax_payment", "category_name": null},
+    {"primary_label": "government_and_non_profit", "detailed_label": "other_government_and_non_profit", "category_name": null},
+    {"primary_label": "home_improvement", "detailed_label": "furniture", "category_name": "Shopping"},
+    {"primary_label": "home_improvement", "detailed_label": "hardware", "category_name": "Shopping"},
+    {"primary_label": "home_improvement", "detailed_label": "home_repair_and_maintenance", "category_name": null},
+    {"primary_label": "home_improvement", "detailed_label": "home_security", "category_name": null},
+    {"primary_label": "home_improvement", "detailed_label": "other_home_improvement", "category_name": null},
+    {"primary_label": "income", "detailed_label": "child_support_income", "category_name": null},
+    {"primary_label": "income", "detailed_label": "contractor_income", "category_name": null},
+    {"primary_label": "income", "detailed_label": "dividends", "category_name": null},
+    {"primary_label": "income", "detailed_label": "gig_economy_income", "category_name": null},
+    {"primary_label": "income", "detailed_label": "interest_earned", "category_name": null},
+    {"primary_label": "income", "detailed_label": "long_term_disability_income", "category_name": null},
+    {"primary_label": "income", "detailed_label": "military_income", "category_name": null},
+    {"primary_label": "income", "detailed_label": "rental_income", "category_name": null},
+    {"primary_label": "income", "detailed_label": "retirement_and_pension_income", "category_name": null},
+    {"primary_label": "income", "detailed_label": "salary", "category_name": null},
+    {"primary_label": "income", "detailed_label": "tax_refund", "category_name": null},
+    {"primary_label": "income", "detailed_label": "unemployment_income", "category_name": null},
+    {"primary_label": "income", "detailed_label": "other_income", "category_name": null},
+    {"primary_label": "loan_disbursements", "detailed_label": "auto_loan_disbursement", "category_name": null},
+    {"primary_label": "loan_disbursements", "detailed_label": "cash_advances", "category_name": null},
+    {"primary_label": "loan_disbursements", "detailed_label": "earned_wage_access", "category_name": null},
+    {"primary_label": "loan_disbursements", "detailed_label": "mortgage_disbursement", "category_name": null},
+    {"primary_label": "loan_disbursements", "detailed_label": "personal_loan_disbursement", "category_name": null},
+    {"primary_label": "loan_disbursements", "detailed_label": "student_loan_disbursement", "category_name": null},
+    {"primary_label": "loan_disbursements", "detailed_label": "other_loan_disbursements", "category_name": null},
+    {"primary_label": "loan_payments", "detailed_label": "buy_now_pay_later_payment", "category_name": null},
+    {"primary_label": "loan_payments", "detailed_label": "car_loan_payment", "category_name": null},
+    {"primary_label": "loan_payments", "detailed_label": "cash_advance_repayment", "category_name": null},
+    {"primary_label": "loan_payments", "detailed_label": "credit_card_payment", "category_name": null},
+    {"primary_label": "loan_payments", "detailed_label": "earned_wage_access_repayment", "category_name": null},
+    {"primary_label": "loan_payments", "detailed_label": "mortgage_payment", "category_name": null},
+    {"primary_label": "loan_payments", "detailed_label": "personal_loan_payment", "category_name": null},
+    {"primary_label": "loan_payments", "detailed_label": "student_loan_payment", "category_name": null},
+    {"primary_label": "loan_payments", "detailed_label": "other_loan_payments", "category_name": null},
+    {"primary_label": "medical", "detailed_label": "dental_care", "category_name": "Medical"},
+    {"primary_label": "medical", "detailed_label": "eye_care", "category_name": "Medical"},
+    {"primary_label": "medical", "detailed_label": "nursing_care", "category_name": "Medical"},
+    {"primary_label": "medical", "detailed_label": "pharmacies_and_supplements", "category_name": "Medical"},
+    {"primary_label": "medical", "detailed_label": "primary_care", "category_name": "Medical"},
+    {"primary_label": "medical", "detailed_label": "veterinary_services", "category_name": "Medical"},
+    {"primary_label": "medical", "detailed_label": "other_medical", "category_name": "Medical"},
+    {"primary_label": "personal_care", "detailed_label": "gyms_and_fitness_centers", "category_name": null},
+    {"primary_label": "personal_care", "detailed_label": "hair_and_beauty", "category_name": null},
+    {"primary_label": "personal_care", "detailed_label": "laundry_and_dry_cleaning", "category_name": null},
+    {"primary_label": "personal_care", "detailed_label": "other_personal_care", "category_name": null},
+    {"primary_label": "rent_and_utilities", "detailed_label": "gas_and_electricity", "category_name": "Rent"},
+    {"primary_label": "rent_and_utilities", "detailed_label": "internet_and_cable", "category_name": "Rent"},
+    {"primary_label": "rent_and_utilities", "detailed_label": "rent", "category_name": "Rent"},
+    {"primary_label": "rent_and_utilities", "detailed_label": "sewer_and_waste_services", "category_name": "Rent"},
+    {"primary_label": "rent_and_utilities", "detailed_label": "telephone", "category_name": "Rent"},
+    {"primary_label": "rent_and_utilities", "detailed_label": "water_utility", "category_name": "Rent"},
+    {"primary_label": "rent_and_utilities", "detailed_label": "other_rent_and_utilities", "category_name": "Rent"},
+    {"primary_label": "transfer_in", "detailed_label": "account_transfer_in", "category_name": null},
+    {"primary_label": "transfer_in", "detailed_label": "deposit", "category_name": null},
+    {"primary_label": "transfer_in", "detailed_label": "investment_and_retirement_funds_transfer_in", "category_name": null},
+    {"primary_label": "transfer_in", "detailed_label": "savings_transfer_in", "category_name": null},
+    {"primary_label": "transfer_in", "detailed_label": "transfer_in_from_apps", "category_name": null},
+    {"primary_label": "transfer_in", "detailed_label": "wire_transfer_in", "category_name": null},
+    {"primary_label": "transfer_in", "detailed_label": "other_transfer_in", "category_name": null},
+    {"primary_label": "transfer_out", "detailed_label": "account_transfer_out", "category_name": null},
+    {"primary_label": "transfer_out", "detailed_label": "crypto_transfer_out", "category_name": null},
+    {"primary_label": "transfer_out", "detailed_label": "investment_and_retirement_funds_transfer_out", "category_name": null},
+    {"primary_label": "transfer_out", "detailed_label": "savings_transfer_out", "category_name": null},
+    {"primary_label": "transfer_out", "detailed_label": "transfer_out_to_apps", "category_name": null},
+    {"primary_label": "transfer_out", "detailed_label": "wire_transfer_out", "category_name": null},
+    {"primary_label": "transfer_out", "detailed_label": "withdrawal", "category_name": null},
+    {"primary_label": "transfer_out", "detailed_label": "other_transfer_out", "category_name": null},
+    {"primary_label": "transportation", "detailed_label": "bike_and_scooter_rentals", "category_name": "Transit"},
+    {"primary_label": "transportation", "detailed_label": "gas", "category_name": null},
+    {"primary_label": "transportation", "detailed_label": "parking", "category_name": null},
+    {"primary_label": "transportation", "detailed_label": "public_transportation", "category_name": "Transit"},
+    {"primary_label": "transportation", "detailed_label": "taxis_and_rideshares", "category_name": "Transit"},
+    {"primary_label": "transportation", "detailed_label": "tolls", "category_name": null},
+    {"primary_label": "transportation", "detailed_label": "other_transportation", "category_name": null},
+    {"primary_label": "travel", "detailed_label": "flights", "category_name": "Travel"},
+    {"primary_label": "travel", "detailed_label": "lodging", "category_name": "Travel"},
+    {"primary_label": "travel", "detailed_label": "rental_cars", "category_name": "Travel"},
+    {"primary_label": "travel", "detailed_label": "other_travel", "category_name": "Travel"},
+    {"primary_label": "other", "detailed_label": "other", "category_name": null},
+    {"primary_label": "unknown", "detailed_label": "unknown", "category_name": null}
   ]
 }
