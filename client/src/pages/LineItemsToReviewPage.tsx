@@ -22,11 +22,18 @@ import { useMediaQuery } from "../hooks/useMediaQuery";
 import { formatSuggestionSource } from "../utils/stringHelpers";
 import { showErrorToast, showSuccessToast } from "../utils/toast-helpers";
 
-// Memoized so toggling one row's selection doesn't re-render every suggestion.
-const EventSuggestionReview = React.memo(function EventSuggestionReview({ lineItem, mobile = false }: { lineItem: LineItemInterface; mobile?: boolean }) {
-    const suggestion = lineItem.event_suggestion;
-    const [name, setName] = useState(suggestion?.name ?? "");
-    const [categoryId, setCategoryId] = useState(suggestion?.category_id ?? "");
+interface EventSuggestionReviewProps {
+    lineItemId: string;
+    description: string;
+    suggestion: NonNullable<LineItemInterface["event_suggestion"]>;
+    mobile?: boolean;
+}
+
+// Memoized, and given only the fields it reads rather than the line item (which toggling replaces),
+// so selecting rows doesn't re-render any suggestion.
+const EventSuggestionReview = React.memo(function EventSuggestionReview({ lineItemId, description, suggestion, mobile = false }: EventSuggestionReviewProps) {
+    const [name, setName] = useState(suggestion.name);
+    const [categoryId, setCategoryId] = useState(suggestion.category_id ?? "");
     const [pickerOpen, setPickerOpen] = useState(false);
     const reasonId = useId();
     const { data: categories = [], isPending: categoriesPending, isError: categoriesError } = useCategories();
@@ -34,7 +41,6 @@ const EventSuggestionReview = React.memo(function EventSuggestionReview({ lineIt
     const rejectSuggestion = useRejectEventSuggestion();
     const lineItemsDispatch = useLineItemsDispatch();
 
-    if (!suggestion) return null;
     const canAccept = Boolean(name.trim() && categoryId);
     // Until categories arrive, offer the suggested one so the trigger still shows it.
     const categoryOptions = categories.length > 0 || !suggestion.category_id
@@ -45,7 +51,7 @@ const EventSuggestionReview = React.memo(function EventSuggestionReview({ lineIt
     const accept = async () => {
         try {
             const event = await acceptSuggestion.mutateAsync({ suggestionId: suggestion.id, name: name.trim(), categoryId });
-            lineItemsDispatch({ type: "remove_line_items", lineItemIds: [lineItem.id] });
+            lineItemsDispatch({ type: "remove_line_items", lineItemIds: [lineItemId] });
             showSuccessToast(event.name, "Created Event");
         } catch (error) {
             showErrorToast(error);
@@ -55,7 +61,7 @@ const EventSuggestionReview = React.memo(function EventSuggestionReview({ lineIt
     const reject = async () => {
         try {
             await rejectSuggestion.mutateAsync(suggestion.id);
-            lineItemsDispatch({ type: "dismiss_event_suggestion", lineItemId: lineItem.id });
+            lineItemsDispatch({ type: "dismiss_event_suggestion", lineItemId: lineItemId });
         } catch (error) {
             showErrorToast(error);
         }
@@ -63,14 +69,14 @@ const EventSuggestionReview = React.memo(function EventSuggestionReview({ lineIt
 
     const isPending = acceptSuggestion.isPending || rejectSuggestion.isPending;
     const content = (
-        <div className="flex flex-wrap items-center gap-2 border-l-2 border-primary/30 pl-2 xl:flex-nowrap" aria-label={`Suggested event for ${lineItem.description}`}>
+        <div className="flex flex-wrap items-center gap-2 border-l-2 border-primary/30 pl-2 xl:flex-nowrap" aria-label={`Suggested event for ${description}`}>
             <span className={`flex shrink-0 items-center gap-1.5 text-xs ${mobile ? "basis-full" : ""}`}>
                 <CornerDownRight className="h-4 w-4 text-primary" aria-hidden="true" />
                 <span className="font-medium text-primary">Suggested event</span>
                 <span id={reasonId} className="max-w-48 truncate text-muted-foreground">{formatSuggestionSource(suggestion)}</span>
             </span>
             <Input
-                aria-label={`Suggested event title for ${lineItem.description}`}
+                aria-label={`Suggested event title for ${description}`}
                 value={name}
                 onChange={event => setName(event.target.value)}
                 onKeyDown={event => {
@@ -80,7 +86,7 @@ const EventSuggestionReview = React.memo(function EventSuggestionReview({ lineIt
             />
             <Select value={categoryId} onValueChange={setCategoryId} open={pickerOpen} onOpenChange={setPickerOpen} disabled={isPending}>
                 <SelectTrigger
-                    aria-label={`Suggested category for ${lineItem.description}`}
+                    aria-label={`Suggested category for ${description}`}
                     aria-describedby={reasonId}
                     className={`h-9 bg-white ${mobile ? "min-w-0 flex-1" : "w-44 shrink-0"}`}
                 >
@@ -100,7 +106,7 @@ const EventSuggestionReview = React.memo(function EventSuggestionReview({ lineIt
             </Select>
             <div className="ml-auto flex shrink-0 gap-2">
                 <Button
-                    aria-label={`Create event from ${lineItem.description}`}
+                    aria-label={`Create event from ${description}`}
                     size="sm"
                     onClick={() => void accept()}
                     disabled={!canAccept || isPending}
@@ -108,7 +114,7 @@ const EventSuggestionReview = React.memo(function EventSuggestionReview({ lineIt
                     {acceptSuggestion.isPending ? <Spinner size="sm" /> : "Create event"}
                 </Button>
                 <Button
-                    aria-label={`Dismiss suggestion for ${lineItem.description}`}
+                    aria-label={`Dismiss suggestion for ${description}`}
                     size="sm"
                     variant="secondary"
                     onClick={() => void reject()}
@@ -121,7 +127,7 @@ const EventSuggestionReview = React.memo(function EventSuggestionReview({ lineIt
     );
 
     return mobile ? content : (
-        <TableRow data-testid={`event-suggestion-${lineItem.id}`} className="bg-muted/30 hover:bg-muted/30">
+        <TableRow data-testid={`event-suggestion-${lineItemId}`} className="bg-muted/30 hover:bg-muted/30">
             <TableCell colSpan={7} className="px-3 py-2 md:px-4">{content}</TableCell>
         </TableRow>
     );
@@ -157,7 +163,7 @@ export default function LineItemsToReviewPage() {
     const { lineItems, isPending, error, refetch } = useLineItems();
     const lineItemsDispatch = useLineItemsDispatch();
     // Render one layout, not both hidden by CSS: each suggestion's category picker is costly to render.
-    const showTable = useMediaQuery("(width >= 80rem)"); // Tailwind's xl breakpoint, as the page's xl: classes use it
+    const showTable = useMediaQuery("(min-width: 80rem)"); // Tailwind's xl breakpoint, in rem like the page's xl: classes
     const allLineItems = lineItems ?? [];
     const selectedLineItems = allLineItems.filter(lineItem => lineItem.isSelected);
     const total = selectedLineItems.reduce((prev, cur) => prev + cur.amount, 0);
@@ -180,7 +186,7 @@ export default function LineItemsToReviewPage() {
         });
     }, [allLineItems, endDate, paymentMethod, search, startDate]);
 
-    const visibleIds = new Set(visibleLineItems.map(lineItem => lineItem.id));
+    const visibleIds = useMemo(() => new Set(visibleLineItems.map(lineItem => lineItem.id)), [visibleLineItems]);
     const hiddenSelectionCount = selectedLineItems.filter(lineItem => !visibleIds.has(lineItem.id)).length;
 
     const handleToggle = useCallback((lineItemId: string) => {
@@ -313,7 +319,7 @@ export default function LineItemsToReviewPage() {
                                     />
                                     {lineItem.event_suggestion && (
                                         <div className="border-t border-primary/15 px-3 py-2">
-                                            <EventSuggestionReview key={lineItem.event_suggestion.id} lineItem={lineItem} mobile />
+                                            <EventSuggestionReview key={lineItem.event_suggestion.id} lineItemId={lineItem.id} description={lineItem.description} suggestion={lineItem.event_suggestion} mobile />
                                         </div>
                                     )}
                                 </div>
@@ -372,7 +378,7 @@ export default function LineItemsToReviewPage() {
                                             hasAttachedContent={!!lineItem.event_suggestion}
                                         />
                                         {lineItem.event_suggestion && (
-                                            <EventSuggestionReview key={lineItem.event_suggestion.id} lineItem={lineItem} />
+                                            <EventSuggestionReview key={lineItem.event_suggestion.id} lineItemId={lineItem.id} description={lineItem.description} suggestion={lineItem.event_suggestion} />
                                         )}
                                     </React.Fragment>
                                 ))

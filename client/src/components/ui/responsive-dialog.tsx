@@ -7,7 +7,8 @@ import { Sheet, SheetContent, SheetTitle, SheetDescription } from "./sheet"
 const MobileContext = createContext(false)
 
 function useIsMobile() {
-  return useMediaQuery("(width < 768px)")
+  // Same as width < 768px; min/max-width also works in Safari before 16.4, unlike range syntax.
+  return useMediaQuery("(max-width: 767.98px)")
 }
 
 interface ResponsiveDialogProps {

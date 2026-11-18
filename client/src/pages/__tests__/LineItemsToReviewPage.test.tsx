@@ -202,7 +202,10 @@ describe('LineItemsToReviewPage', () => {
         setViewportWidth(1280);
     });
 
-    describe('Event suggestions', () => {
+    // Each layout renders its own suggestion markup, so run these against both.
+    describe.each([['the desktop table', 1280], ['mobile cards', 1279]])('Event suggestions in %s', (_layout, width) => {
+        beforeEach(() => setViewportWidth(width));
+
         const suggestedLineItem = {
             ...mockLineItems[0],
             event_suggestion: {
@@ -883,23 +886,21 @@ describe('LineItemsToReviewPage', () => {
 
     describe('Loading States', () => {
         it('shows loading spinner in mobile view during initial load', () => {
+            setViewportWidth(1279);
             mockUseLineItems.mockReturnValue({ lineItems: [], isPending: true });
 
             const { container } = render(<LineItemsToReviewPage />);
 
-            // Check for spinner in mobile view
-            const spinners = container.querySelectorAll('.animate-spin');
-            expect(spinners.length).toBeGreaterThan(0);
+            expect(screen.queryByRole('table')).not.toBeInTheDocument();
+            expect(container.querySelector('.animate-spin')).toBeInTheDocument();
         });
 
         it('shows loading spinner in desktop table during initial load', () => {
             mockUseLineItems.mockReturnValue({ lineItems: [], isPending: true });
 
-            const { container } = render(<LineItemsToReviewPage />);
+            render(<LineItemsToReviewPage />);
 
-            // Check for spinner (loading indicator)
-            const spinner = container.querySelector('.animate-spin');
-            expect(spinner).toBeInTheDocument();
+            expect(screen.getByRole('table').querySelector('.animate-spin')).toBeInTheDocument();
         });
 
         it('replaces loading spinner with data after load completes', () => {

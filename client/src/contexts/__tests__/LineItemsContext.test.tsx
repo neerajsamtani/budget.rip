@@ -850,7 +850,7 @@ describe('LineItemsContext', () => {
             });
         });
 
-        it('selecting or clearing other transactions does not re-render a suggestion', async () => {
+        it('selecting or clearing transactions does not re-render suggestions, including the selected row', async () => {
             const user = userEvent.setup();
             const useCategories = jest.spyOn(api, 'useCategories');
             renderWithProviders(
@@ -862,7 +862,9 @@ describe('LineItemsContext', () => {
             await waitFor(() => expect(categoryPicker).toHaveTextContent('Dining'));
             useCategories.mockClear();
 
-            await user.click(within(screen.getByRole('table')).getAllByRole('checkbox')[1]);
+            const checkboxes = within(screen.getByRole('table')).getAllByRole('checkbox');
+            await user.click(checkboxes[0]); // the row with the suggestion
+            await user.click(checkboxes[1]);
             await user.click(screen.getByRole('button', { name: 'Clear selection' }));
 
             expect(useCategories).not.toHaveBeenCalled();

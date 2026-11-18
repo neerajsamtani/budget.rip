@@ -50,13 +50,14 @@ afterAll(() => {
     takeRecords() { return []; }
 };
 
-// Answer width range queries such as "(width >= 80rem)" from window.innerWidth, which tests set
-// with setViewportWidth; every other query doesn't match.
+// Answer width queries such as "(min-width: 80rem)" from window.innerWidth, which tests set with
+// setViewportWidth. Other queries don't match; unparsed width queries throw rather than silently not matching.
 function matchesWidthQuery(query: string) {
-    const match = /^\(width (>=|<) ([\d.]+)(px|rem)\)$/.exec(query);
-    if (!match) return false;
+    if (!query.includes('width')) return false;
+    const match = /^\((min|max)-width: ([\d.]+)(px|rem)\)$/.exec(query);
+    if (!match) throw new Error(`The matchMedia mock in setupTests.ts can't evaluate "${query}"`);
     const breakpoint = Number(match[2]) * (match[3] === 'rem' ? 16 : 1);
-    return match[1] === '>=' ? window.innerWidth >= breakpoint : window.innerWidth < breakpoint;
+    return match[1] === 'min' ? window.innerWidth >= breakpoint : window.innerWidth <= breakpoint;
 }
 
 // Restore jsdom's default width so one test's viewport doesn't leak into the next.
