@@ -87,6 +87,11 @@ export { customRender as render };
 // Export mock axios instance for tests
 export { mockAxiosInstance };
 
+/** Sets the width that the matchMedia mock in setupTests answers width queries against. */
+export function setViewportWidth(width: number) {
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: width });
+}
+
 // Mock data for tests
 export const mockLineItem = {
     _id: '1',

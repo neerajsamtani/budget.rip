@@ -1,21 +1,14 @@
 import * as React from "react"
-import { createContext, useContext, useEffect, useState } from "react"
+import { createContext, useContext } from "react"
+import { useMediaQuery } from "@/hooks/useMediaQuery"
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "./dialog"
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from "./sheet"
 
 const MobileContext = createContext(false)
 
 function useIsMobile() {
-  const [isMobile, setIsMobile] = useState(false)
-
-  useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768)
-    checkMobile()
-    window.addEventListener("resize", checkMobile)
-    return () => window.removeEventListener("resize", checkMobile)
-  }, [])
-
-  return isMobile
+  // Same as width < 768px; min/max-width also works in Safari before 16.4, unlike range syntax.
+  return useMediaQuery("(max-width: 767.98px)")
 }
 
 interface ResponsiveDialogProps {

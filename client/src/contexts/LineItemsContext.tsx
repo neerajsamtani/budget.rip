@@ -79,7 +79,8 @@ function lineItemsReducer(lineItems: LineItemInterface[], action: Action) {
             })
         }
         case "clear_line_item_selection": {
-            return lineItems.map(lineItem => ({ ...lineItem, isSelected: false }));
+            // Keep unselected items' identity so memoized rows don't re-render.
+            return lineItems.map(lineItem => lineItem.isSelected ? { ...lineItem, isSelected: false } : lineItem);
         }
         case "remove_line_items": {
             return lineItems.filter(lineItem => !action.lineItemIds.includes(lineItem.id))

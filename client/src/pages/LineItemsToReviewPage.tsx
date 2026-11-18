@@ -18,20 +18,29 @@ import { PageContainer, PageHeader } from "../components/ui/layout";
 import { Body, H1 } from "../components/ui/typography";
 import { LineItemInterface, useLineItems, useLineItemsDispatch } from "../contexts/LineItemsContext";
 import { useAcceptEventSuggestion, useCategories, useRejectEventSuggestion } from "../hooks/useApi";
+import { useMediaQuery } from "../hooks/useMediaQuery";
 import { formatSuggestionSource } from "../utils/stringHelpers";
 import { showErrorToast, showSuccessToast } from "../utils/toast-helpers";
 
-function EventSuggestionReview({ lineItem, mobile = false }: { lineItem: LineItemInterface; mobile?: boolean }) {
-    const suggestion = lineItem.event_suggestion;
-    const [name, setName] = useState(suggestion?.name ?? "");
-    const [categoryId, setCategoryId] = useState(suggestion?.category_id ?? "");
+interface EventSuggestionReviewProps {
+    lineItemId: string;
+    description: string;
+    suggestion: NonNullable<LineItemInterface["event_suggestion"]>;
+    mobile?: boolean;
+}
+
+// Memoized, and given only the fields it reads rather than the line item (which toggling replaces),
+// so selecting rows doesn't re-render any suggestion.
+const EventSuggestionReview = React.memo(function EventSuggestionReview({ lineItemId, description, suggestion, mobile = false }: EventSuggestionReviewProps) {
+    const [name, setName] = useState(suggestion.name);
+    const [categoryId, setCategoryId] = useState(suggestion.category_id ?? "");
+    const [pickerOpen, setPickerOpen] = useState(false);
     const reasonId = useId();
     const { data: categories = [], isPending: categoriesPending, isError: categoriesError } = useCategories();
     const acceptSuggestion = useAcceptEventSuggestion();
     const rejectSuggestion = useRejectEventSuggestion();
     const lineItemsDispatch = useLineItemsDispatch();
 
-    if (!suggestion) return null;
     const canAccept = Boolean(name.trim() && categoryId);
     // Until categories arrive, offer the suggested one so the trigger still shows it.
     const categoryOptions = categories.length > 0 || !suggestion.category_id
@@ -42,7 +51,7 @@ function EventSuggestionReview({ lineItem, mobile = false }: { lineItem: LineIte
     const accept = async () => {
         try {
             const event = await acceptSuggestion.mutateAsync({ suggestionId: suggestion.id, name: name.trim(), categoryId });
-            lineItemsDispatch({ type: "remove_line_items", lineItemIds: [lineItem.id] });
+            lineItemsDispatch({ type: "remove_line_items", lineItemIds: [lineItemId] });
             showSuccessToast(event.name, "Created Event");
         } catch (error) {
             showErrorToast(error);
@@ -52,7 +61,7 @@ function EventSuggestionReview({ lineItem, mobile = false }: { lineItem: LineIte
     const reject = async () => {
         try {
             await rejectSuggestion.mutateAsync(suggestion.id);
-            lineItemsDispatch({ type: "dismiss_event_suggestion", lineItemId: lineItem.id });
+            lineItemsDispatch({ type: "dismiss_event_suggestion", lineItemId: lineItemId });
         } catch (error) {
             showErrorToast(error);
         }
@@ -60,14 +69,14 @@ function EventSuggestionReview({ lineItem, mobile = false }: { lineItem: LineIte
 
     const isPending = acceptSuggestion.isPending || rejectSuggestion.isPending;
     const content = (
-        <div className="flex flex-wrap items-center gap-2 border-l-2 border-primary/30 pl-2 xl:flex-nowrap" aria-label={`Suggested event for ${lineItem.description}`}>
+        <div className="flex flex-wrap items-center gap-2 border-l-2 border-primary/30 pl-2 xl:flex-nowrap" aria-label={`Suggested event for ${description}`}>
             <span className={`flex shrink-0 items-center gap-1.5 text-xs ${mobile ? "basis-full" : ""}`}>
                 <CornerDownRight className="h-4 w-4 text-primary" aria-hidden="true" />
                 <span className="font-medium text-primary">Suggested event</span>
                 <span id={reasonId} className="max-w-48 truncate text-muted-foreground">{formatSuggestionSource(suggestion)}</span>
             </span>
             <Input
-                aria-label={`Suggested event title for ${lineItem.description}`}
+                aria-label={`Suggested event title for ${description}`}
                 value={name}
                 onChange={event => setName(event.target.value)}
                 onKeyDown={event => {
@@ -75,24 +84,29 @@ function EventSuggestionReview({ lineItem, mobile = false }: { lineItem: LineIte
                 }}
                 className={`h-9 min-w-0 bg-white ${mobile ? "basis-full" : "flex-1"}`}
             />
-            <Select value={categoryId} onValueChange={setCategoryId} disabled={isPending}>
+            <Select value={categoryId} onValueChange={setCategoryId} open={pickerOpen} onOpenChange={setPickerOpen} disabled={isPending}>
                 <SelectTrigger
-                    aria-label={`Suggested category for ${lineItem.description}`}
+                    aria-label={`Suggested category for ${description}`}
                     aria-describedby={reasonId}
                     className={`h-9 bg-white ${mobile ? "min-w-0 flex-1" : "w-44 shrink-0"}`}
                 >
-                    <SelectValue placeholder="Choose a category" />
+                    <SelectValue placeholder="Choose a category">{categoryOptions.find(category => category.id === categoryId)?.name}</SelectValue>
                 </SelectTrigger>
                 <SelectContent className="bg-white border">
-                    {categoryStatus && <SelectItem value="__category_status" disabled>{categoryStatus}</SelectItem>}
-                    {categoryOptions.map(category => (
-                        <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
-                    ))}
+                    {/* A closed Select still renders its items, so mount them only while open; SelectValue labels the trigger. */}
+                    {pickerOpen && (
+                        <>
+                            {categoryStatus && <SelectItem value="__category_status" disabled>{categoryStatus}</SelectItem>}
+                            {categoryOptions.map(category => (
+                                <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
+                            ))}
+                        </>
+                    )}
                 </SelectContent>
             </Select>
             <div className="ml-auto flex shrink-0 gap-2">
                 <Button
-                    aria-label={`Create event from ${lineItem.description}`}
+                    aria-label={`Create event from ${description}`}
                     size="sm"
                     onClick={() => void accept()}
                     disabled={!canAccept || isPending}
@@ -100,7 +114,7 @@ function EventSuggestionReview({ lineItem, mobile = false }: { lineItem: LineIte
                     {acceptSuggestion.isPending ? <Spinner size="sm" /> : "Create event"}
                 </Button>
                 <Button
-                    aria-label={`Dismiss suggestion for ${lineItem.description}`}
+                    aria-label={`Dismiss suggestion for ${description}`}
                     size="sm"
                     variant="secondary"
                     onClick={() => void reject()}
@@ -113,11 +127,11 @@ function EventSuggestionReview({ lineItem, mobile = false }: { lineItem: LineIte
     );
 
     return mobile ? content : (
-        <TableRow data-testid={`event-suggestion-${lineItem.id}`} className="bg-muted/30 hover:bg-muted/30">
+        <TableRow data-testid={`event-suggestion-${lineItemId}`} className="bg-muted/30 hover:bg-muted/30">
             <TableCell colSpan={7} className="px-3 py-2 md:px-4">{content}</TableCell>
         </TableRow>
     );
-}
+});
 
 const MobileLineItemCard = React.memo(function MobileLineItemCard({ lineItem, isChecked, onToggle }: { lineItem: LineItemInterface; isChecked: boolean; onToggle: (lineItemId: string) => void }) {
     const amountStatus: 'success' | 'warning' = lineItem.amount < 0 ? 'success' : 'warning';
@@ -148,6 +162,8 @@ export default function LineItemsToReviewPage() {
     const [endDate, setEndDate] = useState("");
     const { lineItems, isPending, error, refetch } = useLineItems();
     const lineItemsDispatch = useLineItemsDispatch();
+    // Render one layout, not both hidden by CSS: each suggestion's category picker is costly to render.
+    const showTable = useMediaQuery("(min-width: 80rem)"); // Tailwind's xl breakpoint, in rem like the page's xl: classes
     const allLineItems = lineItems ?? [];
     const selectedLineItems = allLineItems.filter(lineItem => lineItem.isSelected);
     const total = selectedLineItems.reduce((prev, cur) => prev + cur.amount, 0);
@@ -170,9 +186,8 @@ export default function LineItemsToReviewPage() {
         });
     }, [allLineItems, endDate, paymentMethod, search, startDate]);
 
-    const hiddenSelectionCount = selectedLineItems.filter(
-        lineItem => !visibleLineItems.some(visibleLineItem => visibleLineItem.id === lineItem.id)
-    ).length;
+    const visibleIds = useMemo(() => new Set(visibleLineItems.map(lineItem => lineItem.id)), [visibleLineItems]);
+    const hiddenSelectionCount = selectedLineItems.filter(lineItem => !visibleIds.has(lineItem.id)).length;
 
     const handleToggle = useCallback((lineItemId: string) => {
         lineItemsDispatch({ type: "toggle_line_item_select", lineItemId });
@@ -283,53 +298,53 @@ export default function LineItemsToReviewPage() {
                     </div>
                 )}
 
-                {/* Mobile card layout */}
-                <div className="xl:hidden rounded-xl bg-white shadow-sm border overflow-hidden">
-                    {isPending ? (
-                        <div className="flex justify-center py-8">
-                            <Spinner size="md" className="text-muted-foreground" />
-                        </div>
-                    ) : error ? (
-                        <div className="p-4 text-center text-semantic-error">Unable to display review transactions.</div>
-                    ) : visibleLineItems.length > 0 ? (
-                        visibleLineItems.map(lineItem => (
-                            <div
-                                key={lineItem.id}
-                                className={lineItem.event_suggestion ? "m-2 overflow-hidden rounded-lg border border-primary/20 bg-muted/30" : undefined}
-                            >
-                                <MobileLineItemCard
-                                    lineItem={lineItem}
-                                    isChecked={!!lineItem.isSelected}
-                                    onToggle={handleToggle}
-                                />
-                                {lineItem.event_suggestion && (
-                                    <div className="border-t border-primary/15 px-3 py-2">
-                                        <EventSuggestionReview key={lineItem.event_suggestion.id} lineItem={lineItem} mobile />
-                                    </div>
-                                )}
+                {!showTable && (
+                    <div className="rounded-xl bg-white shadow-sm border overflow-hidden">
+                        {isPending ? (
+                            <div className="flex justify-center py-8">
+                                <Spinner size="md" className="text-muted-foreground" />
                             </div>
-                        ))
-                    ) : allLineItems.length > 0 && hasFilters ? (
-                        <div className="space-y-3 p-4 text-center text-muted-foreground">
-                            <p>No matching transactions</p>
-                            <Button type="button" variant="secondary" size="sm" onClick={() => {
-                                setSearch("");
-                                setPaymentMethod("All");
-                                setStartDate("");
-                                setEndDate("");
-                            }}>Clear filters</Button>
-                        </div>
-                    ) : allLineItems.length === 0 ? (
-                        <div className="p-4 text-center text-muted-foreground">All caught up</div>
-                    ) : (
-                        <div className="p-4 text-center text-muted-foreground">
-                            No matching transactions
-                        </div>
-                    )}
-                </div>
+                        ) : error ? (
+                            <div className="p-4 text-center text-semantic-error">Unable to display review transactions.</div>
+                        ) : visibleLineItems.length > 0 ? (
+                            visibleLineItems.map(lineItem => (
+                                <div
+                                    key={lineItem.id}
+                                    className={lineItem.event_suggestion ? "m-2 overflow-hidden rounded-lg border border-primary/20 bg-muted/30" : undefined}
+                                >
+                                    <MobileLineItemCard
+                                        lineItem={lineItem}
+                                        isChecked={!!lineItem.isSelected}
+                                        onToggle={handleToggle}
+                                    />
+                                    {lineItem.event_suggestion && (
+                                        <div className="border-t border-primary/15 px-3 py-2">
+                                            <EventSuggestionReview key={lineItem.event_suggestion.id} lineItemId={lineItem.id} description={lineItem.description} suggestion={lineItem.event_suggestion} mobile />
+                                        </div>
+                                    )}
+                                </div>
+                            ))
+                        ) : allLineItems.length > 0 && hasFilters ? (
+                            <div className="space-y-3 p-4 text-center text-muted-foreground">
+                                <p>No matching transactions</p>
+                                <Button type="button" variant="secondary" size="sm" onClick={() => {
+                                    setSearch("");
+                                    setPaymentMethod("All");
+                                    setStartDate("");
+                                    setEndDate("");
+                                }}>Clear filters</Button>
+                            </div>
+                        ) : allLineItems.length === 0 ? (
+                            <div className="p-4 text-center text-muted-foreground">All caught up</div>
+                        ) : (
+                            <div className="p-4 text-center text-muted-foreground">
+                                No matching transactions
+                            </div>
+                        )}
+                    </div>
+                )}
 
-                {/* Desktop table layout */}
-                <div className="hidden xl:block">
+                {showTable && (
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -363,7 +378,7 @@ export default function LineItemsToReviewPage() {
                                             hasAttachedContent={!!lineItem.event_suggestion}
                                         />
                                         {lineItem.event_suggestion && (
-                                            <EventSuggestionReview key={lineItem.event_suggestion.id} lineItem={lineItem} />
+                                            <EventSuggestionReview key={lineItem.event_suggestion.id} lineItemId={lineItem.id} description={lineItem.description} suggestion={lineItem.event_suggestion} />
                                         )}
                                     </React.Fragment>
                                 ))
@@ -384,7 +399,7 @@ export default function LineItemsToReviewPage() {
                             )}
                         </TableBody>
                     </Table>
-                </div>
+                )}
             </div>
 
             <CreateManualTransactionModal

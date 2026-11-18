@@ -7,10 +7,11 @@ a matching name-only hint still supplies a title without a category.
 
 from dataclasses import dataclass
 
-from sqlalchemy.orm import joinedload, selectinload
+from sqlalchemy import exists
+from sqlalchemy.orm import joinedload
 
 from helpers import default_name_cleanup
-from models.sql_models import Category, EventHint, EventSuggestion, LineItem
+from models.sql_models import Category, EventHint, EventLineItem, EventSuggestion, LineItem
 from utils.cel_evaluator import evaluate_hints
 from utils.stripe_category_mapping import ACCEPTED_CONFIDENCE_LEVELS, map_stripe_category
 
@@ -55,32 +56,29 @@ def resolve_event_prefill(db, user_id: str, line_item_ids: list[str]) -> dict | 
     requested_ids = list(dict.fromkeys(line_item_ids))
     if not requested_ids:
         return None
-    loaded_items = (
-        db.query(LineItem)
-        .options(joinedload(LineItem.transaction), joinedload(LineItem.payment_method), selectinload(LineItem.events))
+    # Flag reviewed and dismissed items in the same query; each extra round trip delays the modal.
+    is_reviewed = exists().where(EventLineItem.line_item_id == LineItem.id)
+    was_dismissed = exists().where(
+        EventSuggestion.line_item_id == LineItem.id,
+        EventSuggestion.user_id == user_id,
+        EventSuggestion.rejected_at.is_not(None),
+    )
+    rows = (
+        db.query(LineItem, is_reviewed.label("is_reviewed"), was_dismissed.label("was_dismissed"))
+        .options(joinedload(LineItem.transaction), joinedload(LineItem.payment_method))
         .filter(LineItem.id.in_(requested_ids))
         .all()
     )
-    items_by_id = {item.id: item for item in loaded_items}
+    items_by_id = {row.LineItem.id: row.LineItem for row in rows}
     if len(items_by_id) != len(requested_ids):
         return None
     # The user rejected a suggestion for one of these items, so don't offer it again in the modal.
-    has_dismissed_item = (
-        db.query(EventSuggestion.id)
-        .filter(
-            EventSuggestion.user_id == user_id,
-            EventSuggestion.line_item_id.in_(requested_ids),
-            EventSuggestion.rejected_at.is_not(None),
-        )
-        .first()
-    )
-    if has_dismissed_item:
+    if any(row.was_dismissed for row in rows):
         return None
     # Selection order decides the default title, matching the client's first-item fallback.
     items = [items_by_id[item_id] for item_id in requested_ids]
     # Reviewed items already have a category through their event, so Stripe shouldn't suggest another.
-    is_reviewed = any(item.events for item in items)
-    return suggest_prefill(load_prefill_rules(db, user_id), items, allow_stripe=not is_reviewed)
+    return suggest_prefill(load_prefill_rules(db, user_id), items, allow_stripe=not any(row.is_reviewed for row in rows))
 
 
 def suggest_prefill(rules: PrefillRules, items: list[LineItem], allow_stripe: bool = True) -> dict | None:
